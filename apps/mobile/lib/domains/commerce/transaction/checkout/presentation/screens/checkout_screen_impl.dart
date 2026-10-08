@@ -10,8 +10,11 @@
 /// 5. Review order details with preview pricing
 /// 6. Click "Buat Pesanan" (Create Order) or "Amankan Kemenangan" (Secure Victory)
 /// 7. Create order via API with product_id+source_type+source_id (+ negotiation_id or auction_id)
-/// 8. Present payment URL inside Labuda's internal WebView (PaymentWebviewScreen)
-///    External-browser payment navigation is obsolete and must not be reintroduced.
+/// 8. Navigate to the canonical Order Detail surface.
+///
+/// Checkout owns ORDER CREATION ONLY. It never initiates a payment: the created
+/// order (`pending_payment`) is payable from Order Detail's canonical
+/// "Bayar Sekarang" action, which is also the recovery surface.
 ///
 /// **IMPORTANT:** Pricing is sourced from backend preview API, NOT from forSale.price
 ///
@@ -26,8 +29,6 @@
 ///   - Button text: "Amankan Kemenangan" instead of "Buat Pesanan"
 ///   - Messages framed as "claiming victory" not "making purchase"
 ///   - Error messages use winner-specific language
-///
-/// **CV2:** returnToChat enables seamless navigation back to chat after checkout
 ///
 /// **TOKEN EXPIRY:**
 /// - Pricing tokens have limited lifetime (typically 10 minutes)
@@ -55,6 +56,7 @@ import 'package:labuda/domains/finance/wallet/coins/coins.dart';
 import 'package:labuda/domains/commerce/pricing/discount/domain/entities/discount_entity.dart';
 import 'package:labuda/domains/commerce/pricing/discount/presentation/widgets/discount_input_field.dart';
 import 'package:labuda/domains/chat/chat/presentation/utils/commerce_chat_navigation.dart';
+import 'package:labuda/domains/chat/chat/presentation/models/pending_commerce_attachment.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/domain/entities/for_sale.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/presentation/providers/for_sale_providers.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
@@ -64,11 +66,9 @@ import 'package:labuda/shared/domain/entities/resource_projection.dart';
 import 'package:labuda/shared/shared.dart';
 import 'package:labuda/domains/finance/transaction/payment/presentation/presentation.dart'
     show
-        InitiatePaymentRequest,
-        paymentInitiationProvider,
         paymentRepositoryProvider,
-        PaymentMethodPickerSheet,
-        PaymentMethodOption;
+        PreOrderPaymentMethodOption,
+        PreOrderPaymentPricing;
 import 'package:labuda/domains/user/profile/domain/entities/address_entity.dart';
 import 'package:labuda/domains/user/profile/presentation/providers/address_providers.dart';
 import 'package:labuda/domains/user/profile/presentation/providers/notifiers/address_notifier.dart';
@@ -83,9 +83,18 @@ part '../widgets/checkout_notes_section.dart';
 part '../widgets/checkout_action_bar.dart';
 part '../widgets/checkout_coin_section.dart';
 part '../widgets/checkout_discount_section.dart';
+part '../widgets/checkout_payment_method_section.dart';
 part '../widgets/checkout_warning_banners.dart';
 part '../widgets/checkout_shipping_section.dart';
 part 'checkout_screen_logic.dart';
+
+/// Composer draft carried by the ONE Chat entry point that already knows the
+/// buyer is opening Chat because normal shipping is unavailable for this
+/// destination: the Checkout uncovered-shipping shortcut. It asks about
+/// shipping and is PRE-FILLED into the textarea (never auto-sent). No other
+/// Chat entry supplies a draft.
+const kCheckoutUncoveredShippingDraft =
+    'Halo, apakah bisa dibantu ongkir untuk produk ini ke alamat saya?';
 
 /// Checkout Screen
 ///
@@ -95,8 +104,6 @@ part 'checkout_screen_logic.dart';
 /// **CANONICAL PRICING FLOW:**
 /// All pricing comes from backend preview API with pricing token.
 /// Private agreement pricing is validated by backend - frontend cannot inject price.
-///
-/// **CV2:** returnToChat enables seamless navigation back to chat after successful checkout
 class CheckoutScreen extends ConsumerStatefulWidget {
   final String? productId;
   final String forSaleId;
@@ -111,9 +118,10 @@ class CheckoutScreen extends ConsumerStatefulWidget {
   /// When provided, the checkout will use the seller's quoted shipping price
   final String? shippingQuoteId;
 
-  /// **CV2:** Chat ID to return to after successful order completion
-  /// When set, the "Back to Chat" navigation will be available
-  final String? returnToChat;
+  /// Conversation (chat room) the checkout was initiated from. Required when
+  /// shippingQuoteId is set — the quote is scoped to the conversation that
+  /// produced it and the backend rejects checkout from any other conversation.
+  final String? chatId;
 
   const CheckoutScreen({
     super.key,
@@ -122,7 +130,7 @@ class CheckoutScreen extends ConsumerStatefulWidget {
     this.negotiationId,
     this.auctionId,
     this.shippingQuoteId,
-    this.returnToChat,
+    this.chatId,
   });
 
   @override
@@ -192,10 +200,17 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   // Immediate submit lock - set synchronously to prevent double-tap
   bool _isSubmitting = false;
 
-  // Token expiry tracking
-  DateTime? _previewTokenCreatedAt;
+  // CANONICAL PRE-ORDER PAYMENT STATE (Phase 2).
+  //
+  // One selection authority for the whole screen: the pre-order pricing (with
+  // every method's backend-computed fee + FINAL payable) and the selected
+  // method code. The picker/list is only a consumer/editor of this state.
+  PreOrderPaymentPricing? _preOrderPricing;
+  String? _selectedPaymentMethodCode;
+  bool _isLoadingPaymentMethods = false;
+  String? _paymentMethodsError;
+
   Timer? _expiryCountdownTimer;
-  static const Duration _tokenValidityDuration = Duration(minutes: 10);
 
   @override
   void initState() {
@@ -239,6 +254,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       sourceType: isAuction ? 'auction' : 'for_sale',
       sourceId: isAuction ? widget.auctionId! : widget.forSaleId,
       shippingQuoteId: widget.shippingQuoteId,
+      // Conversation scope carried from the chat that produced the quote.
+      chatId: widget.chatId,
       // Order-owned PreviewOrderParams field stays `shippingSetupId`; Checkout
       // only supplies its own `_selectedShippingOptionId` value into it.
       shippingSetupId: _isShippingQuoteCheckout
@@ -263,6 +280,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       params.addressId ?? '',
       params.shippingSetupId ?? '',
       params.shippingQuoteId ?? '',
+      params.chatId ?? '',
       params.negotiationId ?? '',
       params.discountCode ?? '',
     ].join('|');
@@ -293,6 +311,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       hasPricingToken: (_previewResult?.pricingToken ?? '').isNotEmpty,
       isLoadingPreview: _isFetchingPreview,
       hasPreviewError: _previewError != null,
+      isLoadingPaymentMethods: _isLoadingPaymentMethods,
+      hasPaymentMethodsError: _paymentMethodsError != null,
+      hasSelectedPaymentMethod: _selectedPaymentMethodCode != null,
     ),
   );
 
@@ -407,8 +428,10 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
             setState(() {
               _coinBalance = balance;
             });
-            // Refetch preview when coin balance changes
-            _schedulePreview();
+            // Coin balance affects the redeemable K, which changes the cash
+            // base the payment fee is computed on — reload the pre-order
+            // pricing. It does not change the product/shipping preview.
+            _loadPreOrderPaymentMethods();
           }
         },
         orElse: () {},
@@ -425,7 +448,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         appBar: AppBar(
           title: const Text('Checkout'),
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
+            icon: const Icon(Icons.arrow_back, semanticLabel: 'Kembali'),
             onPressed: () => Navigator.of(context).pop(),
           ),
         ),
@@ -456,9 +479,10 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                 forSaleId: widget.forSaleId,
                 previewResult: displayPreview,
                 readiness: readiness,
-                remainingTime: _getTokenRemainingTime(),
                 onRefreshPricing: () => _fetchPreview(isManualRefresh: true),
                 isAuctionCheckout: _isAuctionWinner,
+                preOrderPricing: _hasFreshPreview ? _preOrderPricing : null,
+                selectedMethodCode: _selectedPaymentMethodCode,
               ),
 
               const SizedBox(height: 24),
@@ -500,6 +524,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                 coinBalance: _coinBalance,
                 onToggle: (value) {
                   setState(() => _useCoins = value);
+                  // Coin intent changes the cash base, so the backend-computed
+                  // fee and final total must be recomputed. No local arithmetic.
+                  _loadPreOrderPaymentMethods();
                 },
               ),
 
@@ -521,12 +548,27 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                   appliedDiscount: _appliedDiscount,
                 ),
 
+              // CANONICAL PRE-ORDER PAYMENT METHOD SELECTION (Phase 2).
+              // The buyer chooses a method and sees its backend-computed fee +
+              // FINAL total BEFORE "Buat Pesanan". This is the single selection
+              // authority; the summary and CTA read the same state.
+              if (displayPreview != null)
+                _PaymentMethodSection(
+                  pricing: _preOrderPricing,
+                  selectedMethodCode: _selectedPaymentMethodCode,
+                  isLoading: _isLoadingPaymentMethods,
+                  error: _paymentMethodsError,
+                  onSelected: (code) {
+                    setState(() => _selectedPaymentMethodCode = code);
+                  },
+                  onRetry: _loadPreOrderPaymentMethods,
+                ),
+              if (displayPreview != null) const SizedBox(height: 24),
+
               // Notes Section — carried to POST /orders (order input), never to
               // the pricing preview, so editing notes must not invalidate the
               // current preview.
               _NotesSection(notesController: _notesController),
-
-              const SizedBox(height: 100), // Space for bottom bar
             ],
           ),
         ),
@@ -535,7 +577,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
           isSubmitting: _isSubmitting,
           isReady: isPricingAvailable,
           disabledReason: readiness.message,
-          previewResult: displayPreview,
+          finalPayableAmount: _selectedPaymentOption?.finalPayableAmount,
           onCreateOrder: _handleCreateOrder,
           isAuctionWinner: _isAuctionWinner,
         ),
@@ -666,34 +708,43 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   Future<void> _fetchPreview({bool isManualRefresh = false}) =>
       _checkoutFetchPreview(this, isManualRefresh: isManualRefresh);
 
+  Future<void> _loadPreOrderPaymentMethods() =>
+      _checkoutLoadPreOrderPaymentMethods(this);
+
+  /// The selected method's option, from the canonical pre-order pricing.
+  ///
+  /// Gated on a CURRENT preview: a method list (and its final total) computed
+  /// for a different/stale input set must never be displayed or submitted.
+  PreOrderPaymentMethodOption? get _selectedPaymentOption =>
+      _hasFreshPreview && !_isLoadingPaymentMethods
+      ? _preOrderPricing?.optionFor(_selectedPaymentMethodCode)
+      : null;
+
   /// Starts the countdown timer for token expiry
   ///
   /// Also handles auto-refresh when token is near expiry to prevent
   /// disruption during checkout flow.
   void _startExpiryCountdown() {
     _expiryCountdownTimer?.cancel();
-    _expiryCountdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (_previewTokenCreatedAt == null) {
+    // Token expiry authority is the SERVER `expires_at`, never a client
+    // created_at + fixed-duration guess. A 30s tick is enough to drive
+    // auto-regeneration and the (optional) countdown without rebuilding the
+    // whole screen every second.
+    _expiryCountdownTimer = Timer.periodic(const Duration(seconds: 30), (
+      timer,
+    ) {
+      if (_previewResult?.expiresAt == null) {
         timer.cancel();
         return;
       }
 
-      final expiryTime = _previewTokenCreatedAt!.add(_tokenValidityDuration);
-      if (DateTime.now().isAfter(expiryTime)) {
-        timer.cancel();
-        if (mounted) {
-          setState(() {
-            // Token expired - will be reflected in UI
-          });
-        }
-      } else if (mounted) {
+      if (mounted) {
         setState(() {
-          // Update countdown UI
+          // Refresh countdown/expiry projection.
         });
 
-        // AUTO REFRESH: Silent refresh when token is near expiry
-        // Only refresh if not currently submitting to avoid disruption
-        // Only trigger once per near-expiry cycle to avoid spam
+        // AUTO REGENERATION: silently re-preview when the token is near expiry.
+        // Only once per near-expiry cycle, and never during submission.
         if (isTokenNearExpiry &&
             !_isSubmitting &&
             !_isFetchingPreview &&
@@ -705,12 +756,11 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     });
   }
 
-  /// Checks if the current pricing token is expired
+  /// Checks if the current pricing token is expired (server `expires_at`).
   bool _isTokenExpired() {
-    if (_previewTokenCreatedAt == null) return true;
-    return DateTime.now().isAfter(
-      _previewTokenCreatedAt!.add(_tokenValidityDuration),
-    );
+    final expiresAt = _previewResult?.expiresAt;
+    if (expiresAt == null) return true;
+    return DateTime.now().isAfter(expiresAt);
   }
 
   /// Checks if the pricing token is near expiry (less than 2 minutes remaining)
@@ -749,12 +799,12 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     _schedulePreview();
   }
 
-  /// Gets remaining time until token expiry
+  /// Gets remaining time until token expiry (server `expires_at`).
   Duration? _getTokenRemainingTime() {
-    if (_previewTokenCreatedAt == null) return null;
-    final expiryTime = _previewTokenCreatedAt!.add(_tokenValidityDuration);
-    if (DateTime.now().isAfter(expiryTime)) return Duration.zero;
-    return expiryTime.difference(DateTime.now());
+    final expiresAt = _previewResult?.expiresAt;
+    if (expiresAt == null) return null;
+    if (DateTime.now().isAfter(expiresAt)) return Duration.zero;
+    return expiresAt.difference(DateTime.now());
   }
 
   @override
@@ -860,8 +910,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                   Expanded(
                     child: Text(
                       CheckoutHonestyMessages.firstComeFirstServedExplanation,
-                      style: TextStyle(
-                        fontSize: AppType.s12,
+                      style: context.typeRoles.bodyDense.copyWith(
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                         fontStyle: FontStyle.italic,
                       ),
@@ -946,15 +995,17 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   /// Checkout is PRE-ORDER at this point, so `openOrderCommerceChat` (which
   /// links an order into the room) does not apply. The canonical pre-order
   /// authority is the Chat domain's `openCommerceChat`: it resolves/creates the
-  /// room, carries this forSale as a pending product reference so the seller
-  /// knows what the buyer is asking about, enforces the guest boundary and the
-  /// self-chat guard, and navigates to the canonical `/chat/<room-id>` route.
+  /// room, carries this forSale as the canonical pending product attachment
+  /// (sent only through the composer send icon) so the seller knows what the
+  /// buyer is asking about, enforces the guest boundary and the self-chat
+  /// guard, and navigates to the canonical `/chat/<room-id>` route.
   ///
   /// Checkout MUST NOT resolve chat rooms or build chat routes itself: it owns
   /// no chat authority. The only checkout-owned concern is the failure copy on
   /// THIS surface, so the CTA never becomes a lying affordance.
   Future<void> _openChatWithSeller() async {
-    final forSale = ref         .read(forSaleDetailProvider(widget.forSaleId))
+    final forSale = ref
+        .read(forSaleDetailProvider(widget.forSaleId))
         .asData
         ?.value;
     final sellerId = forSale?.sellerId ?? _previewResult?.sellerId;
@@ -969,17 +1020,20 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     await openCommerceChat(
       context: context,
       ref: ref,
-      reference: ShareReference.forSale(
+      attachment: PendingCommerceAttachment.forSale(
         forSaleId: forSale.forSaleId,
         title: forSale.title,
         imageUrl: forSale.media.isNotEmpty
             ? (forSale.media.first.thumbnailUrl ??
                   forSale.media.first.originalUrl)
             : null,
-        isAvailable: forSale.isAvailable,
-        isSold: forSale.stock == 0,
+        price: forSale.price.toInt(),
       ),
       sellerId: sellerId,
+      // This entry point alone knows WHY the buyer is opening Chat (normal
+      // shipping is unavailable for this destination), so it is the only one
+      // allowed to pre-fill the shipping question. It is a draft, not a send.
+      draftMessage: kCheckoutUncoveredShippingDraft,
       onFailure: (error) {
         if (!mounted) return;
         AppSnackBar.showError(

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:labuda/core/core.dart';
-import 'package:labuda/shared/shared.dart';
 
 /// Content type for more options menu
 enum PopupMoreOptionsContentType { content, profile, forSale, auction }
@@ -19,17 +18,12 @@ class PopupMoreOptionsButton extends StatelessWidget {
   final VoidCallback? onHide;
   final VoidCallback? onDelete;
   final VoidCallback? onEdit;
-  final Function(String, String?)?
-  onStatusChanged; // Legacy content status change hook
-  final VoidCallback?
-  onToggleStatus; // Deprecated - kept for backward compatibility
   final VoidCallback? onCancel; // For auction cancellation
   final VoidCallback? onShare; // For profile share
   final VoidCallback? onBlock; // For profile block
   final bool isDeleting;
   final bool isCreator;
   final PopupMoreOptionsContentType contentType;
-  final String? currentStatus; // For content status display
   final Color? iconColor;
   final double iconSize;
 
@@ -39,17 +33,14 @@ class PopupMoreOptionsButton extends StatelessWidget {
     this.onHide,
     this.onDelete,
     this.onEdit,
-    this.onStatusChanged,
-    this.onToggleStatus,
     this.onCancel,
     this.onShare,
     this.onBlock,
     this.isDeleting = false,
     this.isCreator = false,
     this.contentType = PopupMoreOptionsContentType.content,
-    this.currentStatus,
     this.iconColor,
-    this.iconSize = 20,
+    this.iconSize = AppIconSize.action,
   });
 
   @override
@@ -109,25 +100,28 @@ class PopupMoreOptionsButton extends StatelessWidget {
         );
       }
 
-      // Report user option
-      items.add(
-        PopupMenuItem<String>(
-          value: 'report',
-          child: Row(
-            children: [
-              const Icon(Icons.report_outlined, size: AppIconSize.action),
-              const SizedBox(width: 12),
-              const Text('Report User'),
-            ],
+      // Report user option — only when the action is actually provided; a
+      // visible-but-dead item that can only toast "coming soon" is a bug.
+      if (onReport != null) {
+        items.add(
+          PopupMenuItem<String>(
+            value: 'report',
+            child: Row(
+              children: [
+                const Icon(Icons.report_outlined, size: AppIconSize.action),
+                const SizedBox(width: 12),
+                const Text('Report User'),
+              ],
+            ),
           ),
-        ),
-      );
+        );
+      }
 
       return items; // Return early for profile, no need for other options
     }
 
-    // Report option (only for non-creators)
-    if (!isCreator) {
+    // Report option (only for non-creators, and only when provided).
+    if (!isCreator && onReport != null) {
       items.add(
         PopupMenuItem<String>(
           value: 'report',
@@ -231,34 +225,20 @@ class PopupMoreOptionsButton extends StatelessWidget {
   }
 
   void _handleMenuSelection(BuildContext context, String value) {
+    // Every item is only rendered when its callback exists, so selection is a
+    // direct dispatch — there is no "action unavailable" fallback to toast.
     switch (value) {
       case 'share':
-        if (onShare != null) {
-          onShare!();
-        } else {
-          AppSnackBar.showInfo(context, 'Share not available for this content');
-        }
+        onShare?.call();
         break;
       case 'block':
-        if (onBlock != null) {
-          onBlock!();
-        } else {
-          AppSnackBar.showWarning(context, 'Block feature not available');
-        }
+        onBlock?.call();
         break;
       case 'report':
-        if (onReport != null) {
-          onReport!();
-        } else {
-          AppSnackBar.showWarning(context, 'Fitur laporan segera hadir');
-        }
+        onReport?.call();
         break;
       case 'edit':
-        if (onEdit != null) {
-          onEdit!();
-        } else {
-          AppSnackBar.showInfo(context, 'Fitur edit segera hadir');
-        }
+        onEdit?.call();
         break;
       case 'delete':
         onDelete?.call();

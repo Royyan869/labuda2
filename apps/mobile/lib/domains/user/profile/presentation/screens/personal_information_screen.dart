@@ -120,7 +120,7 @@ class _PersonalInformationScreenState
 
     if (_isPhoneVerified) {
       if (mounted) {
-        AppSnackBar.showSuccess(context, 'Phone number already verified!');
+        AppSnackBar.showSuccess(context, 'Nomor telepon sudah terverifikasi');
       }
       return;
     }
@@ -128,7 +128,7 @@ class _PersonalInformationScreenState
     final cleanedPhone = phoneNumber.replaceAll(RegExp(r'[\s-]'), '');
     if (!CanonicalPhoneValidator.isValid(cleanedPhone)) {
       if (mounted) {
-        AppSnackBar.showError(context, 'Invalid phone number format');
+        AppSnackBar.showError(context, 'Format nomor telepon tidak valid');
       }
       return;
     }
@@ -145,7 +145,7 @@ class _PersonalInformationScreenState
         if (mounted) {
           AppSnackBar.showSuccess(
             context,
-            'Phone number verified successfully!',
+            'Nomor telepon berhasil diverifikasi',
           );
         }
       },
@@ -172,6 +172,10 @@ class _PersonalInformationScreenState
         throw Exception('User not authenticated');
       }
 
+      // SUBMISSION SNAPSHOT: read the phone value BEFORE the DOB save await so
+      // editing the phone field mid-flow cannot change the phone that is sent.
+      final phoneValue = _phoneController.text.trim();
+
       // Save Date of Birth (if changed)
       if (_selectedDateOfBirth != authState.user.dateOfBirth) {
         final authController = ref.read(authControllerProvider.notifier);
@@ -185,14 +189,13 @@ class _PersonalInformationScreenState
       }
 
       // Save Phone (if changed)
-      final phoneValue = _phoneController.text.trim();
       if (phoneValue.isNotEmpty && phoneValue != authState.user.phoneNumber) {
         // Stage 4D: the save path must respect the canonical phone format
         // authority just like the verify path does. Reject invalid formats
         // before they reach the backend instead of persisting garbage.
         if (!CanonicalPhoneValidator.isValid(phoneValue)) {
           if (mounted) {
-            AppSnackBar.showError(context, 'Invalid phone number format');
+            AppSnackBar.showError(context, 'Format nomor telepon tidak valid');
           }
           return;
         }
@@ -231,51 +234,57 @@ class _PersonalInformationScreenState
 
     return Scaffold(
       appBar: AppBarCustom(title: 'Personal Information'),
-      body: ProfileStateView(
-        isLoading: _controller.isLoading,
-        error: _controller.errorMessage,
-        success: _controller.successMessage,
-        onErrorDismiss: _controller.clearError,
-        onSuccessDismiss: _controller.clearSuccess,
-        content: Form(
-          key: _formKey,
-          child: ListView(
-            padding: const EdgeInsets.all(AppMetrics.p16),
-            children: [
-              // Contact Information Section
-              PersonalInformationSection(
-                dateOfBirth: _selectedDateOfBirth,
-                onSelectDateOfBirth: _selectDateOfBirth,
-                email: authState is AuthStateAuthenticated
-                    ? authState.user.email
-                    : '',
-                emailVerified: _isEmailVerified,
-                phoneController: _phoneController,
-                phoneVerified: _isPhoneVerified,
-                phoneVerifiedAt: _phoneVerifiedAt,
-                onVerifyPhone: _verifyPhone,
-              ),
-              const SizedBox(height: 24),
+      // Canonical body-level bottom-inset authority (same pattern as the
+      // create-product twins): consumes the live system bottom inset exactly
+      // once for the whole body — the ListView's explicit padding below does
+      // NOT consume it.
+      body: SafeArea(
+        child: ProfileStateView(
+          isLoading: _controller.isLoading,
+          error: _controller.errorMessage,
+          success: _controller.successMessage,
+          onErrorDismiss: _controller.clearError,
+          onSuccessDismiss: _controller.clearSuccess,
+          content: Form(
+            key: _formKey,
+            child: ListView(
+              padding: const EdgeInsets.all(AppMetrics.p16),
+              children: [
+                // Contact Information Section
+                PersonalInformationSection(
+                  dateOfBirth: _selectedDateOfBirth,
+                  onSelectDateOfBirth: _selectDateOfBirth,
+                  email: authState is AuthStateAuthenticated
+                      ? authState.user.email
+                      : '',
+                  emailVerified: _isEmailVerified,
+                  phoneController: _phoneController,
+                  phoneVerified: _isPhoneVerified,
+                  phoneVerifiedAt: _phoneVerifiedAt,
+                  onVerifyPhone: _verifyPhone,
+                ),
+                const SizedBox(height: 24),
 
-              // Save Button
-              ElevatedButton(
-                onPressed: _controller.isLoading
-                    ? null
-                    : _savePersonalInformation,
-                child: _controller.isLoading
-                    ? SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation(
-                            Theme.of(context).colorScheme.onPrimary,
+                // Save Button
+                ElevatedButton(
+                  onPressed: _controller.isLoading
+                      ? null
+                      : _savePersonalInformation,
+                  child: _controller.isLoading
+                      ? SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation(
+                              Theme.of(context).colorScheme.onPrimary,
+                            ),
                           ),
-                        ),
-                      )
-                    : const Text('Save Changes'),
-              ),
-            ],
+                        )
+                      : const Text('Save Changes'),
+                ),
+              ],
+            ),
           ),
         ),
       ),

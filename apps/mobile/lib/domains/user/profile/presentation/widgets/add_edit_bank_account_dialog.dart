@@ -118,8 +118,7 @@ class _AddEditBankAccountDialogState
                   Expanded(
                     child: Text(
                       isEdit ? 'Edit Bank Account' : 'Add Bank Account',
-                      style: TextStyle(
-                        fontSize: AppType.s20,
+                      style: context.typeRoles.titleSection.copyWith(
                         fontWeight: FontWeight.bold,
                         color: scheme.onSurface,
                       ),
@@ -127,10 +126,7 @@ class _AddEditBankAccountDialogState
                   ),
                   IconButton(
                     onPressed: () => Navigator.pop(context),
-                    icon: Icon(
-                      Icons.close,
-                      color: scheme.onSurfaceVariant,
-                    ),
+                    icon: Icon(Icons.close, color: scheme.onSurfaceVariant, semanticLabel: 'Tutup'),
                   ),
                 ],
               ),
@@ -231,9 +227,7 @@ class _AddEditBankAccountDialogState
                                 ),
                               ),
                             )
-                          : Text(
-                              isEdit ? 'Update' : 'Add Account',
-                            ),
+                          : Text(isEdit ? 'Update' : 'Add Account'),
                     ),
                   ),
                 ],
@@ -248,8 +242,7 @@ class _AddEditBankAccountDialogState
   Widget _buildLabel(BuildContext context, String text) {
     return Text(
       text,
-      style: TextStyle(
-        fontSize: AppType.s14,
+      style: context.typeRoles.bodyDense.copyWith(
         fontWeight: FontWeight.w600,
         color: Theme.of(context).colorScheme.onSurface,
       ),
@@ -260,34 +253,16 @@ class _AddEditBankAccountDialogState
     final scheme = Theme.of(context).colorScheme;
     return DropdownButtonFormField<String>(
       initialValue: _selectedBankCode,
-      decoration: InputDecoration(
-        hintText: 'Select bank',
-        filled: true,
-        fillColor: scheme.surfaceContainerHighest,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppShape.r12),
-          borderSide: BorderSide(color: scheme.outlineVariant),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppShape.r12),
-          borderSide: BorderSide(color: scheme.outlineVariant),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppShape.r12),
-          borderSide: BorderSide(color: scheme.primary, width: 2),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppShape.r12),
-          borderSide: BorderSide(color: scheme.error),
-        ),
-      ),
+      // Border/fill/geometry come from `inputDecorationTheme` (AppTheme) —
+      // the one form-field authority (fill = surfaceContainerHigh).
+      decoration: const InputDecoration(hintText: 'Select bank'),
       dropdownColor: scheme.surfaceContainerHigh,
       items: _indonesianBanks.map((bank) {
         return DropdownMenuItem(
           value: bank.code,
           child: Row(
             children: [
-              Text(bank.icon, style: const TextStyle(fontSize: AppType.s20)),
+              Text(bank.icon, style: context.typeRoles.titleSection),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
@@ -355,7 +330,7 @@ class _AddEditBankAccountDialogState
             : 'Bank account updated successfully',
       );
     } else {
-      AppSnackBar.showError(context, result.error ?? 'Failed to save account');
+      AppSnackBar.showError(context, result.error ?? 'Gagal menyimpan rekening');
     }
 
     setState(() => _isLoading = false);

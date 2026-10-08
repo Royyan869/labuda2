@@ -6,6 +6,7 @@ import 'package:labuda/core/core.dart';
 import 'package:wechat_assets_picker/wechat_assets_picker.dart';
 import 'package:labuda/shared/ui/src/helpers/media_picker_helper.dart';
 import 'package:labuda/shared/ui/src/screens/custom_camera_screen.dart';
+import 'package:labuda/shared/widgets/app_bottom_sheet_actions.dart';
 import 'package:labuda/shared/widgets/app_snackbar.dart';
 import 'package:labuda/core/services/blurhash_cache_service.dart';
 import 'media_upload_config.dart';
@@ -301,67 +302,55 @@ class MediaUploadOrchestrator {
   }) {
     final orchestrator = MediaUploadOrchestrator(config: config);
     final outer = context;
-    showModalBottomSheet(
+
+    // Canonical action sheet — the ONE attachment source menu.
+    void dismiss() => Navigator.of(outer).pop();
+
+    AppBottomSheetActions.showActions<void>(
       context: outer,
-      backgroundColor: Colors.transparent,
-      builder: (sheetCtx) => Container(
-        decoration: BoxDecoration(
-          color: Theme.of(sheetCtx).scaffoldBackgroundColor,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(AppShape.r20)),
+      showCancel: false,
+      actions: [
+        BottomSheetAction<void>(
+          title: 'Galeri',
+          subtitle: config.videoAllowed ? 'Foto & video' : 'Foto',
+          icon: Icons.photo_library,
+          onPressed: () async {
+            dismiss();
+            final files = await orchestrator.pickLocalFiles(
+              context: outer,
+              current: current,
+            );
+            if (!outer.mounted || files.isEmpty) return;
+            await onPicked(files);
+          },
         ),
-        padding: const EdgeInsets.all(AppMetrics.p24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _sheetOption(
-              context: sheetCtx,
-              icon: Icons.photo_library,
-              label: 'Galeri',
-              subtitle: config.videoAllowed ? 'Foto & video' : 'Foto',
-              onTap: () async {
-                Navigator.pop(sheetCtx);
-                final files = await orchestrator.pickLocalFiles(
-                  context: outer,
-                  current: current,
-                );
-                if (!outer.mounted || files.isEmpty) return;
-                await onPicked(files);
-              },
-            ),
-            _sheetOption(
-              context: sheetCtx,
-              icon: Icons.camera_alt,
-              label: 'Kamera',
-              subtitle: config.videoAllowed
-                  ? 'Ambil foto atau video baru'
-                  : 'Ambil foto baru',
-              onTap: () async {
-                Navigator.pop(sheetCtx);
-                final files = await orchestrator.openCameraLocal(
-                  context: outer,
-                  current: current,
-                );
-                if (!outer.mounted || files.isEmpty) return;
-                await onPicked(files);
-              },
-            ),
-            if (extraActions.isNotEmpty) ...[
-              const Divider(),
-              for (final action in extraActions)
-                _sheetOption(
-                  context: sheetCtx,
-                  icon: action.icon,
-                  label: action.label,
-                  subtitle: action.subtitle,
-                  onTap: () {
-                    Navigator.pop(sheetCtx);
-                    action.onTap();
-                  },
-                ),
-            ],
-          ],
+        BottomSheetAction<void>(
+          title: 'Kamera',
+          subtitle: config.videoAllowed
+              ? 'Ambil foto atau video baru'
+              : 'Ambil foto baru',
+          icon: Icons.camera_alt,
+          onPressed: () async {
+            dismiss();
+            final files = await orchestrator.openCameraLocal(
+              context: outer,
+              current: current,
+            );
+            if (!outer.mounted || files.isEmpty) return;
+            await onPicked(files);
+          },
         ),
-      ),
+        for (final action in extraActions)
+          BottomSheetAction<void>(
+            title: action.label,
+            subtitle: action.subtitle,
+            icon: action.icon,
+            onPressed: () {
+              dismiss();
+              action.onTap();
+            },
+          ),
+      ],
     );
   }
 
@@ -403,8 +392,9 @@ class MediaUploadOrchestrator {
     try {
       urls = await orchestrator.uploadFiles(context: context, files: files);
     } catch (e) {
+      debugPrint('MediaUploadOrchestrator: upload failed - $e');
       if (context.mounted) {
-        AppSnackBar.showError(context, 'Upload gagal: $e');
+        AppSnackBar.showError(context, 'Upload gagal. Coba lagi.');
       }
     } finally {
       if (context.mounted && Navigator.of(context).canPop()) {
@@ -582,20 +572,6 @@ class MediaUploadOrchestrator {
     AppSnackBar.showError(context, msg, duration: const Duration(seconds: 4));
   }
 
-  static Widget _sheetOption({
-    required BuildContext context,
-    required IconData icon,
-    required String label,
-    String? subtitle,
-    required VoidCallback onTap,
-  }) {
-    return ListTile(
-      leading: Icon(icon, color: Theme.of(context).colorScheme.primary),
-      title: Text(label),
-      subtitle: subtitle == null ? null : Text(subtitle),
-      onTap: onTap,
-    );
-  }
 }
 
 class _ProgressDialog extends StatelessWidget {

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
+import 'package:labuda/shared/widgets/app_dialog.dart';
 
 /// Helper class for Seller Wizard validation and dialogs
 /// Extracted from SellerUpgradeWizardScreen to reduce complexity
@@ -13,28 +13,14 @@ class SellerWizardHelpers {
       return true; // No changes, allow pop
     }
 
-    final result = await showDialog<bool>(
+    return AppDialog.confirm(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Cancel Registration?'),
-        content: const Text(
-          'You have unsaved changes. Are you sure you want to exit?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Continue Filling'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: ElevatedButton.styleFrom(backgroundColor: context.statusColors.error),
-            child: const Text('Exit'),
-          ),
-        ],
-      ),
+      title: 'Cancel Registration?',
+      message: 'You have unsaved changes. Are you sure you want to exit?',
+      confirmLabel: 'Exit',
+      cancelLabel: 'Continue Filling',
+      intent: AppDialogIntent.destructive,
     );
-
-    return result ?? false;
   }
 
   /// Check if Step 1 (Account Prerequisites) is valid.
@@ -47,11 +33,11 @@ class SellerWizardHelpers {
   static bool isAccountStepValid({
     required String username,
     required String phoneNumber,
-    required String senderAddress,
+    required String primaryAddress,
   }) {
     return username.isNotEmpty &&
         phoneNumber.isNotEmpty &&
-        senderAddress.isNotEmpty;
+        primaryAddress.isNotEmpty;
   }
 
   /// Check if Step 2 (Store Info) is valid

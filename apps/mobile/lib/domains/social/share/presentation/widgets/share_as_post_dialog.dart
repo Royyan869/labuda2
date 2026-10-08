@@ -77,7 +77,7 @@ class _ShareAsPostDialogState extends ConsumerState<ShareAsPostDialog> {
                     ),
                   ),
                   IconButton(
-                    icon: Icon(Icons.close, color: textColor),
+                    icon: Icon(Icons.close, color: textColor, semanticLabel: 'Tutup'),
                     onPressed: () => Navigator.pop(context),
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
@@ -122,6 +122,9 @@ class _ShareAsPostDialogState extends ConsumerState<ShareAsPostDialog> {
                             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                               color: textColor,
                             ),
+                            // Border/fill/geometry come from
+                            // `inputDecorationTheme` (AppTheme) — the one
+                            // form-field authority.
                             decoration: InputDecoration(
                               hintText: widget.isRepost
                                   ? 'Add your thoughts...'
@@ -129,22 +132,6 @@ class _ShareAsPostDialogState extends ConsumerState<ShareAsPostDialog> {
                               hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                 color: scheme.onSurfaceVariant,
                               ),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(AppShape.r12),
-                                borderSide: BorderSide(color: borderColor),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(AppShape.r12),
-                                borderSide: BorderSide(color: borderColor),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(AppShape.r12),
-                                borderSide: BorderSide(
-                                  color: scheme.primary,
-                                  width: 2,
-                                ),
-                              ),
-                              contentPadding: const EdgeInsets.all(AppMetrics.p16),
                             ),
                           ),
                         ],
@@ -222,11 +209,7 @@ class _ShareAsPostDialogState extends ConsumerState<ShareAsPostDialog> {
 
     if (userId == null) {
       if (mounted) {
-        AppSnackBar.showError(
-          context,
-          'You must login first',
-          duration: const Duration(seconds: 4),
-        );
+        ref.read(navigationHandlerProvider).navigateToSignIn();
       }
       return;
     }
@@ -259,7 +242,7 @@ class _ShareAsPostDialogState extends ConsumerState<ShareAsPostDialog> {
         // Show success message
         AppSnackBar.showSuccess(
           context,
-          'Successfully shared to feed',
+          'Berhasil dibagikan ke feed',
           duration: const Duration(seconds: 3),
         );
       } else {
@@ -274,7 +257,7 @@ class _ShareAsPostDialogState extends ConsumerState<ShareAsPostDialog> {
         } else {
           AppSnackBar.showError(
             context,
-            'Failed to share to feed',
+            'Gagal membagikan ke feed',
             duration: const Duration(seconds: 4),
           );
         }

@@ -117,8 +117,7 @@ class _ProfileQrScreenState extends ConsumerState<ProfileQrScreen> {
                   const SizedBox(height: 12),
                   Text(
                     displayName,
-                    style: TextStyle(
-                      fontSize: AppType.s16,
+                    style: context.typeRoles.titleCompact.copyWith(
                       fontWeight: FontWeight.bold,
                       color: scheme.scrim,
                     ),
@@ -127,8 +126,7 @@ class _ProfileQrScreenState extends ConsumerState<ProfileQrScreen> {
                   const SizedBox(height: 4),
                   Text(
                     'Scan to visit my profile',
-                    style: TextStyle(
-                      fontSize: AppType.s12,
+                    style: context.typeRoles.labelMicro.copyWith(
                       color: scheme.scrim.withValues(alpha: 0.6),
                     ),
                   ),
@@ -142,7 +140,6 @@ class _ProfileQrScreenState extends ConsumerState<ProfileQrScreen> {
   }
 
   Widget _buildActionButtons(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -157,8 +154,6 @@ class _ProfileQrScreenState extends ConsumerState<ProfileQrScreen> {
               : const Icon(Icons.download),
           label: Text(_isDownloading ? 'Saving...' : 'Save to Gallery'),
           style: ElevatedButton.styleFrom(
-            backgroundColor: scheme.secondary,
-            foregroundColor: scheme.onSecondary,
             padding: const EdgeInsets.symmetric(vertical: AppMetrics.p16),
           ),
         ),
@@ -196,8 +191,7 @@ class _ProfileQrScreenState extends ConsumerState<ProfileQrScreen> {
               const SizedBox(width: 8),
               Text(
                 'Tips',
-                style: TextStyle(
-                  fontSize: AppType.s14,
+                style: context.typeRoles.bodyDense.copyWith(
                   fontWeight: FontWeight.bold,
                   color: scheme.onSurface,
                 ),
@@ -219,12 +213,15 @@ class _ProfileQrScreenState extends ConsumerState<ProfileQrScreen> {
       padding: const EdgeInsets.only(top: AppMetrics.p8),
       child: Row(
         children: [
-          Icon(Icons.check, size: AppIconSize.inlineGlyph, color: context.statusColors.success),
+          Icon(
+            Icons.check,
+            size: AppIconSize.inlineGlyph,
+            color: context.statusColors.success,
+          ),
           const SizedBox(width: 8),
           Text(
             text,
-            style: TextStyle(
-              fontSize: AppType.s14,
+            style: context.typeRoles.bodyDense.copyWith(
               color: scheme.onSurfaceVariant,
             ),
           ),
@@ -319,7 +316,7 @@ class _ProfileQrScreenState extends ConsumerState<ProfileQrScreen> {
       );
     } catch (e) {
       if (mounted) {
-        AppSnackBar.showError(context, 'Failed to share QR code');
+        AppSnackBar.showError(context, 'Gagal membagikan kode QR');
       }
     }
   }

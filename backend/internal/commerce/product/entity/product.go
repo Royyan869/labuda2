@@ -90,7 +90,6 @@ type Product struct {
 	Breeder         *string
 	Bloodline       *string
 	Certificates    []string
-	FarmAddressID   *uuid.UUID
 	PreparationTime string
 	SellingSurface  SellingSurface // Exclusive surface ownership: NULL | 'for_sale' | 'auction'
 	CreatedAt       time.Time

@@ -25,8 +25,10 @@
 ///   - no client-side money derivation.
 library;
 
+import 'package:labuda/domains/commerce/transaction/order/domain/entities/order.dart'
+    show DecisionContract;
 import 'package:labuda/domains/commerce/transaction/order/domain/entities/order_status.dart'
-    show OrderStatus;
+    show OrderStatus, OrderStatusExtension, EscrowStatus, EscrowStatusExtension;
 
 // ==================== ORDER API RESPONSE DTOS ====================
 
@@ -74,29 +76,9 @@ class OrderFilterParams {
   Map<String, dynamic> toQueryParams() {
     final params = <String, dynamic>{};
     if (status != null) {
-      // O1: Removed 'processing' - not a real backend status
-      // O1: Added 'expired' status mapping
-      params['status'] = status == OrderStatus.pending
-          ? 'pending'
-          : status == OrderStatus.paid
-          ? 'paid'
-          : status == OrderStatus.shipped
-          ? 'shipped'
-          : status == OrderStatus.delivered
-          ? 'delivered'
-          : status == OrderStatus.completed
-          ? 'completed'
-          : status == OrderStatus.cancelled
-          ? 'cancelled'
-          : status == OrderStatus.refunded
-          ? 'refunded'
-          : status == OrderStatus.disputeOpen
-          ? 'dispute_open'
-          : status == OrderStatus.partiallyRefunded
-          ? 'partially_refunded'
-          : status == OrderStatus.expired
-          ? 'expired'
-          : 'pending';
+      // Single status authority: the enum's canonical wire value
+      // (OrderStatus.pending → 'pending_payment').
+      params['status'] = status!.value;
     }
     if (startDate != null) {
       params['start_date'] = startDate!.toIso8601String();
@@ -279,6 +261,23 @@ class OrderApiResponse {
   // Payment identity — set when a payment row exists for this order.
   final String? paymentId;
 
+  /// Canonical payment method bound to this order at checkout (backend
+  /// `payment_method_code`). Non-null = the order's method is fixed and the
+  /// retry flow must use it; the backend rejects any other. Null for orders
+  /// created without a checkout selection (auction-claim), where the first
+  /// payment binds the method.
+  final String? paymentMethodCode;
+
+  /// Backend Decision contract (backend `decision`) — the SINGLE authority for
+  /// allowed order actions and UI display hints, parsed via the existing domain
+  /// [DecisionContract]. Null when the backend omits it; no default is invented,
+  /// so absence stays observable to the consumer.
+  final DecisionContract? decision;
+
+  /// Canonical escrow state projection (backend `escrow_status`:
+  /// "holding" | "released" | "refunded"). Null when absent or unrecognised.
+  final EscrowStatus? escrowStatus;
+
   OrderApiResponse({
     required this.id,
     required this.orderNumber,
@@ -318,6 +317,9 @@ class OrderApiResponse {
     this.sellerAvatarUrl,
     this.buyerUsername,
     this.paymentId,
+    this.paymentMethodCode,
+    this.decision,
+    this.escrowStatus,
   });
 
   // fromJson factory for API response parsing.
@@ -382,6 +384,19 @@ class OrderApiResponse {
       sellerAvatarUrl: json['seller_avatar_url'] as String?,
       buyerUsername: json['buyer_username'] as String?,
       paymentId: json['payment_id'] as String?,
+      paymentMethodCode: json['payment_method_code'] as String?,
+      // Backend Decision contract — the single action authority. Absence
+      // (null key) stays null instead of being coerced into an empty decision.
+      decision: json['decision'] != null
+          ? DecisionContract.fromJson(
+              json['decision'] as Map<String, dynamic>,
+            )
+          : null,
+      // Escrow state projection — unknown/absent values map to null (the
+      // canonical nullable semantics owned by EscrowStatusExtension.parse).
+      escrowStatus: EscrowStatusExtension.parse(
+        json['escrow_status'] as String?,
+      ),
     );
   }
 }

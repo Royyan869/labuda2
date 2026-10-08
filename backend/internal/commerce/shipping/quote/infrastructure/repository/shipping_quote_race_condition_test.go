@@ -4,7 +4,6 @@ package repository
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"sync"
 	"sync/atomic"
@@ -14,10 +13,10 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	forsaleEntity "github.com/labuda/backend/internal/commerce/forsale/entity"
-	productEntity "github.com/labuda/backend/internal/commerce/product/entity"
-	productInfraRepo "github.com/labuda/backend/internal/commerce/product/infrastructure/repository"
 	forsaleRepo "github.com/labuda/backend/internal/commerce/forsale/infrastructure/repository"
 	orderEntity "github.com/labuda/backend/internal/commerce/order/entity"
+	productEntity "github.com/labuda/backend/internal/commerce/product/entity"
+	productInfraRepo "github.com/labuda/backend/internal/commerce/product/infrastructure/repository"
 	quoteApp "github.com/labuda/backend/internal/commerce/shipping/quote/application"
 	quoteEntity "github.com/labuda/backend/internal/commerce/shipping/quote/entity"
 	chatEntity "github.com/labuda/backend/internal/interaction/chat/entity"
@@ -88,8 +87,9 @@ func (s *blockingChatSender) EnableBlocking() {
 	atomic.StoreInt32(&s.hit, 0)
 }
 
-func (s *blockingChatSender) SendMessage(
+func (s *blockingChatSender) SendMessageInTx(
 	ctx context.Context,
+	_ db.Tx,
 	roomID, senderID uuid.UUID,
 	messageType chatEntity.MessageType,
 	body *string,
@@ -208,31 +208,31 @@ func seedPublishedForSale(t *testing.T, ctx context.Context, tdb *testdb.TestDB,
 	t.Helper()
 
 	forSale_product := &productEntity.Product{
-	SellerID: sellerID,
-	Title: title,
-	Description: "fixture forSale",
-	MediaURLs: json.RawMessage(`[]`),
-	Variety: "kohaku",
-	SizeCm: nil,
-	AgeMonths: nil,
-	Gender: nil,
-	Breeder: nil,
-	Bloodline: nil,
-	Certificates: nil,
-	FarmAddressID: nil,
-	PreparationTime: string(forsaleEntity.PreparationTime1To3Days),
-	SellingSurface: productEntity.SellingSurfaceForSale,
-}
-	productRepo := productInfraRepo.NewProductRepository()
-	if err := productRepo.Create(ctx, tx, forSale_product); err != nil {
-		return err
+		SellerID:        sellerID,
+		Title:           title,
+		Description:     "fixture forSale",
+		MediaURLs:       []productEntity.ProductMedia{},
+		Variety:         "kohaku",
+		SizeCm:          nil,
+		AgeMonths:       nil,
+		Gender:          nil,
+		Breeder:         nil,
+		Bloodline:       nil,
+		Certificates:    nil,
+		PreparationTime: string(forsaleEntity.PreparationTime1To3Days),
+		SellingSurface:  productEntity.SellingSurfaceForSale,
 	}
-	forSale, err := forsaleEntity.NewForSaleSurface(sellerID, money.New(25000), 1, false, forsaleEntity.ForSaleVisibilityPrivate)
-	forSale.ProductID = forSale_product.ID
-	forSale.Product = forSale_product
+	productRepo := productInfraRepo.NewProductRepository()
+
+	forSale, err := forsaleEntity.NewForSaleSurface(sellerID, money.New(25000), 1, false)
 	require.NoError(t, err)
 
 	require.NoError(t, tdb.WithTx(ctx, func(tx db.Tx) error {
+		if err := productRepo.Create(ctx, tx, forSale_product); err != nil {
+			return err
+		}
+		forSale.ProductID = forSale_product.ID
+		forSale.Product = forSale_product
 		if err := repo.Create(ctx, tx, forSale); err != nil {
 			return err
 		}
@@ -335,7 +335,7 @@ func TestShippingQuote_CreateConcurrentReplacement_SupersedesPriorRevision(t *te
 	require.NotNil(t, firstResult.quote)
 	require.NotNil(t, secondResult.quote)
 
-	latest, err := service.GetLatestByChatAndSource(ctx, directRoom.ID, forSale.ID, "for_sale", forSale.ID, sellerID, buyerID)
+	latest, err := service.GetLatestByChatAndSource(ctx, directRoom.ID, forSale.ProductID, "for_sale", forSale.ID, sellerID, buyerID)
 	require.NoError(t, err)
 	require.NotNil(t, latest)
 	require.Equal(t, "second", *latest.Note)
@@ -410,7 +410,7 @@ func TestShippingQuote_ReactivationVsReplacement_ReactivationFailsClosedAfterRep
 	require.NotNil(t, originalPersisted.SupersededAt)
 	require.Equal(t, 0, originalPersisted.ReactivationCount)
 
-	latest, err := service.GetLatestByChatAndSource(ctx, directRoom.ID, forSale.ID, "for_sale", forSale.ID, sellerID, buyerID)
+	latest, err := service.GetLatestByChatAndSource(ctx, directRoom.ID, forSale.ProductID, "for_sale", forSale.ID, sellerID, buyerID)
 	require.NoError(t, err)
 	require.NotNil(t, latest)
 	require.Equal(t, replacementResult.quote.ID, latest.ID)
@@ -517,13 +517,13 @@ func TestShippingQuote_ContextSeparation_AllowsDistinctCanonicalContexts(t *test
 	require.NoError(t, err)
 	require.NotNil(t, secondQuote)
 
-	firstCurrent, err := service.GetLatestByChatAndSource(ctx, directRoom.ID, forSale.ID, "for_sale", forSale.ID, sellerID, buyerID)
+	firstCurrent, err := service.GetLatestByChatAndSource(ctx, directRoom.ID, forSale.ProductID, "for_sale", forSale.ID, sellerID, buyerID)
 	require.NoError(t, err)
 	require.NotNil(t, firstCurrent)
 	require.Equal(t, firstQuote.ID, firstCurrent.ID)
 	require.Equal(t, "direct", *firstCurrent.Note)
 
-	secondCurrent, err := service.GetLatestByChatAndSource(ctx, negotiationRoom.ID, forSale.ID, "for_sale", forSale.ID, sellerID, buyerID)
+	secondCurrent, err := service.GetLatestByChatAndSource(ctx, negotiationRoom.ID, forSale.ProductID, "for_sale", forSale.ID, sellerID, buyerID)
 	require.NoError(t, err)
 	require.NotNil(t, secondCurrent)
 	require.Equal(t, secondQuote.ID, secondCurrent.ID)

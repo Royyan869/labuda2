@@ -2,7 +2,7 @@ package application
 
 // Tests for PASS_18C auction create timing policy: immediate vs scheduled
 // start, and the owner-approved 1-7 day duration bound enforced server-side
-// (CreateDraft), not just at the HTTP/UI layer.
+// (Create), not just at the HTTP/UI layer.
 
 import (
 	"context"
@@ -24,7 +24,7 @@ import (
 )
 
 // fakeProductCreator satisfies ProductCreator without touching a real DB —
-// CreateDraft only needs product.ID populated to proceed to auction creation.
+// Create only needs product.ID populated to proceed to auction creation.
 type fakeProductCreator struct{}
 
 func (fakeProductCreator) Create(_ context.Context, _ db.Tx, product *productEntity.Product) error {
@@ -46,7 +46,7 @@ func (fakeProductCreator) Update(_ context.Context, _ db.Tx, _ *productEntity.Pr
 
 // newAuctionServiceForCreateTiming builds a fully-wired AuctionService whose
 // dependencies are either real (repos operating against fakeTx, which no-ops
-// successfully) or minimal stubs, so CreateDraft can run end-to-end including
+// successfully) or minimal stubs, so Create can run end-to-end including
 // its market-authority + shipping-coverage progression to scheduled/active
 // (scheduleAuctionInternal) without a live Postgres.
 func newAuctionServiceForCreateTiming() *AuctionService {
@@ -71,8 +71,8 @@ func newAuctionServiceForCreateTiming() *AuctionService {
 	}
 }
 
-func baseCreateDraftInput() CreateDraftInput {
-	return CreateDraftInput{
+func baseCreateAuctionInput() CreateAuctionInput {
+	return CreateAuctionInput{
 		SellerID:     uuid.New(),
 		Title:        "Test Auction",
 		Description:  "PASS_18C timing test",
@@ -81,14 +81,14 @@ func baseCreateDraftInput() CreateDraftInput {
 	}
 }
 
-func TestCreateDraft_ImmediateStart_IsActiveWithServerTime(t *testing.T) {
+func TestCreateAuction_ImmediateStart_IsActiveWithServerTime(t *testing.T) {
 	svc := newAuctionServiceForCreateTiming()
-	input := baseCreateDraftInput()
+	input := baseCreateAuctionInput()
 	input.StartMode = entity.StartModeNow
 	input.Duration = 24 * time.Hour
 
 	before := time.Now()
-	auction, err := svc.CreateDraft(context.Background(), fakeTx{}, input)
+	auction, err := svc.Create(context.Background(), fakeTx{}, input)
 	after := time.Now()
 	require.NoError(t, err)
 	require.NotNil(t, auction)
@@ -99,15 +99,15 @@ func TestCreateDraft_ImmediateStart_IsActiveWithServerTime(t *testing.T) {
 	assert.Equal(t, 24*time.Hour, auction.EndAt.Sub(auction.StartAt))
 }
 
-func TestCreateDraft_ScheduledStart_IsScheduledAtRequestedFutureTime(t *testing.T) {
+func TestCreateAuction_ScheduledStart_IsScheduledAtRequestedFutureTime(t *testing.T) {
 	svc := newAuctionServiceForCreateTiming()
 	future := time.Now().Add(48 * time.Hour)
-	input := baseCreateDraftInput()
+	input := baseCreateAuctionInput()
 	input.StartMode = entity.StartModeScheduled
 	input.ScheduledStartAt = &future
 	input.Duration = 72 * time.Hour
 
-	auction, err := svc.CreateDraft(context.Background(), fakeTx{}, input)
+	auction, err := svc.Create(context.Background(), fakeTx{}, input)
 	require.NoError(t, err)
 	require.NotNil(t, auction)
 
@@ -116,49 +116,49 @@ func TestCreateDraft_ScheduledStart_IsScheduledAtRequestedFutureTime(t *testing.
 	assert.Equal(t, future.Add(72*time.Hour), auction.EndAt)
 }
 
-func TestCreateDraft_ScheduledStart_RequiresFutureTime(t *testing.T) {
+func TestCreateAuction_ScheduledStart_RequiresFutureTime(t *testing.T) {
 	svc := newAuctionServiceForCreateTiming()
 	past := time.Now().Add(-time.Hour)
-	input := baseCreateDraftInput()
+	input := baseCreateAuctionInput()
 	input.StartMode = entity.StartModeScheduled
 	input.ScheduledStartAt = &past
 	input.Duration = 24 * time.Hour
 
-	_, err := svc.CreateDraft(context.Background(), fakeTx{}, input)
+	_, err := svc.Create(context.Background(), fakeTx{}, input)
 	var futureErr *entity.ErrScheduledStartMustBeFuture
 	assert.ErrorAs(t, err, &futureErr)
 }
 
-func TestCreateDraft_RejectsDurationBelowMinimum(t *testing.T) {
+func TestCreateAuction_RejectsDurationBelowMinimum(t *testing.T) {
 	svc := newAuctionServiceForCreateTiming()
-	input := baseCreateDraftInput()
+	input := baseCreateAuctionInput()
 	input.StartMode = entity.StartModeNow
 	input.Duration = entity.MinAuctionDuration - time.Hour
 
-	_, err := svc.CreateDraft(context.Background(), fakeTx{}, input)
+	_, err := svc.Create(context.Background(), fakeTx{}, input)
 	var durErr *entity.ErrAuctionDurationOutOfRange
 	assert.ErrorAs(t, err, &durErr)
 }
 
-func TestCreateDraft_RejectsDurationAboveMaximum(t *testing.T) {
+func TestCreateAuction_RejectsDurationAboveMaximum(t *testing.T) {
 	svc := newAuctionServiceForCreateTiming()
-	input := baseCreateDraftInput()
+	input := baseCreateAuctionInput()
 	input.StartMode = entity.StartModeNow
 	input.Duration = entity.MaxAuctionDuration + time.Hour
 
-	_, err := svc.CreateDraft(context.Background(), fakeTx{}, input)
+	_, err := svc.Create(context.Background(), fakeTx{}, input)
 	var durErr *entity.ErrAuctionDurationOutOfRange
 	assert.ErrorAs(t, err, &durErr)
 }
 
-func TestCreateDraft_AcceptsDurationAtBoundaries(t *testing.T) {
+func TestCreateAuction_AcceptsDurationAtBoundaries(t *testing.T) {
 	for _, d := range []time.Duration{entity.MinAuctionDuration, entity.MaxAuctionDuration} {
 		svc := newAuctionServiceForCreateTiming()
-		input := baseCreateDraftInput()
+		input := baseCreateAuctionInput()
 		input.StartMode = entity.StartModeNow
 		input.Duration = d
 
-		auction, err := svc.CreateDraft(context.Background(), fakeTx{}, input)
+		auction, err := svc.Create(context.Background(), fakeTx{}, input)
 		require.NoError(t, err)
 		assert.Equal(t, d, auction.EndAt.Sub(auction.StartAt))
 	}

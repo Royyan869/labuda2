@@ -90,31 +90,21 @@ class _GlobalSearchBarState extends ConsumerState<GlobalSearchBar> {
       onTap: widget.onTap,
       onSubmitted: (_) => _onSubmit(),
       textInputAction: TextInputAction.search,
-      decoration: InputDecoration(
+      decoration: AppTheme.searchDecoration(
+        scheme,
         hintText: 'Cari koleksi, lelang, kontes...',
-        prefixIcon: Icon(
-          Icons.search,
-          color: scheme.onSurfaceVariant,
-        ),
+      ).copyWith(
+        prefixIcon: Icon(Icons.search, color: scheme.onSurfaceVariant),
         suffixIcon: _controller.text.isNotEmpty
             ? IconButton(
                 icon: Icon(
                   Icons.clear,
                   color: scheme.onSurfaceVariant,
+                  semanticLabel: 'Bersihkan',
                 ),
                 onPressed: _onClear,
               )
             : null,
-        filled: true,
-        fillColor: scheme.surfaceContainerHigh,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppShape.r12),
-          borderSide: BorderSide.none,
-        ),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: AppMetrics.p16,
-          vertical: AppMetrics.p12,
-        ),
       ),
     );
   }

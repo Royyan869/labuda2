@@ -20,7 +20,6 @@ export 'src/navigation/navigation_registry_impl.dart';
 export 'src/interfaces/services/i_notification_service.dart';
 export 'src/interfaces/services/i_local_storage_service.dart';
 export 'src/interfaces/services/i_logger_service.dart';
-export 'src/interfaces/services/i_validation_service.dart';
 export 'src/interfaces/services/i_analytics_repository.dart';
 export 'interfaces/i_notification_trigger.dart';
 export 'interfaces/i_order_payment_handler.dart';
@@ -59,9 +58,6 @@ export 'services/s3_service.dart';
 export 'navigation/navigation_handler.dart';
 export 'navigation/navigation_provider.dart';
 
-// Quick Actions Service exports
-export 'src/services/quick_actions_service.dart';
-
 // Presence tracking exports - canonical (Slice-5)
 export 'src/providers/presence_provider.dart';
 export 'src/presence/presence.dart';
@@ -80,6 +76,8 @@ export '../../shared/providers/core_providers.dart';
 // Core Infra exports (Messaging)
 export 'messaging/notification_service.dart';
 export 'observability/providers.dart';
+export 'observability/analytics_events.dart';
+export 'observability/screen_names.dart';
 
 // Session lifecycle exports — single owner of foreground/resume session work
 export 'session/session_lifecycle_observer.dart';

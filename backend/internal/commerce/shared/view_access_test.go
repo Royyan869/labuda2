@@ -49,22 +49,22 @@ func TestEvaluateForSaleViewAccess(t *testing.T) {
 			want: true,
 		},
 		{
-			name: "draft owner visible",
+			name: "private active owner visible",
 			in: ForSaleViewAccessInput{
 				ViewerID:   sellerID,
 				SellerID:   sellerID,
-				Status:     "draft",
+				Status:     "active",
 				Visibility: "private",
 				Seller:     SellerAccessSnapshot{AccountStatus: "active", SubscriptionStatus: "active"},
 			},
 			want: true,
 		},
 		{
-			name: "draft non-owner hidden",
+			name: "private active non-owner hidden",
 			in: ForSaleViewAccessInput{
 				ViewerID:   otherID,
 				SellerID:   sellerID,
-				Status:     "draft",
+				Status:     "active",
 				Visibility: "private",
 				Seller:     SellerAccessSnapshot{AccountStatus: "active", SubscriptionStatus: "active"},
 			},
@@ -135,21 +135,21 @@ func TestEvaluateAuctionViewAccess(t *testing.T) {
 			want: true,
 		},
 		{
-			name: "draft owner visible",
+			name: "unknown status hidden for owner",
 			in: AuctionViewAccessInput{
 				ViewerID: sellerID,
 				SellerID: sellerID,
-				Status:   "draft",
+				Status:   "mystery",
 				Seller:   SellerAccessSnapshot{AccountStatus: "active", SubscriptionStatus: "active"},
 			},
-			want: true,
+			want: false,
 		},
 		{
-			name: "draft non-owner hidden",
+			name: "unknown status hidden for non-owner",
 			in: AuctionViewAccessInput{
 				ViewerID: otherID,
 				SellerID: sellerID,
-				Status:   "draft",
+				Status:   "mystery",
 				Seller:   SellerAccessSnapshot{AccountStatus: "active", SubscriptionStatus: "active"},
 			},
 			want: false,

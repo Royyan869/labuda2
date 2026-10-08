@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/for_sale.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/presentation/widgets/for_sale_card.dart';
 import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_marketplace_primitives.dart';
 import 'package:labuda/shared/widgets/empty_state.dart';
+import 'package:labuda/shared/widgets/page_error_state.dart';
 
 /// For Sale tab content for Marketplace screen.
 ///
@@ -40,14 +42,14 @@ class MarketplaceForSaleTab extends ConsumerWidget {
                 onTap: () => context.push('/for-sale/${forSale.forSaleId}'),
               );
             },
-            emptyBuilder: (context) => const EmptyState(
+            emptyBuilder: (context) => EmptyState(
               icon: Icons.storefront_outlined,
-              title: 'Belum ada for sale',
-              subtitle: 'Cek lagi nanti ya!',
+              title: context.l10n.emptyForSaleTitle,
+              subtitle: context.l10n.emptyCheckBackMessage,
             ),
-            errorBuilder: (context, error, stackTrace) => EmptyState.error(
-              title: 'Data belum bisa dimuat.',
-              subtitle: 'Periksa koneksi kamu lalu coba lagi.',
+            // CANONICAL page-level error (PageErrorState): safe localized
+            // copy only, the raw [error] never reaches the screen.
+            errorBuilder: (context, error, stackTrace) => PageErrorState(
               onRetry: () => ref.invalidate(forSalesProvider(_params)),
             ),
           ),

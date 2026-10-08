@@ -81,7 +81,8 @@ final themeForbiddenColour = RegExp(
   r'|Duration\(milliseconds:\s*[0-9]'
   // Corner radii are theme data (`AppShape`), not per-widget numbers.
   r'|Radius\.circular\(\s*[0-9]'
-  // Font sizes and padding steps are theme data too (`AppType` / `AppMetrics`).
+  // Font sizes and padding steps are theme data too (`AppMetrics`; type is the
+  // `AppTypeRoles` extension).
   // A call whose literal sits on a later line is caught by the whole-file pass
   // in `themeAuthorityViolations` — same regex, wider scope.
   //
@@ -90,9 +91,10 @@ final themeForbiddenColour = RegExp(
   // to slip through un-tokenized. Values with a decimal point in a COMPUTED
   // expression (`size.width * 0.32`, `stepSize * 0.42`) are proportional
   // geometry, not a size decision, and stay legal (the guard fails on dots).
-  // Tokenized values like `AppType.s14` never match: the digit is glued to a
-  // word character. The scan stops at the first comma so a later argument on
-  // the same statement (`... fontSize: AppType.s14, size: 20`) is not caught.
+  // Tokenized references like `AppMetrics.p16` never match: the digit is glued
+  // to a word character. The scan stops at the first comma so a later argument
+  // on the same statement (`... fontSize: 14, size: AppIconSize.action`) is not
+  // caught.
   r'|fontSize:\s*[^,\n]*(?<![\w.])[0-9]+(?![\d.])'
   r'|EdgeInsets\.\w+\([^)]*(?<![\w.])[0-9]+(?![\d.])'
   r'|isDark'
@@ -230,8 +232,7 @@ Iterable<({int start, String block})> _hostBlocks(
           inkSpans.add((start: ink.start, end: ink.start + ink.block.length));
         }
       }
-      bool readsInk(int at) =>
-          inkSpans.any((s) => at >= s.start && at < s.end);
+      bool readsInk(int at) => inkSpans.any((s) => at >= s.start && at < s.end);
 
       for (final m in _inkFillProperty.allMatches(found.block)) {
         if (readsInk(m.start)) continue;

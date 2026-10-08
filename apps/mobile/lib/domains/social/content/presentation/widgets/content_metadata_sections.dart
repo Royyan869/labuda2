@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:labuda/core/core.dart';
+import 'package:labuda/shared/widgets/address_location_view.dart';
 
 /// Content Metadata Sections - Display location, hashtags
 ///
@@ -22,12 +23,10 @@ class ContentMetadataSections {
       title: 'Location',
       onEdit: onEdit,
       onRemove: onRemove,
-      content: Text(
-        location,
-        style: TextStyle(
-          fontSize: AppType.s14,
-          color: scheme.onSurface,
-        ),
+      content: AddressLocationText(
+        location: location,
+        mode: AddressLocationMode.detail,
+        style: context.typeRoles.bodyDense.copyWith(color: scheme.onSurface),
       ),
     );
   }
@@ -55,8 +54,7 @@ class ContentMetadataSections {
               (tag) => Chip(
                 label: Text(
                   tag,
-                  style: TextStyle(
-                    fontSize: AppType.s12,
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
                     color: Theme.of(context).colorScheme.secondary,
                     fontWeight: FontWeight.w500,
                   ),
@@ -113,8 +111,7 @@ class ContentMetadataSections {
                   const SizedBox(width: 8),
                   Text(
                     title,
-                    style: TextStyle(
-                      fontSize: AppType.s14,
+                    style: context.typeRoles.titleSection.copyWith(
                       fontWeight: FontWeight.w600,
                       color: scheme.onSurface,
                     ),
@@ -130,6 +127,7 @@ class ContentMetadataSections {
                       Icons.edit,
                       size: AppIconSize.inlineGlyph,
                       color: scheme.onSurfaceVariant,
+                      semanticLabel: 'Edit',
                     ),
                   ),
                   if (onRemove != null) ...[
@@ -140,6 +138,7 @@ class ContentMetadataSections {
                         Icons.close,
                         size: AppIconSize.action,
                         color: scheme.onSurfaceVariant,
+                        semanticLabel: 'Hapus',
                       ),
                     ),
                   ],

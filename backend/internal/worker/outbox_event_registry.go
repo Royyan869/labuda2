@@ -137,12 +137,16 @@ var AcknowledgedNoHandlerEvents = map[string]NoHandlerEntry{
 		Class: NoHandlerAuditOnly,
 		Note:  "auction activation audit trail",
 	},
-	// auction.cancelled — now CONSUMED by the notification worker (Scope B):
-	// seller notification for system-initiated auto-cancel (subscription
-	// expired), routed by entity.CancelReason.NotifiesSeller() inside
-	// handleAuctionCancelled. Other cancel reasons (seller/moderation/admin/
-	// legacy) are handled silent no-ops. Removed from allowlist — see
-	// SetupNotificationHandlers registration.
+	// auction.cancelled — NO handler on purpose (purged Oct 2026): the
+	// subscription-expired cancel direction no longer exists (subscription
+	// expiry LAPSES scheduled auctions instead of cancelling), and every
+	// remaining cancel is seller/moderation/admin-initiated — each already
+	// aware (self-action) or routed through its canonical channel
+	// (moderation.auction.removed / admin decision UX). Audit-only.
+	"auction.cancelled": {
+		Class: NoHandlerAuditOnly,
+		Note:  "seller/moderation/admin cancel audit trail — no notification routing",
+	},
 	"auction.claimed": {
 		Class: NoHandlerAuditOnly,
 		Note:  "auction claim (winner acceptance) audit trail",

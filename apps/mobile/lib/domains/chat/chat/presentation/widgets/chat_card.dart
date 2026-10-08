@@ -5,10 +5,11 @@ import 'package:labuda/domains/chat/chat/domain/entities/chat_entities.dart';
 import 'package:labuda/domains/chat/chat/presentation/utils/chat_identity_display.dart';
 import 'package:labuda/domains/chat/chat/presentation/utils/chat_lifecycle_redaction.dart';
 import 'package:labuda/domains/system/support/domain/domain.dart';
+import 'package:labuda/domains/system/support/presentation/utils/support_category_label.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
 import 'package:labuda/shared/providers/auth_status_providers.dart';
 import 'package:labuda/shared/widgets/profile_avatar.dart';
-import 'package:timeago/timeago.dart' as timeago;
+import 'package:labuda/domains/system/shared/domain/services/time_format_service.dart';
 
 /// Chat Card Widget
 ///
@@ -179,9 +180,8 @@ class ChatCard extends ConsumerWidget {
         Expanded(
           child: Text(
             userName,
-            style: TextStyle(
+            style: context.typeRoles.titleCompact.copyWith(
               fontWeight: FontWeight.w600,
-              fontSize: AppType.s16,
               // E4.3 — Degraded identity: italic + muted color so the
               // redaction placeholder is visually distinct from a real
               // username. Matches the E3.1 comment-author treatment.
@@ -192,7 +192,8 @@ class ChatCard extends ConsumerWidget {
             overflow: TextOverflow.ellipsis,
           ),
         ),
-        if (chat.updatedAt != null) _buildTimestamp(context),
+        if (chat.updatedAt != null)
+          Flexible(child: _buildTimestamp(context)),
       ],
     );
   }
@@ -207,15 +208,16 @@ class ChatCard extends ConsumerWidget {
             children: [
               Text(
                 'Support',
-                style: const TextStyle(
+                style: context.typeRoles.titleCompact.copyWith(
                   fontWeight: FontWeight.w600,
-                  fontSize: AppType.s16,
                 ),
               ),
               if (chat.assignedAdminName != null)
                 Text(
                   'Agent: ${chat.assignedAdminName}',
-                  style: TextStyle(fontSize: AppType.s12, color: colorScheme.onSurfaceVariant),
+                  style: context.typeRoles.labelMicro.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
                 ),
             ],
           ),
@@ -227,13 +229,17 @@ class ChatCard extends ConsumerWidget {
 
   Widget _buildTimestamp(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final timeStr = chat.updatedAt != null
-        ? timeago.format(chat.updatedAt!)
-        : timeago.format(chat.createdAt);
+    final timeStr = const TimeFormatService().formatTimeAgo(
+      chat.updatedAt ?? chat.createdAt,
+    );
 
     return Text(
       timeStr,
-      style: TextStyle(fontSize: AppType.s12, color: colorScheme.onSurfaceVariant),
+      style: context.typeRoles.labelMicro.copyWith(
+        color: colorScheme.onSurfaceVariant,
+      ),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
     );
   }
 
@@ -242,7 +248,9 @@ class ChatCard extends ConsumerWidget {
     if (chat.lastMessage == null) {
       return Text(
         'No messages yet',
-        style: TextStyle(fontSize: AppType.s14, color: colorScheme.onSurfaceVariant),
+        style: context.typeRoles.bodyDense.copyWith(
+          color: colorScheme.onSurfaceVariant,
+        ),
         maxLines: 2,
         overflow: TextOverflow.ellipsis,
       );
@@ -252,7 +260,9 @@ class ChatCard extends ConsumerWidget {
     if (message.isHidden) {
       return Text(
         context.l10n.hiddenMessageByModerator,
-        style: TextStyle(fontSize: AppType.s14, color: colorScheme.onSurfaceVariant),
+        style: context.typeRoles.bodyDense.copyWith(
+          color: colorScheme.onSurfaceVariant,
+        ),
         maxLines: 2,
         overflow: TextOverflow.ellipsis,
       );
@@ -262,7 +272,9 @@ class ChatCard extends ConsumerWidget {
 
     return Text(
       '$prefix${_getMessagePreview(message)}',
-      style: TextStyle(fontSize: AppType.s14, color: colorScheme.onSurface),
+      style: context.typeRoles.bodyDense.copyWith(
+        color: colorScheme.onSurface,
+      ),
       maxLines: 2,
       overflow: TextOverflow.ellipsis,
     );
@@ -301,13 +313,15 @@ class ChatCard extends ConsumerWidget {
         children: [
           Icon(
             _getSupportCategoryIcon(),
-            size: 14,
+            size: AppIconSize.inlineGlyph,
             color: _getSupportCategoryColor(),
           ),
           const SizedBox(width: 4),
           Text(
-            _getSupportCategoryLabel(),
-            style: TextStyle(fontSize: AppType.s12, color: _getSupportCategoryColor()),
+            _getSupportCategoryLabel(context),
+            style: context.typeRoles.labelMicro.copyWith(
+              color: _getSupportCategoryColor(),
+            ),
           ),
         ],
       ),
@@ -330,9 +344,8 @@ class ChatCard extends ConsumerWidget {
             child: Center(
               child: Text(
                 unreadCount > 99 ? '99+' : unreadCount.toString(),
-                style: TextStyle(
+                style: context.typeRoles.labelMicro.copyWith(
                   color: Theme.of(context).colorScheme.onPrimary,
-                  fontSize: AppType.s12,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -373,7 +386,10 @@ class ChatCard extends ConsumerWidget {
     };
   }
 
-  String _getSupportCategoryLabel() {
-    return chat.supportCategory?.wireValue.toUpperCase() ?? 'OTHER';
+  /// Localized label for the support category chip — same authority as the
+  /// support ticket surfaces. The raw `wireValue` is identity and must never
+  /// reach the user as display text.
+  String _getSupportCategoryLabel(BuildContext context) {
+    return (chat.supportCategory ?? SupportCategory.other).label(context.l10n);
   }
 }

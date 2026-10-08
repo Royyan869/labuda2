@@ -36,7 +36,7 @@ var (
 
 	// ErrResourceNotDisplayable is returned when the resource exists but its
 	// state does not permit display/reference in Commerce Response contexts
-	// (e.g. draft, sold, ended, withdrawn).
+	// (e.g. sold, ended, withdrawn).
 	ErrResourceNotDisplayable = errors.New("resource not valid for Commerce Response")
 )
 

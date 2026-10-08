@@ -1,9 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_marketplace_metrics.dart';
 import 'package:labuda/domains/social/content/domain/entities/content.dart';
 import 'package:labuda/shared/widgets/app_image.dart';
-import 'package:labuda/core/src/theme/app_theme.dart';
+import 'package:labuda/shared/widgets/empty_state.dart';
+import 'package:labuda/shared/widgets/loading_indicator.dart';
+import 'package:labuda/shared/widgets/page_error_state.dart';
 
+/// CANONICAL public commerce grid (2 columns): every marketplace surface
+/// renders through this widget with the shared empty/error vocabulary.
+///
+/// INSET AUTHORITY (SAFE-AREA-02/03): this grid owns only content/layout
+/// spacing — the token [CommerceMarketplaceMetrics.gridBottomPadding] under
+/// the last row. The bottom SYSTEM inset belongs to the parent screen
+/// boundary (a `Scaffold.bottomNavigationBar` or a body-level `SafeArea`),
+/// never to the grid; the grid therefore reads no inset out of the ambient
+/// window metrics at all. Mounting it in a bar-less, SafeArea-less body is a
+/// caller bug, not a fallback this widget silently compensates for.
 class CommerceMarketplaceGrid extends StatelessWidget {
   final int itemCount;
   final IndexedWidgetBuilder itemBuilder;
@@ -23,7 +36,6 @@ class CommerceMarketplaceGrid extends StatelessWidget {
   )
   errorBuilder;
   final Key Function(int index)? itemKeyBuilder;
-  final bool includeSafeAreaBottom;
 
   const CommerceMarketplaceGrid({
     super.key,
@@ -45,16 +57,10 @@ class CommerceMarketplaceGrid extends StatelessWidget {
     this.emptyBuilder = _defaultEmptyBuilder,
     this.errorBuilder = _defaultErrorBuilder,
     this.itemKeyBuilder,
-    this.includeSafeAreaBottom = true,
   });
 
   @override
   Widget build(BuildContext context) {
-    final bottomPadding = includeSafeAreaBottom
-        ? MediaQuery.paddingOf(context).bottom
-        : 0.0;
-    final resolvedPadding = padding.add(EdgeInsets.only(bottom: bottomPadding));
-
     if (isLoading && itemCount == 0) {
       return SliverFillRemaining(
         hasScrollBody: false,
@@ -77,7 +83,7 @@ class CommerceMarketplaceGrid extends StatelessWidget {
     }
 
     return SliverPadding(
-      padding: resolvedPadding,
+      padding: padding,
       sliver: SliverLayoutBuilder(
         builder: (context, _) {
           return SliverGrid(
@@ -102,63 +108,33 @@ class CommerceMarketplaceGrid extends StatelessWidget {
     return 2;
   }
 
+  /// CANONICAL first-load loading fallback: the shared [LoadingIndicator].
+  /// Only rendered when there are no items yet (see [build]); refresh keeps
+  /// existing items visible and never swaps to this state.
   static Widget _defaultLoadingBuilder(BuildContext context) {
-    final theme = Theme.of(context);
-    return Center(
-      child: CircularProgressIndicator(color: theme.colorScheme.primary),
-    );
+    return const Center(child: LoadingIndicator());
   }
 
+  /// CANONICAL collection-empty fallback: the shared [EmptyState] with
+  /// localized copy. A surface that owns domain wording supplies its own
+  /// emptyBuilder.
   static Widget _defaultEmptyBuilder(BuildContext context) {
-    final theme = Theme.of(context);
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppMetrics.p24),
-        child: Text(
-          'Belum ada item untuk ditampilkan',
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-          textAlign: TextAlign.center,
-        ),
-      ),
+    final l10n = context.l10n;
+    return EmptyState(
+      title: l10n.emptyCollectionTitle,
+      subtitle: l10n.emptyCollectionMessage,
     );
   }
 
+  /// CANONICAL page-level load error fallback (PageErrorState): safe
+  /// localized copy only — the raw [error] object never reaches the screen.
+  /// A caller that owns a retry signal supplies its own errorBuilder.
   static Widget _defaultErrorBuilder(
     BuildContext context,
     Object error,
     StackTrace? stackTrace,
   ) {
-    final theme = Theme.of(context);
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppMetrics.p24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.error_outline, color: theme.colorScheme.error, size: AppIconSize.display),
-            const SizedBox(height: 12),
-            Text(
-              'Data belum bisa dimuat.',
-              style: theme.textTheme.titleMedium?.copyWith(
-                color: theme.colorScheme.onSurface,
-                fontWeight: FontWeight.w700,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              error.toString(),
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
-    );
+    return const PageErrorState();
   }
 }
 
@@ -483,7 +459,13 @@ class CommerceMarketplaceCardBadge extends StatelessWidget {
           : Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(icon, size: compact ? AppIconSize.inlineGlyph : AppIconSize.inlineGlyph, color: fg),
+                Icon(
+                  icon,
+                  size: compact
+                      ? AppIconSize.inlineGlyph
+                      : AppIconSize.inlineGlyph,
+                  color: fg,
+                ),
                 const SizedBox(width: 4),
                 Flexible(
                   child: Text(

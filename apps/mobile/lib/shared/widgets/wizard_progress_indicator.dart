@@ -4,7 +4,7 @@ import 'package:labuda/core/core.dart';
 /// Wizard Progress Indicator - Reusable Component
 ///
 /// Compact & responsive progress indicator untuk multi-step wizards
-/// Dipakai di: Contest, Seller Upgrade, Product, Auction
+/// Dipakai di: Seller Upgrade, Product, Auction
 ///
 /// Features:
 /// - Adaptive horizontal spacing berdasarkan screen width
@@ -45,7 +45,10 @@ class WizardProgressIndicator extends StatelessWidget {
     final stepSize = screenWidth < 360 ? 28.0 : 30.0;
 
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: AppMetrics.p8),
+      padding: EdgeInsets.symmetric(
+        horizontal: horizontalPadding,
+        vertical: AppMetrics.p8,
+      ),
       child: LayoutBuilder(
         builder: (context, constraints) {
           final availableWidth = constraints.maxWidth;
@@ -138,7 +141,11 @@ class WizardProgressIndicator extends StatelessWidget {
           ),
           child: Center(
             child: isCompleted
-                ? Icon(Icons.check, color: scheme.onPrimary, size: stepSize * 0.5)
+                ? Icon(
+                    Icons.check,
+                    color: scheme.onPrimary,
+                    size: stepSize * 0.5,
+                  )
                 : Text(
                     '${index + 1}',
                     style: TextStyle(
@@ -157,11 +164,8 @@ class WizardProgressIndicator extends StatelessWidget {
           width: labelWidth.clamp(_minLabelWidth, _maxLabelWidth),
           child: Text(
             stepLabels[index],
-            style: TextStyle(
-              fontSize: isActive ? AppType.s12 : AppType.s12,
-              color: isActive
-                  ? scheme.onSurface
-                  : scheme.onSurfaceVariant,
+            style: context.typeRoles.labelMicro.copyWith(
+              color: isActive ? scheme.onSurface : scheme.onSurfaceVariant,
               fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
               height: 1.1,
             ),
@@ -174,7 +178,12 @@ class WizardProgressIndicator extends StatelessWidget {
     );
   }
 
-  Widget _buildConnectorLine(BuildContext context, bool isCompleted, double width, double stepSize) {
+  Widget _buildConnectorLine(
+    BuildContext context,
+    bool isCompleted,
+    double width,
+    double stepSize,
+  ) {
     final scheme = Theme.of(context).colorScheme;
     // Position connector in the middle (vertically aligned with circle center)
     final verticalOffset =

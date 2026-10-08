@@ -20,7 +20,9 @@ dependencies:
   firebase_core: ^4.1.1
   firebase_auth: ^6.1.0
   firebase_messaging: ^16.0.3  # Push notifications
-  firebase_analytics: ^12.0.3  # Analytics tracking
+  firebase_analytics: ^12.0.3  # Product analytics
+  firebase_crashlytics: ^5.0.0  # Crash/error monitoring
+  firebase_performance: ^0.11.0  # Performance monitoring
   google_sign_in: ^6.2.1
 
   # AWS SDK (video storage + deletion)
@@ -58,7 +60,6 @@ dependencies:
   visibility_detector: ^0.4.0+2
   flutter_local_notifications: ^20.0.0  # Local notifications (Phase 1: notification module)
   fl_chart: ^1.1.1  # Charts and graphs for analytics
-  quick_actions: ^1.1.0  # App shortcuts for quick access (long-press app icon)
 
   # ML Kit for OCR
   google_mlkit_text_recognition: ^0.15.0
@@ -78,7 +79,6 @@ dependencies:
   wechat_assets_picker: ^10.1.0
   geolocator: ^14.0.2
   geocoding: ^4.0.0
-  timeago: ^3.7.0
 
   # Share Module
   share_plus: ^12.0.1
@@ -122,10 +122,7 @@ flutter:
 
   assets:
     - assets/images/
-    - assets/data/
-    - assets/data/cities/
-    - assets/data/districts/
-    - assets/data/villages/
+    - assets/icons/payment/
 
   # fonts:
   #   - family: Inter

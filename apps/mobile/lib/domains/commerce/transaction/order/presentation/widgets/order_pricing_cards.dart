@@ -33,13 +33,7 @@ class _CommercePricingCard extends StatelessWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    return Container(
-      padding: const EdgeInsets.all(core.AppMetrics.p16),
-      decoration: BoxDecoration(
-        color: colorScheme.surface,
-        borderRadius: BorderRadius.circular(core.AppShape.r12),
-        border: Border.all(color: colorScheme.outlineVariant),
-      ),
+    return OrderSectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -105,13 +99,7 @@ class OrderSellerPricingCard extends StatelessWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    return Container(
-      padding: const EdgeInsets.all(core.AppMetrics.p16),
-      decoration: BoxDecoration(
-        color: colorScheme.surface,
-        borderRadius: BorderRadius.circular(core.AppShape.r12),
-        border: Border.all(color: colorScheme.outlineVariant),
-      ),
+    return OrderSectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -179,7 +167,8 @@ class _PricingRow extends StatelessWidget {
           Text(
             value,
             style: theme.textTheme.bodyMedium?.copyWith(
-              color: valueColor ?? (isBold ? null : colorScheme.onSurfaceVariant),
+              color:
+                  valueColor ?? (isBold ? null : colorScheme.onSurfaceVariant),
               fontWeight: isBold ? FontWeight.w600 : FontWeight.normal,
             ),
           ),

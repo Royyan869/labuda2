@@ -5,8 +5,9 @@ import (
 	"fmt"
 )
 
-// ErrLiveImmutable is the canonical seller-edit rejection for live ForSale.
-// Seller-controlled product definition is immutable once status != draft.
+// ErrLiveImmutable is the canonical seller-edit rejection for a live ForSale.
+// Seller-controlled product definition is immutable once the for_sale exists:
+// create = publish, so every persisted for_sale is live.
 var ErrLiveImmutable = errors.New("LIVE_IMMUTABLE: for_sale is live, seller edit forbidden")
 
 // ForSaleStatus represents the lifecycle status of a for_sale.
@@ -14,18 +15,19 @@ var ErrLiveImmutable = errors.New("LIVE_IMMUTABLE: for_sale is live, seller edit
 // ═══════════════════════════════════════════════════════════════════════════════
 // CANONICAL LIFECYCLE:
 // ═══════════════════════════════════════════════════════════════════════════════
-// draft -> active (published) -> sold/withdrawn
+// active (published at create) -> sold/withdrawn
+//
+// THERE IS NO DRAFT STATE (owner decision, Oct 2026): create = publish. A
+// seller who completes the create form is publishing; the surface is active
+// and public from the moment it exists.
 //
 // ═══════════════════════════════════════════════════════════════════════════════
 // STATUS MEANINGS:
 // ═══════════════════════════════════════════════════════════════════════════════
-// - draft:     Workspace-only, NOT yet published to market.
-//              Seller can create/edit without active subscription.
-//              NOT visible to buyers, NOT purchasable.
-//
 // - active:    Published and market-ready. ALWAYS PUBLIC (enforced invariant).
 //              Visible to buyers if stock > 0. Purchasable when all conditions met.
-//              Requires active seller subscription to publish.
+//              Creating one requires an active seller subscription (market
+//              authority) — checked inside the create transaction.
 //
 // - sold:      Terminal state. All stock sold out. NOT editable, NOT purchasable.
 //
@@ -34,16 +36,14 @@ var ErrLiveImmutable = errors.New("LIVE_IMMUTABLE: for_sale is live, seller edit
 // ═══════════════════════════════════════════════════════════════════════════════
 // HARD INVARIANT: STATUS → VISIBILITY MAPPING
 // ═══════════════════════════════════════════════════════════════════════════════
-// - draft  → MUST BE private (workspace-only, NOT in market)
-// - active → MUST BE public (market-visible, enforces ACTIVE = PUBLIC ONLY)
-// - sold   → visibility irrelevant (terminal state)
+// - active    → MUST BE public (market-visible, enforces ACTIVE = PUBLIC ONLY)
+// - sold      → visibility irrelevant (terminal state)
 // - withdrawn → visibility irrelevant (terminal state)
 //
 // A for_sale can be:
-// - draft + private:    Workspace draft (ONLY valid draft state)
-// - draft + public:     INVALID (visibility is ignored for draft)
-// - active + private:   INVALID (enforced by Publish() - automatically sets to public)
-// - active + public:    Full market for_sale (ONLY valid active state)
+// - active + public:    full market for_sale (the ONLY valid active state;
+//                       the constructor sets visibility=public unconditionally)
+// - active + private:   INVALID (never constructed)
 //
 // ═══════════════════════════════════════════════════════════════════════════════
 // RESERVATION & STOCK:
@@ -54,12 +54,9 @@ var ErrLiveImmutable = errors.New("LIVE_IMMUTABLE: for_sale is live, seller edit
 type ForSaleStatus string
 
 const (
-	// ForSaleStatusDraft is the initial workspace-only state.
-	// ForSale is NOT in market, NOT buyable, seller can edit freely.
-	ForSaleStatusDraft ForSaleStatus = "draft"
-
-	// ForSaleStatusActive is the published state - for_sale is market-ready.
-	// Visible to buyers if visibility=public AND stock > 0.
+	// ForSaleStatusActive is the published state — the INITIAL state of every
+	// created for_sale (create = publish). Visible to buyers if
+	// visibility=public AND stock > 0.
 	ForSaleStatusActive ForSaleStatus = "active"
 
 	// ForSaleStatusSold is when for_sale has been successfully sold out.
@@ -76,12 +73,10 @@ const (
 // transitionAllowed defines ordinary (non-governed) state transitions.
 // This is the primary transition graph for seller-initiated actions.
 // ─────────────────────────────────────────────────────────────────────────────
-// DRAFT can transition to: active (publish), withdrawn (discard)
 // ACTIVE can transition to: sold (stock exhaustion), withdrawn (seller withdrawal)
 // SOLD → active: ONLY through stock restoration (order cancel/expire) — not here
 // WITHDRAWN → active: ONLY through moderation restoration — not here
 var transitionAllowed = map[ForSaleStatus][]ForSaleStatus{
-	ForSaleStatusDraft:     {ForSaleStatusActive, ForSaleStatusWithdrawn},
 	ForSaleStatusActive:    {ForSaleStatusSold, ForSaleStatusWithdrawn},
 	ForSaleStatusSold:      {}, // Seller-terminal; governed reversal via RestoreQuantity only
 	ForSaleStatusWithdrawn: {}, // Seller-terminal; governed reversal via Moderation only
@@ -114,7 +109,7 @@ func (e *InvalidTransitionError) Error() string {
 // IsValid checks if the for_sale status is valid.
 func (s ForSaleStatus) IsValid() bool {
 	switch s {
-	case ForSaleStatusDraft, ForSaleStatusActive, ForSaleStatusSold, ForSaleStatusWithdrawn:
+	case ForSaleStatusActive, ForSaleStatusSold, ForSaleStatusWithdrawn:
 		return true
 	default:
 		return false
@@ -129,8 +124,8 @@ func (s ForSaleStatus) String() string {
 // IsRepostable returns true if the for_sale is in a state where social reposts
 // are permitted.
 //
-// REPOST POLICY: Only active for_sales can be reposted. Sold, withdrawn, draft,
-// and any unknown status are not repostable.
+// REPOST POLICY: Only active for_sales can be reposted. Sold, withdrawn and
+// any unknown status are not repostable.
 //
 // This is the single source of truth for the repost creation gate
 // (commerceResponse.Validator via content_service.validateCommerceReference) and the read-side governance filter
@@ -146,12 +141,11 @@ func (s ForSaleStatus) IsRepostable() bool {
 //	sold         — sold (honest buyer-facing outcome; owner decision: the
 //	               fact that an item sold is public business truth, while
 //	               the reason an item was pulled stays private)
-//	unavailable  — not buyable, reason withheld (draft / withdrawn or any
-//	               unknown state)
+//	unavailable  — not buyable, reason withheld (withdrawn or any unknown state)
 //	removed      — reserved for moderation/hard-delete; ForSaleStatus does not
 //	               model these today so this method never returns "removed".
 //
-// Internal enum values (draft, withdrawn, …) MUST NOT cross the public
+// Internal enum values (withdrawn, …) MUST NOT cross the public
 // boundary. Public surfaces should call this method and emit the result instead
 // of String() / raw enum text.
 func (s ForSaleStatus) PublicLifecycle() string {
@@ -160,13 +154,9 @@ func (s ForSaleStatus) PublicLifecycle() string {
 		return "active"
 	case ForSaleStatusSold:
 		return "sold"
-	case ForSaleStatusDraft, ForSaleStatusWithdrawn:
+	case ForSaleStatusWithdrawn:
 		return "unavailable"
 	default:
 		return "unavailable"
 	}
 }
-
-
-
-

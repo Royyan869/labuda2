@@ -25,14 +25,11 @@ import (
 	orderentity "github.com/labuda/backend/internal/commerce/order/entity"
 	orderRepoImpl "github.com/labuda/backend/internal/commerce/order/infrastructure/repository"
 	orderrepository "github.com/labuda/backend/internal/commerce/order/repository"
-	productEntity "github.com/labuda/backend/internal/commerce/product/entity"
 	productRepoImpl "github.com/labuda/backend/internal/commerce/product/infrastructure/repository"
 	productRepo "github.com/labuda/backend/internal/commerce/product/repository"
 	shippingApp "github.com/labuda/backend/internal/commerce/shipping/application"
 	shippingRepoImpl "github.com/labuda/backend/internal/commerce/shipping/infrastructure/repository"
 	shippingquoteEntity "github.com/labuda/backend/internal/commerce/shipping/quote/entity"
-	shippingquoteRepoImpl "github.com/labuda/backend/internal/commerce/shipping/quote/infrastructure/repository"
-	shippingquoteRepo "github.com/labuda/backend/internal/commerce/shipping/quote/repository"
 
 	auditApp "github.com/labuda/backend/internal/governance/audit/application"
 	addressApp "github.com/labuda/backend/internal/identity/address/application"
@@ -66,6 +63,20 @@ type AuctionStatusChecker interface {
 // unchanged (PHASE 2.5: test coverage).
 type CheckoutAddressResolver interface {
 	GetAddressForCheckout(ctx context.Context, tx db.Tx, userID, addressID uuid.UUID) (*addressentity.Address, error)
+}
+
+// ShippingQuoteCheckoutAuthority is the ONE authority for shipping-quote
+// checkout validation and the ACTIVE -> USED transition. It is implemented by
+// the Commerce Shipping Quote service (*shippingQuoteApp.Service). Order
+// creation NEVER re-implements quote lifecycle rules; it delegates here inside
+// the order's transaction so quote consumption and order mutation are atomic.
+type ShippingQuoteCheckoutAuthority interface {
+	// ConsumeQuoteForCheckout validates the quote against the expected context
+	// and marks it USED in the caller's transaction.
+	ConsumeQuoteForCheckout(ctx context.Context, tx db.Tx, in shippingquoteEntity.CheckoutContext) (*shippingquoteEntity.ShippingQuote, error)
+	// InvalidateQuotesByProduct marks all remaining ACTIVE quotes for a product
+	// INVALID (e.g. once the sale surface is sold).
+	InvalidateQuotesByProduct(ctx context.Context, tx db.Tx, productID uuid.UUID) error
 }
 
 // ============================================================================
@@ -109,25 +120,25 @@ func calculatePaymentExpiry(paymentMethod string, createdAt time.Time) time.Time
 // - Buyers cannot create orders from expired sellers' forSales
 // - Sellers must have active subscription to accept new orders
 type OrderCreationService struct {
-	repo                 orderrepository.OrderRepository
-	forSaleRepo          forSalerepo.ForSaleRepository
-	productRepo          productRepo.ProductRepository
-	negotiationRepo      negotiationRepo.Repository
-	productShippingRepo  shippingRepoImpl.ProductShippingSetupRepository
-	shippingQuoteRepo    shippingquoteRepo.ShippingQuoteRepository // PHASE 3: Shipping quote validation
-	shippingService      *shippingApp.ShippingService
-	addressService       CheckoutAddressResolver       // See CheckoutAddressResolver doc for why this is an interface
-	addressRepo          addressRepo.AddressRepository // For fetching farm address (shipping origin)
-	ownership            *auth.OwnershipValidator
-	accountStatusChecker auth.AccountStatusChecker
-	roleChecker          auth.RoleChecker
-	actorResolver        capabilityEntity.ActorResolver // SERVICE LAYER ENFORCEMENT
-	outboxRepo           *outboxRepo.OutboxRepository
-	configService        *platformconfigApp.ConfigService
-	commentRepo          contentrepo.CommentRepository
-	auditService         *auditApp.AuditService // OBSERVABILITY: Audit logging service
-	auctionRepo          AuctionStatusChecker   // BNR: Check auction settlement status
-	commerceGovRepo      commercegov.Repository // COMMERCE RESTRICTION: canonical restriction checker
+	repo                   orderrepository.OrderRepository
+	forSaleRepo            forSalerepo.ForSaleRepository
+	productRepo            productRepo.ProductRepository
+	negotiationRepo        negotiationRepo.Repository
+	productShippingRepo    shippingRepoImpl.ProductShippingSetupRepository
+	shippingQuoteAuthority ShippingQuoteCheckoutAuthority // ONE authority for quote checkout validation + use
+	shippingService        *shippingApp.ShippingService
+	addressService         CheckoutAddressResolver       // See CheckoutAddressResolver doc for why this is an interface
+	addressRepo            addressRepo.AddressRepository // For fetching farm address (shipping origin)
+	ownership              *auth.OwnershipValidator
+	accountStatusChecker   auth.AccountStatusChecker
+	roleChecker            auth.RoleChecker
+	actorResolver          capabilityEntity.ActorResolver // SERVICE LAYER ENFORCEMENT
+	outboxRepo             *outboxRepo.OutboxRepository
+	configService          *platformconfigApp.ConfigService
+	commentRepo            contentrepo.CommentRepository
+	auditService           *auditApp.AuditService // OBSERVABILITY: Audit logging service
+	auctionRepo            AuctionStatusChecker   // BNR: Check auction settlement status
+	commerceGovRepo        commercegov.Repository // COMMERCE RESTRICTION: canonical restriction checker
 }
 
 // NewOrderCreationService creates a new OrderCreationService.
@@ -148,7 +159,6 @@ func NewOrderCreationService(
 		productRepo:          productRepoImpl.NewProductRepository(),
 		negotiationRepo:      negotiationRepoImpl.NewNegotiationRepository(),
 		productShippingRepo:  productShippingRepo,
-		shippingQuoteRepo:    shippingquoteRepoImpl.NewShippingQuoteRepository(), // PHASE 3: Shipping quote validation
 		shippingService:      shippingService,
 		addressService:       addressApp.NewAddressService(),
 		addressRepo:          addressRepoImpl.NewAddressRepository(), // For fetching farm address
@@ -169,6 +179,15 @@ func NewOrderCreationService(
 // same transaction as the order mutation (TOCTOU prevention).
 func (s *OrderCreationService) SetCommerceGovRepository(repo commercegov.Repository) {
 	s.commerceGovRepo = repo
+}
+
+// SetShippingQuoteCheckoutAuthority wires the ONE Commerce shipping-quote
+// checkout authority. It is wired after construction because the Shipping Quote
+// service is built after the order services (avoids an import/initialization
+// cycle). Checkout that uses a shipping quote FAILS CLOSED when this is not
+// wired — it never silently skips quote validation.
+func (s *OrderCreationService) SetShippingQuoteCheckoutAuthority(a ShippingQuoteCheckoutAuthority) {
+	s.shippingQuoteAuthority = a
 }
 
 // requireBuyerNotRestricted checks whether the given buyer has an active
@@ -282,6 +301,14 @@ type ValidateSaleSurfaceForCheckoutInput struct {
 	SaleSurface *entity.ForSale // Pre-loaded sale surface (must be locked with FOR UPDATE)
 	BuyerID     uuid.UUID       // Buyer user ID
 	Quantity    int             // Requested quantity
+
+	// WonAuctionSettlement marks this order as the settlement of an auction
+	// the buyer already won (claim with settlement type bid_win). OWNER
+	// CANONICAL (Oct 2026): an auction with bids runs to completion even if
+	// the seller's subscription lapsed mid-run — the won order must be
+	// fulfillable. Guard 6 still blocks every NEW sale: ForSale checkout and
+	// auction buy-now both leave this false.
+	WonAuctionSettlement bool
 }
 
 // validateSaleSurfaceForCheckout performs unified validation for all checkout entry paths.
@@ -343,274 +370,84 @@ func (s *OrderCreationService) validateSaleSurfaceForCheckout(
 		}
 	}
 
-	// Guard 6: MARKET AUTHORITY CHECK - Verify seller has active subscription
-	// Buyers cannot create orders from expired sellers' sale surfaces
-	hasCapability, err := s.roleChecker.HasActiveSellerCapability(ctx, l.SellerID)
-	if err != nil {
-		return fmt.Errorf("failed to verify seller market authority: %w", err)
-	}
-	if !hasCapability {
-		return auth.ErrMarketAuthorityRequired
+	// Guard 6: MARKET AUTHORITY CHECK — blocks NEW sales from sellers
+	// without an active subscription (ForSale checkout, auction buy-now).
+	// The one deliberate exception is WonAuctionSettlement: a won auction
+	// must run to completion even if the seller's subscription lapsed
+	// mid-run (owner canonical), otherwise the winner could never receive
+	// the order they already won.
+	if !input.WonAuctionSettlement {
+		hasCapability, err := s.roleChecker.HasActiveSellerCapability(ctx, l.SellerID)
+		if err != nil {
+			return fmt.Errorf("failed to verify seller market authority: %w", err)
+		}
+		if !hasCapability {
+			return auth.ErrMarketAuthorityRequired
+		}
 	}
 
 	return nil
 }
 
-// getFarmAddressSnapshot fetches and validates the farm address from the
-// canonical Product (saleSurface.Product.FarmAddressID).
+// getSellerOriginSnapshot resolves the seller account's primary address and
+// returns it as an immutable order shipping-origin snapshot.
 //
-// VALIDATION:
-// - FarmAddressID must exist (not nil/empty)
-// - Address must exist in database
-// - Address must carry the "sender" tag (seller shipping origin)
-//
-// Returns AddressSnapshot for order immutability.
-func (s *OrderCreationService) getFarmAddressSnapshot(
+// CANONICAL TRUTH: every product's origin is the seller account's primary
+// address. There is no product-level origin address.
+func (s *OrderCreationService) getSellerOriginSnapshot(
 	ctx context.Context,
 	tx db.Tx,
-	saleSurface *entity.ForSale,
+	sellerID uuid.UUID,
 ) (addressentity.AddressSnapshot, error) {
-	// Guard: FarmAddressID is required — canonical authority is Product.
-	if saleSurface.Product == nil || saleSurface.Product.FarmAddressID == nil || *saleSurface.Product.FarmAddressID == uuid.Nil {
-		return addressentity.AddressSnapshot{}, fmt.Errorf("sale surface missing farm_address_id: sale_surface_id=%s", saleSurface.ID)
-	}
-
-	// Fetch farm address from database
-	farmAddress, err := s.addressRepo.GetByID(ctx, tx, *saleSurface.Product.FarmAddressID)
+	primary, err := s.addressRepo.GetPrimaryByUserID(ctx, tx, sellerID)
 	if err != nil {
-		return addressentity.AddressSnapshot{}, fmt.Errorf("farm address not found: address_id=%s, sale_surface_id=%s", *saleSurface.Product.FarmAddressID, saleSurface.ID)
+		return addressentity.AddressSnapshot{}, fmt.Errorf("failed to resolve seller primary address: seller_id=%s", sellerID)
 	}
-
-	// Guard: Address must carry the "sender" tag (seller shipping origin)
-	if !farmAddress.HasTag(addressentity.TagSender) {
-		return addressentity.AddressSnapshot{}, fmt.Errorf("farm address must carry the 'sender' tag: address_id=%s, tags=%v", farmAddress.ID, farmAddress.TagStrings())
+	if primary == nil {
+		return addressentity.AddressSnapshot{}, fmt.Errorf("seller has no primary address: seller_id=%s", sellerID)
 	}
-
-	// Return snapshot for order immutability
-	return farmAddress.ToSnapshot(), nil
-}
-
-// getAuctionFarmAddressSnapshot fetches the shipping origin for an auction order.
-//
-// Auction surfaces do not have an always-on forSale row, so we resolve the
-// origin from the canonical product. If the product does not carry a
-// farm_address_id, we fall back to the seller's primary sender address.
-func (s *OrderCreationService) getAuctionFarmAddressSnapshot(
-	ctx context.Context,
-	tx db.Tx,
-	product *productEntity.Product,
-) (addressentity.AddressSnapshot, error) {
-	if product == nil {
-		return addressentity.AddressSnapshot{}, fmt.Errorf("product is required for auction farm address snapshot")
-	}
-
-	if product.FarmAddressID != nil && *product.FarmAddressID != uuid.Nil {
-		farmAddress, err := s.addressRepo.GetByID(ctx, tx, *product.FarmAddressID)
-		if err != nil {
-			return addressentity.AddressSnapshot{}, fmt.Errorf("farm address not found: address_id=%s, product_id=%s", *product.FarmAddressID, product.ID)
-		}
-		if !farmAddress.HasTag(addressentity.TagSender) {
-			return addressentity.AddressSnapshot{}, fmt.Errorf("farm address must carry the 'sender' tag: address_id=%s, tags=%v", farmAddress.ID, farmAddress.TagStrings())
-		}
-		return farmAddress.ToSnapshot(), nil
-	}
-
-	farmAddress, err := s.addressRepo.GetPrimaryByTag(ctx, tx, product.SellerID, string(addressentity.TagSender))
-	if err != nil {
-		return addressentity.AddressSnapshot{}, fmt.Errorf("failed to resolve seller sender address: seller_id=%s", product.SellerID)
-	}
-	if farmAddress == nil {
-		return addressentity.AddressSnapshot{}, fmt.Errorf("sale surface missing farm address and seller has no sender address: seller_id=%s, product_id=%s", product.SellerID, product.ID)
-	}
-	return farmAddress.ToSnapshot(), nil
+	return primary.ToSnapshot(), nil
 }
 
 // ============================================================================
-// PHASE 3: SHIPPING QUOTE VALIDATION (ANTI-TAMPER) - ENHANCED
+// SHIPPING QUOTE CHECKOUT CONSUMPTION (DELEGATES TO THE ONE AUTHORITY)
 // ============================================================================
 
-// validateShippingQuoteForOrder performs comprehensive anti-tamper validation
-// for shipping quotes before order creation.
+// consumeShippingQuoteForOrder delegates shipping-quote checkout validation and
+// the ACTIVE -> USED transition to the SINGLE Commerce authority
+// (ShippingQuoteCheckoutAuthority), inside the caller's order transaction. Order
+// creation owns NO quote lifecycle rules — it only supplies the expected
+// commercial context.
 //
-// CRITICAL: This function RE-FETCHES the shipping quote from the database
-// to prevent tampering with the pricing token data.
+// FAIL-CLOSED: if the authority is not wired, checkout that uses a quote is
+// rejected rather than silently skipping validation.
 //
-// RACE CONDITION PREVENTION (A1 FIX):
-// Uses GetByIDForUpdate which locks the quote row with FOR UPDATE.
-// This prevents concurrent checkouts from using the same quote.
-//
-// VALIDATIONS (TASK G):
-// 1. Quote exists in database (re-fetch with FOR UPDATE lock, don't trust pricing token)
-// 2. Quote status is ACTIVE (TASK C)
-// 3. Quote is not expired (TASK C)
-// 4. Quote.ChatID matches the chat context (prevents cross-chat quote theft)
-// 5. Quote.SellerID matches the sale-surface seller (prevents seller impersonation)
-// 6. Quote.ProductID matches the product (prevents cross-product quote usage)
-// 7. Quote.BuyerID matches the order buyer (prevents quote theft)
-// 8. Checkout address matches locked destination (TASK D - Address Lock)
-//
-// This is called during order creation when shipping_source = "shipping_quote".
-func (s *OrderCreationService) validateShippingQuoteForOrder(
+// AUDIT: the authority returns a typed CheckoutRejectionError; this function
+// maps it into the order-side audit trail (reason code + detail). The authority
+// stays the single decision-maker; the order domain only records its own
+// observability.
+func (s *OrderCreationService) consumeShippingQuoteForOrder(
 	ctx context.Context,
 	tx db.Tx,
-	shippingQuoteID uuid.UUID,
-	chatID *uuid.UUID,
-	productID uuid.UUID,
-	sourceID uuid.UUID,
-	auctionID *uuid.UUID,
-	saleSurfaceSellerID uuid.UUID,
-	buyerID uuid.UUID,
-	shippingAddressProvinceID, shippingAddressCityID string,
-) (*shippingquoteEntity.ShippingQuote, error) {
-	// STEP 1: RE-FETCH QUOTE FROM DATABASE WITH FOR UPDATE LOCK (A1 FIX - RACE CONDITION PREVENTION)
-	// DO NOT trust the pricing token - always re-fetch from DB
-	// FOR UPDATE prevents concurrent transactions from using the same quote
-	quote, err := s.shippingQuoteRepo.GetByIDForUpdate(ctx, tx, shippingQuoteID)
+	in shippingquoteEntity.CheckoutContext,
+) error {
+	if s.shippingQuoteAuthority == nil {
+		return fmt.Errorf("shipping quote checkout authority not configured: quote consumption rejected")
+	}
+
+	quote, err := s.shippingQuoteAuthority.ConsumeQuoteForCheckout(ctx, tx, in)
 	if err != nil {
-		// LOG: Quote fetch failed
-		if s.auditService != nil {
-			s.auditService.ShippingQuoteRejected(ctx, tx, shippingQuoteID, buyerID, "fetch_failed", "database error during quote retrieval")
+		var rejection *shippingquoteEntity.CheckoutRejectionError
+		if errors.As(err, &rejection) && s.auditService != nil {
+			s.auditService.ShippingQuoteRejected(ctx, tx, in.QuoteID, in.BuyerID, rejection.Field, rejection.Reason)
 		}
-		return nil, fmt.Errorf("shipping quote fetch failed: %w", err)
-	}
-	if quote == nil {
-		// LOG: Quote not found
-		if s.auditService != nil {
-			s.auditService.ShippingQuoteRejected(ctx, tx, shippingQuoteID, buyerID, "not_found", "quote does not exist in database")
-		}
-		return nil, fmt.Errorf("shipping quote not found: quote_id=%s", shippingQuoteID)
+		return err
 	}
 
-	// STEP 2: IDEMPOTENCY CHECK - VALIDATE QUOTE STATUS IS ACTIVE
-	// FINAL SAFETY: Reject immediately if not ACTIVE - prevents double use and stale quote usage
-	now := time.Now()
-	if quote.IsSuperseded() {
-		// LOG: Quote rejected due to supersession
-		rejectionReason := fmt.Sprintf("quote superseded by %v", quote.SupersededByID)
-		if s.auditService != nil {
-			s.auditService.ShippingQuoteRejected(ctx, tx, shippingQuoteID, buyerID, "superseded", rejectionReason)
-		}
-		return nil, fmt.Errorf("shipping quote has been superseded: quote_id=%s", shippingQuoteID)
-	}
-
-	if !quote.IsCurrent() {
-		// LOG: Quote rejected due to status
-		rejectionReason := fmt.Sprintf("quote status is %s (not current ACTIVE revision)", quote.Status)
-		if s.auditService != nil {
-			s.auditService.ShippingQuoteRejected(ctx, tx, shippingQuoteID, buyerID, "invalid_status", rejectionReason)
-		}
-		return nil, fmt.Errorf("shipping quote is not active: quote_id=%s, status=%s", shippingQuoteID, quote.Status)
-	}
-
-	// STEP 3: VALIDATE QUOTE IS NOT EXPIRED
-	// Check if quote has an expiration time and if it has passed
-	if quote.IsExpiredAt(now) {
-		// LOG: Quote rejected due to expiration
-		rejectionReason := fmt.Sprintf("quote expired at %v", quote.ExpiresAt)
-		if s.auditService != nil {
-			s.auditService.ShippingQuoteRejected(ctx, tx, shippingQuoteID, buyerID, "expired", rejectionReason)
-		}
-		return nil, fmt.Errorf("shipping quote has expired: quote_id=%s, expires_at=%v", shippingQuoteID, quote.ExpiresAt)
-	}
-
-	// STEP 4: OWNERSHIP VALIDATION - CHAT ID MATCH
-	// FINAL SAFETY: Prevents using a quote from a different chat room (quote theft protection)
-	if chatID != nil && quote.ChatID != *chatID {
-		// LOG: Quote rejected due to chat mismatch (possible quote theft)
-		rejectionReason := fmt.Sprintf("quote chat_id=%s does not match order chat_id=%s", quote.ChatID, *chatID)
-		if s.auditService != nil {
-			s.auditService.ShippingQuoteRejected(ctx, tx, shippingQuoteID, buyerID, "chat_mismatch", rejectionReason)
-		}
-		return nil, fmt.Errorf("shipping quote chat mismatch: quote_chat_id=%s, expected_chat_id=%s (possible quote theft)",
-			quote.ChatID, *chatID)
-	}
-
-	// STEP 5: OWNERSHIP VALIDATION - SELLER ID MATCH
-	// FINAL SAFETY: Prevents seller impersonation attacks
-	if quote.SellerID != saleSurfaceSellerID {
-		// LOG: Quote rejected due to seller mismatch (possible impersonation)
-		rejectionReason := fmt.Sprintf("quote seller_id=%s does not match sale_surface_seller_id=%s", quote.SellerID, saleSurfaceSellerID)
-		if s.auditService != nil {
-			s.auditService.ShippingQuoteRejected(ctx, tx, shippingQuoteID, buyerID, "seller_mismatch", rejectionReason)
-		}
-		return nil, fmt.Errorf("shipping quote seller mismatch: quote_seller_id=%s, sale_surface_seller_id=%s (possible seller impersonation)",
-			quote.SellerID, saleSurfaceSellerID)
-	}
-
-	// STEP 6: OWNERSHIP VALIDATION - PRODUCT / SALE-SURFACE MATCH
-	// FINAL SAFETY: Prevents using a quote for a different product or sale surface.
-	if quote.ProductID != productID {
-		rejectionReason := fmt.Sprintf("quote product_id=%s does not match order product_id=%s", quote.ProductID, productID)
-		if s.auditService != nil {
-			s.auditService.ShippingQuoteRejected(ctx, tx, shippingQuoteID, buyerID, "product_mismatch", rejectionReason)
-		}
-		return nil, fmt.Errorf("shipping quote product mismatch: quote_product_id=%s, expected_product_id=%s (possible cross-product quote usage)",
-			quote.ProductID, productID)
-	}
-	if auctionID != nil && *auctionID != uuid.Nil {
-		if quote.SourceType == nil || quote.SourceID == nil || *quote.SourceType != "auction" || *quote.SourceID != *auctionID {
-			rejectionReason := fmt.Sprintf("quote source=%v:%v does not match order auction_id=%s", quote.SourceType, quote.SourceID, *auctionID)
-			if s.auditService != nil {
-				s.auditService.ShippingQuoteRejected(ctx, tx, shippingQuoteID, buyerID, "auction_mismatch", rejectionReason)
-			}
-			return nil, fmt.Errorf("shipping quote auction mismatch: quote_source=%v:%v, expected_auction_id=%s (possible cross-item quote usage)",
-				quote.SourceType, quote.SourceID, *auctionID)
-		}
-	} else {
-		if quote.SourceType == nil || quote.SourceID == nil || *quote.SourceType != "for_sale" || *quote.SourceID != sourceID {
-			rejectionReason := fmt.Sprintf("quote source=%v:%v does not match order source_id=%s", quote.SourceType, quote.SourceID, sourceID)
-			if s.auditService != nil {
-				s.auditService.ShippingQuoteRejected(ctx, tx, shippingQuoteID, buyerID, "source_mismatch", rejectionReason)
-			}
-			return nil, fmt.Errorf("shipping quote source mismatch: quote_source=%v:%v, expected_source_id=%s (possible cross-item quote usage)",
-				quote.SourceType, quote.SourceID, sourceID)
-		}
-	}
-
-	// STEP 7: OWNERSHIP VALIDATION - BUYER ID MATCH
-	// FINAL SAFETY: Prevents quote theft (using another buyer's quote)
-	if quote.BuyerID != buyerID {
-		// LOG: Quote rejected due to buyer mismatch (quote theft attempt)
-		rejectionReason := fmt.Sprintf("quote buyer_id=%s does not match order buyer_id=%s", quote.BuyerID, buyerID)
-		if s.auditService != nil {
-			s.auditService.ShippingQuoteRejected(ctx, tx, shippingQuoteID, buyerID, "buyer_mismatch", rejectionReason)
-		}
-		return nil, fmt.Errorf("shipping quote buyer mismatch: quote_buyer_id=%s, order_buyer_id=%s (possible quote theft)",
-			quote.BuyerID, buyerID)
-	}
-
-	// STEP 8: VALIDATE DESTINATION ADDRESS MATCH (TASK D - Address Lock)
-	// Ensures the checkout address matches the locked destination on the quote
-	if err := quote.ValidateDestinationAddress(shippingAddressProvinceID, shippingAddressCityID); err != nil {
-		// LOG: Quote rejected due to address mismatch
-		rejectionReason := fmt.Sprintf("destination address mismatch: %v", err)
-		if s.auditService != nil {
-			s.auditService.ShippingQuoteRejected(ctx, tx, shippingQuoteID, buyerID, "address_mismatch", rejectionReason)
-		}
-		return nil, fmt.Errorf("shipping quote destination mismatch: %w", err)
-	}
-
-	// STEP 9: MARK QUOTE AS USED (A1 FIX COMPLETE)
-	// FINAL SAFETY: After all validations pass, mark the quote as USED within the same transaction.
-	// This ensures the quote cannot be used by another concurrent checkout (idempotency).
-	// The FOR UPDATE lock prevents concurrent transactions from reading this quote
-	// until this transaction commits.
-	var usedAt interface{} = now
-	if err := s.shippingQuoteRepo.UpdateStatus(ctx, tx, shippingQuoteID, shippingquoteEntity.QuoteStatusUsed, &usedAt); err != nil {
-		// LOG: Quote usage failed (transaction will rollback)
-		if s.auditService != nil {
-			s.auditService.ShippingQuoteRejected(ctx, tx, shippingQuoteID, buyerID, "mark_used_failed", "database error during status update")
-		}
-		return nil, fmt.Errorf("failed to mark shipping quote as used: %w", err)
-	}
-
-	// STEP 10: LOG SUCCESSFUL QUOTE USAGE
-	// FINAL SAFETY: Log successful quote usage for audit trail
 	if s.auditService != nil {
-		s.auditService.ShippingQuoteUsed(ctx, tx, shippingQuoteID, buyerID, quote.SellerID, quote.Cost.Int64())
+		s.auditService.ShippingQuoteUsed(ctx, tx, in.QuoteID, in.BuyerID, quote.SellerID, quote.Cost.Int64())
 	}
-
-	return quote, nil
+	return nil
 }
 
 // ============================================================================
@@ -684,6 +521,10 @@ type CreateFromAuctionInput struct {
 	// orders: payment_expires_at = shipping_resolved_at + 24h (NOT the
 	// method-based expiry used by fixed-price orders).
 	ShippingResolvedAt time.Time
+	// PaymentMethodCode is the exact method the buyer selected at checkout. It
+	// is bound to the order and enforced by POST /payments. Nil for the
+	// auction-claim path, which selects a method at payment time.
+	PaymentMethodCode *string
 }
 
 // calculateAuctionPaymentExpiry returns the payment deadline for an
@@ -834,12 +675,18 @@ func (s *OrderCreationService) CreateFromAuction(
 	// Step 2.5: SHIPPING GUARD - Verify sale surface has shipping options configured.
 	// Returns shippingApp.ErrNoShippingSetups wrapped with %w so the handler
 	// can surface the NO_SHIPPING_OPTIONS error code via errors.Is.
-	shippingSetups, err := s.productShippingRepo.GetByProduct(ctx, tx, product.ID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to check sale surface shipping options: %w", err)
-	}
-	if len(shippingSetups) == 0 {
-		return nil, fmt.Errorf("sale surface %s: %w", product.ID, shippingApp.ErrNoShippingSetups)
+	//
+	// SKIPPED when using a manual shipping quote: the quote (validated by the
+	// canonical ConsumeQuoteForCheckout below) replaces the normal shipping
+	// requirement, exactly as in CreateFromSaleSurface.
+	if !usesShippingQuote {
+		shippingSetups, err := s.productShippingRepo.GetByProduct(ctx, tx, product.ID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to check sale surface shipping options: %w", err)
+		}
+		if len(shippingSetups) == 0 {
+			return nil, fmt.Errorf("sale surface %s: %w", product.ID, shippingApp.ErrNoShippingSetups)
+		}
 	}
 
 	// Step 3: VALIDATE SALE-SURFACE STATE (UNIFIED)
@@ -848,6 +695,9 @@ func (s *OrderCreationService) CreateFromAuction(
 		SaleSurface: auctionSurface,
 		BuyerID:     input.BuyerID,
 		Quantity:    1, // Auction orders always have quantity = 1
+		// bid_win = claim of an already-won auction (settlement, allowed for
+		// lapsed sellers); buy_now = a NEW sale (still blocked by Guard 6).
+		WonAuctionSettlement: input.AuctionSettlementType == orderentity.AuctionSettlementBidWin,
 	}); err != nil {
 		return nil, err
 	}
@@ -926,24 +776,23 @@ func (s *OrderCreationService) CreateFromAuction(
 	}
 
 	// ============================================================
-	// STEP 10.0: VALIDATE AND MARK SHIPPING QUOTE AS USED
+	// STEP 10.0: CONSUME THE SHIPPING QUOTE (ONE AUTHORITY)
 	// ============================================================
-	// If this order uses a shipping quote, validate the quote is still ACTIVE,
-	// not expired, and owned by the correct parties. Then atomically mark it USED
-	// within the same transaction to prevent double-use.
-	if shippingQuoteID != nil && snapshot.ChatID != nil {
-		if _, err := s.validateShippingQuoteForOrder(
-			ctx, tx,
-			*shippingQuoteID,
-			snapshot.ChatID,
-			product.ID,
-			input.AuctionID,
-			&input.AuctionID,
-			product.SellerID,
-			input.BuyerID,
-			addressSnapshot.ProvinceID,
-			addressSnapshot.CityID,
-		); err != nil {
+	// Delegates validation + USED transition to the Commerce shipping-quote
+	// authority inside this transaction. Consumed whenever the order carries a
+	// quote — the chat id is passed when available (provenance check).
+	if shippingQuoteID != nil {
+		if err := s.consumeShippingQuoteForOrder(ctx, tx, shippingquoteEntity.CheckoutContext{
+			QuoteID:            *shippingQuoteID,
+			BuyerID:            input.BuyerID,
+			ProductID:          product.ID,
+			SourceType:         "auction",
+			SourceID:           input.AuctionID,
+			SellerID:           product.SellerID,
+			ChatID:             snapshot.ChatID,
+			ShippingProvinceID: addressSnapshot.ProvinceID,
+			ShippingCityID:     addressSnapshot.CityID,
+		}); err != nil {
 			return nil, fmt.Errorf("shipping quote validation failed: %w", err)
 		}
 	}
@@ -980,13 +829,16 @@ func (s *OrderCreationService) CreateFromAuction(
 		auctionOrderPaymentExpiry(input, snapshot), // Canonical auction payment deadline
 	)
 
+	// Bind the buyer's selected payment method (nil for the auction-claim path).
+	order.PaymentMethodCode = input.PaymentMethodCode
+
 	// Apply shipping destination snapshot
 	order.ApplyAddressSnapshot(addressSnapshot)
 
-	// Apply shipping origin snapshot from the canonical Product's farm address
-	farmAddressSnapshot, err := s.getAuctionFarmAddressSnapshot(ctx, tx, product)
+	// Apply shipping origin snapshot from the seller account's primary address
+	farmAddressSnapshot, err := s.getSellerOriginSnapshot(ctx, tx, product.SellerID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get farm address snapshot: %w", err)
+		return nil, fmt.Errorf("failed to get seller origin snapshot: %w", err)
 	}
 	order.ApplyShippingOrigin(farmAddressSnapshot)
 
@@ -1083,6 +935,9 @@ type CreateFromSaleSurfaceInput struct {
 	IdempotencyKey  *string          // Optional: HTTP idempotency key for safe retries
 	NegotiationID   *uuid.UUID       // Optional: Negotiation session ID for price override
 	PricingTokenID  *uuid.UUID       // Pricing token ID used for this order (prevents double-ordering)
+	// PaymentMethodCode is the exact method the buyer selected at checkout. It
+	// is bound to the order and enforced by POST /payments.
+	PaymentMethodCode *string
 }
 
 // idempotentOrderRecovery returns the existing order when (buyer, idempotency_key)
@@ -1656,32 +1511,31 @@ func (s *OrderCreationService) CreateFromSaleSurface(
 	}
 
 	// ============================================================
-	// STEP 6.0: VALIDATE AND MARK SHIPPING QUOTE AS USED
+	// STEP 6.0: CONSUME THE SHIPPING QUOTE (ONE AUTHORITY)
 	// ============================================================
-	// If this order uses a shipping quote, validate the quote is still ACTIVE,
-	// not expired, and owned by the correct parties. Then atomically mark it USED
-	// within the same transaction to prevent double-use.
+	// Delegates validation + USED transition to the Commerce shipping-quote
+	// authority inside this transaction. Consumed whenever the order carries a
+	// quote — the chat id is passed when available (provenance check).
 	if shippingQuoteID != nil {
-		if _, err := s.validateShippingQuoteForOrder(
-			ctx, tx,
-			*shippingQuoteID,
-			snapshot.ChatID,
-			forSale.ProductID,
-			input.SourceID,
-			nil, // not an auction
-			forSale.SellerID,
-			input.BuyerID,
-			addressSnapshot.ProvinceID,
-			addressSnapshot.CityID,
-		); err != nil {
+		if err := s.consumeShippingQuoteForOrder(ctx, tx, shippingquoteEntity.CheckoutContext{
+			QuoteID:            *shippingQuoteID,
+			BuyerID:            input.BuyerID,
+			ProductID:          forSale.ProductID,
+			SourceType:         "for_sale",
+			SourceID:           input.SourceID,
+			SellerID:           forSale.SellerID,
+			ChatID:             snapshot.ChatID,
+			ShippingProvinceID: addressSnapshot.ProvinceID,
+			ShippingCityID:     addressSnapshot.CityID,
+		}); err != nil {
 			return nil, fmt.Errorf("shipping quote validation failed: %w", err)
 		}
 	}
 
 	// UX TRUTH HARDENING: Invalidate remaining ACTIVE shipping quotes if the sale surface becomes sold.
 	// Run this after the current quote is marked USED so it is not invalidated mid-checkout.
-	if forSale.Status == entity.ForSaleStatusSold && s.shippingQuoteRepo != nil {
-		if err := s.shippingQuoteRepo.InvalidateQuotesByProduct(ctx, tx, forSale.ProductID); err != nil {
+	if forSale.Status == entity.ForSaleStatusSold && s.shippingQuoteAuthority != nil {
+		if err := s.shippingQuoteAuthority.InvalidateQuotesByProduct(ctx, tx, forSale.ProductID); err != nil {
 			return nil, fmt.Errorf("failed to invalidate shipping quotes: %w", err)
 		}
 	}
@@ -1703,35 +1557,38 @@ func (s *OrderCreationService) CreateFromSaleSurface(
 	order := orderentity.NewOrderFromSource(
 		input.BuyerID,
 		forSale.SellerID,
-		input.SourceType,                // Source type = for_sale
-		input.SourceID,                  // Source ID = fixed-price sale surface ID
-		negotiationIDToPass,             // Negotiation ID (optional)
-		input.Quantity,                  // Quantity from input
-		unitPrice,                       // Unit price (negotiated or forSale price)
-		snapshot.Subtotal,               // Subtotal from pricing snapshot
-		snapshot.ShippingTotal,          // Shipping from pricing snapshot
-		snapshot.CommissionPercent,      // Commission percent from pricing snapshot
-		snapshot.CommissionAmount,       // Commission amount from pricing snapshot
-		snapshot.ServiceFeeAmount,       // Buyer service fee from pricing snapshot
-		snapshot.EscrowAmount,           // CANONICAL buyer-funded base PD + S (fee excluded)
-		shippingSetupID,                 // NULLABLE: nil when using a manual shipping quote
-		snapshot.ShippingSetupName,      // Option name from pricing snapshot
-		snapshot.ShippingTransportType,  // Transport type from pricing snapshot
+		input.SourceType,                        // Source type = for_sale
+		input.SourceID,                          // Source ID = fixed-price sale surface ID
+		negotiationIDToPass,                     // Negotiation ID (optional)
+		input.Quantity,                          // Quantity from input
+		unitPrice,                               // Unit price (negotiated or forSale price)
+		snapshot.Subtotal,                       // Subtotal from pricing snapshot
+		snapshot.ShippingTotal,                  // Shipping from pricing snapshot
+		snapshot.CommissionPercent,              // Commission percent from pricing snapshot
+		snapshot.CommissionAmount,               // Commission amount from pricing snapshot
+		snapshot.ServiceFeeAmount,               // Buyer service fee from pricing snapshot
+		snapshot.EscrowAmount,                   // CANONICAL buyer-funded base PD + S (fee excluded)
+		shippingSetupID,                         // NULLABLE: nil when using a manual shipping quote
+		snapshot.ShippingSetupName,              // Option name from pricing snapshot
+		snapshot.ShippingTransportType,          // Transport type from pricing snapshot
 		string(forSale.Product.PreparationTime), // SNAPSHOT: Freeze preparation time from canonical product
-		snapshot.ShippingSource,         // Shipping source from pricing snapshot
-		shippingQuoteID,                 // TASK F: Quote ID
-		shippingQuotePrice,              // TASK F: Quote price snapshot
-		&snapshot.TokenID,               // Store pricing token ID (prevents double-ordering)
+		snapshot.ShippingSource,                 // Shipping source from pricing snapshot
+		shippingQuoteID,                         // TASK F: Quote ID
+		shippingQuotePrice,                      // TASK F: Quote price snapshot
+		&snapshot.TokenID,                       // Store pricing token ID (prevents double-ordering)
 		calculatePaymentExpiry(snapshot.PaymentMethod, time.Now()), // PHASE 2: Calculate expiry based on payment method
 	)
+
+	// Bind the buyer's selected payment method to the order.
+	order.PaymentMethodCode = input.PaymentMethodCode
 
 	// Apply shipping destination snapshot
 	order.ApplyAddressSnapshot(addressSnapshot)
 
-	// Apply shipping origin snapshot from the canonical Product's farm address
-	farmAddressSnapshot, err := s.getFarmAddressSnapshot(ctx, tx, forSale)
+	// Apply shipping origin snapshot from the seller account's primary address
+	farmAddressSnapshot, err := s.getSellerOriginSnapshot(ctx, tx, forSale.SellerID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get farm address snapshot: %w", err)
+		return nil, fmt.Errorf("failed to get seller origin snapshot: %w", err)
 	}
 	order.ApplyShippingOrigin(farmAddressSnapshot)
 

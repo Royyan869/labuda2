@@ -4,6 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/Table'
+import { Select } from '@/components/ui/Select'
+import { AdminLoadingState, AdminErrorState, AdminEmptyState, AdminPagination, PageHeader } from '@/components/common'
 import { AppealDetailModal } from '@/components/moderation/AppealDetailModal'
 import { useAppeals } from '@/hooks/useAppeals'
 import { formatDate } from '@/lib/utils'
@@ -29,9 +31,12 @@ export function AppealsPage() {
   const [selectedAppeal, setSelectedAppeal] = useState<Appeal | null>(null)
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
 
-  const { appeals, loading, error, count, refetch } = useAppeals(
+  const { appeals, loading, error, page, setPage, limit, count, refetch } = useAppeals(
     statusFilter ? { status: statusFilter } : {}
   )
+
+  // `count` is the truthful server-side total for the current filter.
+  const totalPages = limit > 0 ? Math.ceil(count / limit) : 0
 
   const handleViewDetail = (appeal: Appeal) => {
     setSelectedAppeal(appeal)
@@ -44,31 +49,20 @@ export function AppealsPage() {
     refetch()
   }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
-          <p className="mt-4 text-[hsl(var(--muted-foreground))]">Loading appeals...</p>
-        </div>
-      </div>
-    )
+  const handleClearFilters = () => {
+    setStatusFilter('')
+    setPage(1)
+  }
+
+  if (loading && appeals.length === 0) {
+    return <AdminLoadingState />
   }
 
   if (error) {
     return (
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-[hsl(var(--foreground))]">Appeals</h1>
-          <p className="text-[hsl(var(--muted-foreground))] mt-1">Review user appeals for moderation decisions</p>
-        </div>
-        <Card>
-          <CardContent className="p-6">
-            <div className="text-center text-[hsl(var(--destructive))]">
-              <p>Error loading appeals: {error.message}</p>
-            </div>
-          </CardContent>
-        </Card>
+        <PageHeader title="Appeals" description="Review user appeals for moderation decisions" />
+        <AdminErrorState title="Failed to load appeals" message={error.message} onRetry={refetch} />
       </div>
     )
   }
@@ -78,22 +72,19 @@ export function AppealsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-[hsl(var(--foreground))]">Appeals</h1>
-        <p className="text-[hsl(var(--muted-foreground))] mt-1">Review user appeals for moderation decisions</p>
-      </div>
+      <PageHeader title="Appeals" description="Review user appeals for moderation decisions" />
 
       {/* Stats Card */}
       <Card>
         <CardContent className="pt-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-[hsl(var(--muted-foreground))]">Total Appeals</p>
-              <p className="text-3xl font-bold text-primary mt-1">{count}</p>
-              <p className="text-xs text-[hsl(var(--muted-foreground))] mt-1">{pendingCount} pending review</p>
+              <p className="text-sm font-medium text-muted-foreground">Total Appeals</p>
+              <p className="type-metric-lg text-primary mt-1">{count}</p>
+              <p className="type-caption mt-1">{pendingCount} pending review</p>
             </div>
-            <div className="p-4 rounded-lg bg-[hsl(var(--info-bg))]">
-              <FileText className="h-8 w-8 text-[hsl(var(--info))]" />
+            <div className="p-4 rounded-lg bg-info-bg">
+              <FileText className="h-8 w-8 text-info" />
             </div>
           </div>
         </CardContent>
@@ -102,23 +93,19 @@ export function AppealsPage() {
       {/* Filters */}
       <Card>
         <CardContent className="pt-6">
-          <div className="flex items-center gap-4">
-            <Filter className="h-5 w-5 text-[hsl(var(--muted-foreground))]" />
-            <label htmlFor="status-filter" className="text-sm font-medium text-[hsl(var(--foreground))]">
-              Status:
-            </label>
-            <select
-              id="status-filter"
+          <div className="flex items-end gap-4">
+            <Filter className="h-5 w-5 text-muted-foreground mb-2" />
+            <Select
+              label="Status:"
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as AppealStatus | '')}
-              className="px-3 py-2 border border-[hsl(var(--border))] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              onChange={(e) => { setStatusFilter(e.target.value as AppealStatus | ''); setPage(1) }}
             >
               {APPEAL_STATUSES.map((status) => (
                 <option key={status.value} value={status.value}>
                   {status.label}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
         </CardContent>
       </Card>
@@ -130,15 +117,19 @@ export function AppealsPage() {
         </CardHeader>
         <CardContent>
           {appeals.length === 0 ? (
-            <div className="text-center py-12">
-              <FileText className="h-12 w-12 text-[hsl(var(--muted-foreground))] mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-[hsl(var(--foreground))] mb-2">No Appeals Found</h3>
-              <p className="text-[hsl(var(--muted-foreground))]">
-                {statusFilter ? 'No appeals match the current filter.' : 'No appeals pending review.'}
-              </p>
-            </div>
+            <AdminEmptyState
+              icon={FileText}
+              title="No Appeals Found"
+              description={
+                statusFilter
+                  ? 'No appeals match the current filter.'
+                  : 'No appeals pending review.'
+              }
+              filtered={Boolean(statusFilter)}
+              onClearFilters={handleClearFilters}
+            />
           ) : (
-            <div className="border border-[hsl(var(--border))] rounded-lg overflow-hidden">
+            <div className="border border-border rounded-lg overflow-hidden">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -170,14 +161,14 @@ export function AppealsPage() {
                           {appealStatusLabels[appeal.status]}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-sm text-[hsl(var(--muted-foreground))]">
+                      <TableCell className="type-secondary">
                         {formatDate(appeal.created_at)}
                       </TableCell>
-                      <TableCell className="text-sm text-[hsl(var(--muted-foreground))]">
+                      <TableCell className="type-secondary">
                         {appeal.reviewed_by ? (
                           <span className="font-mono text-xs">{appeal.reviewed_by.slice(0, 8)}</span>
                         ) : (
-                          <span className="text-[hsl(var(--muted-foreground))]">-</span>
+                          <span className="text-muted-foreground">-</span>
                         )}
                       </TableCell>
                       <TableCell className="text-right">
@@ -197,6 +188,16 @@ export function AppealsPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <AdminPagination
+          page={page}
+          totalPages={totalPages}
+          onPageChange={setPage}
+          disabled={loading}
+        />
+      )}
 
       {/* Appeal Detail Modal */}
       <AppealDetailModal

@@ -8,26 +8,9 @@ import 'package:labuda/core/src/theme/app_theme.dart';
 class ChatResourceProjectionCard extends StatelessWidget {
   final ResourceProjection resourceProjection;
 
-  /// CTA "Beli Sekarang" intent, delegated to the owning screen.
-  ///
-  /// Checkout navigation resolves `product_id` + the seller trust gate in the
-  /// chat screen (Commerce stays the transaction authority — the card is a
-  /// display layer and never carries a price or a preview). When no owner is
-  /// wired, the button falls back to the canonical resource detail page.
-  final VoidCallback? onBuy;
-
-  /// Shipping-quote (ongkir) entry intent — rendered ONLY when the server
-  /// projection marks the viewer as manager of this LIVE for_sale
-  /// (canManage). The form, request and API call live in the Shipping
-  /// domain; this card merely forwards the tap (Owner rule 2026-10-01:
-  /// chat owns display, never shipping).
-  final VoidCallback? onQuoteShipping;
-
   const ChatResourceProjectionCard({
     super.key,
     required this.resourceProjection,
-    this.onBuy,
-    this.onQuoteShipping,
   });
 
   @override
@@ -46,7 +29,6 @@ class ChatResourceProjectionCard extends StatelessWidget {
       media: _buildMedia(context),
       value: _buildValue(context),
       metadata: _buildMetadata(context),
-      footer: _buildFooter(context),
       badges: _buildBadges(context),
       contentPadding: const EdgeInsets.all(AppMetrics.p12),
     );
@@ -145,102 +127,6 @@ class ChatResourceProjectionCard extends StatelessWidget {
     );
   }
 
-  /// Navigation-only CTA row (owner contract: chat = display layer).
-  ///
-  /// - for-sale + `canBuy` → "Beli Sekarang" → checkout (delegated via
-  ///   [onBuy]; Commerce resolves product id, preview and trust gates).
-  /// - auction + `canBid` → "Bid" → the canonical auction detail, which is
-  ///   the bidding surface.
-  Widget? _buildFooter(BuildContext context) {
-    if (!resourceProjection.isLive) return null;
-    final actions = resourceProjection.commerceActions;
-    if (actions == null) return null;
-
-    final buttons = <Widget>[];
-    if (actions.canBuy) {
-      final onPressed = onBuy ?? _canonicalPushAction(context);
-      if (onPressed != null) {
-        buttons.add(
-          _ctaButton(
-            context,
-            label: 'Beli Sekarang',
-            icon: Icons.shopping_cart_outlined,
-            emphasis: true,
-            onPressed: onPressed,
-          ),
-        );
-      }
-    }
-    if (actions.canBid) {
-      final onPressed = _canonicalPushAction(context);
-      if (onPressed != null) {
-        buttons.add(
-          _ctaButton(
-            context,
-            label: 'Bid',
-            icon: Icons.gavel_rounded,
-            emphasis: false,
-            onPressed: onPressed,
-          ),
-        );
-      }
-    }
-    // Owner-only ongkir entry: the server already decided who manages this
-    // listing (canManage on the LIVE for_sale envelope). Buyers and guests
-    // never see it — no client-side identity guessing.
-    if (onQuoteShipping != null &&
-        actions.canManage &&
-        resourceProjection.resourceType ==
-            ResourceProjectionType.fixedPriceSale) {
-      buttons.add(
-        _ctaButton(
-          context,
-          label: 'Kirim Ongkir',
-          icon: Icons.local_shipping_outlined,
-          emphasis: false,
-          onPressed: onQuoteShipping!,
-        ),
-      );
-    }
-    if (buttons.isEmpty) return null;
-
-    return Padding(
-      padding: const EdgeInsets.only(top: AppMetrics.p12),
-      child: Wrap(spacing: 8, runSpacing: 8, children: buttons),
-    );
-  }
-
-  VoidCallback? _canonicalPushAction(BuildContext context) {
-    final url = resourceProjection.canonicalUrl;
-    if (url == null || url.isEmpty) return null;
-    return () => context.push(url);
-  }
-
-  Widget _ctaButton(
-    BuildContext context, {
-    required String label,
-    required IconData icon,
-    required bool emphasis,
-    required VoidCallback onPressed,
-  }) {
-    final scheme = Theme.of(context).colorScheme;
-    return FilledButton.icon(
-      onPressed: onPressed,
-      icon: Icon(icon, size: AppIconSize.inlineGlyph),
-      label: Text(label),
-      style: FilledButton.styleFrom(
-        visualDensity: VisualDensity.compact,
-        minimumSize: const Size(0, 34),
-        padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p4),
-        backgroundColor: emphasis
-            ? scheme.primary
-            : scheme.surfaceContainerHighest,
-        foregroundColor: emphasis ? scheme.onPrimary : scheme.onSurface,
-        textStyle: const TextStyle(fontSize: AppType.s14, fontWeight: FontWeight.w700),
-      ),
-    );
-  }
-
   Widget _buildValue(BuildContext context) {
     final text = _valueText();
     return CommerceMarketplaceCardValue(
@@ -273,43 +159,20 @@ class ChatResourceProjectionCard extends StatelessWidget {
     };
   }
 
-  /// Availability/lifecycle stays visible as the caption, so rendering the
-  /// price never costs the honest status.
+  /// Availability/lifecycle stays visible as the caption. Delegates to the
+  /// shared Commerce presentation mapping — the card never calculates
+  /// lifecycle itself.
   String _captionText() {
     if (!resourceProjection.isLive) {
       return 'Diblokir';
     }
-    return switch (resourceProjection.payload) {
-      ForSaleLivePayload p => _forSaleStatusText(p.status),
-      AuctionLivePayload p =>
-        p.lifecycle == 'active' ? 'Berlangsung' : p.lifecycle,
-      _ => 'Status',
-    };
-  }
-
-  /// Indonesian availability label for a for-sale projection status wire value.
-  String _forSaleStatusText(String status) {
-    switch (status) {
-      case 'available':
-      case 'active':
-        return 'Tersedia';
-      case 'reserved':
-        return 'Dipesan';
-      case 'sold':
-        return 'Terjual';
-      default:
-        return 'Tidak tersedia';
-    }
+    return commerceLifecycleLabel(resourceProjection.payload) ?? 'Status';
   }
 
   Widget? _buildMetadata(BuildContext context) {
     final parts = <String>[];
     parts.add(resourceProjection.resourceType.displayLabel);
     parts.add(resourceProjection.isLive ? 'LIVE' : 'TOMBSTONE');
-    final actions = resourceProjection.commerceActions;
-    if (actions != null && actions.hasAnyAction) {
-      parts.add(_actionSummary(actions));
-    }
     return Text(
       parts.join(' - '),
       style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -320,6 +183,14 @@ class ChatResourceProjectionCard extends StatelessWidget {
     );
   }
 
+  /// Informational product attribute only.
+  ///
+  /// The generic product reference card must not leak viewer-scoped Commerce
+  /// capability: the former `Chat` (`canChat`) and `Kelola` (`canManage`)
+  /// badges were removed. `Nego` is rendered from the canonical PRODUCT-LEVEL
+  /// attribute `ForSaleLivePayload.negotiationEnabled` and is never actionable.
+  /// Commerce actions (buy / bid / ongkir) live on the canonical Commerce
+  /// detail surface.
   List<Widget> _buildBadges(BuildContext context) {
     final badges = <Widget>[
       CommerceMarketplaceCardBadge(
@@ -332,25 +203,11 @@ class ChatResourceProjectionCard extends StatelessWidget {
       ),
     ];
 
-    final actions = resourceProjection.commerceActions;
-    if (actions != null) {
-      if (actions.canChat) {
-        badges.add(
-          const CommerceMarketplaceCardBadge(label: 'Chat', compact: true),
-        );
-      }
-      if (actions.canNegotiate) {
-        badges.add(
-          const CommerceMarketplaceCardBadge(label: 'Nego', compact: true),
-        );
-      }
-      // NOTE (CTA contract): "Beli" / "Bid" capability chips are intentionally
-      // absent — the footer renders them as real navigation buttons instead.
-      if (actions.canManage) {
-        badges.add(
-          const CommerceMarketplaceCardBadge(label: 'Kelola', compact: true),
-        );
-      }
+    final payload = resourceProjection.payload;
+    if (payload is ForSaleLivePayload && payload.negotiationEnabled) {
+      badges.add(
+        const CommerceMarketplaceCardBadge(label: 'Nego', compact: true),
+      );
     }
 
     return badges;
@@ -364,15 +221,5 @@ class ChatResourceProjectionCard extends StatelessWidget {
         child: Icon(icon, color: scheme.onSurfaceVariant, size: AppIconSize.emphasis),
       ),
     );
-  }
-
-  String _actionSummary(CommerceActionCapabilities actions) {
-    final labels = <String>[];
-    if (actions.canChat) labels.add('chat');
-    if (actions.canNegotiate) labels.add('nego');
-    if (actions.canBuy) labels.add('beli');
-    if (actions.canBid) labels.add('bid');
-    if (actions.canManage) labels.add('kelola');
-    return labels.join(' - ');
   }
 }

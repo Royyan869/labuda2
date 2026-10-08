@@ -1,8 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:labuda/domains/commerce/catalog/auction/data/dto/auction_dto.dart';
-import 'package:labuda/domains/commerce/catalog/auction/data/dto/bidding_dto.dart';
 import 'package:labuda/domains/commerce/catalog/auction/data/mappers/auction_mapper.dart';
-import 'package:labuda/domains/commerce/catalog/auction/data/mappers/bidding_mapper.dart';
 
 /// PASS 1 — AUCTION NUMERIC READ CANONICAL CONVERGENCE proof.
 ///
@@ -87,25 +85,6 @@ void main() {
     });
   });
 
-  group('BiddingItemDto — /bidding int64 wire parses to canonical int', () {
-    test('your_last_bid and current_bid are Dart int', () {
-      final dto = BiddingItemDto.fromJson({
-        'auction_id': 'a1',
-        'title': 'Kohaku',
-        'your_last_bid': 1150000,
-        'current_bid': 1200000,
-        'status': 'leading',
-        'end_at': '2026-06-02T00:00:00Z',
-        'updated_at': '2026-06-01T02:00:00Z',
-      });
-
-      expect(dto.yourLastBid, 1150000);
-      expect(dto.yourLastBid, isA<int>());
-      expect(dto.currentBid, 1200000);
-      expect(dto.currentBid, isA<int>());
-    });
-  });
-
   group('Mapper pass-through — int DTO to int entity, zero conversion', () {
     test('AuctionMapper.toEntity carries int pricing unchanged', () {
       final dto = AuctionDto.fromJson(_auctionPayload());
@@ -138,24 +117,6 @@ void main() {
       expect(entity.amount, 150000);
       expect(entity.amount, isA<int>());
       expect(entity.amount, isNot(isA<double>()));
-    });
-
-    test('BiddingMapper.toItemEntity carries int bids unchanged', () {
-      final dto = BiddingItemDto.fromJson({
-        'auction_id': 'a1',
-        'title': 'Kohaku',
-        'your_last_bid': 1150000,
-        'current_bid': 1200000,
-        'status': 'leading',
-        'end_at': '2026-06-02T00:00:00Z',
-        'updated_at': '2026-06-01T02:00:00Z',
-      });
-      final entity = BiddingMapper.toItemEntity(dto);
-
-      expect(entity.yourLastBid, 1150000);
-      expect(entity.yourLastBid, isA<int>());
-      expect(entity.currentBid, 1200000);
-      expect(entity.currentBid, isA<int>());
     });
   });
 }

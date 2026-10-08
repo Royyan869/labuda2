@@ -97,10 +97,15 @@ class Village {
   final String name;
   final String districtId;
 
+  /// Postal code is an attribute of the canonical village (Geography Master).
+  /// It is null only for legacy/offline constructions.
+  final String? postalCode;
+
   const Village({
     required this.id,
     required this.name,
     required this.districtId,
+    this.postalCode,
   });
 
   factory Village.fromJson(Map<String, dynamic> json) {
@@ -108,11 +113,17 @@ class Village {
       id: json['id'] as String,
       name: json['name'] as String,
       districtId: json['districtId'] ?? json['district_id'] as String,
+      postalCode: json['postalCode'] ?? json['postal_code'] as String?,
     );
   }
 
   Map<String, dynamic> toJson() {
-    return {'id': id, 'name': name, 'district_id': districtId};
+    return {
+      'id': id,
+      'name': name,
+      'district_id': districtId,
+      if (postalCode != null) 'postal_code': postalCode,
+    };
   }
 
   @override

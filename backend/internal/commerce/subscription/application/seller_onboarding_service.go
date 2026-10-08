@@ -51,7 +51,7 @@ type onboardingSellerRepository interface {
 }
 
 type onboardingAddressRepository interface {
-	GetByUserIDFiltered(ctx context.Context, tx db.Tx, userID uuid.UUID, purpose string) ([]*addressEntity.Address, error)
+	GetPrimaryByUserID(ctx context.Context, tx db.Tx, userID uuid.UUID) (*addressEntity.Address, error)
 }
 
 // NewSellerOnboardingService creates a new SellerOnboardingService.
@@ -74,7 +74,7 @@ func NewSellerOnboardingService(
 // - Email is verified
 // - Username exists
 // - Phone number exists (phone_number IS NOT NULL)
-// - Sender address exists (an address row carrying the "sender" tag)
+// - Primary address exists (the account's default address)
 // - Seller profile exists (seller_profile must be created first)
 //
 // MARKET AUTHORITY ENFORCEMENT:
@@ -125,12 +125,12 @@ func (s *SellerOnboardingService) ValidateOnboarding(ctx context.Context, tx db.
 		missing.add("username")
 	}
 
-	hasSenderAddress, err := s.hasSenderAddress(ctx, tx, userID)
+	hasPrimaryAddress, err := s.hasPrimaryAddress(ctx, tx, userID)
 	if err != nil {
-		return fmt.Errorf("failed to check sender address: %w", err)
+		return fmt.Errorf("failed to check primary address: %w", err)
 	}
-	if !hasSenderAddress {
-		missing.add("sender_address")
+	if !hasPrimaryAddress {
+		missing.add("primary_address")
 	}
 
 	// Check seller profile exists (identity must be created before subscription)
@@ -195,33 +195,28 @@ func (s *SellerOnboardingService) ValidateOnboardingWithoutProfile(ctx context.C
 		missing.add("username")
 	}
 
-	hasSenderAddress, err := s.hasSenderAddress(ctx, tx, userID)
+	hasPrimaryAddress, err := s.hasPrimaryAddress(ctx, tx, userID)
 	if err != nil {
 		return missingRequirements // Return empty on error, let caller handle
 	}
-	if !hasSenderAddress {
-		missing.add("sender_address")
+	if !hasPrimaryAddress {
+		missing.add("primary_address")
 	}
 
 	return missingRequirements
 }
 
-func (s *SellerOnboardingService) hasSenderAddress(
+func (s *SellerOnboardingService) hasPrimaryAddress(
 	ctx context.Context,
 	tx db.Tx,
 	userID uuid.UUID,
 ) (bool, error) {
-	addresses, err := s.addressRepo.GetByUserIDFiltered(
-		ctx,
-		tx,
-		userID,
-		string(addressEntity.TagSender),
-	)
+	address, err := s.addressRepo.GetPrimaryByUserID(ctx, tx, userID)
 	if err != nil {
 		return false, err
 	}
 
-	return len(addresses) > 0, nil
+	return address != nil, nil
 }
 
 // missingRequirement is a helper to add missing requirements during validation

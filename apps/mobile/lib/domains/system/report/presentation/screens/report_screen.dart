@@ -1,18 +1,27 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/system/report/domain/entities/entities.dart';
-import 'package:labuda/domains/system/report/presentation/dialogs/report_submission_dialog.dart';
+import 'package:labuda/domains/system/report/presentation/screens/report_submission_screen.dart';
 
-/// Report Screen - Entry point for content reporting
+/// Report Screen — full-screen entry point for reporting.
 ///
-/// This screen is typically navigated to from the context menu (3-dot menu).
-/// It immediately shows the report submission bottom sheet.
+/// The report form is a substantial form and therefore a full screen (locked UX
+/// decision), not a bottom sheet. This route parses the target and renders the
+/// canonical [ReportSubmissionScreen].
 class ReportScreen extends StatelessWidget {
   final String? targetType;
   final String? targetId;
 
-  const ReportScreen({super.key, this.targetType, this.targetId});
+  /// Display-only title of the reported target, carried by the canonical
+  /// report location (`?title=`). Never used for identity.
+  final String? targetTitle;
+
+  const ReportScreen({
+    super.key,
+    this.targetType,
+    this.targetId,
+    this.targetTitle,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -21,88 +30,30 @@ class ReportScreen extends StatelessWidget {
         ? ReportTargetTypeExtension.fromString(targetType!)
         : null;
 
-    // If parameters are invalid, show error and go back
+    // If parameters are invalid, show a plain message on the full screen.
     if (reportTargetType == null || targetId == null || targetId!.isEmpty) {
-      // Show dialog and pop immediately after
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _showInvalidParamsDialog(context);
-      });
-      return const Scaffold(body: SizedBox.shrink());
-    }
-
-    // Show the report dialog immediately when screen loads
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _showReportDialog(context, reportTargetType);
-    });
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Report'),
-        leading: IconButton(
-          icon: const Icon(Icons.close),
-          onPressed: () => context.pop(),
-        ),
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.report_outlined,
-              size: AppIconSize.display,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Report Content',
-              style: TextStyle(fontSize: AppType.s24, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Reporting ${reportTargetType.displayName}...',
-              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+      return Scaffold(
+        appBar: AppBar(title: const Text('Report')),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(AppMetrics.p24),
+            child: Text(
+              'Unable to load report information. Please use the report '
+              'button from the content menu.',
               textAlign: TextAlign.center,
+              style: context.typeRoles.bodyDense.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showInvalidParamsDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        icon: Icon(Icons.error_outline, color: context.statusColors.error, size: AppIconSize.display),
-        title: const Text('Invalid Report'),
-        content: const Text(
-          'Unable to load report information. Please use the report button from the content menu.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => context.pop(),
-            child: const Text('Go Back'),
           ),
-        ],
-      ),
-    ).then((_) {
-      if (context.mounted) context.pop();
-    });
-  }
-
-  Future<void> _showReportDialog(
-    BuildContext context,
-    ReportTargetType targetType,
-  ) async {
-    final result = await ReportSubmissionDialog.show(
-      context,
-      targetId: targetId ?? '',
-      targetType: targetType,
-    );
-
-    // Close the screen after dialog is dismissed
-    if (context.mounted) {
-      context.pop(result);
+        ),
+      );
     }
+
+    return ReportSubmissionScreen(
+      targetId: targetId!,
+      targetType: reportTargetType,
+      targetTitle: targetTitle,
+    );
   }
 }

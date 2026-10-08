@@ -8,12 +8,12 @@ interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
 export const Badge = forwardRef<HTMLSpanElement, BadgeProps>(
   ({ className, variant = 'default', ...props }, ref) => {
     const variants = {
-      success: 'bg-[hsl(var(--success-bg))] text-[hsl(var(--success))] border-[hsl(var(--success))]',
-      warning: 'bg-[hsl(var(--warning-bg))] text-[hsl(var(--warning))] border-[hsl(var(--warning))]',
-      error: 'bg-[hsl(var(--destructive-bg))] text-[hsl(var(--destructive))] border-[hsl(var(--destructive))]',
-      info: 'bg-[hsl(var(--info-bg))] text-[hsl(var(--info))] border-[hsl(var(--info))]',
-      pending: 'bg-[hsl(var(--warning-bg))] text-[hsl(var(--warning))] border-[hsl(var(--warning))]',
-      default: 'bg-[hsl(var(--surface-muted))] text-[hsl(var(--foreground))] border-[hsl(var(--border))]',
+      success: 'bg-success-bg text-success border-success',
+      warning: 'bg-warning-bg text-warning border-warning',
+      error: 'bg-destructive-bg text-destructive border-destructive',
+      info: 'bg-info-bg text-info border-info',
+      pending: 'bg-warning-bg text-warning border-warning',
+      default: 'bg-surface-muted text-foreground border-border',
     }
 
     return (

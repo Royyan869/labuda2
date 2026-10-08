@@ -159,27 +159,13 @@ class _FakeAddressRepository implements IAddressRepository {
   final AddressEntity? _primarySenderAddress;
 
   @override
-  Future<Result<AddressEntity?>> getPrimaryAddress(
-    String userId, {
-    AddressTag? tag,
-  }) async {
-    if (tag == AddressTag.sender) {
-      return Result.success(_primarySenderAddress);
-    }
-    return Result.success(null);
+  Future<Result<AddressEntity?>> getPrimaryAddress(String userId) async {
+    return Result.success(_primarySenderAddress);
   }
 
   @override
   Future<Result<List<AddressEntity>>> getAddressesByUserId(
     String userId,
-  ) async {
-    return Result.success(const []);
-  }
-
-  @override
-  Future<Result<List<AddressEntity>>> getAddressesByTag(
-    String userId,
-    AddressTag tag,
   ) async {
     return Result.success(const []);
   }
@@ -213,23 +199,7 @@ class _FakeAddressRepository implements IAddressRepository {
   }
 
   @override
-  Stream<Result<List<AddressEntity>>> watchAddresses(String userId) {
-    return Stream.value(Result.success(const []));
-  }
-
-  @override
-  Stream<Result<List<AddressEntity>>> watchAddressesByTag(
-    String userId,
-    AddressTag tag,
-  ) {
-    return Stream.value(Result.success(const []));
-  }
-
-  @override
-  Future<Result<int>> countAddresses(
-    String userId, {
-    AddressTag? tag,
-  }) async {
+  Future<Result<int>> countAddresses(String userId) async {
     return Result.success(0);
   }
 
@@ -277,7 +247,6 @@ AddressEntity _completeSenderAddress() {
   return AddressEntity(
     id: 'addr-1',
     userId: 'seller-1',
-    tags: const [AddressTag.sender],
     recipientName: 'Farm Sentosa',
     phone: '08123456789',
     province: Province(id: '33', name: 'Jawa Tengah'),
@@ -334,7 +303,16 @@ Future<void> _enterFieldByLabel(
   String labelText,
   String value,
 ) async {
-  final labelFinder = find.text(labelText, skipOffstage: false);
+  // The canonical AppTextField renders labels ending in " *" as a two-span
+  // RichText (styled red asterisk), which plain find.text does not match.
+  var labelFinder = find.text(labelText, skipOffstage: false);
+  if (labelFinder.evaluate().isEmpty) {
+    labelFinder = find.text(
+      labelText,
+      findRichText: true,
+      skipOffstage: false,
+    );
+  }
   if (labelFinder.evaluate().isEmpty) {
     fail('Could not find TextFormField with label "$labelText"');
   }
@@ -711,7 +689,10 @@ void main() {
       expect(source, contains('RoutePaths.sellerUpgrade'));
       expect(source, contains('RoutePaths.sellerRenewal'));
       expect(source, contains('SellerShippingSetupsSelector('));
-      expect(source, contains('shippingSetupIds: _selectedShippingSetupIds'));
+      expect(
+        source,
+        contains('shippingSetupIds: List<String>.of(_selectedShippingSetupIds)'),
+      );
     });
   });
 }

@@ -125,6 +125,7 @@ func TestFundingPaymentMethods_OwnerPendingIntent_MethodsAndExactFee(t *testing.
 	intent, err := h.svc.CreateFundingIntent(context.Background(), application.CreatePromotionInput{
 		SellerID:     seller,
 		Kind:         entity.KindInternal,
+		Targets:      []application.PromotionTargetInput{{TargetType: "for_sale", TargetID: uuid.New()}},
 		BudgetRupiah: 45_000,
 		DurationDays: 3,
 	})
@@ -187,6 +188,7 @@ func TestFundingPaymentMethods_FeeParityWithInitiationEngine(t *testing.T) {
 	intent, err := h.svc.CreateFundingIntent(context.Background(), application.CreatePromotionInput{
 		SellerID:     seller,
 		Kind:         entity.KindInternal,
+		Targets:      []application.PromotionTargetInput{{TargetType: "for_sale", TargetID: uuid.New()}},
 		BudgetRupiah: 15_000,
 		DurationDays: 1,
 	})
@@ -248,6 +250,7 @@ func TestFundingPaymentMethods_NonOwnerRejected(t *testing.T) {
 	intent, err := h.svc.CreateFundingIntent(context.Background(), application.CreatePromotionInput{
 		SellerID:     seller,
 		Kind:         entity.KindInternal,
+		Targets:      []application.PromotionTargetInput{{TargetType: "for_sale", TargetID: uuid.New()}},
 		BudgetRupiah: 15_000,
 		DurationDays: 1,
 	})
@@ -289,6 +292,7 @@ func TestFundingPaymentMethods_NonPendingIntentRejected(t *testing.T) {
 	intent, err := h.svc.CreateFundingIntent(context.Background(), application.CreatePromotionInput{
 		SellerID:     seller,
 		Kind:         entity.KindInternal,
+		Targets:      []application.PromotionTargetInput{{TargetType: "for_sale", TargetID: uuid.New()}},
 		BudgetRupiah: 15_000,
 		DurationDays: 1,
 	})
@@ -345,6 +349,7 @@ func TestFundingPaymentMethods_UnwiredAuthorityFailsClosed(t *testing.T) {
 	intent, err := h.svc.CreateFundingIntent(context.Background(), application.CreatePromotionInput{
 		SellerID:     seller,
 		Kind:         entity.KindInternal,
+		Targets:      []application.PromotionTargetInput{{TargetType: "for_sale", TargetID: uuid.New()}},
 		BudgetRupiah: 15_000,
 		DurationDays: 1,
 	})

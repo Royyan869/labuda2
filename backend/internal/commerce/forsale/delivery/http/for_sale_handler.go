@@ -16,14 +16,17 @@ import (
 	for_saleApp "github.com/labuda/backend/internal/commerce/forsale/application"
 	"github.com/labuda/backend/internal/commerce/forsale/entity"
 	for_saleRepo "github.com/labuda/backend/internal/commerce/forsale/repository"
-	negotiationEntity "github.com/labuda/backend/internal/commerce/negotiation/entity"
 	mediarequest "github.com/labuda/backend/internal/commerce/media/request"
-	productentity "github.com/labuda/backend/internal/commerce/product/entity"
+	negotiationEntity "github.com/labuda/backend/internal/commerce/negotiation/entity"
 	orderRepo "github.com/labuda/backend/internal/commerce/order/repository"
+	productentity "github.com/labuda/backend/internal/commerce/product/entity"
+	productviewEntity "github.com/labuda/backend/internal/commerce/productview/entity"
+	productviewRepo "github.com/labuda/backend/internal/commerce/productview/repository"
 	commerceshared "github.com/labuda/backend/internal/commerce/shared"
 	shippingApp "github.com/labuda/backend/internal/commerce/shipping/application"
 	"github.com/labuda/backend/internal/governance/viewercontext"
 	"github.com/labuda/backend/internal/identity/auth"
+	"github.com/labuda/backend/internal/middleware"
 	"github.com/labuda/backend/internal/pkg/blockcheck"
 	"github.com/labuda/backend/internal/pkg/publiccard"
 	"github.com/labuda/backend/internal/pkg/sellerdisplay"
@@ -44,6 +47,9 @@ type ForSaleHandler struct {
 	// `viewer_negotiation_id` into checkout. Consumer-side narrow interface,
 	// satisfied by the negotiation repository; nil = binding disabled.
 	negotiationLookup negotiationDealLookup
+	// CANONICAL PRODUCT VIEW: records one Product View when this detail page
+	// is successfully opened by an entitled viewer. Nil = recording disabled.
+	productViews productviewRepo.ProductViewRepository
 }
 
 // negotiationDealLookup is the consumer-side view of the negotiation
@@ -64,6 +70,7 @@ func NewForSaleHandler(
 	log *zap.Logger,
 	orderRepo orderRepo.OrderRepository,
 	negotiationLookup negotiationDealLookup,
+	productViews productviewRepo.ProductViewRepository,
 ) *ForSaleHandler {
 	if log == nil {
 		log = zap.NewNop()
@@ -74,6 +81,49 @@ func NewForSaleHandler(
 		log:               log,
 		orderRepo:         orderRepo,
 		negotiationLookup: negotiationLookup,
+		productViews:      productViews,
+	}
+}
+
+// recordProductView records exactly one canonical Product View for a
+// successfully opened product detail page.
+//
+// Canonical exclusions (never counted):
+//   - seller opening their own product,
+//   - admin/moderator opening a product.
+//
+// Anonymous and ordinary authenticated viewers are counted. Recording is
+// best-effort and runs in its own transaction AFTER the detail read: a
+// recording failure is logged and never changes the detail response.
+func (h *ForSaleHandler) recordProductView(
+	ctx context.Context,
+	c *gin.Context,
+	productID, sellerID uuid.UUID,
+	callerID *uuid.UUID,
+) {
+	if h.productViews == nil || productID == uuid.Nil {
+		return
+	}
+	// Admin/moderator exclusion (canonical administrative authority).
+	if actor := middleware.GetActorFromContext(c); actor != nil && actor.IsAdmin() {
+		return
+	}
+	// Seller self-view exclusion.
+	if callerID != nil && *callerID == sellerID {
+		return
+	}
+
+	event := &productviewEntity.ProductViewEvent{
+		ProductID:    productID,
+		ViewerUserID: callerID,
+	}
+	if err := h.db.WithTx(ctx, func(tx db.Tx) error {
+		return h.productViews.Record(ctx, tx, event)
+	}); err != nil {
+		h.log.Warn("record product view failed",
+			zap.String("product_id", productID.String()),
+			zap.Error(err),
+		)
 	}
 }
 
@@ -92,17 +142,15 @@ type CreateForSaleRequest struct {
 	Quantity           *int `json:"quantity" binding:"omitempty,min=1"`
 	NegotiationEnabled bool `json:"negotiation_enabled"`
 	// Optional koi-specific fields
-	MediaURLs    []string `json:"media_urls"`
+	MediaURLs    []string                    `json:"media_urls"`
 	Media        []mediarequest.MediaRequest `json:"media,omitempty"`
-	Variety      string   `json:"variety"`
-	SizeCM       *int     `json:"size_cm"`
-	AgeMonths    *int     `json:"age_months"`
-	Gender       *string  `json:"gender"`
-	Breeder      *string  `json:"breeder"`
-	Bloodline    *string  `json:"bloodline"`
-	Certificates []string `json:"certificates"`
-	// Shipping configuration
-	FarmAddressID *string `json:"farm_address_id"`
+	Variety      string                      `json:"variety"`
+	SizeCM       *int                        `json:"size_cm"`
+	AgeMonths    *int                        `json:"age_months"`
+	Gender       *string                     `json:"gender"`
+	Breeder      *string                     `json:"breeder"`
+	Bloodline    *string                     `json:"bloodline"`
+	Certificates []string                    `json:"certificates"`
 	// Shipping selection (OWNER CANONICAL: create ships WITH its options —
 	// at least one shipping_setup_id is REQUIRED; create is publish.)
 	ShippingSetupIDs []string `json:"shipping_setup_ids" binding:"required,min=1,dive,uuid"`
@@ -202,14 +250,6 @@ func (h *ForSaleHandler) CreateForSale(c *gin.Context) {
 		// If error is "no rows", proceed with creation
 	}
 
-	// Parse optional UUID fields
-	var farmAddressID *uuid.UUID
-	if req.FarmAddressID != nil {
-		if id, err := uuid.Parse(*req.FarmAddressID); err == nil {
-			farmAddressID = &id
-		}
-	}
-
 	// Parse shipping selection IDs (required — create = publish).
 	shippingSetupIDs := make([]uuid.UUID, 0, len(req.ShippingSetupIDs))
 	for _, raw := range req.ShippingSetupIDs {
@@ -275,8 +315,6 @@ func (h *ForSaleHandler) CreateForSale(c *gin.Context) {
 			PricePerUnit:       money.New(req.Price),
 			QuantityAvailable:  quantity,
 			NegotiationEnabled: req.NegotiationEnabled,
-			// Shipping preferences
-			FarmAddressID: farmAddressID,
 			// Shipping selection — create = publish; options are mandatory.
 			ShippingSetupIDs: shippingSetupIDs,
 			// Shipping readiness
@@ -301,9 +339,9 @@ func (h *ForSaleHandler) CreateForSale(c *gin.Context) {
 				"ForSale tidak bisa dibuat: pilih minimal satu opsi pengiriman yang punya coverage aktif.")
 			return
 		}
-		if errors.Is(err, for_saleApp.ErrFarmAddressNotConfigured) {
-			response.Error(c, http.StatusBadRequest, "FARM_ADDRESS_NOT_CONFIGURED",
-				"ForSale tidak bisa dibuat: alamat pengirim (farm address) belum diatur atau tidak valid.")
+		if errors.Is(err, for_saleApp.ErrSellerOriginNotConfigured) {
+			response.Error(c, http.StatusBadRequest, "SELLER_ORIGIN_NOT_CONFIGURED",
+				"ForSale tidak bisa dibuat: atur alamat utama akun terlebih dahulu.")
 			return
 		}
 		response.BadRequest(c, err.Error())
@@ -339,41 +377,29 @@ type UpdateForSaleRequest struct {
 	Description        *string `json:"description"`
 	Price              *int64  `json:"price" binding:"omitempty,min=1"`
 	NegotiationEnabled *bool   `json:"negotiation_enabled"`
-	Status             *string `json:"status" binding:"omitempty,oneof=draft active withdrawn sold"`
+	// Status is retained ONLY so a stale client gets an explicit rejection
+	// (there is no draft and no publish transition anymore).
+	Status *string `json:"status" binding:"omitempty,oneof=active withdrawn sold"`
 	// Optional koi-specific fields
-	MediaURLs    *[]string `json:"media_urls"`
+	MediaURLs    *[]string                    `json:"media_urls"`
 	Media        *[]mediarequest.MediaRequest `json:"media,omitempty"`
-	Variety      *string   `json:"variety"`
-	SizeCM       *int      `json:"size_cm"`
-	AgeMonths    *int      `json:"age_months"`
-	Gender       *string   `json:"gender"`
-	Breeder      *string   `json:"breeder"`
-	Bloodline    *string   `json:"bloodline"`
-	Certificates *[]string `json:"certificates"`
+	Variety      *string                      `json:"variety"`
+	SizeCM       *int                         `json:"size_cm"`
+	AgeMonths    *int                         `json:"age_months"`
+	Gender       *string                      `json:"gender"`
+	Breeder      *string                      `json:"breeder"`
+	Bloodline    *string                      `json:"bloodline"`
+	Certificates *[]string                    `json:"certificates"`
 	// Shipping readiness
 	PreparationTime *string `json:"preparation_time" binding:"omitempty,oneof=1_3_days 4_7_days 8_15_days"`
 }
 
-// requiresMarketAuthorityForPublish reports whether a requested status
-// transition will result in ACTIVE + PUBLIC market exposure and therefore
-// requires a market-authority check before it is allowed to proceed.
-//
-// entity.ForSale.Publish() unconditionally forces Visibility=Public on
-// every draft → active transition, regardless of the for_sale's current
-// visibility or whether the update request even included a visibility field.
-// This predicate intentionally depends ONLY on the status transition — never
-// on current/requested visibility — so a mobile client sending a status-only
-// publish update from a private draft cannot bypass the check (PASS_18M
-// market-authority bypass; PASS_18O fix).
-func requiresMarketAuthorityForPublish(currentStatus, newStatus entity.ForSaleStatus) bool {
-	return currentStatus == entity.ForSaleStatusDraft && newStatus == entity.ForSaleStatusActive
-}
-
 // UpdateForSale handles PUT /api/v1/for_sales/:id
 //
-// Updates an existing for_sale.
-// Only the for_sale owner can update.
-// Active for_sales can be updated; sold/withdrawn for_sales cannot be modified.
+// Only the for_sale owner can update, and no field is mutable anymore:
+// create = publish, so a persisted for_sale is always live (LIVE_IMMUTABLE).
+// Lifecycle mutations never travel through this endpoint — withdrawal uses
+// DELETE, stock uses the order paths.
 func (h *ForSaleHandler) UpdateForSale(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -422,101 +448,49 @@ func (h *ForSaleHandler) UpdateForSale(c *gin.Context) {
 		updateMediaPtr = &updateMedia
 	}
 
+	// No status may travel through this endpoint: there is no draft state and
+	// no publish transition. Withdrawal uses DELETE, stock uses the order paths.
+	if req.Status != nil {
+		response.BadRequest(c, "status change via update not allowed; use the dedicated lifecycle endpoint")
+		return
+	}
+
 	var updatedForSale *entity.ForSale
 	err = h.db.WithTx(ctx, func(tx db.Tx) error {
-		// Detect publish intent (draft → active) without mutating entity.
-		// For non-publish status values via PUT, reject — lifecycle mutations
-		// other than publish must use dedicated endpoints (e.g., DELETE for withdraw).
-		if req.Status != nil {
-			newStatus := entity.ForSaleStatus(*req.Status)
-			if !newStatus.IsValid() {
-				return fmt.Errorf("invalid status: must be 'draft', 'active', 'withdrawn', or 'sold'")
-			}
-			// Only draft → active is allowed as publish via this endpoint.
-			// Other status transitions via PUT are not seller content edits.
-			if newStatus != entity.ForSaleStatusDraft && newStatus != entity.ForSaleStatusActive {
-				// For draft, only draft status is valid via content edit; active is publish.
-				// Non-draft status via PUT is rejected — use dedicated lifecycle endpoints.
-				if newStatus == entity.ForSaleStatusWithdrawn || newStatus == entity.ForSaleStatusSold {
-					return fmt.Errorf("status transition %s via PUT not allowed; use dedicated endpoint", newStatus)
-				}
-			}
-			if newStatus == entity.ForSaleStatusActive {
-				// Defer to canonical publish authority after content edit if needed.
-				// Publish will re-lock and validate draft status, ownership, restriction, market authority.
-			}
-		}
-
 		// Check if request contains seller-controlled content fields.
 		hasContent := req.Title != nil || req.Description != nil || req.Price != nil || req.NegotiationEnabled != nil ||
 			req.MediaURLs != nil || req.Media != nil || req.Variety != nil || req.SizeCM != nil || req.AgeMonths != nil ||
 			req.Gender != nil || req.Breeder != nil || req.Bloodline != nil || req.Certificates != nil ||
 			req.PreparationTime != nil
 
-		isPublishIntent := req.Status != nil && entity.ForSaleStatus(*req.Status) == entity.ForSaleStatusActive
-
-		// Content edit via canonical authority.
-		if hasContent {
-			input := for_saleApp.UpdateSellerInput{
-				ForSaleID:          for_saleID,
-				SellerID:           callerID,
-				Title:              req.Title,
-				Description:        req.Description,
-				Price:              req.Price,
-				NegotiationEnabled: req.NegotiationEnabled,
-				Media:              updateMediaPtr,
-				Variety:            req.Variety,
-				SizeCM:             req.SizeCM,
-				AgeMonths:          req.AgeMonths,
-				Gender:             req.Gender,
-				Breeder:            req.Breeder,
-				Bloodline:          req.Bloodline,
-				Certificates:       req.Certificates,
-				PreparationTime:    req.PreparationTime,
-			}
-			saved, err := h.for_saleService.UpdateSeller(ctx, tx, input)
-			if err != nil {
-				return err
-			}
-			updatedForSale = saved
+		if !hasContent {
+			return fmt.Errorf("no fields to update")
 		}
 
-		// Publish intent handling (draft → active)
-		if isPublishIntent {
-			if err := h.for_saleService.Publish(ctx, tx, for_saleID, callerID); err != nil {
-				return err
-			}
-			published, reErr := h.for_saleService.GetByID(ctx, tx, for_saleID)
-			if reErr == nil {
-				updatedForSale = published
-			} else if updatedForSale == nil {
-				// No content edit before, just publish — load it
-				updatedForSale = published
-			}
-			return nil
+		// Content edit via the canonical seller-edit authority — which rejects
+		// every persisted for_sale (live immutability; create = publish).
+		input := for_saleApp.UpdateSellerInput{
+			ForSaleID:          for_saleID,
+			SellerID:           callerID,
+			Title:              req.Title,
+			Description:        req.Description,
+			Price:              req.Price,
+			NegotiationEnabled: req.NegotiationEnabled,
+			Media:              updateMediaPtr,
+			Variety:            req.Variety,
+			SizeCM:             req.SizeCM,
+			AgeMonths:          req.AgeMonths,
+			Gender:             req.Gender,
+			Breeder:            req.Breeder,
+			Bloodline:          req.Bloodline,
+			Certificates:       req.Certificates,
+			PreparationTime:    req.PreparationTime,
 		}
-
-		// If no content and no publish, but status was provided as draft (no-op), ensure we return current.
-		if !hasContent && !isPublishIntent {
-			// If request had only status=draft or empty, treat as no-op content edit.
-			// For draft, UpdateSeller with no fields would be no-op; just load current.
-			if req.Status != nil && entity.ForSaleStatus(*req.Status) == entity.ForSaleStatusDraft {
-				// No mutation needed, just return current state (already draft)
-				if updatedForSale == nil {
-					cur, err := h.for_saleService.GetByID(ctx, tx, for_saleID)
-					if err != nil {
-						return err
-					}
-					updatedForSale = cur
-				}
-				return nil
-			}
-			if hasContent == false && req.Status == nil {
-				return fmt.Errorf("no fields to update")
-			}
-			// For other cases with no content but status present (e.g., withdrawn via PUT), already rejected above.
+		saved, err := h.for_saleService.UpdateSeller(ctx, tx, input)
+		if err != nil {
+			return err
 		}
-
+		updatedForSale = saved
 		return nil
 	})
 
@@ -529,18 +503,6 @@ func (h *ForSaleHandler) UpdateForSale(c *gin.Context) {
 		if errors.Is(err, entity.ErrLiveImmutable) {
 			response.Error(c, http.StatusConflict, "LIVE_IMMUTABLE",
 				"ForSale is live (active/sold/withdrawn) — seller edit forbidden.")
-			return
-		}
-		// Phase 0 honesty: surface the typed shipping gate error as a
-		// machine-readable code so mobile can branch without string matching.
-		if errors.Is(err, shippingApp.ErrShippingNotConfigured) {
-			response.Error(c, http.StatusBadRequest, "SHIPPING_NOT_CONFIGURED",
-				"ForSale belum bisa dipublish: belum ada opsi pengiriman terpilih untuk for_sale ini.")
-			return
-		}
-		if errors.Is(err, for_saleApp.ErrFarmAddressNotConfigured) {
-			response.Error(c, http.StatusBadRequest, "FARM_ADDRESS_NOT_CONFIGURED",
-				"ForSale belum bisa dipublish: alamat pengirim (farm address) belum diatur atau tidak valid.")
 			return
 		}
 		// Check for specific error types
@@ -677,6 +639,9 @@ func (h *ForSaleHandler) GetForSale(c *gin.Context) {
 	if viewerNegotiationID != nil {
 		resp["viewer_negotiation_id"] = viewerNegotiationID.String()
 	}
+	// CANONICAL PRODUCT VIEW: the detail page resolved successfully for an
+	// entitled viewer. Record exactly one view (identity = Product).
+	h.recordProductView(ctx, c, for_sale.ProductID, for_sale.SellerID, callerID)
 	response.Success(c, resp)
 }
 
@@ -830,7 +795,7 @@ func (h *ForSaleHandler) ListForSales(c *gin.Context) {
 
 	txErr := h.db.WithTx(ctx, func(tx db.Tx) error {
 		if sellerID != nil {
-			// Owner-only inventory branch: full history (draft/active/sold;
+			// Owner-only inventory branch: full history (active/sold;
 			// withdrawn excluded by default). Anonymous/non-owner callers must
 			// never reach the seller-inventory query — they get the public
 			// seller page (active + in-stock only).
@@ -1100,8 +1065,8 @@ func withdrawnAtForViewer(l *entity.ForSale, viewerID *uuid.UUID) *time.Time {
 //
 // Scope 3 — status boundary (parity with auction): `status` carries the
 // coarsened public lifecycle vocabulary via entity.ForSaleStatus
-// .PublicLifecycle() ({active, sold, unavailable}; draft never crosses the
-// public boundary; sold is honest public business truth, withdrawn stays
+// .PublicLifecycle() ({active, sold, unavailable}; internal enum values never
+// cross the public boundary; sold is honest public business truth, withdrawn stays
 // coarsened). The exact internal state crosses the wire ONLY via
 // `seller_status`, and only when viewerID is the owning seller — for every
 // other viewer it is null. Internal timestamps (sold_at/withdrawn_at) are
@@ -1134,7 +1099,7 @@ func for_saleToResponseWithSeller(
 	// Canonical PublicCard ForSaleCard (Batch 2C).
 	// Carries the coarsened public lifecycle vocabulary {active, sold,
 	// unavailable, removed} via entity.ForSaleStatus.PublicLifecycle(); raw
-	// enum (draft, withdrawn) is intentionally NEVER read by the card.
+	// enum (withdrawn) is intentionally NEVER read by the card.
 	var sellerAvatarPtr *string
 	if seller.AvatarURL != "" {
 		a := seller.AvatarURL
@@ -1179,7 +1144,6 @@ func for_saleToResponseWithSeller(
 		"breeder":             product.Breeder,
 		"bloodline":           product.Bloodline,
 		"certificates":        product.Certificates,
-		"farm_address_id":     product.FarmAddressID,
 		"price":               l.PricePerUnit.Int64(),
 		"quantity":            l.QuantityAvailable,
 		"negotiation_enabled": l.NegotiationEnabled,

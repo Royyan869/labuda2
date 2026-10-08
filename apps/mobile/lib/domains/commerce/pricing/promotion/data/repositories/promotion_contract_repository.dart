@@ -11,6 +11,7 @@ abstract class PromotionContractRepository {
     required int budgetRupiah,
     required int durationDays,
     required List<String> cityIds,
+    required List<PromotionTargetDto> targets,
   });
 
   /// GET /promote-balance — the seller's reusable PROMOTE_BALANCE projection.
@@ -28,6 +29,7 @@ abstract class PromotionContractRepository {
     required int budgetRupiah,
     required int durationDays,
     required List<String> cityIds,
+    required List<PromotionTargetDto> targets,
   });
 
   /// GET /promotions/contracts/payment-intent/:id/payment-methods — read-only
@@ -49,6 +51,26 @@ abstract class PromotionContractRepository {
   Future<Result<void>> pauseContract(String contractId);
   Future<Result<void>> resumeContract(String contractId);
   Future<Result<void>> finalizeContract(String contractId);
+
+  /// GET /promotions/contracts/:id/targets — the canonical persisted rolling
+  /// queue (read projection; the backend owns the queue).
+  Future<Result<PromotionTargetListDto>> listTargets(String contractId);
+
+  /// POST /promotions/contracts/:id/targets — appends one target to an existing
+  /// promotion's queue (refill). Queue mutation only: it never creates a
+  /// promotion, funding intent, or payment.
+  Future<Result<PromotionContractTargetDto>> addTarget({
+    required String contractId,
+    required String targetType,
+    required String targetId,
+  });
+
+  /// DELETE /promotions/contracts/:id/targets/:targetId — removes one target
+  /// from an existing promotion's queue.
+  Future<Result<void>> removeTarget({
+    required String contractId,
+    required String targetId,
+  });
 }
 
 class PromotionContractRepositoryImpl implements PromotionContractRepository {
@@ -89,6 +111,7 @@ class PromotionContractRepositoryImpl implements PromotionContractRepository {
     required int budgetRupiah,
     required int durationDays,
     required List<String> cityIds,
+    required List<PromotionTargetDto> targets,
   }) async {
     try {
       final req = CreatePromotionContractRequestDto(
@@ -96,6 +119,7 @@ class PromotionContractRepositoryImpl implements PromotionContractRepository {
         budgetRupiah: budgetRupiah,
         durationDays: durationDays,
         cityIds: cityIds,
+        targets: targets,
       );
       final res = await _apiClient.post(
         '/promotions/contracts',
@@ -131,6 +155,7 @@ class PromotionContractRepositoryImpl implements PromotionContractRepository {
     required int budgetRupiah,
     required int durationDays,
     required List<String> cityIds,
+    required List<PromotionTargetDto> targets,
   }) async {
     try {
       final req = CreatePromotionContractRequestDto(
@@ -138,6 +163,7 @@ class PromotionContractRepositoryImpl implements PromotionContractRepository {
         budgetRupiah: budgetRupiah,
         durationDays: durationDays,
         cityIds: cityIds,
+        targets: targets,
       );
       final res = await _apiClient.post(
         '/promotions/contracts/payment-intent',
@@ -228,6 +254,60 @@ class PromotionContractRepositoryImpl implements PromotionContractRepository {
       return Result.success(null);
     } on ApiException catch (e) {
       return Result.error(e.message);
+    } catch (e) {
+      return Result.error(e.toString());
+    }
+  }
+
+  @override
+  Future<Result<PromotionTargetListDto>> listTargets(String contractId) async {
+    try {
+      final res = await _apiClient.get(
+        '/promotions/contracts/$contractId/targets',
+      );
+      final data = res.data?['data'] as Map<String, dynamic>?;
+      if (data == null) return Result.error('Invalid response');
+      return Result.success(PromotionTargetListDto.fromJson(data));
+    } on ApiException catch (e) {
+      return _apiError(e);
+    } catch (e) {
+      return Result.error(e.toString());
+    }
+  }
+
+  @override
+  Future<Result<PromotionContractTargetDto>> addTarget({
+    required String contractId,
+    required String targetType,
+    required String targetId,
+  }) async {
+    try {
+      final res = await _apiClient.post(
+        '/promotions/contracts/$contractId/targets',
+        data: {'target_type': targetType, 'target_id': targetId},
+      );
+      final data = res.data?['data']?['target'] as Map<String, dynamic>?;
+      if (data == null) return Result.error('Invalid response');
+      return Result.success(PromotionContractTargetDto.fromJson(data));
+    } on ApiException catch (e) {
+      return _apiError(e);
+    } catch (e) {
+      return Result.error(e.toString());
+    }
+  }
+
+  @override
+  Future<Result<void>> removeTarget({
+    required String contractId,
+    required String targetId,
+  }) async {
+    try {
+      await _apiClient.delete(
+        '/promotions/contracts/$contractId/targets/$targetId',
+      );
+      return Result.success(null);
+    } on ApiException catch (e) {
+      return _apiError(e);
     } catch (e) {
       return Result.error(e.toString());
     }

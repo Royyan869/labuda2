@@ -35,9 +35,11 @@ class _ShippingSetupPickerSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Opsi Pengiriman',
-            style: TextStyle(fontSize: AppType.s20, fontWeight: FontWeight.bold),
+            style: context.typeRoles.titleSection.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(height: 12),
           if (!hasAddress)

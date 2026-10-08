@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:labuda/core/core.dart' as core;
 import 'package:labuda/core/src/theme/app_theme.dart';
+import 'package:labuda/shared/utils/app_formatters.dart';
 
 /// Section untuk validity period discount
 ///
@@ -16,10 +16,6 @@ class ValiditySection extends StatelessWidget {
     required this.validUntil,
     required this.onValidUntilChanged,
   });
-
-  String _formatDate(DateTime date) {
-    return DateFormat('dd MMM yyyy', 'id_ID').format(date);
-  }
 
   Future<void> _selectDate(
     BuildContext context,
@@ -51,8 +47,7 @@ class ValiditySection extends StatelessWidget {
         children: [
           Text(
             'Expiry Date',
-            style: TextStyle(
-              fontSize: core.AppType.s16,
+            style: context.typeRoles.titleSection.copyWith(
               fontWeight: FontWeight.bold,
               color: Theme.of(context).colorScheme.onSurface,
             ),
@@ -65,8 +60,7 @@ class ValiditySection extends StatelessWidget {
             children: [
               Text(
                 'Expires On *',
-                style: TextStyle(
-                  fontSize: core.AppType.s14,
+                style: context.typeRoles.bodyDense.copyWith(
                   fontWeight: FontWeight.w500,
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
@@ -99,11 +93,11 @@ class ValiditySection extends StatelessWidget {
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          _formatDate(validUntil),
-                          style: TextStyle(
-                            fontSize: core.AppType.s14,
-                            color: Theme.of(context).colorScheme.onSurface,
-                          ),
+                          AppFormatters.formatDate(validUntil),
+                          style: Theme.of(context).textTheme.bodyLarge
+                              ?.copyWith(
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
                         ),
                       ),
                       Icon(
@@ -136,8 +130,7 @@ class ValiditySection extends StatelessWidget {
                 Expanded(
                   child: Text(
                     'Discount is active immediately and expires on the selected date.',
-                    style: TextStyle(
-                      fontSize: core.AppType.s12,
+                    style: context.typeRoles.bodyDense.copyWith(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),

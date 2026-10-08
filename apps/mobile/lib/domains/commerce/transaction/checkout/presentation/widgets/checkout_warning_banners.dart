@@ -37,8 +37,7 @@ class _ShippingClarityBanner extends StatelessWidget {
               children: [
                 Text(
                   'Pengiriman dikelola oleh penjual',
-                  style: TextStyle(
-                    fontSize: AppType.s14,
+                  style: context.typeRoles.bodyDense.copyWith(
                     fontWeight: FontWeight.w600,
                     color: colorScheme.secondary,
                   ),
@@ -46,8 +45,7 @@ class _ShippingClarityBanner extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   'Setelah pesanan dibuat, penjual akan menginformasikan opsi pengiriman yang tersedia.',
-                  style: TextStyle(
-                    fontSize: AppType.s12,
+                  style: context.typeRoles.bodyDense.copyWith(
                     color: colorScheme.onSurfaceVariant,
                     height: 1.4,
                   ),
@@ -108,8 +106,7 @@ class _AuctionWinnerBanner extends StatelessWidget {
               children: [
                 Text(
                   'Selamat! Anda Memenangkan Lelang 🎉',
-                  style: TextStyle(
-                    fontSize: AppType.s14,
+                  style: context.typeRoles.bodyDense.copyWith(
                     fontWeight: FontWeight.bold,
                     color: context.statusColors.success,
                   ),
@@ -117,8 +114,7 @@ class _AuctionWinnerBanner extends StatelessWidget {
                 const SizedBox(height: 3),
                 Text(
                   'Lengkapi pembayaran untuk mengamankan kemenangan Anda. Harga final sudah terkunci.',
-                  style: TextStyle(
-                    fontSize: AppType.s12,
+                  style: context.typeRoles.bodyDense.copyWith(
                     color: colorScheme.onSurfaceVariant,
                     height: 1.3,
                   ),
@@ -177,8 +173,7 @@ class _NegotiationWarningBanner extends StatelessWidget {
               children: [
                 Text(
                   'Tawaran Sudah Disetujui',
-                  style: TextStyle(
-                    fontSize: AppType.s14,
+                  style: context.typeRoles.bodyDense.copyWith(
                     fontWeight: FontWeight.bold,
                     color: context.statusColors.warning,
                   ),
@@ -186,8 +181,7 @@ class _NegotiationWarningBanner extends StatelessWidget {
                 const SizedBox(height: 3),
                 Text(
                   'Tawaran sudah disetujui, tetapi belum diamankan. Selesaikan checkout untuk mengunci produk.',
-                  style: TextStyle(
-                    fontSize: AppType.s12,
+                  style: context.typeRoles.bodyDense.copyWith(
                     color: colorScheme.onSurfaceVariant,
                     height: 1.3,
                   ),
@@ -240,8 +234,7 @@ class _StockWarningBanner extends StatelessWidget {
               children: [
                 Text(
                   'Stok Terbatas',
-                  style: TextStyle(
-                    fontSize: AppType.s14,
+                  style: context.typeRoles.bodyDense.copyWith(
                     fontWeight: FontWeight.w600,
                     color: context.statusColors.warning,
                   ),
@@ -249,8 +242,7 @@ class _StockWarningBanner extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   'Barang bisa habis kapan saja. Segera selesaikan pembayaran.',
-                  style: TextStyle(
-                    fontSize: AppType.s12,
+                  style: context.typeRoles.bodyDense.copyWith(
                     color: colorScheme.onSurfaceVariant,
                     height: 1.3,
                   ),

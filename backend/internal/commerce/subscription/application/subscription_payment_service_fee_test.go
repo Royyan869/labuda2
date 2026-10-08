@@ -14,10 +14,9 @@
 //	PLATFORM_REVENUE    += A + F   (two separate ledger transactions)
 //	BANK_SETTLEMENT     -= A + F
 //
-// To make the authority provable, the ACTIVE config deliberately carries a
-// different yearly_fee_rupiah than the snapshot principal. Any settlement that
-// still read config as the money authority would fail these assertions. Config
-// remains authoritative for duration only.
+// Both money AND duration are read from the payment snapshot. The service no
+// longer takes a config repository at all, so no live config value can leak
+// into a settled subscription.
 package application
 
 import (
@@ -27,7 +26,6 @@ import (
 
 	"github.com/google/uuid"
 	sellerEntity "github.com/labuda/backend/internal/commerce/seller/entity"
-	subscriptionEntity "github.com/labuda/backend/internal/commerce/subscription/entity"
 	financeledger "github.com/labuda/backend/internal/finance"
 	addressEntity "github.com/labuda/backend/internal/identity/address/entity"
 	userEntity "github.com/labuda/backend/internal/identity/user/domain/entity"
@@ -45,8 +43,7 @@ func newProcessServiceForFeeSplit(
 	t *testing.T,
 	gross int64,
 	fee int64,
-	configYearlyFee int64,
-	configDurationDays int,
+	durationDays int,
 ) (
 	*SellerSubscriptionPaymentService,
 	*processSubscriptionRepo,
@@ -85,13 +82,11 @@ func newProcessServiceForFeeSplit(
 			},
 		},
 		&processAddressRepo{
-			addresses: []*addressEntity.Address{
-				{
-					ID:     uuid.New(),
-					UserID: userID,
-					Tags:   []addressEntity.AddressTag{addressEntity.TagSender},
-					Phone:  userPhone,
-				},
+			primary: &addressEntity.Address{
+				ID:        uuid.New(),
+				UserID:    userID,
+				IsPrimary: true,
+				Phone:     userPhone,
 			},
 		},
 	)
@@ -99,15 +94,16 @@ func newProcessServiceForFeeSplit(
 	paidAt := time.Date(2026, 12, 1, 10, 0, 0, 0, time.UTC)
 
 	payment := &paymentRepository.Payment{
-		ID:               paymentID,
-		UserID:           userID,
-		Status:           paymentRepository.PaymentStatusSettlement,
-		ReferenceType:    paymentRepository.ReferenceTypeSubscription,
-		PaidAt:           &paidAt,
-		ExpiredAt:        paidAt.Add(24 * time.Hour),
-		MidtransOrderID:  "LAB-SUB-FEE",
-		GrossAmount:      money.New(gross),
-		ServiceFeeAmount: money.New(fee),
+		ID:                       paymentID,
+		UserID:                   userID,
+		Status:                   paymentRepository.PaymentStatusSettlement,
+		ReferenceType:            paymentRepository.ReferenceTypeSubscription,
+		PaidAt:                   &paidAt,
+		ExpiredAt:                paidAt.Add(24 * time.Hour),
+		MidtransOrderID:          "LAB-SUB-FEE",
+		GrossAmount:              money.New(gross),
+		ServiceFeeAmount:         money.New(fee),
+		SubscriptionDurationDays: &durationDays,
 	}
 
 	subRepo := &processSubscriptionRepo{}
@@ -129,12 +125,6 @@ func newProcessServiceForFeeSplit(
 		onboardingService,
 		newProcessFinanceService(t, ledger),
 		&mockOutboxRepo{},
-		&processConfigRepo{config: &subscriptionEntity.SellerSubscriptionConfig{
-			ID:              uuid.New(),
-			YearlyFeeRupiah: configYearlyFee,
-			DurationDays:    configDurationDays,
-			Enabled:         true,
-		}},
 	)
 
 	return svc, subRepo, ledger, newProcessPaymentTx(paymentID), userID, paymentID
@@ -144,15 +134,14 @@ func newProcessServiceForFeeSplit(
 // canonical PMF-02 settlement proof for a fee-bearing payment.
 func TestProcessSuccessfulPaymentTx_SplitsPrincipalAndFeeFromSnapshot(t *testing.T) {
 	const (
-		principal       = int64(100000)
-		fee             = int64(7000)
-		gross           = principal + fee // 107000
-		configYearlyFee = int64(999999)   // deliberately divergent from the snapshot
-		configDuration  = 400
+		principal = int64(100000)
+		fee       = int64(7000)
+		gross     = principal + fee // 107000
+		duration  = 400
 	)
 
 	svc, subRepo, ledger, tx, userID, paymentID := newProcessServiceForFeeSplit(
-		t, gross, fee, configYearlyFee, configDuration,
+		t, gross, fee, duration,
 	)
 
 	err := svc.ProcessSuccessfulPaymentTx(
@@ -166,8 +155,8 @@ func TestProcessSuccessfulPaymentTx_SplitsPrincipalAndFeeFromSnapshot(t *testing
 	inserted := subRepo.inserted[0]
 	assert.Equal(t, principal, inserted.AmountPaid.Int64(),
 		"AmountPaid must be the snapshot principal (gross - fee), never config.YearlyFeeRupiah")
-	assert.Equal(t, configDuration, inserted.DurationDays,
-		"duration is still a config authority")
+	assert.Equal(t, duration, inserted.DurationDays,
+		"duration must come from the payment snapshot, never live config")
 	assert.Equal(t, paymentID, inserted.PaymentID)
 
 	// Principal and fee must be separate ledger transactions.
@@ -230,7 +219,7 @@ func TestProcessSuccessfulPaymentTx_ZeroFeeBooksNoFeeTransaction(t *testing.T) {
 	const principal = int64(70000)
 
 	svc, subRepo, ledger, tx, userID, paymentID := newProcessServiceForFeeSplit(
-		t, principal, 0, principal, 365,
+		t, principal, 0, 365,
 	)
 
 	err := svc.ProcessSuccessfulPaymentTx(
@@ -256,7 +245,7 @@ func TestProcessSuccessfulPaymentTx_FeeRevenueNotDuplicatedOnReplay(t *testing.T
 	)
 
 	svc, subRepo, ledger, tx, userID, paymentID := newProcessServiceForFeeSplit(
-		t, principal+fee, fee, principal, 365,
+		t, principal+fee, fee, 365,
 	)
 
 	require.NoError(t, svc.ProcessSuccessfulPaymentTx(

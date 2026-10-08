@@ -29,6 +29,15 @@ import type {
  * Hook for fetching the governance case list.
  * Supports status filter and pagination.
  */
+/**
+ * Hook for fetching the governance case list.
+ *
+ * Pagination is page-based. `page`/`limit` are pure request parameters owned
+ * by the caller — the hook deliberately keeps NO shadow copy in state. A
+ * shadow `useState(params.page)` would initialise once and then ignore every
+ * later prop change, so the UI could render "Page 2" while the hook still
+ * fetched page 1. Single authority: the page owns the page number.
+ */
 export function useGovernanceCases(params: {
   status?: GovernanceCaseStatus
   page?: number
@@ -37,9 +46,10 @@ export function useGovernanceCases(params: {
   const [cases, setCases] = useState<GovernanceCase[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
-  const [page, setPage] = useState(params.page || 1)
-  const [limit] = useState(params.limit || 20)
   const [count, setCount] = useState(0)
+
+  const page = params.page && params.page > 0 ? params.page : 1
+  const limit = params.limit && params.limit > 0 ? params.limit : 20
 
   const fetchCases = useCallback(async () => {
     setLoading(true)
@@ -68,7 +78,6 @@ export function useGovernanceCases(params: {
     loading,
     error,
     page,
-    setPage,
     limit,
     count,
     refetch: fetchCases,

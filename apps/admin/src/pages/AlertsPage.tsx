@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
+import { Input } from '@/components/ui/Input'
+import { Select } from '@/components/ui/Select'
 import { useAlerts, useAlertStats, useAlertActions } from '@/hooks/useAlerts'
 import {
   alertTypeLabels,
@@ -23,7 +25,7 @@ import {
   Copy,
   ExternalLink,
 } from 'lucide-react'
-import { AdminLoadingState, AdminErrorState, AdminEmptyState, AdminPagination } from '@/components/common'
+import { AdminLoadingState, AdminErrorState, AdminEmptyState, AdminPagination, PageHeader } from '@/components/common'
 
 /**
  * Returns the admin navigation path for a given alert entity_type + entity_id.
@@ -80,8 +82,8 @@ function StatCard({ label, value, icon: Icon, color }: {
             <Icon className="h-5 w-5 text-white" />
           </div>
           <div>
-            <p className="text-2xl font-bold text-[hsl(var(--foreground))]">{value}</p>
-            <p className="text-xs text-[hsl(var(--muted-foreground))]">{label}</p>
+            <p className="type-metric text-foreground">{value}</p>
+            <p className="type-caption">{label}</p>
           </div>
         </div>
       </CardContent>
@@ -140,16 +142,16 @@ export function AlertsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-[hsl(var(--foreground))]">System Alerts</h1>
-          <p className="text-[hsl(var(--muted-foreground))] mt-1">Monitor and manage platform alerts</p>
-        </div>
-        <Button variant="ghost" size="sm" onClick={handleRefresh} disabled={loading}>
-          <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
-        </Button>
-      </div>
+      <PageHeader
+        title="System Alerts"
+        description="Monitor and manage platform alerts"
+        actions={
+          <Button variant="ghost" size="sm" onClick={handleRefresh} disabled={loading}>
+            <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+        }
+      />
 
       {/* Stats Cards */}
       {stats && (
@@ -165,74 +167,64 @@ export function AlertsPage() {
       <Card>
         <CardContent className="p-4">
           <div className="flex flex-wrap items-end gap-4">
-            <div>
-              <label className="text-xs font-medium text-[hsl(var(--muted-foreground))] block mb-1">Status</label>
-              <select
-                className="border border-[hsl(var(--border))] rounded-md px-3 py-1.5 text-sm"
-                value={statusFilter}
-                onChange={(e) => { setStatusFilter(e.target.value as AlertStatus | ''); setPage(1) }}
-              >
-                <option value="">All</option>
-                <option value="active">Active</option>
-                <option value="open">Open</option>
-                <option value="acknowledged">Acknowledged</option>
-                <option value="resolved">Resolved</option>
-                <option value="false_positive">False Positive</option>
-              </select>
-            </div>
-            <div>
-              <label className="text-xs font-medium text-[hsl(var(--muted-foreground))] block mb-1">Severity</label>
-              <select
-                className="border border-[hsl(var(--border))] rounded-md px-3 py-1.5 text-sm"
-                value={severityFilter}
-                onChange={(e) => { setSeverityFilter(e.target.value as AlertSeverity | ''); setPage(1) }}
-              >
-                <option value="">All</option>
-                <option value="critical">Critical</option>
-                <option value="high">High</option>
-                <option value="warning">Warning</option>
-                <option value="medium">Medium</option>
-                <option value="info">Info</option>
-                <option value="low">Low</option>
-              </select>
-            </div>
-            <div>
-              <label className="text-xs font-medium text-[hsl(var(--muted-foreground))] block mb-1">Type</label>
-              <select
-                className="border border-[hsl(var(--border))] rounded-md px-3 py-1.5 text-sm"
-                value={typeFilter}
-                onChange={(e) => { setTypeFilter(e.target.value as AlertType | ''); setPage(1) }}
-              >
-                <option value="">All</option>
-                {Object.entries(alertTypeLabels).map(([value, label]) => (
-                  <option key={value} value={value}>{label}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="text-xs font-medium text-[hsl(var(--muted-foreground))] block mb-1">From</label>
-              <input
-                type="date"
-                className="border border-[hsl(var(--border))] rounded-md px-3 py-1.5 text-sm"
-                value={dateFrom}
-                onChange={(e) => { setDateFrom(e.target.value); setPage(1) }}
-              />
-            </div>
-            <div>
-              <label className="text-xs font-medium text-[hsl(var(--muted-foreground))] block mb-1">To</label>
-              <input
-                type="date"
-                className="border border-[hsl(var(--border))] rounded-md px-3 py-1.5 text-sm"
-                value={dateTo}
-                onChange={(e) => { setDateTo(e.target.value); setPage(1) }}
-              />
-            </div>
+            <Select
+              label="Status"
+              size="compact"
+              value={statusFilter}
+              onChange={(e) => { setStatusFilter(e.target.value as AlertStatus | ''); setPage(1) }}
+            >
+              <option value="">All</option>
+              <option value="active">Active</option>
+              <option value="open">Open</option>
+              <option value="acknowledged">Acknowledged</option>
+              <option value="resolved">Resolved</option>
+              <option value="false_positive">False Positive</option>
+            </Select>
+            <Select
+              label="Severity"
+              size="compact"
+              value={severityFilter}
+              onChange={(e) => { setSeverityFilter(e.target.value as AlertSeverity | ''); setPage(1) }}
+            >
+              <option value="">All</option>
+              <option value="critical">Critical</option>
+              <option value="high">High</option>
+              <option value="warning">Warning</option>
+              <option value="medium">Medium</option>
+              <option value="info">Info</option>
+              <option value="low">Low</option>
+            </Select>
+            <Select
+              label="Type"
+              size="compact"
+              value={typeFilter}
+              onChange={(e) => { setTypeFilter(e.target.value as AlertType | ''); setPage(1) }}
+            >
+              <option value="">All</option>
+              {Object.entries(alertTypeLabels).map(([value, label]) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
+            </Select>
+            <Input
+              type="date"
+              label="From"
+              size="compact"
+              value={dateFrom}
+              onChange={(e) => { setDateFrom(e.target.value); setPage(1) }}
+            />
+            <Input
+              type="date"
+              label="To"
+              size="compact"
+              value={dateTo}
+              onChange={(e) => { setDateTo(e.target.value); setPage(1) }}
+            />
             {hasActiveFilters && (
               <Button variant="ghost" size="sm" onClick={handleClearFilters}>
                 Clear filters
               </Button>
             )}
-            <div className="ml-auto text-sm text-[hsl(var(--muted-foreground))] self-end pb-1.5">
+            <div className="ml-auto type-secondary self-end pb-1.5">
               {count} alert{count !== 1 ? 's' : ''}
             </div>
           </div>
@@ -251,13 +243,23 @@ export function AlertsPage() {
       {/* Loading State */}
       {loading && alerts.length === 0 && !error && <AdminLoadingState />}
 
-      {/* Empty State */}
+      {/* Empty State (true empty vs filtered no-result) */}
       {!loading && !error && alerts.length === 0 && (
-        <AdminEmptyState
-          icon={Bell}
-          title="No Alerts"
-          description="No alerts match the current filters."
-        />
+        <Card>
+          <CardContent>
+            <AdminEmptyState
+              icon={Bell}
+              title="No Alerts"
+              description={
+                hasActiveFilters
+                  ? 'No alerts match the current filters.'
+                  : 'No alerts have been recorded yet.'
+              }
+              filtered={Boolean(hasActiveFilters)}
+              onClearFilters={handleClearFilters}
+            />
+          </CardContent>
+        </Card>
       )}
 
       {/* Alert List */}
@@ -267,7 +269,7 @@ export function AlertsPage() {
             <CardTitle>Alerts</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="divide-y divide-[hsl(var(--border))]">
+            <div className="divide-y divide-border">
               {alerts.map((alert) => (
                 <AlertRow
                   key={alert.id}
@@ -324,16 +326,16 @@ function AlertRow({ alert, onAction, actionLoading }: {
             <Badge variant={statusBadgeVariant[alert.status]}>
               {alertStatusLabels[alert.status]}
             </Badge>
-            <span className="text-xs text-[hsl(var(--muted-foreground))]">
+            <span className="type-caption">
               {alertTypeLabels[alert.alert_type] ?? alert.alert_type}
             </span>
           </div>
 
           {/* Message */}
-          <p className="text-sm text-[hsl(var(--foreground))] font-medium">{alert.message}</p>
+          <p className="type-body font-medium">{alert.message}</p>
 
           {/* Meta row: created_at, entity, group_key */}
-          <div className="flex flex-wrap items-center gap-3 text-xs text-[hsl(var(--muted-foreground))]">
+          <div className="flex flex-wrap items-center gap-3 type-caption">
             <span title={alert.created_at}>
               Created: {new Date(alert.created_at).toLocaleString()}
             </span>
@@ -342,13 +344,13 @@ function AlertRow({ alert, onAction, actionLoading }: {
               return (
                 <span className="flex items-center gap-1">
                   {alert.entity_type}:
-                  <code className="font-mono bg-[hsl(var(--surface-muted))] px-1 rounded text-[hsl(var(--foreground))]">
+                  <code className="font-mono bg-surface-muted px-1 rounded text-foreground">
                     {alert.entity_id.slice(0, 8)}…
                   </code>
                   <button
                     onClick={() => copyToClipboard(alert.entity_id)}
                     title={`Copy ${alert.entity_type} ID: ${alert.entity_id}`}
-                    className="text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--muted-foreground))]"
+                    className="text-muted-foreground hover:text-muted-foreground"
                   >
                     <Copy className="h-3 w-3" />
                   </button>
@@ -356,7 +358,7 @@ function AlertRow({ alert, onAction, actionLoading }: {
                     <button
                       onClick={() => navigate(path)}
                       title={`Navigate to ${alert.entity_type}${alert.entity_type === 'dispute' ? '' : ' list (copy ID to filter)'}`}
-                      className="text-[hsl(var(--info))] hover:text-[hsl(var(--info))]"
+                      className="text-info hover:text-info"
                     >
                       <ExternalLink className="h-3 w-3" />
                     </button>
@@ -371,11 +373,11 @@ function AlertRow({ alert, onAction, actionLoading }: {
 
           {/* Resolution info */}
           {isTerminal && alert.resolved_at && (
-            <div className="text-xs text-[hsl(var(--muted-foreground))]">
+            <div className="type-caption">
               {alert.status === 'resolved' ? 'Resolved' : 'Closed'}:{' '}
               {new Date(alert.resolved_at).toLocaleString()}
               {alert.resolved_by && (
-                <span className="ml-2 font-mono bg-[hsl(var(--surface-muted))] px-1 rounded">
+                <span className="ml-2 font-mono bg-surface-muted px-1 rounded">
                   by {alert.resolved_by.slice(0, 8)}…
                 </span>
               )}
@@ -387,7 +389,7 @@ function AlertRow({ alert, onAction, actionLoading }: {
             <div>
               <button
                 onClick={() => setMetaExpanded((v) => !v)}
-                className="flex items-center gap-1 text-xs text-[hsl(var(--info))] hover:text-[hsl(var(--info))]"
+                className="flex items-center gap-1 text-xs text-info hover:text-info"
               >
                 {metaExpanded
                   ? <ChevronDown className="h-3 w-3" />
@@ -396,7 +398,7 @@ function AlertRow({ alert, onAction, actionLoading }: {
                 {metaExpanded ? 'Hide' : 'Show'} metadata
               </button>
               {metaExpanded && (
-                <pre className="mt-2 text-xs bg-[hsl(var(--surface-muted))] border border-[hsl(var(--border))] rounded p-2 overflow-auto max-h-48 text-[hsl(var(--foreground))]">
+                <pre className="mt-2 text-xs bg-surface-muted border border-border rounded p-2 overflow-auto max-h-48 text-foreground">
                   {JSON.stringify(alert.metadata, null, 2)}
                 </pre>
               )}

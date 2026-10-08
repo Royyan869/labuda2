@@ -3,7 +3,6 @@ package shared
 import (
 	"context"
 
-	"github.com/google/uuid"
 	productEntity "github.com/labuda/backend/internal/commerce/product/entity"
 	addressRepo "github.com/labuda/backend/internal/identity/address/repository"
 	"github.com/labuda/backend/pkg/db"
@@ -15,10 +14,8 @@ import (
 // DELEGATION: the resolution rule itself lives ONCE, on the address domain
 // (identity/address/repository.ResolvePublicOrigin) — the same function the
 // public profile calls — so a listing's seller card and that seller's profile
-// can never show different origins. This wrapper only carries the listing's
-// product facts (seller + farm address) into that rule:
-//
-//	primary sender address → listing's sender address → any sender → shipping.
+// can never show different origins. The listing carries no origin address of
+// its own: every product uses the seller account's primary address.
 //
 // Missing truth degrades to "" (the line is HIDDEN, never fabricated) and an
 // unresolvable address never fails the read that carries it.
@@ -32,16 +29,5 @@ func PublicListingOrigin(
 		return ""
 	}
 
-	var listingFarmAddressID *uuid.UUID
-	if product.FarmAddressID != nil && *product.FarmAddressID != uuid.Nil {
-		listingFarmAddressID = product.FarmAddressID
-	}
-
-	return addressRepo.ResolvePublicOrigin(
-		ctx,
-		tx,
-		repos,
-		product.SellerID,
-		listingFarmAddressID,
-	)
+	return addressRepo.ResolvePublicOrigin(ctx, tx, repos, product.SellerID)
 }

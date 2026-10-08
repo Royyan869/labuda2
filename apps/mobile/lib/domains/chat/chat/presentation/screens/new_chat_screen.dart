@@ -81,6 +81,7 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
   }
 
   Widget _buildSearchBar(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.all(AppMetrics.p16),
       child: TextField(
@@ -90,12 +91,14 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
             _searchQuery = value.trim();
           });
         },
-        decoration: InputDecoration(
+        decoration: AppTheme.searchDecoration(
+          scheme,
           hintText: 'Search name or username...',
+        ).copyWith(
           prefixIcon: const Icon(Icons.search),
           suffixIcon: _searchQuery.isNotEmpty
               ? IconButton(
-                  icon: const Icon(Icons.clear),
+                  icon: const Icon(Icons.clear, semanticLabel: 'Bersihkan'),
                   onPressed: () {
                     _searchController.clear();
                     setState(() {
@@ -104,16 +107,6 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
                   },
                 )
               : null,
-          filled: true,
-          fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(AppShape.r12),
-            borderSide: BorderSide.none,
-          ),
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: AppMetrics.p16,
-            vertical: AppMetrics.p12,
-          ),
         ),
       ),
     );
@@ -133,13 +126,14 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
           const SizedBox(height: 16),
           Text(
             'Search user to start a chat',
-            style: TextStyle(fontSize: AppType.s16, color: scheme.onSurface),
+            style: context.typeRoles.titleProminent.copyWith(
+              color: scheme.onSurface,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
             'Type a name or username',
-            style: TextStyle(
-              fontSize: AppType.s14,
+            style: context.typeRoles.bodyDense.copyWith(
               color: scheme.onSurfaceVariant,
             ),
           ),
@@ -186,13 +180,14 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
           const SizedBox(height: 16),
           Text(
             'Failed to search users',
-            style: TextStyle(fontSize: AppType.s16, color: scheme.onSurface),
+            style: context.typeRoles.titleProminent.copyWith(
+              color: scheme.onSurface,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
             error.toString(),
-            style: TextStyle(
-              fontSize: AppType.s12,
+            style: context.typeRoles.bodyDense.copyWith(
               color: scheme.onSurfaceVariant,
             ),
             textAlign: TextAlign.center,
@@ -216,13 +211,14 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
           const SizedBox(height: 16),
           Text(
             'User not found',
-            style: TextStyle(fontSize: AppType.s16, color: scheme.onSurface),
+            style: context.typeRoles.titleProminent.copyWith(
+              color: scheme.onSurface,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
             'Try a different keyword',
-            style: TextStyle(
-              fontSize: AppType.s14,
+            style: context.typeRoles.bodyDense.copyWith(
               color: scheme.onSurfaceVariant,
             ),
           ),

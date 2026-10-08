@@ -37,6 +37,13 @@ type updateProfileRequest struct {
 	CoverPhotoURL *string `json:"cover_photo_url"`
 	Location      *string `json:"location"`
 	PhoneNumber   *string `json:"phone_number"`
+
+	// Optional social media handles. Empty string clears the handle; presence
+	// of a value is the visibility authority (no separate toggle).
+	InstagramHandle *string `json:"instagram_handle"`
+	FacebookHandle  *string `json:"facebook_handle"`
+	TiktokHandle    *string `json:"tiktok_handle"`
+	TwitterHandle   *string `json:"twitter_handle"`
 }
 
 
@@ -267,6 +274,14 @@ func (h *UserHandler) UpdateMyProfile(c *gin.Context) {
 			}
 			input.CoverPhotoURL = &coverURL
 		}
+		if hasSocialMediaFields(req) {
+			input.SocialMedia = &userEntity.SocialMedia{
+				InstagramHandle: handleValue(req.InstagramHandle),
+				FacebookHandle:  handleValue(req.FacebookHandle),
+				TiktokHandle:    handleValue(req.TiktokHandle),
+				TwitterHandle:   handleValue(req.TwitterHandle),
+			}
+		}
 
 		if !hasEffectiveProfileUpdate(input) {
 			return nil
@@ -324,7 +339,29 @@ func hasProfileUpdateFields(req updateProfileRequest) bool {
 		req.AvatarURL != nil ||
 		req.CoverPhotoURL != nil ||
 		req.Location != nil ||
-		req.PhoneNumber != nil
+		req.PhoneNumber != nil ||
+		hasSocialMediaFields(req)
+}
+
+// hasSocialMediaFields reports whether the request mentions any social handle
+// field. When true the whole social object is replaced (empty = cleared).
+func hasSocialMediaFields(req updateProfileRequest) bool {
+	return req.InstagramHandle != nil ||
+		req.FacebookHandle != nil ||
+		req.TiktokHandle != nil ||
+		req.TwitterHandle != nil
+}
+
+// handleValue trims a handle and normalizes empty/whitespace to nil (cleared).
+func handleValue(v *string) *string {
+	if v == nil {
+		return nil
+	}
+	trimmed := strings.TrimSpace(*v)
+	if trimmed == "" {
+		return nil
+	}
+	return &trimmed
 }
 
 func hasEffectiveProfileUpdate(input *userEntity.UpdateProfileInput) bool {
@@ -332,7 +369,8 @@ func hasEffectiveProfileUpdate(input *userEntity.UpdateProfileInput) bool {
 		input.Bio != nil ||
 		input.AvatarURL != nil ||
 		input.CoverPhotoURL != nil ||
-		input.Location != nil
+		input.Location != nil ||
+		input.SocialMedia != nil
 }
 
 // validateCoverPhotoReference enforces the canonical cover-photo persistence

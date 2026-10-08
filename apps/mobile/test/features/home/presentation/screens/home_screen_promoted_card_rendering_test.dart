@@ -39,6 +39,7 @@ import 'package:labuda/domains/social/like/domain/repositories/like_repository.d
 import 'package:labuda/domains/social/like/presentation/providers/like_notifier.dart';
 import 'package:labuda/features/home/home.dart';
 import 'package:labuda/features/home/presentation/providers/feed_renderers.dart';
+import 'package:labuda/generated/app_localizations.dart';
 import 'package:labuda/shared/services/logger_service.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
@@ -381,7 +382,12 @@ Widget _buildHarness(
       // Logger service override.
       loggerServiceProvider.overrideWithValue(LoggerService.instance),
     ],
-    child: MaterialApp.router(routerConfig: router),
+    child: MaterialApp.router(
+      routerConfig: router,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      locale: const Locale('id'),
+    ),
   );
 }
 
@@ -488,7 +494,7 @@ void main() {
       expect(find.text('Dipromosikan'), findsOneWidget);
 
       // Error/empty states absent.
-      expect(find.text('Feed belum bisa dimuat'), findsNothing);
+      expect(find.text('Terjadi Kesalahan'), findsNothing);
       expect(find.text('🎯 Kamu ingin apa hari ini?'), findsNothing);
       expect(state.errorMessage, isNull);
     });
@@ -656,7 +662,7 @@ void main() {
       expect(find.text('7 bid'), findsOneWidget);
 
       // Error/empty states absent.
-      expect(find.text('Feed belum bisa dimuat'), findsNothing);
+      expect(find.text('Terjadi Kesalahan'), findsNothing);
       expect(state.errorMessage, isNull);
     });
 
@@ -795,7 +801,7 @@ void main() {
       expect(find.text('shop.example.com'), findsOneWidget);
 
       // Error/empty states absent.
-      expect(find.text('Feed belum bisa dimuat'), findsNothing);
+      expect(find.text('Terjadi Kesalahan'), findsNothing);
       expect(state.errorMessage, isNull);
     });
 

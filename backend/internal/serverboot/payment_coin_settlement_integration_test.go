@@ -212,7 +212,7 @@ func newPaymentSettlementHarness(t *testing.T) *paymentSettlementHarness {
 		orderRepo:           orderRepo,
 		paymentMethodRepo:   paymentMethodRepo,
 		pricingTokenService: &testPricingTokenSnapshotReader{tdb: tdb},
-		midtransClient:      midtransClient,
+		snapService:         paymentapp.NewSnapService(midtransClient, ""),
 		log:                 midtransLogger,
 	}
 
@@ -523,7 +523,7 @@ func (h *paymentSettlementHarness) handleWebhook(ctx context.Context, notif *mid
 
 func (h *paymentSettlementHarness) setWebhookGateway(client *midtrans.Client) {
 	h.midtransClient = client
-	h.handler.midtransClient = client
+	h.handler.snapService = paymentapp.NewSnapService(client, "")
 	setPrivateField(h.webhookService, "midtransClient", client)
 }
 
@@ -1423,7 +1423,7 @@ func TestPaymentCoinSettlement_NewPaymentAfterAuthoritativeTerminalFailureUsesFr
 
 	secondOrderID := createCanonicalOrder(t, ctx, h.tdb, h.orderRepo, h.buyerID, h.sellerID)
 	createGateway := &recordingSnapGateway{tdb: h.tdb, response: &midtrans.SnapResponse{Token: "tok-second", RedirectURL: "https://midtrans.example/second"}}
-	h.handler.midtransClient = createGateway
+	h.handler.snapService = paymentapp.NewSnapService(createGateway, "")
 	secondResp := h.runCreatePayment(t, secondOrderID, "bank_transfer", 10000)
 	require.Equal(t, http.StatusOK, secondResp.Code)
 	require.Equal(t, int32(1), atomic.LoadInt32(&createGateway.calls))
@@ -1448,7 +1448,7 @@ func TestPaymentCoinSettlement_CreateTimeoutLeavesMissingURLAndBlocksSecondInten
 	h := newPaymentSettlementHarness(t)
 
 	gateway := &recordingSnapGateway{tdb: h.tdb, err: errors.New("network timeout")}
-	h.handler.midtransClient = gateway
+	h.handler.snapService = paymentapp.NewSnapService(gateway, "")
 	h.seedCoinsBalance(t, 20000)
 
 	orderID := createCanonicalOrder(t, ctx, h.tdb, h.orderRepo, h.buyerID, h.sellerID)
@@ -1520,7 +1520,7 @@ func TestPaymentCoinSettlement_ActiveUncertainPaymentBlocksDuplicateIntentAcross
 			h.seedCoinsBalance(t, 20000)
 
 			createGateway := &recordingSnapGateway{tdb: h.tdb, response: &midtrans.SnapResponse{Token: "tok-" + tc.name, RedirectURL: "https://midtrans.example/" + tc.name}}
-			h.handler.midtransClient = createGateway
+			h.handler.snapService = paymentapp.NewSnapService(createGateway, "")
 
 			orderID := createCanonicalOrder(t, ctx, h.tdb, h.orderRepo, h.buyerID, h.sellerID)
 			firstResp := h.runCreatePayment(t, orderID, "bank_transfer", 18000)

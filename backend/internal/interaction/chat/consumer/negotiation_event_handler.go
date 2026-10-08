@@ -294,9 +294,13 @@ func (h *NegotiationEventHandler) sendProposalMessageTx(
 	// Build message body
 	body := fmt.Sprintf("Proposal: %d", getPriceFromPayload(payload))
 
-	// Send message with idempotency key
-	message, err := h.chatService.SendMessage(
+	// Send message with idempotency key. The message is persisted in the
+	// caller's transaction so proposal persistence and any accompanying
+	// commerce work commit atomically — never in a nested independent
+	// transaction.
+	message, err := h.chatService.SendMessageInTx(
 		ctx,
+		tx,
 		roomID,
 		senderID,
 		chatEntity.MessageTypeNegotiationProposal,

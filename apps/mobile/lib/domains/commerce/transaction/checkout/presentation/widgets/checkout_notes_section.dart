@@ -23,9 +23,11 @@ class _NotesSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Catatan (Opsional)',
-            style: TextStyle(fontSize: AppType.s16, fontWeight: FontWeight.w600),
+            style: context.typeRoles.titleSection.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
           ),
           const SizedBox(height: 12),
           AppTextField(

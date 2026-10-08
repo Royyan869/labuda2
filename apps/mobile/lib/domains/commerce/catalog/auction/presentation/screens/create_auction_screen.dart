@@ -13,9 +13,9 @@ import 'package:go_router/go_router.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/core/common/types/preparation_time.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/domain.dart';
+import 'package:labuda/domains/commerce/catalog/auction/presentation/create_auction_route_contract.dart';
 import 'package:labuda/domains/commerce/catalog/auction/presentation/providers/auction_providers.dart';
 import 'package:labuda/features/home/home.dart';
-import 'package:labuda/domains/commerce/catalog/shared/presentation/sender_address_provider.dart';
 import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_access_gate.dart';
 import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_certificate_selector.dart';
 import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_preparation_time_selector.dart';
@@ -34,7 +34,12 @@ import 'package:labuda/domains/user/preference/seller/presentation/providers/cur
 /// manage an existing auction via cancelAuction only; a real edit flow can
 /// be added later as a deliberate feature, not resurrected from this stub.
 class CreateAuctionScreen extends ConsumerStatefulWidget {
-  const CreateAuctionScreen({super.key});
+  /// Optional caller intent. `null` (the global create entry) keeps the
+  /// canonical Marketplace landing; a management-page caller passes
+  /// [CreateAuctionRouteArgs.stay].
+  final CreateAuctionRouteArgs? routeArgs;
+
+  const CreateAuctionScreen({super.key, this.routeArgs});
 
   @override
   ConsumerState<CreateAuctionScreen> createState() =>
@@ -144,12 +149,12 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
   /// re-evaluate on every keystroke (a gate reading only setState-driven state
   /// would never enable while the seller types).
   Iterable<TextEditingController> get _gatedControllers => [
-        _titleController,
-        _descriptionController,
-        _openingBidController,
-        _bidIncrementController,
-        _buyNowPriceController,
-      ];
+    _titleController,
+    _descriptionController,
+    _openingBidController,
+    _bidIncrementController,
+    _buyNowPriceController,
+  ];
 
   void _onFormFieldsChanged() {
     // Re-evaluates the publish-CTA completeness gate after each keystroke.
@@ -235,10 +240,16 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
   bool get _isFormComplete {
     final title = _titleController.text.trim();
     final description = _descriptionController.text.trim();
-    final openingBid = int.tryParse(_openingBidController.text.trim());
-    final bidIncrement = int.tryParse(_bidIncrementController.text.trim());
+    // Canonical money parse: the field displays grouped (`1.000.000`) while
+    // the business value stays an int.
+    final openingBid = MoneyInputFormatter.parseAmount(
+      _openingBidController.text,
+    );
+    final bidIncrement = MoneyInputFormatter.parseAmount(
+      _bidIncrementController.text,
+    );
     final buyNowText = _buyNowPriceController.text.trim();
-    final buyNowPrice = buyNowText.isEmpty ? null : int.tryParse(buyNowText);
+    final buyNowPrice = MoneyInputFormatter.parseAmount(buyNowText);
 
     return title.isNotEmpty &&
         description.isNotEmpty &&
@@ -253,11 +264,8 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
         (buyNowText.isEmpty ||
             (buyNowPrice != null && buyNowPrice >= openingBid)) &&
         _durationHours != null &&
-        (_startMode == _AuctionStartMode.now ||
-            _scheduledStartTime != null) &&
-        _selectedShippingSetupIds.isNotEmpty &&
-        // Sender address: the shipping origin must exist before publishing.
-        ref.watch(senderAddressIdProvider).value != null;
+        (_startMode == _AuctionStartMode.now || _scheduledStartTime != null) &&
+        _selectedShippingSetupIds.isNotEmpty;
   }
 
   Future<void> _submitForm() async {
@@ -298,10 +306,16 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
       return;
     }
 
-    final openingBid = int.tryParse(_openingBidController.text.trim());
-    final bidIncrement = int.tryParse(_bidIncrementController.text.trim());
+    // Canonical money parse: the field displays grouped (`1.000.000`) while
+    // the business value stays an int.
+    final openingBid = MoneyInputFormatter.parseAmount(
+      _openingBidController.text,
+    );
+    final bidIncrement = MoneyInputFormatter.parseAmount(
+      _bidIncrementController.text,
+    );
     final buyNowText = _buyNowPriceController.text.trim();
-    final buyNowPrice = buyNowText.isEmpty ? null : int.tryParse(buyNowText);
+    final buyNowPrice = MoneyInputFormatter.parseAmount(buyNowText);
 
     if (openingBid == null || openingBid <= 0) {
       setState(() => _errorMessage = 'Harga awal harus lebih dari 0.');
@@ -367,7 +381,7 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
       sizeInCm: _sizeInCm!,
       ageInMonths: _ageInMonths ?? 0,
       gender: _gender ?? 'unknown',
-      certificates: _certificates,
+      certificates: List<String>.of(_certificates),
       breeder: _breederController.text.trim().isEmpty
           ? null
           : _breederController.text.trim(),
@@ -376,17 +390,9 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
           : _bloodlineController.text.trim(),
     );
 
-    // Product content parity with for_sale: the shipping origin rides the
-    // CREATE request (backend CreateAuctionRequest.farm_address_id), resolved
-    // from the seller's primary sender address — never null by default just
-    // because this channel forgot to ask. A provider failure degrades to null
-    // (same value for_sale's non-blocking read would produce).
-    String? farmAddressId;
-    try {
-      farmAddressId = await ref.read(senderAddressIdProvider.future);
-    } catch (_) {
-      farmAddressId = null;
-    }
+    // SUBMISSION SNAPSHOT: the mutable media list must not change under the
+    // in-flight request (the mapper reads it after an await). Snapshot it here.
+    final mediaSnapshot = List<String>.of(_mediaUrls);
 
     final success = await ref
         .read(auctionNotifierProvider.notifier)
@@ -397,8 +403,11 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
           sellerAvatar: currentUser.avatarUrl,
           title: _titleController.text.trim(),
           description: _descriptionController.text.trim(),
-          mediaUrls: _mediaUrls,
-          mediaTypes: List.filled(_mediaUrls.length, AuctionMediaType.photo),
+          mediaUrls: mediaSnapshot,
+          mediaTypes: List<AuctionMediaType>.filled(
+            mediaSnapshot.length,
+            AuctionMediaType.photo,
+          ),
           koiDetails: koiDetails,
           openingBid: openingBid,
           bidIncrement: bidIncrement,
@@ -406,9 +415,8 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
           startMode: _startMode,
           scheduledStartAt: scheduledStartAt,
           durationHours: durationHours,
-          farmAddressId: farmAddressId,
           preparationTime: _preparationTime,
-          shippingSetupIds: _selectedShippingSetupIds,
+          shippingSetupIds: List<String>.of(_selectedShippingSetupIds),
         );
 
     if (!mounted) return;
@@ -443,12 +451,15 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
 
     AppSnackBar.showSuccess(context, 'Lelang berhasil dibuat');
 
-    // OWNER CANONICAL LANDING: after a successful create, request the switch
-    // to the Marketplace Auction tab so the user lands on the surface where
-    // the auction now lives (list invalidation happens inside the notifier).
-    ref
-        .read(pendingTabSwitchProvider.notifier)
-        .setSwitch('marketplace', subTab: 1);
+    // CALLER-AWARE LANDING: only the global create entry (no route args)
+    // retargets the shell to Marketplace → Auction. A management-page caller
+    // opts out via [CreateAuctionRouteArgs.stay]. List invalidation (including
+    // the My Auctions pager) happens inside the notifier.
+    if (widget.routeArgs?.landsOnMarketplace ?? true) {
+      ref
+          .read(pendingTabSwitchProvider.notifier)
+          .setSwitch('marketplace', subTab: 1);
+    }
 
     Navigator.of(context).pop(true);
   }
@@ -523,20 +534,16 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
           child: ListView(
             padding: const EdgeInsets.all(AppMetrics.p16),
             children: [
-              const Text(
+              Text(
                 'Informasi Dasar',
-                style: TextStyle(
-                  fontSize: AppType.s20,
+                style: context.typeRoles.titleSection.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
               ),
               const SizedBox(height: 12),
-              TextFormField(
+              AppTextField(
                 controller: _titleController,
-                decoration: const InputDecoration(
-                  labelText: 'Judul *',
-                  border: OutlineInputBorder(),
-                ),
+                labelText: 'Judul *',
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
                     return 'Judul wajib diisi';
@@ -548,13 +555,10 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
                 },
               ),
               const SizedBox(height: 16),
-              TextFormField(
+              AppTextField(
                 controller: _descriptionController,
                 maxLines: 4,
-                decoration: const InputDecoration(
-                  labelText: 'Deskripsi *',
-                  border: OutlineInputBorder(),
-                ),
+                labelText: 'Deskripsi *',
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
                     return 'Deskripsi wajib diisi';
@@ -563,20 +567,18 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
                 },
               ),
               const SizedBox(height: 24),
-              const Text(
+              Text(
                 'Foto Ikan',
-                style: TextStyle(
-                  fontSize: AppType.s20,
+                style: context.typeRoles.titleSection.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
               ),
               const SizedBox(height: 12),
               _buildMediaSection(),
               const SizedBox(height: 24),
-              const Text(
+              Text(
                 'Detail Koi',
-                style: TextStyle(
-                  fontSize: AppType.s20,
+                style: context.typeRoles.titleSection.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -586,18 +588,16 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
               Row(
                 children: [
                   Expanded(
-                    child: TextFormField(
+                    child: AppTextField(
                       controller: _openingBidController,
                       keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        labelText: 'Harga Awal *',
-                        border: OutlineInputBorder(),
-                      ),
+                      inputFormatters: const [MoneyInputFormatter()],
+                      labelText: 'Harga Awal *',
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
                           return 'Harga awal wajib diisi';
                         }
-                        if (double.tryParse(value.trim()) == null) {
+                        if (MoneyInputFormatter.parseAmount(value) == null) {
                           return 'Format angka tidak valid';
                         }
                         return null;
@@ -606,18 +606,16 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: TextFormField(
+                    child: AppTextField(
                       controller: _bidIncrementController,
                       keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        labelText: 'Kenaikan Bid *',
-                        border: OutlineInputBorder(),
-                      ),
+                      inputFormatters: const [MoneyInputFormatter()],
+                      labelText: 'Kenaikan Bid *',
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
                           return 'Kenaikan bid wajib diisi';
                         }
-                        if (double.tryParse(value.trim()) == null) {
+                        if (MoneyInputFormatter.parseAmount(value) == null) {
                           return 'Format angka tidak valid';
                         }
                         return null;
@@ -627,13 +625,11 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
                 ],
               ),
               const SizedBox(height: 16),
-              TextFormField(
+              AppTextField(
                 controller: _buyNowPriceController,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Buy Now Price (opsional)',
-                  border: OutlineInputBorder(),
-                ),
+                inputFormatters: const [MoneyInputFormatter()],
+                labelText: 'Buy Now Price (opsional)',
               ),
               const SizedBox(height: 20),
               _buildStartModeSection(context),
@@ -645,10 +641,9 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
                 onChanged: (value) => setState(() => _preparationTime = value),
               ),
               const SizedBox(height: 20),
-              const Text(
+              Text(
                 'Opsi Pengiriman *',
-                style: TextStyle(
-                  fontSize: AppType.s16,
+                style: context.typeRoles.titleSection.copyWith(
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -674,9 +669,8 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
                   ),
                   child: Text(
                     _errorMessage!,
-                    style: TextStyle(
+                    style: context.typeRoles.bodyDense.copyWith(
                       color: scheme.onSurface,
-                      fontSize: AppType.s14,
                     ),
                   ),
                 ),
@@ -688,8 +682,6 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
                     : _submitForm,
                 style: ElevatedButton.styleFrom(
                   minimumSize: const Size.fromHeight(50),
-                  disabledBackgroundColor: scheme.surfaceContainerHighest,
-                  disabledForegroundColor: scheme.onSurfaceVariant,
                 ),
                 child: _isSubmitting
                     ? SizedBox(
@@ -698,16 +690,14 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
                           valueColor: AlwaysStoppedAnimation<Color>(
-                            scheme.onPrimary,
+                            scheme.onSurfaceVariant,
                           ),
                         ),
                       )
                     : Text(
                         'Buat Lelang',
-                        style: TextStyle(
-                          fontSize: AppType.s16,
+                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
                           fontWeight: FontWeight.w600,
-                          color: scheme.onPrimary,
                         ),
                       ),
               ),
@@ -716,8 +706,7 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
                 Text(
                   'Lengkapi semua field wajib untuk mengaktifkan tombol terbit.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: AppType.s12,
+                  style: context.typeRoles.labelMicro.copyWith(
                     color: scheme.onSurfaceVariant,
                   ),
                 ),
@@ -736,9 +725,11 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Waktu Mulai *',
-          style: TextStyle(fontSize: AppType.s16, fontWeight: FontWeight.w600),
+          style: context.typeRoles.titleSection.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
         ),
         const SizedBox(height: 8),
         SegmentedButton<String>(
@@ -777,9 +768,11 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Durasi Lelang *',
-          style: TextStyle(fontSize: AppType.s16, fontWeight: FontWeight.w600),
+          style: context.typeRoles.titleSection.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
         ),
         const SizedBox(height: 8),
         Wrap(
@@ -819,7 +812,6 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
           initialValue: _variety,
           decoration: const InputDecoration(
             labelText: 'Varietas *',
-            border: OutlineInputBorder(),
           ),
           items: _koiVarieties
               .map((v) => DropdownMenuItem(value: v, child: Text(v)))
@@ -829,15 +821,12 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
               value == null || value.isEmpty ? 'Varietas wajib diisi' : null,
         ),
         const SizedBox(height: 16),
-        TextFormField(
+        AppTextField(
           initialValue: _sizeInCm?.toString(),
           keyboardType: TextInputType.number,
-          decoration: const InputDecoration(
-            labelText: 'Ukuran (cm) *',
-            hintText: 'Contoh: 50',
-            suffixText: 'cm',
-            border: OutlineInputBorder(),
-          ),
+          labelText: 'Ukuran (cm) *',
+          hintText: 'Contoh: 50',
+          suffixText: 'cm',
           validator: (value) {
             if (value == null || value.isEmpty) {
               return 'Ukuran wajib diisi';
@@ -851,15 +840,12 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
           onChanged: (value) => setState(() => _sizeInCm = double.tryParse(value)),
         ),
         const SizedBox(height: 16),
-        TextFormField(
+        AppTextField(
           initialValue: _ageInMonths?.toString(),
           keyboardType: TextInputType.number,
-          decoration: const InputDecoration(
-            labelText: 'Usia (bulan)',
-            hintText: 'Contoh: 24',
-            suffixText: 'bulan',
-            border: OutlineInputBorder(),
-          ),
+          labelText: 'Usia (bulan)',
+          hintText: 'Contoh: 24',
+          suffixText: 'bulan',
           onChanged: (value) => setState(() => _ageInMonths = int.tryParse(value)),
         ),
         const SizedBox(height: 16),
@@ -867,7 +853,6 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
           initialValue: _gender,
           decoration: const InputDecoration(
             labelText: 'Jenis Kelamin',
-            border: OutlineInputBorder(),
           ),
           items: _koiGenders
               .map(
@@ -880,22 +865,16 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
           onChanged: (value) => setState(() => _gender = value),
         ),
         const SizedBox(height: 16),
-        TextFormField(
+        AppTextField(
           controller: _breederController,
-          decoration: const InputDecoration(
-            labelText: 'Breeder',
-            hintText: 'Nama breeder',
-            border: OutlineInputBorder(),
-          ),
+          labelText: 'Breeder',
+          hintText: 'Nama breeder',
         ),
         const SizedBox(height: 16),
-        TextFormField(
+        AppTextField(
           controller: _bloodlineController,
-          decoration: const InputDecoration(
-            labelText: 'Bloodline',
-            hintText: 'Keturunan/bloodline',
-            border: OutlineInputBorder(),
-          ),
+          labelText: 'Bloodline',
+          hintText: 'Keturunan/bloodline',
         ),
         const SizedBox(height: 16),
         CommerceCertificateSelector(
@@ -927,10 +906,9 @@ class _DateTimeField extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(AppShape.r12),
       child: InputDecorator(
-        decoration: InputDecoration(
-          labelText: label,
-          border: const OutlineInputBorder(),
-        ),
+        // Border/fill/geometry come from `inputDecorationTheme`
+        // (AppTheme) — the one form-field authority.
+        decoration: InputDecoration(labelText: label),
         child: Row(
           children: [
             const Icon(Icons.calendar_month_outlined, size: AppIconSize.action),

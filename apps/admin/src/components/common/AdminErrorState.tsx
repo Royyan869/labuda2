@@ -22,11 +22,11 @@ export function AdminErrorState({
   className,
 }: AdminErrorStateProps) {
   return (
-    <Card className={className}>
+    <Card className={className} role="alert">
       <CardContent className="p-8 text-center">
         <AlertTriangle className="h-10 w-10 text-destructive mx-auto mb-3" />
         <p className="text-foreground font-medium">{title}</p>
-        <p className="text-muted-foreground text-sm mt-1">{message}</p>
+        <p className="type-secondary mt-1">{message}</p>
         {onRetry && (
           <Button variant="secondary" size="sm" onClick={onRetry} className="mt-4">
             Retry

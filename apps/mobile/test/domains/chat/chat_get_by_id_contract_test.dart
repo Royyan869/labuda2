@@ -76,34 +76,6 @@ class _SilentLogger implements ILoggerService {
     StackTrace? stackTrace,
   }) => Future.value(Result.success(null));
   @override
-  Future<Result<void>> logUserAction(
-    String action, {
-    String? userId,
-    Map<String, dynamic>? parameters,
-  }) => Future.value(Result.success(null));
-  @override
-  Future<Result<void>> logPerformance(
-    String operation, {
-    required Duration duration,
-    Map<String, dynamic>? metrics,
-  }) => Future.value(Result.success(null));
-  @override
-  Future<Result<void>> logSecurityEvent(
-    String event, {
-    String? userId,
-    String? severity,
-    Map<String, dynamic>? details,
-  }) => Future.value(Result.success(null));
-  @override
-  Future<Result<void>> logApiCall(
-    String endpoint, {
-    required String method,
-    required int statusCode,
-    required Duration duration,
-    Map<String, dynamic>? requestData,
-    Map<String, dynamic>? responseData,
-  }) => Future.value(Result.success(null));
-  @override
   Future<Result<void>> setLogLevel(LogLevel level) =>
       Future.value(Result.success(null));
   @override

@@ -8,11 +8,9 @@ import 'package:labuda/domains/finance/transaction/payment/presentation/screens/
 ///
 /// Handles:
 /// - Direct buy checkout flow
-/// - Order creation
-/// - Payment redirect
+/// - Order creation (Checkout ends here → Order Detail owns payment)
+/// - Payment redirect (payment WebView)
 /// - Payment result verification
-///
-/// **CV2:** Added returnToChat support for chat-commerce continuity
 class CheckoutModule extends BaseModule {
   @override
   String get moduleName => 'CheckoutModule';
@@ -36,8 +34,9 @@ class CheckoutModule extends BaseModule {
         // **SHIPPING QUOTE FIX:** Shipping quote ID from seller's manual quote
         final shippingQuoteId = state.uri.queryParameters['shipping_quote_id'];
 
-        // **CV2:** Chat return context - navigate back to chat after checkout
-        final returnToChat = state.uri.queryParameters['return_to_chat'];
+        // Conversation scope for the manual shipping quote (required when a
+        // quote is used): the chat that produced the quote.
+        final chatId = state.uri.queryParameters['chat_id'];
 
         return CheckoutScreen(
           productId: productId,
@@ -45,26 +44,19 @@ class CheckoutModule extends BaseModule {
           negotiationId: negotiationId,
           auctionId: auctionId,
           shippingQuoteId: shippingQuoteId,
-          returnToChat: returnToChat,
+          chatId: chatId,
         );
       },
     ),
 
     // Payment Result route - Post-payment status check
-    // **CV2:** Support returnToChat for chat-commerce continuity
     GoRoute(
       path: RoutePaths.paymentResult,
       name: RouteNames.paymentResult,
       builder: (context, state) {
         final orderId = state.pathParameters['orderId']!;
         final orderNumber = state.extra as String?;
-        // **CV2:** Check for returnToChat in query parameters
-        final returnToChat = state.uri.queryParameters['return_to_chat'];
-        return PaymentResultScreen(
-          orderId: orderId,
-          orderNumber: orderNumber,
-          returnToChat: returnToChat,
-        );
+        return PaymentResultScreen(orderId: orderId, orderNumber: orderNumber);
       },
     ),
 

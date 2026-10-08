@@ -18,15 +18,9 @@ class AddressApiDatasource extends BaseApiRepository {
   }
 
   /// Get all addresses for current user
-  /// Optional [tag] filter: 'shipping' or 'sender'
-  Future<Result<AddressListResponseApi>> getAddresses({String? tag}) async {
-    final queryParams = <String, dynamic>{};
-    if (tag != null) {
-      queryParams['tag'] = tag;
-    }
-
+  Future<Result<AddressListResponseApi>> getAddresses() async {
     return executeRequest(
-      () => apiClient.get('/addresses', queryParameters: queryParams),
+      () => apiClient.get('/addresses'),
       parser: (data) =>
           AddressListResponseApi.fromJson(data as Map<String, dynamic>),
     );
@@ -42,17 +36,9 @@ class AddressApiDatasource extends BaseApiRepository {
   }
 
   /// Get the account's primary address
-  /// Optional [tag] filter: 'shipping' or 'sender'
-  Future<Result<AddressResponseApi>> getPrimaryAddress({
-    String? tag,
-  }) async {
-    final queryParams = <String, dynamic>{};
-    if (tag != null) {
-      queryParams['tag'] = tag;
-    }
-
+  Future<Result<AddressResponseApi>> getPrimaryAddress() async {
     return executeRequest(
-      () => apiClient.get('/addresses/primary', queryParameters: queryParams),
+      () => apiClient.get('/addresses/primary'),
       parser: (data) =>
           AddressResponseApi.fromJson(data as Map<String, dynamic>),
     );

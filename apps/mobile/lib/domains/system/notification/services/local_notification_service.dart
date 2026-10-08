@@ -1,7 +1,8 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:labuda/core/utils/notification_navigation_handler.dart';
+import 'package:labuda/domains/system/notification/services/notification_navigation_service.dart';
 
 /// Local Notification Service
 ///
@@ -198,10 +199,14 @@ class LocalNotificationService {
         final type = data['type'] as String?;
 
         if (type != null) {
-          NotificationNavigationHandler.navigate(
-            context: _context!,
-            type: type,
-            data: data,
+          // Local notifications carry the same canonical wire type as FCM, so
+          // they resolve through the ONE notification destination decision.
+          unawaited(
+            NotificationNavigationService.canonical().handleNotificationPayload(
+              _context!,
+              type: type,
+              data: data,
+            ),
           );
         }
       } catch (e) {

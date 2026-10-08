@@ -67,14 +67,12 @@ class _DisputeEscalationDialogState
         widget.onEscalated?.call();
       }
     } catch (e) {
+      debugPrint('dispute.escalate failed: $e');
       if (mounted) {
         setState(() {
           _isSubmitting = false;
         });
-        AppSnackBar.showError(
-          context,
-          'Gagal mengajukan sengketa: ${e.toString()}',
-        );
+        AppSnackBar.showError(context, 'Gagal mengajukan sengketa. Coba lagi.');
       }
     }
   }
@@ -96,10 +94,12 @@ class _DisputeEscalationDialogState
             size: AppIconSize.header,
           ),
           const SizedBox(width: 12),
-          const Expanded(
+          Expanded(
             child: Text(
               'Ajukan Sengketa ke Admin',
-              style: TextStyle(fontSize: core.AppType.s20, fontWeight: FontWeight.w600),
+              style: context.typeRoles.titleSection.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ],
@@ -133,8 +133,7 @@ class _DisputeEscalationDialogState
                     Expanded(
                       child: Text(
                         'Penjual telah menolak refund Anda. Admin akan meninjau kasus ini secara adil.',
-                        style: TextStyle(
-                          fontSize: core.AppType.s12,
+                        style: context.typeRoles.bodyDense.copyWith(
                           color: colorScheme.onSurface,
                         ),
                       ),
@@ -157,10 +156,10 @@ class _DisputeEscalationDialogState
                     widget.refund.sellerNotes ??
                     'Tidak ada catatan dari penjual',
               ),
-               if (hasOriginalEvidence) ...[
-                 const SizedBox(height: 8),
-                 EvidenceMediaGallery(urls: widget.refund.evidenceUrls!),
-               ],
+              if (hasOriginalEvidence) ...[
+                const SizedBox(height: 8),
+                EvidenceMediaGallery(urls: widget.refund.evidenceUrls!),
+              ],
               const SizedBox(height: 16),
 
               // Warning about escrow freeze
@@ -182,8 +181,7 @@ class _DisputeEscalationDialogState
                     Expanded(
                       child: Text(
                         'Dana akan dibekukan (escrow freeze) selama proses peninjauan admin.',
-                        style: TextStyle(
-                          fontSize: core.AppType.s12,
+                        style: context.typeRoles.labelMicro.copyWith(
                           color: context.statusColors.warning,
                         ),
                       ),
@@ -202,17 +200,13 @@ class _DisputeEscalationDialogState
         ),
         ElevatedButton(
           onPressed: _isSubmitting ? null : _submitEscalation,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: colorScheme.secondary,
-            disabledBackgroundColor: colorScheme.surfaceContainerHighest,
-          ),
           child: _isSubmitting
               ? SizedBox(
                   width: 16,
                   height: 16,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    color: colorScheme.onPrimary,
+                    color: colorScheme.onSurfaceVariant,
                   ),
                 )
               : const Text('Ajukan Sengketa'),
@@ -241,18 +235,16 @@ class _InfoRow extends StatelessWidget {
           width: core.AppContentSize.termLabel,
           child: Text(
             label,
-            style: theme.textTheme.bodySmall?.copyWith(
+            style: context.typeRoles.labelMicro.copyWith(
               color: colorScheme.onSurfaceVariant,
-              fontSize: core.AppType.s12,
             ),
           ),
         ),
         Expanded(
           child: Text(
             '${emoji ?? ''} $value'.trim(),
-            style: theme.textTheme.bodySmall?.copyWith(
+            style: context.typeRoles.labelMicro.copyWith(
               color: colorScheme.onSurface,
-              fontSize: core.AppType.s12,
             ),
           ),
         ),

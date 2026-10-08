@@ -49,6 +49,11 @@ type Handler struct {
 	log                        *zap.Logger
 	resourceProjectionResolver chatApp.ResourceProjectionResolver
 
+	// shippingQuoteProjectionResolver projects a viewer-scoped actionability
+	// envelope onto shipping-quote messages. Implemented by the Shipping
+	// commerce authority in wiring; nil means no projection hydration.
+	shippingQuoteProjectionResolver chatApp.ShippingQuoteProjectionResolver
+
 	// mediaPresign is the canonical S3 presign configuration for chat media.
 	// When AccessKey is empty (CI / unconfigured env) the register endpoint
 	// answers 503 instead of minting an unusable URL.
@@ -83,6 +88,14 @@ func NewHandler(
 // Call once during handler wiring; nil means no projection hydration.
 func (h *Handler) SetResourceProjectionResolver(r chatApp.ResourceProjectionResolver) {
 	h.resourceProjectionResolver = r
+}
+
+// SetShippingQuoteProjectionResolver injects the canonical shipping-quote
+// projection resolver used by the message read paths to hydrate the
+// viewer-scoped `shipping_quote_projection` envelope on shipping-quote
+// messages. Call once during handler wiring; nil means no projection hydration.
+func (h *Handler) SetShippingQuoteProjectionResolver(r chatApp.ShippingQuoteProjectionResolver) {
+	h.shippingQuoteProjectionResolver = r
 }
 
 // SetMediaPresigner injects the S3 presign configuration used by the chat media
@@ -271,6 +284,17 @@ func (h *Handler) ListRooms(c *gin.Context) {
 		latestProjections = map[uuid.UUID]*commerceshared.ResourceProjection{}
 	}
 
+	// Shipping-quote actionability projection for the preview. Degrade
+	// gracefully like the resource projection: a failure must not fail the list.
+	latestShippingProjections, shipProjErr := h.resolveShippingQuoteProjections(ctx, userID, latestMessages)
+	if shipProjErr != nil {
+		h.log.Warn("chat: list-rooms failed to resolve shipping quote projections",
+			zap.String("user_id", userID.String()),
+			zap.Error(shipProjErr),
+		)
+		latestShippingProjections = map[uuid.UUID]chatApp.ShippingQuoteProjection{}
+	}
+
 	// Convert to response
 	data := make([]map[string]interface{}, len(rooms))
 	for i, room := range rooms {
@@ -282,7 +306,7 @@ func (h *Handler) ListRooms(c *gin.Context) {
 			latestMediaURLs = latestMedia[latestMessage.ID]
 		}
 
-		data[i] = roomListItemResponse(room, userID, participantCards, latestMessage, unreadCount, latestProjections, latestMediaURLs)
+		data[i] = roomListItemResponse(room, userID, participantCards, latestMessage, unreadCount, latestProjections, latestShippingProjections, latestMediaURLs)
 	}
 
 	response.Success(c, gin.H{
@@ -402,6 +426,19 @@ func (h *Handler) GetRoom(c *gin.Context) {
 		latestMediaURLs = h.hydrateMessageMedia(ctx, []*chatEntity.ChatMessage{latestMessage})[latestMessage.ID]
 	}
 
+	var shippingProjections map[uuid.UUID]chatApp.ShippingQuoteProjection
+	if latestMessage != nil {
+		resolved, shipProjErr := h.resolveShippingQuoteProjections(ctx, userID, []*chatEntity.ChatMessage{latestMessage})
+		if shipProjErr != nil {
+			h.log.Warn("chat: get-room failed to resolve shipping quote projections",
+				zap.String("room_id", room.ID.String()),
+				zap.Error(shipProjErr),
+			)
+		} else {
+			shippingProjections = resolved
+		}
+	}
+
 	response.Success(c, roomListItemResponse(
 		room,
 		userID,
@@ -409,6 +446,7 @@ func (h *Handler) GetRoom(c *gin.Context) {
 		latestMessage,
 		unreadCountByRoom[room.ID],
 		projections,
+		shippingProjections,
 		latestMediaURLs,
 	))
 }
@@ -764,6 +802,24 @@ func (h *Handler) ListMessages(c *gin.Context) {
 		}
 	}
 
+	// Shipping-quote actionability projection: viewer-scoped, resolved in ONE
+	// batch call by the Shipping commerce authority. Fail closed — a
+	// shipping-quote message without its projection would render a lying CTA.
+	shippingProjections, shipErr := h.resolveShippingQuoteProjections(ctx, userID, messages)
+	if shipErr != nil {
+		h.log.Error("Failed to resolve shipping quote projections",
+			zap.String("room_id", roomID.String()),
+			zap.Error(shipErr),
+		)
+		response.InternalServerError(c, "Failed to resolve shipping quote projections")
+		return
+	}
+	for i, msg := range messages {
+		if p, ok := shippingProjections[msg.ID]; ok {
+			data[i]["shipping_quote_projection"] = shippingQuoteProjectionJSON(p)
+		}
+	}
+
 	response.Success(c, gin.H{
 		"data": data,
 	})
@@ -983,6 +1039,17 @@ func (h *Handler) SendMessage(c *gin.Context) {
 		resp["resource_projection"] = proj
 	}
 
+	if shippingProjections, shipErr := h.resolveShippingQuoteProjections(ctx, senderID, []*chatEntity.ChatMessage{message}); shipErr != nil {
+		h.log.Error("Failed to resolve shipping quote projections",
+			zap.String("room_id", roomID.String()),
+			zap.Error(shipErr),
+		)
+		response.InternalServerError(c, "Failed to resolve shipping quote projections")
+		return
+	} else if p, ok := shippingProjections[message.ID]; ok {
+		resp["shipping_quote_projection"] = shippingQuoteProjectionJSON(p)
+	}
+
 	response.Success(c, resp)
 }
 
@@ -1144,6 +1211,7 @@ func roomListItemResponse(
 	lastMessage *chatEntity.ChatMessage,
 	unreadCount int,
 	projections map[uuid.UUID]*commerceshared.ResourceProjection,
+	shippingProjections map[uuid.UUID]chatApp.ShippingQuoteProjection,
 	mediaURLs []string,
 ) map[string]interface{} {
 	resp := roomToResponse(room, userID, participantCards)
@@ -1151,6 +1219,9 @@ func roomListItemResponse(
 		last := messageToResponse(lastMessage, nil, nil, mediaURLs)
 		if proj, ok := projections[lastMessage.ID]; ok {
 			last["resource_projection"] = proj
+		}
+		if p, ok := shippingProjections[lastMessage.ID]; ok {
+			last["shipping_quote_projection"] = shippingQuoteProjectionJSON(p)
 		}
 		resp["last_message"] = last
 	} else {
@@ -1267,9 +1338,9 @@ type RegisterMediaResponse struct {
 //
 // Step 1 of the canonical chat media pipeline:
 //
-//	1. POST here → {asset_id, storage_key, upload_url}
-//	2. PUT the bytes to upload_url with a matching Content-Type
-//	3. POST /chat/rooms/:room_id/messages with media_asset_ids: [asset_id, ...]
+//  1. POST here → {asset_id, storage_key, upload_url}
+//  2. PUT the bytes to upload_url with a matching Content-Type
+//  3. POST /chat/rooms/:room_id/messages with media_asset_ids: [asset_id, ...]
 //
 // The asset stays PENDING until a message references it. An upload that is
 // never attached expires (24h) and is swept — that is what makes "pilih media
@@ -1517,6 +1588,81 @@ func (h *Handler) resolveMessageProjections(
 		return nil, errResourceProjectionResolverNotConfigured
 	}
 	return h.resourceProjectionResolver.ResolveResourceProjections(ctx, viewerID, occurrences)
+}
+
+// errShippingQuoteProjectionResolverNotConfigured is returned when a message
+// carries a shipping quote but no projection resolver has been wired. The HTTP
+// layer fails closed (500) rather than silently omitting the projection.
+var errShippingQuoteProjectionResolverNotConfigured = errors.New("shipping quote projection resolver not configured")
+
+// resolveShippingQuoteProjections maps each shipping-quote message in the set
+// to its viewer-scoped actionability projection by delegating to the Shipping
+// commerce authority (one batch call). Chat never computes quote lifecycle.
+//
+// Returns an empty (non-nil) map when no message in the set carries a shipping
+// quote.
+func (h *Handler) resolveShippingQuoteProjections(
+	ctx context.Context,
+	viewerID uuid.UUID,
+	messages []*chatEntity.ChatMessage,
+) (map[uuid.UUID]chatApp.ShippingQuoteProjection, error) {
+	out := map[uuid.UUID]chatApp.ShippingQuoteProjection{}
+	if len(messages) == 0 {
+		return out, nil
+	}
+	quoteIDByMessage := make(map[uuid.UUID]uuid.UUID)
+	quoteIDs := make([]uuid.UUID, 0)
+	seen := make(map[uuid.UUID]struct{})
+	for _, msg := range messages {
+		if msg.AttachmentJSON == nil {
+			continue
+		}
+		if typ, _ := msg.AttachmentJSON["type"].(string); typ != "shipping_quote" {
+			continue
+		}
+		data, _ := msg.AttachmentJSON["data"].(map[string]interface{})
+		if data == nil {
+			continue
+		}
+		offerIDStr, _ := data["offer_id"].(string)
+		if offerIDStr == "" {
+			continue
+		}
+		quoteID, err := uuid.Parse(offerIDStr)
+		if err != nil {
+			continue
+		}
+		quoteIDByMessage[msg.ID] = quoteID
+		if _, ok := seen[quoteID]; !ok {
+			seen[quoteID] = struct{}{}
+			quoteIDs = append(quoteIDs, quoteID)
+		}
+	}
+	if len(quoteIDs) == 0 {
+		return out, nil
+	}
+	if h.shippingQuoteProjectionResolver == nil {
+		return nil, errShippingQuoteProjectionResolverNotConfigured
+	}
+	resolved, err := h.shippingQuoteProjectionResolver.ResolveShippingQuoteProjections(ctx, viewerID, quoteIDs)
+	if err != nil {
+		return nil, err
+	}
+	for messageID, quoteID := range quoteIDByMessage {
+		if p, ok := resolved[quoteID]; ok {
+			out[messageID] = p
+		}
+	}
+	return out, nil
+}
+
+// shippingQuoteProjectionJSON renders a projection in the canonical wire shape
+// (snake_case, matching GET /shipping-quote/:id).
+func shippingQuoteProjectionJSON(p chatApp.ShippingQuoteProjection) map[string]interface{} {
+	return map[string]interface{}{
+		"is_current":        p.IsCurrent,
+		"viewer_actionable": p.ViewerActionable,
+	}
 }
 
 // getResourceOccurrencesByMessageIDs batch-fetches resource occurrences for
@@ -1969,8 +2115,11 @@ type RespondNegotiationRequest struct {
 	Action    string `json:"action" binding:"required,oneof=accept cancel"`
 }
 
-// sessionToResponse converts a NegotiationSession to a JSON-friendly response map.
-func sessionToResponse(s *negotiationEntity.NegotiationSession) gin.H {
+// sessionToResponse converts a NegotiationSession to a JSON-friendly response
+// map. viewerCanAct is the canonical Commerce actionability projection for the
+// requesting viewer (see NegotiationService.ViewerCanAct) — conversation
+// surfaces render it verbatim and must never reconstruct turn themselves.
+func sessionToResponse(s *negotiationEntity.NegotiationSession, viewerCanAct bool) gin.H {
 	resp := gin.H{
 		"id":                s.ID.String(),
 		"resource_type":     string(s.ResourceType),
@@ -1978,6 +2127,7 @@ func sessionToResponse(s *negotiationEntity.NegotiationSession) gin.H {
 		"seller_id":         s.SellerID.String(),
 		"status":            string(s.Status),
 		"proposal_sequence": s.ProposalSequence,
+		"viewer_can_act":    viewerCanAct,
 		"is_expired":        s.IsExpired(),
 		"created_at":        s.CreatedAt.Format(time.RFC3339),
 		"updated_at":        s.UpdatedAt.Format(time.RFC3339),
@@ -2004,6 +2154,26 @@ func sessionToResponse(s *negotiationEntity.NegotiationSession) gin.H {
 		resp["order_id"] = s.OrderID.String()
 	}
 	return resp
+}
+
+// viewerCanActProjection asks the Commerce negotiation authority whether the
+// given viewer may act, and fail-closes on error. The chat layer only carries
+// the returned fact into the response — it never computes turn itself.
+func (h *Handler) viewerCanActProjection(
+	ctx context.Context,
+	session *negotiationEntity.NegotiationSession,
+	viewerID uuid.UUID,
+) bool {
+	canAct, err := h.negotiationService.ViewerCanAct(ctx, session, viewerID)
+	if err != nil {
+		h.log.Error("Failed to evaluate negotiation actionability",
+			zap.String("session_id", session.ID.String()),
+			zap.String("viewer_id", viewerID.String()),
+			zap.Error(err),
+		)
+		return false
+	}
+	return canAct
 }
 
 // StartNegotiation handles POST /api/v1/chat/rooms/:room_id/negotiate
@@ -2096,7 +2266,7 @@ func (h *Handler) StartNegotiation(c *gin.Context) {
 		return
 	}
 
-	response.Success(c, sessionToResponse(session))
+	response.Success(c, sessionToResponse(session, h.viewerCanActProjection(ctx, session, userID)))
 }
 
 // SendCounterOffer handles POST /api/v1/chat/rooms/:room_id/counter
@@ -2185,7 +2355,7 @@ func (h *Handler) SendCounterOffer(c *gin.Context) {
 	// respond/get. The previous {"message":"Counter offer sent"} body made the
 	// mobile DTO read data.id as null → "Failed to counter offer" although the
 	// counter had committed — the client then kept its stale turn state.
-	response.Success(c, sessionToResponse(session))
+	response.Success(c, sessionToResponse(session, h.viewerCanActProjection(ctx, session, userID)))
 }
 
 // RespondToNegotiation handles POST /api/v1/chat/rooms/:room_id/respond
@@ -2264,7 +2434,7 @@ func (h *Handler) RespondToNegotiation(c *gin.Context) {
 			response.RespondWithError(c, h.log, err)
 			return
 		}
-		response.Success(c, sessionToResponse(session))
+		response.Success(c, sessionToResponse(session, h.viewerCanActProjection(ctx, session, userID)))
 
 	case "cancel":
 		// No EnsureActive for cancel — suspended users can cancel (cleanup exemption)
@@ -2348,5 +2518,5 @@ func (h *Handler) GetNegotiation(c *gin.Context) {
 		return
 	}
 
-	response.Success(c, sessionToResponse(session))
+	response.Success(c, sessionToResponse(session, h.viewerCanActProjection(ctx, session, userID)))
 }

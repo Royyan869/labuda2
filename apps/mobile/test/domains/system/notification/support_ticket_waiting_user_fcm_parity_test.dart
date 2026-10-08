@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:labuda/core/core.dart' hide NotificationEntity;
-import 'package:labuda/core/utils/notification_navigation_handler.dart';
 import 'package:labuda/domains/system/notification/domain/entities/notification_entity.dart';
 import 'package:labuda/domains/system/notification/services/fcm_action_mapper.dart';
 import 'package:labuda/domains/system/notification/services/fcm_message_handler.dart';
@@ -151,17 +150,13 @@ void main() {
         await tester.pumpWidget(_routerApp());
         await tester.pumpAndSettle();
 
-        final context = tester.element(find.text('home'));
+        await NotificationNavigationService.canonical()
+            .handleNotificationPayload(
+              tester.element(find.text('home')),
+              type: 'support.ticket.created',
+              data: {'ticket_id': 'ticket-123', 'chatRoomId': 'chat-123'},
+            );
 
-        final handled = NotificationNavigationHandler.navigate(
-          context: context,
-          type: 'support.ticket.created',
-          data: {'ticket_id': 'ticket-123', 'chatRoomId': 'chat-123'},
-        );
-
-        expect(handled, isTrue);
-
-        await tester.pump(const Duration(milliseconds: 700));
         await tester.pumpAndSettle();
 
         expect(find.text('support-ticket:ticket-123'), findsOneWidget);
@@ -169,35 +164,31 @@ void main() {
     );
 
     testWidgets(
-      'list tap routes ticketId to thread and chatRoomId to chat fallback',
+      'push tap routes ticketId to thread and chatRoomId to chat fallback',
       (tester) async {
         await tester.pumpWidget(_routerApp());
         await tester.pumpAndSettle();
 
-        final context = tester.element(find.text('home'));
+        await NotificationNavigationService.canonical()
+            .handleNotificationPayload(
+              tester.element(find.text('home')),
+              type: 'support.ticket.resolved',
+              data: {'ticketId': 'ticket-456', 'chatRoomId': 'chat-123'},
+            );
 
-        final createdHandled = NotificationNavigationHandler.navigate(
-          context: context,
-          type: 'support.ticket.resolved',
-          data: {'ticketId': 'ticket-456', 'chatRoomId': 'chat-123'},
-        );
-        expect(createdHandled, isTrue);
-
-        await tester.pump(const Duration(milliseconds: 700));
         await tester.pumpAndSettle();
         expect(find.text('support-ticket:ticket-456'), findsOneWidget);
 
         await tester.pumpWidget(_routerApp());
         await tester.pumpAndSettle();
 
-        final fallbackHandled = NotificationNavigationHandler.navigate(
-          context: tester.element(find.text('home')),
-          type: 'support.ticket.closed',
-          data: {'chatRoomId': 'chat-456'},
-        );
-        expect(fallbackHandled, isTrue);
+        await NotificationNavigationService.canonical()
+            .handleNotificationPayload(
+              tester.element(find.text('home')),
+              type: 'support.ticket.closed',
+              data: {'chatRoomId': 'chat-456'},
+            );
 
-        await tester.pump(const Duration(milliseconds: 700));
         await tester.pumpAndSettle();
         expect(find.text('chat:chat-456'), findsOneWidget);
       },
@@ -269,20 +260,22 @@ void main() {
       );
     });
 
-    testWidgets('push handler safely rejects support tickets without ids', (
+    testWidgets('push tap survives support tickets without ids', (
       tester,
     ) async {
       await tester.pumpWidget(_routerApp());
       await tester.pumpAndSettle();
 
-      final handled = NotificationNavigationHandler.navigate(
-        context: tester.element(find.text('home')),
-        type: 'support.ticket.created',
-        data: {},
-      );
+      await NotificationNavigationService.canonical()
+          .handleNotificationPayload(
+            tester.element(find.text('home')),
+            type: 'support.ticket.created',
+            data: {},
+          );
 
-      expect(handled, isFalse);
+      await tester.pumpAndSettle();
       expect(find.text('home'), findsOneWidget);
+      expect(tester.takeException(), isNull);
     });
   });
 }

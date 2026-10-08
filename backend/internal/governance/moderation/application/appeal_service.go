@@ -403,15 +403,6 @@ func (s *AppealService) ListAppealsByDecision(
 	return s.appealRepo.ListByDecisionID(ctx, tx, decisionID)
 }
 
-// ListPendingAppeals retrieves pending appeals awaiting admin review.
-func (s *AppealService) ListPendingAppeals(
-	ctx context.Context,
-	tx interface{},
-	limit, offset int,
-) ([]*entity.Appeal, error) {
-	return s.appealRepo.ListPending(ctx, tx, limit, offset)
-}
-
 // ListAllAppeals retrieves all appeals with optional status filter.
 func (s *AppealService) ListAllAppeals(
 	ctx context.Context,
@@ -420,6 +411,16 @@ func (s *AppealService) ListAllAppeals(
 	limit, offset int,
 ) ([]*entity.Appeal, error) {
 	return s.appealRepo.ListAll(ctx, tx, statusFilter, limit, offset)
+}
+
+// CountAllAppeals returns the truthful total number of appeals matching the
+// optional status filter (same predicate as ListAllAppeals).
+func (s *AppealService) CountAllAppeals(
+	ctx context.Context,
+	tx interface{},
+	statusFilter *entity.AppealStatus,
+) (int, error) {
+	return s.appealRepo.CountAll(ctx, tx, statusFilter)
 }
 
 // ============================================================================

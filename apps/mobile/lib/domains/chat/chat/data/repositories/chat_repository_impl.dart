@@ -9,7 +9,6 @@ import 'package:labuda/domains/chat/chat/data/mappers/chat_mapper.dart';
 import 'package:labuda/domains/chat/chat/data/remote/chat_api_datasource.dart';
 import 'package:labuda/domains/chat/chat/domain/entities/chat_entities.dart';
 import 'package:labuda/domains/chat/chat/domain/repositories/chat_repository.dart';
-import 'package:labuda/shared/attachment/entities/share_reference.dart';
 import 'package:labuda/core/src/interfaces/services/i_logger_service.dart';
 
 /// Chat Repository Implementation
@@ -225,50 +224,18 @@ class ChatRepositoryImpl implements ChatRepository {
     List<String> mediaAssetIds = const [],
     String? replyToId,
     List<String> mentionedUserIds = const [],
-    ShareReference? objectReference,
-    Map<String, dynamic>? workflowAttachment,
     ChatResourceOccurrenceRequest? resourceOccurrence,
   }) async {
-    final normalizedReference = _normalizeReferenceForChat(
-      objectReference,
-      workflowAttachment,
-    );
-    if (objectReference != null &&
-        objectReference.targetType == ShareTargetType.content &&
-        normalizedReference == null) {
-      return Result.error(
-        'Content shares require a canonical content wire type for chat',
-      );
-    }
-
-    // Create a temporary message for attachment conversion
-    final tempMessage = Message(
-      id: '',
-      chatId: chatId,
-      senderId: senderId,
-      senderName: senderName,
-      content: content,
-      type: type,
-      mediaUrls: const [],
-      objectReference: normalizedReference ?? objectReference,
-      createdAt: DateTime.now(),
-      status: MessageStatus.sending,
-    );
-
     final request = SendMessageDto(
       body: content,
       messageType: ChatMapper.messageTypeToString(type),
       idempotencyKey:
           '${senderId}_${DateTime.now().microsecondsSinceEpoch}_$chatId',
       mediaAssetIds: mediaAssetIds.isEmpty ? null : mediaAssetIds,
-      attachment: ChatMapper.domainAttachmentToDto(tempMessage),
       replyToId: replyToId,
       mentionedUserIds: mentionedUserIds,
       // Declare what the message is about (communication reference only).
-      // An explicit occurrence (composer direct-commerce attach) wins over
-      // the reference-derived one.
-      resourceOccurrence: resourceOccurrence ??
-          _resourceOccurrenceFor(normalizedReference ?? objectReference),
+      resourceOccurrence: resourceOccurrence,
     );
 
     final result = await _apiDatasource.sendMessage(chatId, request);
@@ -326,58 +293,6 @@ class ChatRepositoryImpl implements ChatRepository {
     _chatRoomEventStreamController ??=
         StreamController<ChatRoomEventDto>.broadcast();
     return _chatRoomEventStreamController!.stream;
-  }
-
-  // ========================================
-  // Helpers
-  // ========================================
-
-  ShareReference? _normalizeReferenceForChat(
-    ShareReference? reference,
-    Map<String, dynamic>? workflowAttachment,
-  ) {
-    if (reference == null) return null;
-
-    if (reference.targetType != ShareTargetType.content) {
-      return reference.asChatReference();
-    }
-
-    final contentType = _readChatContentType(workflowAttachment);
-    if (contentType == null) {
-      return reference.asChatReference();
-    }
-
-    return reference.copyWith(wireTargetType: contentType).asChatReference();
-  }
-
-  /// Derive the canonical resource occurrence from the reference carried by a
-  /// message. Returns null when there is no canonical chat reference.
-  ///
-  /// The occurrence declares the resource identity + operation only — it never
-  /// carries Commerce business state (price/availability/order/payment).
-  ChatResourceOccurrenceRequest? _resourceOccurrenceFor(
-    ShareReference? reference,
-  ) {
-    if (reference == null || !reference.isValid) return null;
-    final chatReference = reference.asChatReference();
-    if (chatReference == null) return null;
-    try {
-      return ChatResourceOccurrenceRequest.fromShareReference(chatReference);
-    } on FormatException {
-      return null;
-    }
-  }
-
-  String? _readChatContentType(Map<String, dynamic>? workflowAttachment) {
-    if (workflowAttachment == null) return null;
-
-    final raw =
-        workflowAttachment['content_type'] ??
-        workflowAttachment['contentType'] ??
-        workflowAttachment['target_type'];
-    if (raw is! String) return null;
-
-    return raw == 'content' ? raw : null;
   }
 
   // ========================================

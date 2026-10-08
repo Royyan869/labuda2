@@ -71,6 +71,11 @@ abstract class IAuthRepository {
     String? username,
     String? bio,
     String? location,
+    String? coverPhotoUrl,
+    String? instagramHandle,
+    String? facebookHandle,
+    String? tiktokHandle,
+    String? twitterHandle,
     DateTime? dateOfBirth,
   });
 

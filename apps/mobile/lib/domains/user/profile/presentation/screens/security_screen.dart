@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/shared.dart';
 import 'package:labuda/shared/helpers/canonical_password_policy.dart';
-import 'package:labuda/domains/user/identity/authentication/presentation/screens/login_sessions_screen.dart';
+import 'package:labuda/shared/helpers/canonical_password_match.dart';
 import 'package:labuda/domains/user/identity/authentication/presentation/shared/widgets/auth_password_field.dart';
 import 'package:labuda/domains/user/identity/authentication/presentation/shared/widgets/auth_button.dart';
 import 'package:labuda/generated/app_localizations.dart';
@@ -130,9 +131,8 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
         children: [
           Text(
             l10n.changePassword,
-            style: TextStyle(
+            style: context.typeRoles.titleCompact.copyWith(
               color: scheme.onSurface,
-              fontSize: AppType.s16,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -202,9 +202,12 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
               if (value == null || value.trim().isEmpty) {
                 return l10n.confirmPasswordRequired;
               }
-              // Stage 4D: trimmed comparison — agrees with the shared match
+              // Canonical confirm-password rule — agrees with the shared match
               // indicator and the sign-up gate.
-              if (value.trim() != _newPasswordController.text.trim()) {
+              if (!CanonicalPasswordMatch.matches(
+                value,
+                _newPasswordController.text,
+              )) {
                 return l10n.newPasswordsDoNotMatch;
               }
               return null;
@@ -232,14 +235,17 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
             ),
             child: Row(
               children: [
-                Icon(Icons.security, color: context.statusColors.warning, size: AppIconSize.inlineGlyph),
+                Icon(
+                  Icons.security,
+                  color: context.statusColors.warning,
+                  size: AppIconSize.inlineGlyph,
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     l10n.strongPasswordMessage,
-                    style: TextStyle(
+                    style: context.typeRoles.labelMicro.copyWith(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      fontSize: AppType.s12,
                     ),
                   ),
                 ),
@@ -273,11 +279,7 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
             title: Text(l10n.loginSessions),
             subtitle: Text(l10n.manageActiveSessions),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const LoginSessionsScreen()),
-              );
-            },
+            onTap: () => context.push(RoutePaths.loginSessions),
           ),
         ],
       ),
@@ -328,8 +330,7 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
   Widget _buildSectionHeader(String title) {
     return Text(
       title,
-      style: TextStyle(
-        fontSize: AppType.s20,
+      style: context.typeRoles.titleSection.copyWith(
         fontWeight: FontWeight.bold,
         color: Theme.of(context).colorScheme.onSurface,
       ),
@@ -410,7 +411,7 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
               children: [
                 Text(
                   l10n.deactivateAccountDescription,
-                  style: const TextStyle(fontSize: AppType.s14),
+                  style: context.typeRoles.bodyDense,
                 ),
                 const SizedBox(height: 16),
                 Text(
@@ -429,7 +430,9 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
                     child: DropdownButton<String>(
                       value: selectedReason.isEmpty ? null : selectedReason,
                       hint: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppMetrics.p12,
+                        ),
                         child: Text(l10n.selectReason),
                       ),
                       isExpanded: true,
@@ -467,9 +470,10 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
                 const SizedBox(height: 12),
                 TextField(
                   controller: notesController,
+                  // Border/fill come from `inputDecorationTheme` (AppTheme) —
+                  // the one form-field authority.
                   decoration: InputDecoration(
                     labelText: l10n.additionalNotesOptional,
-                    border: const OutlineInputBorder(),
                     hintText: l10n.pleaseTellUsMore,
                   ),
                   maxLines: 3,
@@ -517,7 +521,7 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
     final l10n = AppLocalizations.of(context)!;
     final authState = ref.read(authControllerProvider);
     if (authState is! AuthStateAuthenticated) {
-      AppSnackBar.showError(context, l10n.userNotAuthenticated);
+      ref.read(navigationHandlerProvider).navigateToSignIn();
       return;
     }
 
@@ -553,10 +557,11 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
         }
       }
     } catch (e) {
+      debugPrint('account.deactivate failed: $e');
       if (mounted && context.mounted) {
         Navigator.of(context).pop();
         if (!context.mounted) return;
-        AppSnackBar.showError(context, '${l10n.failedToDeactivateAccount}: $e');
+        AppSnackBar.showError(context, l10n.failedToDeactivateAccount);
       }
     }
   }
@@ -604,11 +609,13 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
 
     if (error == null) return; // success — signOut already called
 
-    AppSnackBar.showError(
-      context,
-      error == 'requires-recent-login'
-          ? 'Please sign in again to delete your account'
-          : error,
-    );
+    // Re-authentication required: the canonical flow is the sign-in route, not
+    // a transient toast. Any other failure is shown with safe, non-technical
+    // copy (never the raw backend error).
+    if (error == 'requires-recent-login') {
+      ref.read(navigationHandlerProvider).navigateToSignIn();
+      return;
+    }
+    AppSnackBar.showError(context, 'Gagal menghapus akun. Coba lagi.');
   }
 }

@@ -63,13 +63,11 @@ class CreateContentBottomSheet extends StatelessWidget {
     required SellerCapabilityStatus sellerCapabilityStatus,
     bool isSubscriptionExpired = false,
   }) {
-    showModalBottomSheet(
+    AppBottomSheetBase.show<void>(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      enableDrag: true,
-      isDismissible: true,
-      builder: (context) => CreateContentBottomSheet(
+      title: 'Create',
+      padding: EdgeInsets.zero,
+      content: CreateContentBottomSheet(
         onCreateContent: onCreateContent,
         onCreateForSale: onCreateForSale,
         onCreateAuction: onCreateAuction,
@@ -86,39 +84,15 @@ class CreateContentBottomSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: scheme.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(AppShape.r20)),
-      ),
-      child: SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Drag handle — ONE authority: `AppDragHandle` beside the bottom-sheet
-            // base (the default spacing is this sheet's `top p12 + bottom p8`).
-            const AppDragHandle(),
+    // Surface, shape, handle, scroll and safe area come from the base.
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Options list - Vertical layout
+        _buildOptionsList(context, scheme),
 
-            // Header
-            Padding(
-              padding: const EdgeInsets.fromLTRB(AppMetrics.p24, AppMetrics.p8, AppMetrics.p24, AppMetrics.p16),
-              child: Text(
-                'Create',
-                style: TextStyle(
-                  fontSize: AppType.s20,
-                  fontWeight: FontWeight.w600,
-                  color: scheme.onSurfaceVariant,
-                ),
-              ),
-            ),
-
-            // Options list - Vertical layout
-            _buildOptionsList(context, scheme),
-
-            const SizedBox(height: 16),
-          ],
-        ),
-      ),
+        const SizedBox(height: 16),
+      ],
     );
   }
 
@@ -173,7 +147,7 @@ class CreateContentBottomSheet extends StatelessWidget {
             Navigator.pop(context);
             onStartSelling!();
           },
-      ),
+        ),
 
       // ACTIVE: Show enabled forSale/auction options
       if (isActiveSeller) ...[
@@ -242,20 +216,25 @@ class CreateContentBottomSheet extends StatelessWidget {
       ],
     ];
 
-    return ListView.separated(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
+    return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8),
-      itemCount: options.length,
-      separatorBuilder: (context, index) => const SizedBox(height: 4),
-      itemBuilder: (context, index) {
-        final option = options[index];
-        return _buildOptionItem(option, scheme);
-      },
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (var i = 0; i < options.length; i++) ...[
+            if (i > 0) const SizedBox(height: 4),
+            _buildOptionItem(context, options[i], scheme),
+          ],
+        ],
+      ),
     );
   }
 
-  Widget _buildOptionItem(_CreateOption option, ColorScheme scheme) {
+  Widget _buildOptionItem(
+    BuildContext context,
+    _CreateOption option,
+    ColorScheme scheme,
+  ) {
     final isEnabled = option.onTap != null;
 
     return Material(
@@ -264,7 +243,10 @@ class CreateContentBottomSheet extends StatelessWidget {
         onTap: option.onTap,
         borderRadius: BorderRadius.circular(AppShape.r12),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p12),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppMetrics.p16,
+            vertical: AppMetrics.p12,
+          ),
           child: Row(
             children: [
               // Icon with colored background
@@ -278,9 +260,7 @@ class CreateContentBottomSheet extends StatelessWidget {
                 ),
                 child: Icon(
                   option.icon,
-                  color: isEnabled
-                      ? option.color
-                      : (scheme.onSurfaceVariant),
+                  color: isEnabled ? option.color : (scheme.onSurfaceVariant),
                   size: AppIconSize.header,
                 ),
               ),
@@ -294,8 +274,7 @@ class CreateContentBottomSheet extends StatelessWidget {
                   children: [
                     Text(
                       option.label,
-                      style: TextStyle(
-                        fontSize: AppType.s16,
+                      style: context.typeRoles.titleCompact.copyWith(
                         fontWeight: FontWeight.w600,
                         color: isEnabled
                             ? (scheme.onSurfaceVariant)
@@ -305,8 +284,7 @@ class CreateContentBottomSheet extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       option.description,
-                      style: TextStyle(
-                        fontSize: AppType.s14,
+                      style: context.typeRoles.bodyDense.copyWith(
                         color: scheme.onSurfaceVariant,
                       ),
                     ),

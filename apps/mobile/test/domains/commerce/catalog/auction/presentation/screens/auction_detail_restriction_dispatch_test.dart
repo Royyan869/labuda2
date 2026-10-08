@@ -20,6 +20,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/domain.dart';
 import 'package:labuda/domains/commerce/catalog/auction/presentation/providers/auction_notifier.dart';
@@ -72,9 +74,8 @@ class _FakeAddressRepository implements IAddressRepository {
   final List<AddressEntity> _addresses;
 
   @override
-  Future<Result<List<AddressEntity>>> getAddressesByTag(
+  Future<Result<List<AddressEntity>>> getAddressesByUserId(
     String userId,
-    AddressTag tag,
   ) async => Result.success(_addresses);
 
   @override
@@ -165,7 +166,9 @@ class _ScriptedAuctionNotifier extends AuctionNotifier {
   Future<String?> claimAuction({
     required String auctionId,
     required String addressId,
-    required String shippingSetupId,
+    String? shippingSetupId,
+    String? shippingQuoteId,
+    String? chatId,
     String? discountCode,
     bool useCoins = false,
   }) async {
@@ -260,13 +263,20 @@ AddressEntity _shippingAddress() {
   return AddressEntity(
     id: 'address-1',
     userId: 'buyer-1',
-    tags: const [AddressTag.shipping],
     recipientName: 'Buyer',
     phone: '08123456789',
     province: const Province(id: 'province-1', name: 'Jawa Barat'),
     city: const City(id: 'city-1', name: 'Bandung', provinceId: 'province-1'),
-    district: const District(id: 'district-1', name: 'Coblong', cityId: 'city-1'),
-    village: const Village(id: 'village-1', name: 'Dago', districtId: 'district-1'),
+    district: const District(
+      id: 'district-1',
+      name: 'Coblong',
+      cityId: 'city-1',
+    ),
+    village: const Village(
+      id: 'village-1',
+      name: 'Dago',
+      districtId: 'district-1',
+    ),
     streetAddress: 'Jl. Test No. 1',
     postalCode: '40135',
     isPrimary: true,
@@ -341,20 +351,31 @@ Future<_Harness> _pumpDetail(
           _FakeSavedItemRepository(),
         ),
       ],
-      child: MaterialApp(
-        home: AuctionDetailScreen(auctionId: auction.id),
-        onGenerateRoute: (settings) {
-          final name = settings.name;
-          if (name != null && name.startsWith('/payment-result/')) {
-            return MaterialPageRoute<void>(
-              settings: settings,
-              builder: (_) => Scaffold(
-                body: Center(child: Text('payment-result:$name')),
+      // The screen navigates through GoRouter (`context.pushReplacement` on a
+      // successful claim), so the harness must provide a real GoRouter with the
+      // canonical payment-result destination — a plain MaterialApp cannot.
+      child: MaterialApp.router(
+        routerConfig: GoRouter(
+          initialLocation: '/',
+          routes: [
+            GoRoute(
+              path: '/',
+              builder: (context, state) =>
+                  AuctionDetailScreen(auctionId: auction.id),
+            ),
+            GoRoute(
+              path: '/payment-result/:orderId',
+              builder: (context, state) => Scaffold(
+                body: Center(
+                  child: Text(
+                    'payment-result:/payment-result/'
+                    '${state.pathParameters['orderId']}',
+                  ),
+                ),
               ),
-            );
-          }
-          return null;
-        },
+            ),
+          ],
+        ),
       ),
     ),
   );
@@ -387,6 +408,12 @@ Future<void> _claimThroughUi(WidgetTester tester) async {
 }
 
 void main() {
+  // The real auction detail chrome renders dates through AppFormatters (intl);
+  // initialize the locale data so the widget tree can build. Harness-only.
+  setUpAll(() async {
+    await initializeDateFormatting();
+  });
+
   group('Auction detail place bid — canonical restriction dispatch', () {
     testWidgets('MARKET_AUTHORITY_REQUIRED → canonical seller renewal', (
       tester,
@@ -449,7 +476,9 @@ void main() {
         // NOT a dialog. The old dialog expectations chased UI that never
         // existed in the auction detail screen.
         expect(
-          find.text('Verifikasi email kamu diperlukan sebelum menempatkan bid.'),
+          find.text(
+            'Verifikasi email kamu diperlukan sebelum menempatkan bid.',
+          ),
           findsOneWidget,
         );
         expect(find.text('Verifikasi Email Diperlukan'), findsNothing);
@@ -478,6 +507,37 @@ void main() {
       expect(harness.navigation.renewalCalls, 0);
       expect(tester.takeException(), isNull);
     });
+
+    testWidgets(
+      'BNR_AUCTION_RESTRICTED acknowledgement closes the info notice',
+      (tester) async {
+        final auction = _auction(
+          id: 'auction-bid-bnr-close',
+          sellerId: 'seller-1',
+        );
+        final harness = await _pumpDetail(
+          tester,
+          auction: auction,
+          bidErrorCode: 'BNR_AUCTION_RESTRICTED',
+          bidErrorMessage: 'Akses lelang dibatasi',
+          bidErrorDetails: const {'permanent_ban': true},
+        );
+
+        await _placeBidThroughUi(tester);
+
+        expect(find.text('Akses Lelang Dibatasi'), findsOneWidget);
+        expect(find.byType(AlertDialog), findsOneWidget);
+
+        await tester.tap(find.text('Mengerti'));
+        await tester.pumpAndSettle();
+
+        // The acknowledgement closes the notice; the caller proceeds and
+        // fires no unrelated navigation.
+        expect(find.text('Akses Lelang Dibatasi'), findsNothing);
+        expect(harness.navigation.renewalCalls, 0);
+        expect(tester.takeException(), isNull);
+      },
+    );
 
     testWidgets(
       'generic error with a subscription-like MESSAGE stays generic',
@@ -555,7 +615,10 @@ void main() {
       );
       // Canonical snackbar copy for this action (the modal's own generic
       // banner is separate and also mentions "mengklaim lelang").
-      expect(find.textContaining('Tidak dapat mengklaim lelang'), findsOneWidget);
+      expect(
+        find.textContaining('Tidak dapat mengklaim lelang'),
+        findsOneWidget,
+      );
       expect(harness.navigation.renewalCalls, 0);
       expect(find.text('Klaim & Lanjutkan'), findsOneWidget);
       expect(tester.takeException(), isNull);
@@ -589,8 +652,10 @@ void main() {
         await _claimThroughUi(tester);
 
         expect(harness.notifier.claimCalls, 1);
-        expect(find.text('payment-result:/payment-result/order-1'),
-            findsOneWidget);
+        expect(
+          find.text('payment-result:/payment-result/order-1'),
+          findsOneWidget,
+        );
         expect(harness.navigation.renewalCalls, 0);
         expect(tester.takeException(), isNull);
       },

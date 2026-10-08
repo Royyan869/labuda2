@@ -1,30 +1,27 @@
-/// Refactored AppBottomSheet - Export all components
-/// Reduced from 682 lines to 5 separate component files
+/// The canonical modal Bottom Sheet family.
 ///
-/// Components:
-/// - AppBottomSheetBase: Standard bottom sheet with custom content
-/// - AppBottomSheetActions: Action-based bottom sheets
-/// - AppBottomSheetSettings: Settings bottom sheets
-/// - AppBottomSheetListSelection: List selection bottom sheets
+/// One authority, three presentation categories:
+/// - [AppBottomSheetBase]: concise form/content sheets;
+/// - [AppBottomSheetActions]: short action menus;
+/// - [AppBottomSheetListSelection]: selection/search lists.
 ///
-/// Media picking lives ONLY in MediaUploadOrchestrator — the legacy
-/// AppBottomSheetMediaPicker was purged as a competing picker authority.
+/// Surface, shape (top r20) and elevation come from `bottomSheetTheme`;
+/// `AppDragHandle` is the single drag-handle authority. No raw
+/// `showModalBottomSheet` call may re-implement these.
 library;
 
 export 'app_bottom_sheet_base.dart';
 export 'app_bottom_sheet_actions.dart';
-export 'app_bottom_sheet_settings.dart';
 export 'app_bottom_sheet_list_selection.dart';
 
-/// Compatibility layer - maintains original API
+/// Compatibility facade — keeps the original `AppBottomSheet.*` entry point.
 import 'package:flutter/material.dart';
 import 'app_bottom_sheet_base.dart';
 import 'app_bottom_sheet_actions.dart';
-import 'app_bottom_sheet_settings.dart';
 import 'app_bottom_sheet_list_selection.dart';
 
 class AppBottomSheet {
-  /// Show a standard bottom sheet with custom content
+  /// Show a standard (form/content) bottom sheet with custom content
   static Future<T?> show<T>({
     required BuildContext context,
     required Widget content,
@@ -33,11 +30,8 @@ class AppBottomSheet {
     bool isDismissible = true,
     bool enableDrag = true,
     bool useRootNavigator = false,
-    Color? backgroundColor,
-    double? elevation,
-    ShapeBorder? shape,
-    EdgeInsetsGeometry? padding,
     bool showDragHandle = true,
+    EdgeInsetsGeometry? padding,
     VoidCallback? onSave,
     String saveButtonText = 'Save',
     bool showSaveButton = false,
@@ -49,11 +43,8 @@ class AppBottomSheet {
     isDismissible: isDismissible,
     enableDrag: enableDrag,
     useRootNavigator: useRootNavigator,
-    backgroundColor: backgroundColor,
-    elevation: elevation,
-    shape: shape,
-    padding: padding,
     showDragHandle: showDragHandle,
+    padding: padding,
     onSave: onSave,
     saveButtonText: saveButtonText,
     showSaveButton: showSaveButton,
@@ -76,17 +67,6 @@ class AppBottomSheet {
     showCancel: showCancel,
     cancelLabel: cancelLabel,
     isDismissible: isDismissible,
-  );
-
-  /// Show settings bottom sheet
-  static Future<void> showSettings({
-    required BuildContext context,
-    String title = 'Settings',
-    List<SettingsItem>? customSettings,
-  }) => AppBottomSheetSettings.showSettings(
-    context: context,
-    title: title,
-    customSettings: customSettings,
   );
 
   /// Show list selection bottom sheet

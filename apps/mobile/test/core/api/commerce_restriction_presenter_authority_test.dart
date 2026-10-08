@@ -38,9 +38,6 @@ class _RecordingNavigationHandler implements NavigationHandler {
   void navigateToSellerUpgrade() => upgradeCalls++;
 
   @override
-  void showSnackBar(String message, {bool isError = false}) {}
-
-  @override
   void noSuchMethod(Invocation invocation) {}
 }
 

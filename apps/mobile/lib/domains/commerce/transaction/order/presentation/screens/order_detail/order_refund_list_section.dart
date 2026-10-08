@@ -57,7 +57,8 @@ class OrderRefundListSection extends ConsumerWidget {
         color: colorScheme.surface,
         borderRadius: BorderRadius.circular(core.AppShape.r12),
         border: Border.all(
-          color: _getStatusColor(context, 
+          color: _getStatusColor(
+            context,
             latestRefund.status,
             colorScheme,
           ).withValues(alpha: 0.3),
@@ -72,7 +73,11 @@ class OrderRefundListSection extends ConsumerWidget {
               Icon(
                 Icons.currency_exchange,
                 size: AppIconSize.action,
-                color: _getStatusColor(context, latestRefund.status, colorScheme),
+                color: _getStatusColor(
+                  context,
+                  latestRefund.status,
+                  colorScheme,
+                ),
               ),
               const SizedBox(width: 8),
               Text(
@@ -170,7 +175,11 @@ class OrderRefundListSection extends ConsumerWidget {
     );
   }
 
-  Color _getStatusColor(BuildContext context, RefundStatus status, ColorScheme colorScheme) {
+  Color _getStatusColor(
+    BuildContext context,
+    RefundStatus status,
+    ColorScheme colorScheme,
+  ) {
     switch (status) {
       case RefundStatus.pendingSellerReview:
         return context.statusColors.warning;
@@ -200,14 +209,11 @@ class _BuyerEscalationButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton.icon(
         onPressed: onEscalate,
         style: ElevatedButton.styleFrom(
-          backgroundColor: colorScheme.secondary,
-          foregroundColor: colorScheme.onSecondary,
           padding: const EdgeInsets.symmetric(vertical: core.AppMetrics.p12),
         ),
         icon: const Icon(Icons.gavel_rounded, size: AppIconSize.action),
@@ -239,7 +245,9 @@ class _SellerDecisionButtons extends StatelessWidget {
             style: OutlinedButton.styleFrom(
               foregroundColor: context.statusColors.error,
               side: BorderSide(color: context.statusColors.error),
-              padding: const EdgeInsets.symmetric(vertical: core.AppMetrics.p12),
+              padding: const EdgeInsets.symmetric(
+                vertical: core.AppMetrics.p12,
+              ),
             ),
             icon: const Icon(Icons.cancel_outlined, size: AppIconSize.action),
             label: const Text('Tolak'),
@@ -250,10 +258,14 @@ class _SellerDecisionButtons extends StatelessWidget {
           child: ElevatedButton.icon(
             onPressed: onApprove,
             style: ElevatedButton.styleFrom(
-              backgroundColor: context.statusColors.success,
-              padding: const EdgeInsets.symmetric(vertical: core.AppMetrics.p12),
+              padding: const EdgeInsets.symmetric(
+                vertical: core.AppMetrics.p12,
+              ),
             ),
-            icon: const Icon(Icons.check_circle_outline, size: AppIconSize.action),
+            icon: const Icon(
+              Icons.check_circle_outline,
+              size: AppIconSize.action,
+            ),
             label: const Text('Setujui'),
           ),
         ),
@@ -273,7 +285,10 @@ class _StatusBadge extends StatelessWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: core.AppMetrics.p8, vertical: core.AppMetrics.p4),
+      padding: const EdgeInsets.symmetric(
+        horizontal: core.AppMetrics.p8,
+        vertical: core.AppMetrics.p4,
+      ),
       decoration: BoxDecoration(
         color: _getBadgeColor(context, colorScheme).withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(core.AppShape.r8),
@@ -281,14 +296,13 @@ class _StatusBadge extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(status.emoji, style: const TextStyle(fontSize: core.AppType.s12)),
+          Text(status.emoji, style: context.typeRoles.labelMicro),
           const SizedBox(width: 4),
           Text(
             status.displayName,
-            style: theme.textTheme.bodySmall?.copyWith(
+            style: context.typeRoles.labelMicro.copyWith(
               color: _getBadgeColor(context, colorScheme),
               fontWeight: FontWeight.w600,
-              fontSize: core.AppType.s12,
             ),
           ),
         ],
@@ -399,7 +413,9 @@ class _StatusMessageBanner extends StatelessWidget {
         break;
 
       case RefundStatus.escalatedToAdmin:
-        bgColor = Theme.of(context).colorScheme.secondary.withValues(alpha: 0.1);
+        bgColor = Theme.of(
+          context,
+        ).colorScheme.secondary.withValues(alpha: 0.1);
         textColor = Theme.of(context).colorScheme.secondary;
         icon = Icons.admin_panel_settings;
         message = 'Diteruskan ke admin';

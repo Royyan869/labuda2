@@ -41,8 +41,7 @@ class SellerWizardStep2Widget extends StatelessWidget {
 
           Text(
             'Informasi Toko/Farm',
-            style: TextStyle(
-              fontSize: AppType.s20,
+            style: context.typeRoles.titleSection.copyWith(
               fontWeight: FontWeight.bold,
               color: scheme.onSurface,
             ),
@@ -50,8 +49,7 @@ class SellerWizardStep2Widget extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             'Isi nama toko/farm dan unggah logo atau foto opsional jika tersedia.',
-            style: TextStyle(
-              fontSize: AppType.s14,
+            style: context.typeRoles.bodyDense.copyWith(
               color: scheme.onSurfaceVariant,
             ),
           ),
@@ -64,8 +62,7 @@ class SellerWizardStep2Widget extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text(
                   'Logo/Foto Opsional',
-                  style: TextStyle(
-                    fontSize: AppType.s14,
+                  style: context.typeRoles.bodyDense.copyWith(
                     fontWeight: FontWeight.w500,
                     color: scheme.onSurfaceVariant,
                   ),

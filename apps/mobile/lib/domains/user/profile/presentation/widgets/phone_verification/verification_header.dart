@@ -8,10 +8,7 @@ import 'package:labuda/core/src/theme/app_theme.dart';
 class VerificationHeader extends ConsumerWidget {
   final String phoneNumber;
 
-  const VerificationHeader({
-    super.key,
-    required this.phoneNumber,
-  });
+  const VerificationHeader({super.key, required this.phoneNumber});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -36,32 +33,29 @@ class VerificationHeader extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 12),
-          Text(
-            'Phone Number Verification',
-            style: TextStyle(
-              fontSize: AppType.s20,
-              fontWeight: FontWeight.bold,
-              color: scheme.onSurface,
-            ),
+        Text(
+          'Phone Number Verification',
+          style: context.typeRoles.titleSection.copyWith(
+            fontWeight: FontWeight.bold,
+            color: scheme.onSurface,
+          ),
         ),
         const SizedBox(height: 6),
-          Text(
-            state.codeSent
-                ? 'Enter the 6-digit code sent to you'
-                : 'We will send a verification code via SMS',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: AppType.s14,
-              color: scheme.onSurfaceVariant,
-            ),
+        Text(
+          state.codeSent
+              ? 'Enter the 6-digit code sent to you'
+              : 'We will send a verification code via SMS',
+          textAlign: TextAlign.center,
+          style: context.typeRoles.bodyDense.copyWith(
+            color: scheme.onSurfaceVariant,
+          ),
         ),
         if (isTestNumber && !state.codeSent) ...[
           const SizedBox(height: 4),
           Text(
             '🧪 Test mode: OTP code = 123456',
             textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: AppType.s12,
+            style: context.typeRoles.labelMicro.copyWith(
               fontWeight: FontWeight.w600,
               color: scheme.primary,
             ),

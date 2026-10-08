@@ -54,25 +54,15 @@ class MentionRichText extends ConsumerWidget {
 
     // Default styles
     final defaultStyle =
-        style ??
-        TextStyle(
-          color: scheme.onSurface,
-          fontSize: AppType.s14,
-        );
+        style ?? context.typeRoles.bodyDense.copyWith(color: scheme.onSurface);
 
     final defaultMentionStyle =
         mentionStyle ??
-        TextStyle(
-          color: scheme.secondary,
-          fontWeight: FontWeight.w600,
-        );
+        TextStyle(color: scheme.secondary, fontWeight: FontWeight.w600);
 
     final defaultSpecialMentionStyle =
         specialMentionStyle ??
-        TextStyle(
-          color: scheme.primary,
-          fontWeight: FontWeight.w700,
-        );
+        TextStyle(color: scheme.primary, fontWeight: FontWeight.w700);
 
     return RichText(
       text: TextSpan(

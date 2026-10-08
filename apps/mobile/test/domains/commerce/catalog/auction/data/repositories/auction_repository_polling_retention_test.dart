@@ -39,37 +39,9 @@ class _NoopLogger implements ILoggerService {
     StackTrace? stackTrace,
   }) => _ok();
 
-  @override
-  Future<Result<void>> logUserAction(
-    String action, {
-    String? userId,
-    Map<String, dynamic>? parameters,
-  }) => _ok();
 
-  @override
-  Future<Result<void>> logPerformance(
-    String operation, {
-    required Duration duration,
-    Map<String, dynamic>? metrics,
-  }) => _ok();
 
-  @override
-  Future<Result<void>> logSecurityEvent(
-    String event, {
-    String? userId,
-    String? severity,
-    Map<String, dynamic>? details,
-  }) => _ok();
 
-  @override
-  Future<Result<void>> logApiCall(
-    String endpoint, {
-    required String method,
-    required int statusCode,
-    required Duration duration,
-    Map<String, dynamic>? requestData,
-    Map<String, dynamic>? responseData,
-  }) => _ok();
 
   @override
   Future<Result<void>> setLogLevel(LogLevel level) => _ok();

@@ -5,10 +5,10 @@ import {
   XCircle,
   DollarSign,
   Lock,
-  AlertCircle,
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
+import { Textarea } from '@/components/ui/Textarea'
 import type { DisputeDetail, DisputeDecision } from '@/types'
 import { hasCapability } from '@/lib/permissions'
 import { useAuth } from '@/hooks/useAuth'
@@ -86,11 +86,11 @@ export function DecisionPanel({ dispute, onSubmit, submitting }: DecisionPanelPr
     }
 
     return (
-      <div className="fixed bottom-0 left-0 right-0 bg-muted border-t border-border shadow-lg p-4 z-10">
+      <div className="fixed bottom-0 left-0 right-0 z-10 border-t border-border bg-surface-muted p-4 shadow-lg lg:left-64">
         <div className="max-w-7xl mx-auto flex items-center justify-center gap-3">
           <Lock className="h-5 w-5 text-muted-foreground" />
           <Badge variant={config.variant}>{config.label}</Badge>
-          <p className="text-sm text-muted-foreground">
+          <p className="type-secondary">
             This dispute was resolved on{' '}
             {dispute.resolved_at
               ? new Date(dispute.resolved_at).toLocaleDateString('id-ID')
@@ -99,8 +99,8 @@ export function DecisionPanel({ dispute, onSubmit, submitting }: DecisionPanelPr
           </p>
           {dispute.resolution_notes && (
             <div className="ml-4 px-3 py-2 bg-background rounded border border-border max-w-md">
-              <p className="text-xs text-muted-foreground mb-1">Admin Notes:</p>
-              <p className="text-sm text-foreground">{dispute.resolution_notes}</p>
+              <p className="type-caption mb-1">Admin Notes:</p>
+              <p className="type-body">{dispute.resolution_notes}</p>
             </div>
           )}
         </div>
@@ -142,7 +142,7 @@ export function DecisionPanel({ dispute, onSubmit, submitting }: DecisionPanelPr
     const summary = getDecisionSummary()
 
     return (
-      <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border shadow-lg p-4 z-10">
+      <div className="fixed bottom-0 left-0 right-0 z-10 border-t border-border bg-background p-4 shadow-lg lg:left-64">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center gap-6">
             <div className="flex items-start gap-3 flex-1">
@@ -158,7 +158,7 @@ export function DecisionPanel({ dispute, onSubmit, submitting }: DecisionPanelPr
                 }`}>
                   {summary.title}
                 </p>
-                <p className="text-sm text-muted-foreground mt-1">{summary.description}</p>
+                <p className="type-secondary mt-1">{summary.description}</p>
                 <div className={`flex items-start gap-2 mt-2 text-sm ${
                   summary.variant === 'danger' ? 'text-destructive' : 'text-warning'
                 }`}>
@@ -166,9 +166,9 @@ export function DecisionPanel({ dispute, onSubmit, submitting }: DecisionPanelPr
                   <span>{summary.warning}</span>
                 </div>
                 {notes && (
-                  <div className="mt-3 p-2 bg-muted rounded border border-border">
-                    <p className="text-xs text-muted-foreground mb-1">Your notes:</p>
-                    <p className="text-sm text-foreground line-clamp-2">{notes}</p>
+                  <div className="mt-3 p-2 bg-surface-muted rounded border border-border">
+                    <p className="type-caption mb-1">Your notes:</p>
+                    <p className="type-body line-clamp-2">{notes}</p>
                   </div>
                 )}
               </div>
@@ -201,33 +201,19 @@ export function DecisionPanel({ dispute, onSubmit, submitting }: DecisionPanelPr
         <div className="flex items-center justify-between gap-6">
           {/* Mandatory notes */}
           <div className="flex-1 max-w-lg">
-            <label className="text-sm font-medium text-foreground flex items-center gap-1 mb-1">
-              Resolution Notes
-              <span className="text-destructive">*</span>
-            </label>
-            <textarea
+            <Textarea
+              label="Resolution Notes"
+              required
               value={notes}
               onChange={handleNotesChange}
               placeholder="Explain your decision. Include details like evidence reviewed, reason for decision, etc. (minimum 10 characters)"
               rows={3}
               maxLength={MAX_NOTES_LENGTH}
-              className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 resize-none ${
-                notesError
-                  ? 'border-destructive focus:ring-ring'
-                  : 'border-border focus:ring-ring'
-              }`}
+              error={notesError}
+              help={notesError ? undefined : `Minimum ${MIN_NOTES_LENGTH} characters required`}
+              className="resize-none"
             />
-            <div className="flex items-center justify-between mt-1">
-              {notesError ? (
-                <div className="flex items-center gap-1 text-destructive text-xs">
-                  <AlertCircle className="h-3 w-3" />
-                  <span>{notesError}</span>
-                </div>
-              ) : (
-                <p className="text-xs text-muted-foreground">
-                  Minimum {MIN_NOTES_LENGTH} characters required
-                </p>
-              )}
+            <div className="flex justify-end mt-1">
               <p className={`text-xs ${notes.length < MIN_NOTES_LENGTH ? 'text-destructive' : 'text-muted-foreground'}`}>
                 {notes.length}/{MAX_NOTES_LENGTH}
               </p>

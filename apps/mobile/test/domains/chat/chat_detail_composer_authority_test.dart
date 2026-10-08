@@ -11,14 +11,20 @@ import 'package:labuda/core/src/router/route_paths.dart';
 import 'package:labuda/domains/chat/chat/data/dto/chat_resource_occurrence_request.dart';
 import 'package:labuda/domains/chat/chat/domain/entities/chat_entities.dart';
 import 'package:labuda/domains/chat/chat/presentation/providers/chat_providers.dart';
+import 'package:labuda/domains/chat/chat/presentation/models/pending_commerce_attachment.dart';
 import 'package:labuda/domains/chat/chat/presentation/providers/chat_state.dart';
 import 'package:labuda/domains/chat/chat/presentation/screens/chat_detail_screen.dart';
 import 'package:labuda/domains/chat/chat/presentation/widgets/chat_input_area.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction_status.dart';
 import 'package:labuda/domains/commerce/catalog/auction/presentation/providers/seller_auctions_pager.dart';
+import 'package:labuda/domains/commerce/catalog/for_sale/data/dto/shipping_quote_dto.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/domain/entities/for_sale.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/domain/repositories/for_sale_repository.dart';
+import 'package:labuda/domains/commerce/transaction/shipping/data/repositories/shipping_quote_repository.dart';
+import 'package:labuda/domains/commerce/transaction/shipping/presentation/providers/providers.dart';
+import 'package:labuda/shared/models/wilayah_models.dart';
+import 'package:labuda/shared/providers/wilayah_provider_simple.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/presentation/create_for_sale_route_contract.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/presentation/providers/for_sale_controller.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/presentation/providers/for_sale_providers.dart';
@@ -28,8 +34,9 @@ import 'package:labuda/domains/commerce/negotiation/negotiation/presentation/pro
 import 'package:labuda/domains/commerce/negotiation/negotiation/presentation/providers/negotiation_state.dart';
 import 'package:labuda/domains/user/identity/authentication/authentication.dart';
 import 'package:labuda/domains/user/identity/authentication/domain/entities/account_status.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
-import 'package:labuda/shared/attachment/entities/share_reference.dart';
+import 'package:labuda/shared/domain/entities/resource_projection.dart';
 import 'package:labuda/shared/providers/auth_status_providers.dart';
 import 'package:labuda/shared/providers/block_state_provider.dart';
 
@@ -98,7 +105,7 @@ class _FakeSellerAuctionsPagerController extends SellerAuctionsPagerController {
   @override
   SellerAuctionsPagerState build() {
     return SellerAuctionsPagerState(
-      activeFilter: SellerAuctionFilter.all,
+      activeFilter: null,
       auctions: [_auction()],
       pageSize: 20,
       hasMore: false,
@@ -164,45 +171,9 @@ class _NoOpLogger implements ILoggerService {
     return Future.value(Result.success(null));
   }
 
-  @override
-  Future<Result<void>> logUserAction(
-    String action, {
-    String? userId,
-    Map<String, dynamic>? parameters,
-  }) {
-    return Future.value(Result.success(null));
-  }
 
-  @override
-  Future<Result<void>> logPerformance(
-    String operation, {
-    required Duration duration,
-    Map<String, dynamic>? metrics,
-  }) {
-    return Future.value(Result.success(null));
-  }
 
-  @override
-  Future<Result<void>> logSecurityEvent(
-    String event, {
-    String? userId,
-    String? severity,
-    Map<String, dynamic>? details,
-  }) {
-    return Future.value(Result.success(null));
-  }
 
-  @override
-  Future<Result<void>> logApiCall(
-    String endpoint, {
-    required String method,
-    required int statusCode,
-    required Duration duration,
-    Map<String, dynamic>? requestData,
-    Map<String, dynamic>? responseData,
-  }) {
-    return Future.value(Result.success(null));
-  }
 
   @override
   Future<Result<void>> setLogLevel(LogLevel level) {
@@ -284,6 +255,37 @@ class _FakeLookupForSaleController extends ForSaleController {
   }
 }
 
+/// Records the canonical create-quote request. Proves the product-bubble path
+/// reaches the ONE Shipping-domain creation authority.
+class _RecordingShippingQuoteRepository implements ShippingQuoteRepository {
+  CreateShippingQuoteRequestDto? lastRequest;
+  String? lastChatId;
+
+  @override
+  Future<ShippingQuoteResponseDto> createShippingQuote({
+    required String chatId,
+    required CreateShippingQuoteRequestDto request,
+  }) async {
+    lastChatId = chatId;
+    lastRequest = request;
+    return ShippingQuoteResponseDto(
+      id: 'quote-1',
+      chatId: chatId,
+      productId: request.productId,
+      sourceType: request.sourceType,
+      sourceId: request.sourceId,
+      sellerId: _currentUserId,
+      buyerId: _otherUserId,
+      cost: request.cost,
+      status: 'ACTIVE',
+      createdAt: DateTime.utc(2026, 7, 30).toIso8601String(),
+    );
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => null;
+}
+
 class _FakeChatDetailNotifier extends ChatDetail {
   _FakeChatDetailNotifier({required this.initialState});
 
@@ -294,6 +296,17 @@ class _FakeChatDetailNotifier extends ChatDetail {
 
   @override
   ChatDetailState build(String chatId) => initialState;
+
+  // Load/read side-effects are no-ops so the seeded initial state (messages in
+  // particular) is deterministic and never replaced by a transport read.
+  @override
+  Future<void> loadChat(String userId) async {}
+
+  @override
+  Future<void> loadMessages(String userId) async {}
+
+  @override
+  Future<void> markAsRead(String userId) async {}
 
   @override
   Future<Message?> sendMessage({
@@ -307,9 +320,7 @@ class _FakeChatDetailNotifier extends ChatDetail {
     String? replyToMessageId,
     List<String> mentionedUserIds = const [],
     String? idempotencyKey,
-    ShareReference? objectReference,
     ChatResourceOccurrenceRequest? resourceOccurrence,
-    Map<String, dynamic>? workflowAttachment,
   }) {
     sendCalls += 1;
     lastSendArgs = <String, dynamic>{
@@ -321,9 +332,7 @@ class _FakeChatDetailNotifier extends ChatDetail {
       'replyToId': replyToId,
       'replyToMessageId': replyToMessageId,
       'idempotencyKey': idempotencyKey,
-      'objectReference': objectReference,
       'resourceOccurrence': resourceOccurrence,
-      'workflowAttachment': workflowAttachment,
     };
     sendCompleter ??= Completer<Message?>();
     return sendCompleter!.future;
@@ -376,6 +385,48 @@ Auction _auction() => Auction(
   createdAt: DateTime.utc(2026, 7, 28),
   productId: _productId,
 );
+
+/// A product bubble in the conversation: a message carrying the canonical LIVE
+/// For Sale resource projection. [senderId] controls WHO sent it — the product
+/// CONTEXT is ownership-independent. [canManage] is the SERVER-PROJECTED viewer
+/// ownership capability (the canonical authorization the gate must read), NOT
+/// derived from the sender.
+Message _productBubble({
+  required String senderId,
+  bool canManage = true,
+  String forSaleId = _fixedPriceSaleId,
+  String title = 'Koi Test FPS',
+}) {
+  return Message(
+    id: 'msg-product-$senderId',
+    chatId: _chatId,
+    senderId: senderId,
+    senderName: senderId == _currentUserId ? 'me' : 'other',
+    content: '',
+    type: MessageType.text,
+    createdAt: DateTime.utc(2026, 7, 30, 9),
+    resourceProjection: LiveResourceProjection(
+      state: ResourceProjectionState.live,
+      resourceType: ResourceProjectionType.fixedPriceSale,
+      viewerCapabilities: ResourceViewerCapabilities.live(
+        canInteract: true,
+        canManage: canManage,
+      ),
+      resourceId: forSaleId,
+      canonicalUrl: '/for-sale/$forSaleId',
+      payload: ForSaleLivePayload(
+        title: title,
+        media: const [],
+        price: const LivePrice(amount: 500000, currency: 'IDR'),
+        status: 'active',
+        quantityAvailable: 1,
+        seller: const ResourceSellerCard(
+          user: ResourceUserCard(id: _currentUserId, username: 'me'),
+        ),
+      ),
+    ),
+  );
+}
 
 String _composerText(WidgetTester tester) {
   final field = tester.widget<TextField>(find.byType(TextField));
@@ -435,8 +486,62 @@ ProviderScope _buildScope({
   );
 }
 
-Widget _buildChatCommerceScope({
-  required Widget createForSaleRoute,
+/// A product bubble renders a tall marketplace card; give the test surface
+/// enough height so the card's `⋮` affordance is on-screen and hittable.
+void _useTallSurface(WidgetTester tester) {
+  tester.view.physicalSize = const Size(800, 1600);
+  tester.view.devicePixelRatio = 1.0;
+  addTearDown(() {
+    tester.view.resetPhysicalSize();
+    tester.view.resetDevicePixelRatio();
+  });
+}
+
+ProviderScope _buildShippingScope({
+  bool seller = true,
+  List<Message> messages = const [],
+  ShippingQuoteRepository? shippingQuoteRepository,
+}) {
+  return ProviderScope(
+    overrides: [
+      authControllerProvider.overrideWith(
+        () => _FakeAuthController(seller: seller),
+      ),
+      // Destination lock data for the canonical shipping quote form.
+      provincesProvider.overrideWith(
+        (ref) async => const [Province(id: '31', name: 'DKI Jakarta')],
+      ),
+      citiesProvider.overrideWith(
+        (ref, provinceId) async =>
+            const [City(id: '3171', name: 'Jakarta Selatan', provinceId: '31')],
+      ),
+      if (shippingQuoteRepository != null)
+        shippingQuoteRepositoryProvider.overrideWithValue(
+          shippingQuoteRepository,
+        ),
+      currentUserIdProvider.overrideWith((ref) => _currentUserId),
+      isUserBlockedProvider(_otherUserId).overrideWith((ref) => false),
+      negotiationNotifierProvider.overrideWith(_FakeNegotiationNotifier.new),
+      chatDetailProvider(_chatId).overrideWith(
+        () => _FakeChatDetailNotifier(
+          initialState: ChatDetailState(chat: _makeChat(), messages: messages),
+        ),
+      ),
+      sellerFPSPagerProvider.overrideWith(() => _FakeSellerFPSPagerController()),
+      sellerAuctionsPagerProvider.overrideWith(
+        () => _FakeSellerAuctionsPagerController(),
+      ),
+      // Canonical Commerce detail resolution (physical product id) needed by
+      // the seller shipping-quote intent.
+      forSaleControllerProvider.overrideWithValue(
+        _FakeLookupForSaleController(),
+      ),
+    ],
+    child: const MaterialApp(home: ChatDetailScreen(chatId: _chatId)),
+  );
+}
+
+Widget _buildChatCommerceScope({  required Widget createForSaleRoute,
   required _FakeChatDetailNotifier chatDetailNotifier,
   ValueChanged<Object?>? onCreateForSaleRouteExtra,
 }) {
@@ -525,6 +630,10 @@ class _ChatCreateForSaleRoute extends StatelessWidget {
 }
 
 void main() {
+  setUpAll(() async {
+    await initializeDateFormatting();
+  });
+
   testWidgets('non-seller is never offered the commerce entry', (
     tester,
   ) async {
@@ -566,6 +675,9 @@ void main() {
     expect(find.text('Video'), findsNothing);
     expect(find.text('Lampirkan Produk'), findsOneWidget);
     expect(find.text('Bagikan ForSale'), findsNothing);
+    // The generic attachment sheet NO LONGER carries the shipping entry: the
+    // product bubble is the entry context (owner decision).
+    expect(find.text('Penawaran Ongkir'), findsNothing);
 
     await tester.tap(find.text('Lampirkan Produk'));
     await tester.pump();
@@ -573,6 +685,198 @@ void main() {
 
     expect(find.text('Pilih Produk'), findsOneWidget);
     expect(find.text('Buat Produk Baru'), findsOneWidget);
+  });
+
+  /// MATRIX A — the product OWNER (seller) views their own product bubble that
+  /// the seller sent. The server-projected `can_manage=true` authorizes it.
+  testWidgets(
+    'matrix A: owner sees Penawaran Ongkir on own bubble (seller-sent)',
+    (tester) async {
+      _useTallSurface(tester);
+      await tester.pumpWidget(
+        _buildShippingScope(
+          messages: [
+            _productBubble(senderId: _currentUserId, canManage: true),
+          ],
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 300));
+
+      final more = find.byTooltip('Opsi produk');
+      expect(more, findsOneWidget);
+      await tester.tap(more);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(find.text('Penawaran Ongkir'), findsOneWidget);
+    },
+  );
+
+  /// MATRIX B — the product OWNER (seller) views their own product bubble that
+  /// the BUYER sent. The projected viewer capability is unchanged by the
+  /// sender, so the owner still gets the action.
+  testWidgets(
+    'matrix B: owner sees Penawaran Ongkir on own bubble (buyer-sent)',
+    (tester) async {
+      _useTallSurface(tester);
+      await tester.pumpWidget(
+        _buildShippingScope(
+          messages: [
+            _productBubble(senderId: _otherUserId, canManage: true),
+          ],
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 300));
+
+      final more = find.byTooltip('Opsi produk');
+      expect(more, findsOneWidget);
+      await tester.tap(more);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(find.text('Penawaran Ongkir'), findsOneWidget);
+    },
+  );
+
+  /// End-to-end through the ONE canonical creation authority: the product
+  /// bubble action opens the form, the form submits, and the Shipping repository
+  /// receives the canonical request assembled for THIS bubble's product.
+  testWidgets(
+    'product bubble action submits the canonical shipping-quote request',
+    (tester) async {
+      _useTallSurface(tester);
+      final repo = _RecordingShippingQuoteRepository();
+      await tester.pumpWidget(
+        _buildShippingScope(
+          messages: [_productBubble(senderId: _otherUserId)],
+          shippingQuoteRepository: repo,
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 300));
+
+      await tester.tap(find.byTooltip('Opsi produk'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.tap(find.text('Penawaran Ongkir'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 600));
+
+      expect(find.text('Kirim Penawaran Ongkir'), findsOneWidget);
+
+      // The cost field is the sheet's first AppTextField (a TextFormField);
+      // the chat composer uses a plain TextField, so it is not matched here.
+      final costField = find.byType(TextFormField).first;
+      await tester.enterText(costField, '25000');
+      await tester.pump();
+
+      await tester.tap(find.byType(DropdownButtonFormField<Province>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('DKI Jakarta').last);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byType(DropdownButtonFormField<City>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Jakarta Selatan').last);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Kirim ke Pembeli'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+
+      final request = repo.lastRequest;
+      expect(request, isNotNull);
+      expect(repo.lastChatId, _chatId);
+      // The bubble's identity drives the request — no listing picker.
+      expect(request!.productId, _productId);
+      expect(request.sourceType, 'for_sale');
+      expect(request.sourceId, _fixedPriceSaleId);
+      expect(request.cost, 25000);
+      expect(request.destinationCityId, '3171');
+      expect(request.destinationProvinceId, '31');
+    },
+  );
+
+  /// MATRIX C/D/E — a NON-OWNER viewer never sees the action, regardless of
+  /// who sent the bubble AND regardless of the viewer's own platform role
+  /// (a seller-role viewer looking at a THIRD PARTY's product is a buyer for
+  /// that product). The projected `can_manage=false` is the sole gate.
+  testWidgets(
+    'matrix C/D/E: non-owner sees no product action (any sender, seller-role viewer)',
+    (tester) async {
+      for (final sender in [_currentUserId, _otherUserId]) {
+        await tester.pumpWidget(
+          _buildShippingScope(
+            // Even a seller-role viewer gets nothing: role is not ownership.
+            seller: true,
+            messages: [_productBubble(senderId: sender, canManage: false)],
+          ),
+        );
+        await tester.pump(const Duration(milliseconds: 300));
+        expect(
+          find.byTooltip('Opsi produk'),
+          findsNothing,
+          reason: 'non-owner must not see the action (sender=$sender)',
+        );
+      }
+    },
+  );
+
+  testWidgets('generic attachment sheet carries no shipping entry', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _buildShippingScope(
+        messages: [_productBubble(senderId: _otherUserId, canManage: false)],
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 300));
+
+    await tester.tap(find.byIcon(Icons.add_circle));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(find.text('Galeri'), findsOneWidget);
+    // Even a seller-role viewer's attachment sheet has NO shipping entry: the
+    // generic bottom-sheet producer is purged to root.
+    expect(find.text('Lampirkan Produk'), findsOneWidget);
+    expect(find.text('Penawaran Ongkir'), findsNothing);
+  });
+
+  group('viewerCanOfferShippingQuote — canonical projected authority', () {
+    test('true only when the projection grants can_manage (owner)', () {
+      expect(
+        viewerCanOfferShippingQuote(
+          _productBubble(senderId: _otherUserId, canManage: true),
+        ),
+        isTrue,
+      );
+    });
+
+    test('false for a non-owner regardless of bubble sender', () {
+      for (final sender in [_currentUserId, _otherUserId]) {
+        expect(
+          viewerCanOfferShippingQuote(
+            _productBubble(senderId: sender, canManage: false),
+          ),
+          isFalse,
+          reason: 'sender=$sender must not influence authorization',
+        );
+      }
+    });
+
+    test('false when the message carries no LIVE projection (fail-closed)', () {
+      expect(
+        viewerCanOfferShippingQuote(
+          Message(
+            id: 'm-plain',
+            chatId: _chatId,
+            senderId: _otherUserId,
+            senderName: 'other',
+            content: 'halo',
+            createdAt: DateTime.utc(2026, 7, 30),
+          ),
+        ),
+        isFalse,
+      );
+    });
   });
 
   testWidgets('canceling commerce picker preserves draft and sends nothing', (
@@ -1038,4 +1342,107 @@ void main() {
     expect(find.textContaining('Created ForSale'), findsNothing);
     expect(notifier.sendCalls, 0);
   });
+
+  testWidgets(
+    'For Sale detail entry seeds pending attachment: no Kirim CTA, send icon '
+    'authority, empty body sends resourceOccurrence',
+    (tester) async {
+      final notifier = _FakeChatDetailNotifier(
+        initialState: ChatDetailState(chat: _makeChat(), messages: const []),
+      );
+
+      await tester.pumpWidget(
+        _buildScope(
+          notifier: notifier,
+          child: ChatDetailScreen(
+            chatId: _chatId,
+            pendingCommerce: PendingCommerceAttachment.forSale(
+              forSaleId: _fixedPriceSaleId,
+              title: 'Koi Test FPS',
+            ),
+          ),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 300));
+
+      // Pending card is preview + remove only — the forbidden text send CTA is
+      // dead.
+      expect(find.text('Lampiran produk'), findsOneWidget);
+      expect(find.text('Koi Test FPS'), findsOneWidget);
+      expect(find.byTooltip('Hapus lampiran'), findsOneWidget);
+      expect(find.text('Kirim'), findsNothing);
+
+      // The composer send icon is the ONE send authority, enabled with an
+      // empty draft because a pending attachment exists.
+      await tester.tap(_composerSendButton());
+      await tester.pump();
+
+      expect(notifier.sendCalls, 1);
+      final occurrence =
+          notifier.lastSendArgs?['resourceOccurrence']
+              as ChatResourceOccurrenceRequest?;
+      expect(occurrence, isNotNull);
+      expect(
+        occurrence!.operation,
+        ChatResourceOccurrenceOperation.directCommerceInsertChat,
+      );
+      expect(
+        occurrence.resourceType,
+        ChatResourceOccurrenceResourceType.forSale,
+      );
+      expect(occurrence.resourceId, _fixedPriceSaleId);
+      expect(notifier.lastSendArgs?['content'], isEmpty);
+      // No redundant reference snapshot travels with the product send.
+      expect(notifier.lastSendArgs?.containsKey('objectReference'), isFalse);
+      expect(notifier.lastSendArgs?.containsKey('attachment'), isFalse);
+    },
+  );
+
+  testWidgets(
+    'Auction detail entry seeds pending attachment: no Kirim CTA, send icon '
+    'authority, empty body sends resourceOccurrence',
+    (tester) async {
+      final notifier = _FakeChatDetailNotifier(
+        initialState: ChatDetailState(chat: _makeChat(), messages: const []),
+      );
+
+      await tester.pumpWidget(
+        _buildScope(
+          notifier: notifier,
+          child: ChatDetailScreen(
+            chatId: _chatId,
+            pendingCommerce: PendingCommerceAttachment.auction(
+              auctionId: _auctionId,
+              title: 'Koi Test Auction',
+            ),
+          ),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(find.text('Lampiran produk'), findsOneWidget);
+      expect(find.text('Koi Test Auction'), findsOneWidget);
+      expect(find.byTooltip('Hapus lampiran'), findsOneWidget);
+      expect(find.text('Kirim'), findsNothing);
+
+      await tester.tap(_composerSendButton());
+      await tester.pump();
+
+      expect(notifier.sendCalls, 1);
+      final occurrence =
+          notifier.lastSendArgs?['resourceOccurrence']
+              as ChatResourceOccurrenceRequest?;
+      expect(occurrence, isNotNull);
+      expect(
+        occurrence!.operation,
+        ChatResourceOccurrenceOperation.directCommerceInsertChat,
+      );
+      expect(
+        occurrence.resourceType,
+        ChatResourceOccurrenceResourceType.auction,
+      );
+      expect(occurrence.resourceId, _auctionId);
+      expect(notifier.lastSendArgs?['content'], isEmpty);
+    },
+  );
 }

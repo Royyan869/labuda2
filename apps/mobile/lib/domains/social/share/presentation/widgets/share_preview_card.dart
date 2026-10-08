@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:labuda/core/core.dart';
+import 'package:labuda/shared/widgets/address_location_view.dart';
 import 'package:labuda/shared/widgets/app_image.dart';
 import 'package:labuda/shared/domain/entities/resource_projection.dart';
 import '../../domain/entities/share_target.dart';
@@ -62,7 +63,11 @@ class SharePreviewCard extends StatelessWidget {
           // Type badge
           Row(
             children: [
-              Icon(_getTypeIcon(), size: 16, color: secondaryTextColor),
+              Icon(
+                _getTypeIcon(),
+                size: AppIconSize.inlineGlyph,
+                color: secondaryTextColor,
+              ),
               const SizedBox(width: 4),
               Text(
                 _getTypeLabel(),
@@ -160,20 +165,15 @@ class SharePreviewCard extends StatelessWidget {
         // Row 2: Location
         if (location != null) ...[
           const SizedBox(height: 4),
-          Row(
-            children: [
-              Icon(Icons.location_on, size: AppIconSize.inlineGlyph, color: secondaryTextColor),
-              const SizedBox(width: 4),
-              Flexible(
-                child: Text(
-                  location,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: secondaryTextColor,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
+          AddressLocationView(
+            location: location,
+            mode: AddressLocationMode.compact,
+            icon: Icons.location_on,
+            iconSize: AppIconSize.inlineGlyph,
+            spacing: 4,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: secondaryTextColor,
+            ),
           ),
         ],
       ],
@@ -347,20 +347,15 @@ class SharePreviewCard extends StatelessWidget {
 
         if (location != null) ...[
           const SizedBox(height: 4),
-          Row(
-            children: [
-              Icon(Icons.location_on, size: AppIconSize.inlineGlyph, color: secondaryTextColor),
-              const SizedBox(width: 4),
-              Flexible(
-                child: Text(
-                  location,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: secondaryTextColor,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
+          AddressLocationView(
+            location: location,
+            mode: AddressLocationMode.compact,
+            icon: Icons.location_on,
+            iconSize: AppIconSize.inlineGlyph,
+            spacing: 4,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: secondaryTextColor,
+            ),
           ),
         ],
       ],

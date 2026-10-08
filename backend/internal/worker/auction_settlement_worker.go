@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/commerce/auction/entity"
 	auctionApp "github.com/labuda/backend/internal/commerce/auction/application"
+	"github.com/labuda/backend/internal/commerce/auction/entity"
 	auctionRepo "github.com/labuda/backend/internal/commerce/auction/infrastructure/repository"
 	commercegov "github.com/labuda/backend/internal/commerce/governance/commercegov"
 	outboxrepo "github.com/labuda/backend/internal/platform/outbox/infrastructure/repository"
@@ -28,7 +28,8 @@ const (
 // AuctionSettlementWorker detects auctions whose canonical settlement
 // shipping deadline (auction.end_at + 24h) has passed without shipping being
 // resolved, classifies the defaulting party, records the canonical commerce
-// violation + restriction, and returns the auction to DRAFT.
+// violation + restriction, and AUTO-RESCHEDULES the auction (scheduled,
+// start=now).
 //
 // SETTLEMENT DEADLINE LOGIC:
 //  1. Find auctions in waiting_settlement with end_at + 24h <= NOW().
@@ -37,9 +38,9 @@ const (
 //     b. Skip if shipping_resolved_at IS NOT NULL (shipping phase resolved;
 //     payment phase is handled by the payment-expiry machinery).
 //     c. If seller_action_required = true AND seller_quote_provided = false:
-//     seller violation (seller_shipping_default) -> auction DRAFT.
-//     d. Else: buyer shipping violation (buyer_shipping_timeout) -> auction DRAFT.
-//  3. Violation insert + restriction upsert + DRAFT transition + outbox event
+//     seller violation (seller_shipping_default) -> auction reschedules.
+//     d. Else: buyer shipping violation (buyer_shipping_timeout) -> auction reschedules.
+//  3. Violation insert + restriction upsert + reschedule transition + outbox event
 //     are committed atomically in the auction's own transaction.
 //
 // WORKER PATTERN:
@@ -294,7 +295,7 @@ func (w *AuctionSettlementWorker) processExpiredSettlement(
 		}
 
 		// Shipping phase already resolved — the payment phase owns the auction
-		// now (payment expiry returns it to DRAFT). Do NOT classify a shipping
+		// now (payment expiry auto-reschedules it). Do NOT classify a shipping
 		// failure.
 		if auction.ShippingResolvedAt != nil {
 			w.log.Info("Auction shipping already resolved, skipping deadline enforcement",
@@ -335,7 +336,7 @@ func (w *AuctionSettlementWorker) processExpiredSettlement(
 				)
 				violatedUserID = auction.SellerID
 				violationType = commercegov.ViolationSellerShippingDefault
-				reason = "auction in waiting_settlement with no winner; returned to draft"
+				reason = "auction in waiting_settlement with no winner; auto-rescheduled"
 				break
 			}
 			violatedUserID = *auction.WinnerID()
@@ -364,16 +365,17 @@ func (w *AuctionSettlementWorker) processExpiredSettlement(
 			return err
 		}
 
-		// Capture pre-transition identity for the event payload (the DRAFT
-		// transition clears CurrentWinnerID).
+		// Capture pre-transition identity for the event payload (the reschedule
+		// clears CurrentWinnerID).
 		var priorWinnerID uuid.UUID
 		if auction.WinnerID() != nil {
 			priorWinnerID = *auction.WinnerID()
 		}
 
-		// Transition the auction to DRAFT (clears order binding, shipping
-		// resolution, seller flags, current bid + winner) and persist.
-		if err := w.auctionSvc.ReturnToDraftOnSettlementFailure(ctx, tx, auction); err != nil {
+		// AUTO-RESCHEDULE the auction (clears order binding, shipping
+		// resolution, seller flags, current bid + winner; re-enters the market
+		// at start=now) and persist.
+		if err := w.auctionSvc.RescheduleAfterSettlementFailure(ctx, tx, auction); err != nil {
 			return err
 		}
 
@@ -383,7 +385,7 @@ func (w *AuctionSettlementWorker) processExpiredSettlement(
 			return err
 		}
 
-		w.log.Warn("Auction settlement deadline reached - auction returned to draft",
+		w.log.Warn("Auction settlement deadline reached - auction auto-rescheduled",
 			zap.String("auction_id", auctionID.String()),
 			zap.String("violated_user_id", violatedUserID.String()),
 			zap.String("violation_type", string(violationType)),

@@ -47,7 +47,7 @@ type AppealRepository interface {
 	// Ordered by created_at ASC (oldest first).
 	ListAll(ctx context.Context, tx interface{}, statusFilter *entity.AppealStatus, limit, offset int) ([]*entity.Appeal, error)
 
-	// ListPending retrieves pending appeals awaiting review.
-	// Ordered by created_at ASC (oldest first).
-	ListPending(ctx context.Context, tx interface{}, limit, offset int) ([]*entity.Appeal, error)
+	// CountAll returns the truthful total number of appeals matching the
+	// optional status filter. Used to expose page-based totals to admin.
+	CountAll(ctx context.Context, tx interface{}, statusFilter *entity.AppealStatus) (int, error)
 }

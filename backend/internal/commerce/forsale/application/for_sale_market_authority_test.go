@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/labuda/backend/internal/commerce/forsale/entity"
 	"github.com/labuda/backend/internal/identity/auth"
+	money "github.com/labuda/backend/pkg/money"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -32,15 +33,6 @@ func (f fakeRoleChecker) HasSellerProfile(context.Context, uuid.UUID) (bool, err
 }
 
 var _ auth.RoleChecker = fakeRoleChecker{}
-
-func newTestForSaleForPublish(sellerID uuid.UUID) *entity.ForSale {
-	return &entity.ForSale{
-		ID:         uuid.New(),
-		SellerID:   sellerID,
-		Status:     entity.ForSaleStatusDraft,
-		Visibility: entity.ForSaleVisibilityPrivate,
-	}
-}
 
 // TestCheckMarketAuthorityForForSale_RejectsSellerWithoutCapability
 // proves an unauthorized seller (no active subscription / seller capability)
@@ -82,38 +74,29 @@ func TestCheckMarketAuthorityForForSale_PropagatesCheckerError(t *testing.T) {
 	assert.False(t, errors.Is(err, auth.ErrMarketAuthorityRequired), "transport errors must not be reported as a market-authority denial")
 }
 
-// TestPublishFlow_EntityBecomesActivePublicOnlyAfterAuthorityPasses composes
-// the exact sequence the fixed handler now uses (authority check, then
-// entity.Publish()) and proves:
-//  1. An unauthorized seller's for_sale never transitions to active/public —
-//     the entity is untouched because the caller must check authority BEFORE
-//     calling Publish().
-//  2. An authorized seller's for_sale transitions to active + public only
-//     after CheckMarketAuthorityForForSale succeeds.
-func TestPublishFlow_EntityBecomesActivePublicOnlyAfterAuthorityPasses(t *testing.T) {
+// TestCreateGate_AuthorityCheckedBeforeSurfaceIsBorn locks the create =
+// publish sequence: the market-authority gate runs BEFORE any for_sale
+// surface exists (there is no draft workspace stage to fall back to), and a
+// passing gate is what allows the constructor-produced active + public
+// surface to be persisted (covered by the constructor test in the canonical
+// authority suite).
+func TestCreateGate_AuthorityCheckedBeforeSurfaceIsBorn(t *testing.T) {
 	sellerID := uuid.New()
 
-	t.Run("unauthorized seller: authority check fails, Publish is never reached", func(t *testing.T) {
+	t.Run("unauthorized seller: authority check fails before any surface exists", func(t *testing.T) {
 		svc := &ForSaleService{roleChecker: fakeRoleChecker{hasCapability: false}}
-		for_sale := newTestForSaleForPublish(sellerID)
 
 		err := svc.CheckMarketAuthorityForForSale(context.Background(), sellerID)
 		require.Error(t, err)
-
-		// Caller must not proceed to Publish() when the authority check fails —
-		// assert the for_sale remains in its pre-publish state.
-		assert.Equal(t, entity.ForSaleStatusDraft, for_sale.Status)
-		assert.Equal(t, entity.ForSaleVisibilityPrivate, for_sale.Visibility)
+		assert.ErrorIs(t, err, auth.ErrMarketAuthorityRequired)
 	})
 
-	t.Run("authorized seller: authority check passes, Publish sets active+public", func(t *testing.T) {
+	t.Run("authorized seller: authority check passes, constructor yields active + public", func(t *testing.T) {
 		svc := &ForSaleService{roleChecker: fakeRoleChecker{hasCapability: true}}
-		for_sale := newTestForSaleForPublish(sellerID)
+		require.NoError(t, svc.CheckMarketAuthorityForForSale(context.Background(), sellerID))
 
-		err := svc.CheckMarketAuthorityForForSale(context.Background(), sellerID)
+		for_sale, err := entity.NewForSaleSurface(sellerID, money.New(100000), 1, false)
 		require.NoError(t, err)
-
-		require.NoError(t, for_sale.Publish())
 		assert.Equal(t, entity.ForSaleStatusActive, for_sale.Status)
 		assert.Equal(t, entity.ForSaleVisibilityPublic, for_sale.Visibility)
 	})

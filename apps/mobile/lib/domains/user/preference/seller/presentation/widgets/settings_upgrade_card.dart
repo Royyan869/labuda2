@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:labuda/core/core.dart';
 
-/// Stub widget for SettingsUpgradeCard
-/// TODO: Implement seller upgrade flow
+/// Non-seller upsell entry (settings only).
+///
+/// CANONICAL/KEEP (card-foundation decision): live entry point to the
+/// seller upgrade flow — the consumer wires [onUpgrade] to
+/// `SellerUpgradeWizardScreen` and refreshes auth state on return. The old
+/// "stub/TODO" header was stale: the card and its flow both exist. Kept
+/// domain-specific; not part of any shared card contract.
 class SettingsUpgradeCard extends StatelessWidget {
   final VoidCallback onUpgrade;
 
@@ -12,15 +17,17 @@ class SettingsUpgradeCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      margin: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p8, AppMetrics.p16, AppMetrics.p16),
+      margin: const EdgeInsets.fromLTRB(
+        AppMetrics.p16,
+        AppMetrics.p8,
+        AppMetrics.p16,
+        AppMetrics.p16,
+      ),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            context.statusColors.success,
-            context.statusColors.success,
-          ],
+          colors: [context.statusColors.success, context.statusColors.success],
         ),
         borderRadius: BorderRadius.circular(AppShape.r16),
         boxShadow: [
@@ -52,18 +59,16 @@ class SettingsUpgradeCard extends StatelessWidget {
                     children: [
                       Text(
                         'Become a Seller',
-                        style: TextStyle(
+                        style: context.typeRoles.titleSection.copyWith(
                           color: scheme.onPrimary,
-                          fontSize: AppType.s20,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         'Start selling your koi products',
-                        style: TextStyle(
+                        style: context.typeRoles.bodyDense.copyWith(
                           color: scheme.onPrimary,
-                          fontSize: AppType.s14,
                           fontWeight: FontWeight.w500,
                         ),
                       ),

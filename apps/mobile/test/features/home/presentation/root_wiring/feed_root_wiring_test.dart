@@ -312,30 +312,9 @@ class _NoopLogger implements ILoggerService {
   @override
   Future<void> log(String message, {LogLevel level = LogLevel.debug}) async {}
 
-  @override
-  Future<Result<void>> logApiCall(
-    String endpoint, {
-    required String method,
-    required int statusCode,
-    required Duration duration,
-    Map<String, dynamic>? requestData,
-    Map<String, dynamic>? responseData,
-  }) async => _ok();
 
-  @override
-  Future<Result<void>> logPerformance(
-    String operation, {required Duration duration, Map<String, dynamic>? metrics,}
-  ) async => _ok();
 
-  @override
-  Future<Result<void>> logSecurityEvent(
-    String event, {String? userId, String? severity, Map<String, dynamic>? details,}
-  ) async => _ok();
 
-  @override
-  Future<Result<void>> logUserAction(
-    String action, {String? userId, Map<String, dynamic>? parameters,}
-  ) async => _ok();
 
   @override
   Future<Result<void>> setLogLevel(LogLevel level) async => _ok();
@@ -354,51 +333,14 @@ class _NoopAnalytics implements IAnalyticsRepository {
   Result<void> _ok() => Result.success(null);
 
   @override
-  Future<Result<AnalyticsCircumventionStats>> getCircumventionStats({
-    required DateTime startDate,
-    required DateTime endDate,
-    String? userId,
-    String? violationType,
-  }) async => Result.success(const AnalyticsCircumventionStats(
-    totalAttempts: 0,
-    uniqueUsers: 0,
-    violationTypes: <String, int>{},
-    dailyAttempts: <String, int>{},
-    averageConfidence: 0,
-    blockedAttempts: 0,
-    filteredAttempts: 0,
-  ));
-
-  @override
-  Future<Result<void>> flush() async => _ok();
-
-  @override
-  Future<Result<void>> logCircumventionAttempt(
-    String content,
-    String userId, {Map<String, dynamic>? extra,}
-  ) async => _ok();
-
-  @override
   Future<Result<void>> logEvent(
     String eventName, {Map<String, dynamic>? parameters, String? userId,}
   ) async => _ok();
 
   @override
-  Future<Result<void>> logUserAction(
-    String action,
-    String userId, {Map<String, dynamic>? extra,}
-  ) async => _ok();
-
-  @override
-  Future<Result<void>> setUserProperties(Map<String, dynamic> properties) async => _ok();
-
-  @override
-  Future<Result<void>> trackEngagement({
-    required String userId,
-    required String contentId,
-    required String contentType,
-    required String engagementType,
-    int? duration,
+  Future<Result<void>> logScreenView({
+    required String screenName,
+    String? screenClass,
   }) async => _ok();
 }
 

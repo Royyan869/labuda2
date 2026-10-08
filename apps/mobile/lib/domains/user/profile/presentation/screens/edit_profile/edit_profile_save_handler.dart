@@ -6,14 +6,18 @@ import 'package:labuda/shared/shared.dart';
 import 'package:labuda/domains/user/preference/seller/data/data.dart'
     show StorePhotoUploadService;
 import 'package:labuda/domains/user/profile/domain/entities/profile_entity.dart';
-import 'package:labuda/domains/user/profile/presentation/providers/profile_core_provider.dart';
 import 'package:labuda/domains/user/profile/data/services/cover_photo_upload_service.dart';
 import 'package:labuda/domains/user/preference/seller/data/seller_providers.dart'
     show sellerRemoteDatasourceProvider;
 import 'package:labuda/domains/user/profile/data/services/avatar_upload_service.dart';
-import 'edit_profile_validators.dart';
 
-/// Mixin for handling save operations in edit profile screen
+/// Mixin for handling save operations in edit profile screen.
+///
+/// CANONICAL SAVE AUTHORITY: this mixin is the *only* client save
+/// orchestrator for Edit Profile. It performs exactly one profile update
+/// (via [AuthController.updateProfile] → `PATCH /users/me/profile`) and, for
+/// sellers, one seller update (`PATCH /seller/profile`). No other writer
+/// touches the profile endpoint from this surface.
 mixin EditProfileSaveHandler<T extends ConsumerStatefulWidget>
     on ConsumerState<T> {
   // Required getters - must be implemented by mixing class
@@ -22,13 +26,11 @@ mixin EditProfileSaveHandler<T extends ConsumerStatefulWidget>
   WidgetRef get ref;
   String get actualUserId;
   bool get isSeller;
-  ProfileEntity? get cachedProfile;
 
   // Controllers
   TextEditingController get usernameController;
   TextEditingController get bioController;
   TextEditingController get farmNameController;
-  TextEditingController get websiteController;
   TextEditingController get instagramController;
   TextEditingController get facebookController;
   TextEditingController get tiktokController;
@@ -44,10 +46,6 @@ mixin EditProfileSaveHandler<T extends ConsumerStatefulWidget>
   String? get farmPhotoUrl;
   String? get selectedStorePhotoPath;
   bool get isStorePhotoMarkedForRemoval;
-  DateTime? get establishedDate;
-  bool get isEmailPublic;
-  bool get isPhonePublic;
-  bool get isSocialMediaPublic;
 
   // Services
   CoverPhotoUploadService get coverPhotoUploadService;
@@ -57,261 +55,260 @@ mixin EditProfileSaveHandler<T extends ConsumerStatefulWidget>
   // Setters for loading state
   void setLoading(bool loading);
 
+  /// Reads the direct profile response after a write and returns the avatar,
+  /// cover, and cover-updated-at as persisted by the backend.
+  ProfileEntity? get cachedProfile;
+
   Future<void> save() async {
-    // Validate all fields at once
+    // Validate all fields at once. Field-level errors render next to the
+    // offending field; do not blanket the whole form.
     if (!formKey.currentState!.validate()) {
-      if (mounted) {
-        AppSnackBar.showError(context, 'Please fill all required fields');
-      }
       return;
     }
 
     setLoading(true);
 
+    // SUBMISSION SNAPSHOT: capture the text/social/store intent BEFORE the
+    // upload sequence begins. The uploads await, and the PATCH payload is built
+    // afterwards; reading the live controllers there would let an edit during
+    // upload silently change the in-flight save.
+    final bioSnapshot = bioController.text.trim();
+    final socials = (
+      instagram: _socialValue(instagramController),
+      facebook: _socialValue(facebookController),
+      tiktok: _socialValue(tiktokController),
+      twitter: _socialValue(twitterController),
+    );
+    final storeNameSnapshot = farmNameController.text.trim();
+
     try {
-      // Save personal data first (auth user)
-      final personalSuccess = await savePersonal();
-      if (!personalSuccess) {
-        if (mounted) setLoading(false);
+      // 1. Avatar upload (new selection or removal) — produce the reference.
+      final avatarResolution = await _resolveAvatarReference();
+      if (avatarResolution.isError) {
+        if (mounted) {
+          AppSnackBar.showError(context, avatarResolution.error!);
+          setLoading(false);
+        }
         return;
       }
 
-      // Save all profile fields in a single call to avoid race conditions
-      final profileSuccess = await saveProfileFields();
+      // 2. Cover upload (new selection or removal) — produce the reference.
+      final coverResolution = await _resolveCoverReference();
+      if (coverResolution.isError) {
+        if (mounted) {
+          AppSnackBar.showError(context, coverResolution.error!);
+          setLoading(false);
+        }
+        return;
+      }
+      final coverChanged = coverResolution.hasUpdate;
+      final coverReference = coverResolution.data;
+
+      // 3. Seller store photo upload (new selection or removal).
+      String? storeImageReference;
+      var storeImageChanged = false;
+      if (isSeller) {
+        final storeResolution = await _resolveStoreImageReference(
+          storeNameSnapshot,
+        );
+        if (storeResolution.isError) {
+          if (mounted) {
+            AppSnackBar.showError(context, storeResolution.error!);
+            setLoading(false);
+          }
+          return;
+        }
+        storeImageReference = storeResolution.data;
+        storeImageChanged = storeResolution.hasUpdate;
+      }
+
+      // 4. ONE profile update — the single writer for /users/me/profile.
+      final profileSuccess = await _saveProfile(
+        bio: bioSnapshot,
+        socials: socials,
+        storeName: storeNameSnapshot,
+        avatarReference: avatarResolution.data,
+        coverReference: coverChanged ? coverReference : null,
+        includeCover: coverChanged,
+      );
       if (!profileSuccess) {
         if (mounted) setLoading(false);
         return;
       }
 
-      // All data saved successfully - show success message
-      if (mounted) {
-        AppSnackBar.showSuccess(context, 'Profile updated successfully');
+      // 5. Seller store identity update (only when the store field changed).
+      if (isSeller && storeImageChanged) {
+        try {
+          await ref.read(sellerRemoteDatasourceProvider).updateSellerProfile(
+            storeName: storeNameSnapshot,
+            storeImageUrl: storeImageReference,
+          );
+        } catch (_) {
+          if (mounted) {
+            AppSnackBar.showError(
+              context,
+              'Nama atau foto toko belum bisa disimpan. Coba lagi.',
+            );
+            setLoading(false);
+          }
+          return;
+        }
+      }
 
-        // Navigate back to previous screen (pop instead of go)
-        Navigator.of(context).pop();
+      // 6. Success — clear dirty state and return to the previous screen.
+      if (mounted) {
+        AppSnackBar.showSuccess(context, 'Profile berhasil diperbarui');
+        Navigator.of(context).pop(true);
       }
     } finally {
       if (mounted) setLoading(false);
     }
   }
 
-  /// Save all profile fields in a single update call
-  Future<bool> saveProfileFields() async {
-    // Use cached profile instead of re-reading from stream
-    // This avoids race conditions when stream is still loading
-    if (cachedProfile == null) {
-      if (mounted) {
-        AppSnackBar.showError(
-          context,
-          'Profile data not loaded yet. Please wait.',
+  /// Resolves the avatar reference to persist. Returns an error when an
+  /// upload fails; data is the storage reference (null = removed).
+  Future<({bool isError, String? data, String? error})> _resolveAvatarReference() async {
+    if (isAvatarMarkedForRemoval) {
+      await avatarUploadService.deleteAvatar(actualUserId);
+      return (isError: false, data: null, error: null);
+    }
+    if (selectedAvatarPath != null) {
+      final result = await avatarUploadService.uploadAvatar(
+        userId: actualUserId,
+        imagePath: selectedAvatarPath!,
+      );
+      if (!result.isSuccess) {
+        _logUploadFailure('avatar', result.error);
+        return (
+          isError: true,
+          data: null,
+          error: 'Foto profil gagal diunggah. Coba lagi.',
         );
       }
-      return false;
+      return (isError: false, data: result.data, error: null);
     }
-
-    final profile = cachedProfile!;
-    final fields = <String, dynamic>{};
-
-    // 1. Handle cover photo upload
-    final coverResult = await prepareCoverPhoto();
-    if (coverResult == null) return false; // Error occurred
-    if (coverResult.hasUpdate) {
-      fields['coverPhotoUrl'] = coverResult.url;
-    }
-
-    // 2. Handle farm info (seller only) — canonical seller identity via PATCH /seller/profile
-    FarmInfo? pendingFarmInfo;
-    if (isSeller) {
-      final farmResult = await prepareFarmInfo(profile);
-      if (farmResult == null) return false; // Error occurred
-      pendingFarmInfo = farmResult;
-    }
-
-    // 3. Prepare contact info
-    final contactInfo = prepareContactInfo();
-    fields['contactInfo'] = contactInfo;
-
-    // 4a. Persist seller identity via canonical PATCH /seller/profile if needed
-    // Only send store_image_url when it actually changed (new upload or removal) — prevents resending
-    // existing read_url which would be rejected by canonical storage-key validation.
-    if (pendingFarmInfo != null) {
-      try {
-        final sellerDs = ref.read(sellerRemoteDatasourceProvider);
-        final bool imageChanged = isStorePhotoMarkedForRemoval || selectedStorePhotoPath != null;
-        final String? imageToSend = imageChanged
-            ? (isStorePhotoMarkedForRemoval ? '' : pendingFarmInfo.farmPhotoUrl)
-            : null;
-        await sellerDs.updateSellerProfile(
-          storeName: pendingFarmInfo.farmName,
-          storeImageUrl: imageToSend,
-        );
-      } catch (e) {
-        if (mounted) AppSnackBar.showError(context, 'Gagal memperbarui toko: $e');
-        return false;
-      }
-    }
-
-    // 4b. Update remaining profile fields in a single call
-    if (fields.isNotEmpty) {
-      try {
-        await ref.read(profileActionsProvider).updateFields(profile, fields);
-      } catch (e) {
-        if (mounted) {
-          AppSnackBar.showError(
-            context,
-            'Perubahan belum bisa disimpan. Coba lagi.',
-          );
-        }
-        return false;
-      }
-    }
-
-    return true;
+    return (isError: false, data: avatarUrl, error: null);
   }
 
-  /// Prepare cover photo (upload if needed; clear via empty-string PATCH).
-  /// Returns null on error, or result with hasUpdate=false if no changes.
-  ///
-  /// Canonical semantics (STAGE 4F-1/4F-2):
-  /// - New/updated cover → upload to the canonical fixed key and persist the
-  ///   STORAGE KEY (never the resolved read URL).
-  /// - Removal → PATCH cover_photo_url = "" (backend converts to NULL).
-  ///   There is no delete-media endpoint by design.
-  Future<({bool hasUpdate, String? url})?> prepareCoverPhoto() async {
-    // Handle cover removal — clear the DB reference, no S3 delete.
+  /// Resolves the cover reference to persist, using the canonical storage key
+  /// contract: a new upload persists the STORAGE KEY; removal persists the
+  /// empty-string clear signal (backend → NULL). [hasUpdate] is false when the
+  /// cover was untouched, so the field is omitted from the request entirely.
+  Future<({bool isError, bool hasUpdate, String? data, String? error})>
+  _resolveCoverReference() async {
     if (isCoverMarkedForRemoval) {
-      return (hasUpdate: true, url: '');
+      return (isError: false, hasUpdate: true, data: '', error: null);
     }
-
-    // Handle new cover upload
     if (selectedCoverPath != null) {
       final result = await coverPhotoUploadService.uploadCoverPhoto(
         userId: actualUserId,
         imagePath: selectedCoverPath!,
       );
-
       if (!result.isSuccess) {
-        if (mounted) {
-          AppSnackBar.showError(context, result.error!);
-        }
-        return null;
+        _logUploadFailure('cover', result.error);
+        return (
+          isError: true,
+          hasUpdate: false,
+          data: null,
+          error: 'Foto sampul gagal diunggah. Coba lagi.',
+        );
       }
-      // Persist the storage key — the backend authority stores the key and
-      // resolves it to a read URL on hydration.
-      return (hasUpdate: true, url: result.data!.storageKey);
+      return (
+        isError: false,
+        hasUpdate: true,
+        data: result.data!.storageKey,
+        error: null,
+      );
     }
-
-    // No changes
-    return (hasUpdate: false, url: coverPhotoUrl);
+    return (isError: false, hasUpdate: false, data: null, error: null);
   }
 
-  /// Prepare farm info (upload store photo if needed)
-  Future<FarmInfo?> prepareFarmInfo(ProfileEntity profile) async {
-    String? photoUrl = farmPhotoUrl;
+  /// Resolves the seller store-image reference. hasUpdate=false when the store
+  /// identity did not change; otherwise `data` is the storage key (new image)
+  /// or empty string (removal).
+  Future<({bool isError, bool hasUpdate, String? data, String? error})>
+  _resolveStoreImageReference(String storeName) async {
+    final storeNameChanged =
+        cachedProfile?.farmInfo?.farmName.trim() != storeName;
 
-    // Handle store photo removal
     if (isStorePhotoMarkedForRemoval) {
-      photoUrl = null;
+      return (isError: false, hasUpdate: true, data: '', error: null);
     }
-    // Handle new store photo upload
-    else if (selectedStorePhotoPath != null) {
+    if (selectedStorePhotoPath != null) {
       final result = await storePhotoUploadService.uploadStorePhoto(
         userId: actualUserId,
         imagePath: selectedStorePhotoPath!,
       );
       if (!result.isSuccess) {
-        if (mounted) {
-          AppSnackBar.showError(context, result.error!);
-        }
-        return null;
+        _logUploadFailure('store photo', result.error);
+        return (
+          isError: true,
+          hasUpdate: false,
+          data: null,
+          error: 'Foto toko gagal diunggah. Coba lagi.',
+        );
       }
-      // Persist the STORAGE KEY — backend PATCH /seller/profile validates the
-      // canonical key form, never a resolved read URL.
-      photoUrl = result.data!.storageKey;
+      return (isError: false, hasUpdate: true, data: result.data!.storageKey, error: null);
+    }
+    // No new image → only send the store_name change (if any).
+    if (storeNameChanged) {
+      return (isError: false, hasUpdate: true, data: null, error: null);
+    }
+    return (isError: false, hasUpdate: false, data: null, error: null);
+  }
+
+  /// The single profile writer. Sends bio, avatar, cover (only when changed)
+  /// and social handles in one `PATCH /users/me/profile`.
+  Future<bool> _saveProfile({
+    required String bio,
+    required ({String? instagram, String? facebook, String? tiktok, String? twitter}) socials,
+    required String storeName,
+    required String? avatarReference,
+    required String? coverReference,
+    required bool includeCover,
+  }) async {
+    if (isSeller && storeName.isEmpty) {
+      if (mounted) {
+        AppSnackBar.showError(context, 'Nama toko/farm wajib diisi');
+      }
+      return false;
     }
 
-    return FarmInfo(
-      farmName: farmNameController.text.trim(),
-      farmPhotoUrl: photoUrl,
-      farmWebsite: websiteController.text.trim().isEmpty
-          ? null
-          : websiteController.text.trim(),
-      specialties: profile.farmInfo?.specialties,
-      establishedDate: establishedDate,
-    );
-  }
-
-  /// Prepare contact info (no async operation needed)
-  ContactInfo prepareContactInfo() {
-    final authState = ref.read(authControllerProvider);
-    final user = authState is AuthStateAuthenticated ? authState.user : null;
-
-    final maskedEmail = user?.email.isNotEmpty == true
-        ? EditProfileValidators.maskEmail(user!.email)
-        : null;
-    final maskedPhone = user?.phoneNumber?.isNotEmpty == true
-        ? EditProfileValidators.maskPhone(user!.phoneNumber!)
-        : null;
-
-    return ContactInfo(
-      maskedEmail: maskedEmail,
-      maskedPhone: maskedPhone,
-      isEmailPublic: isEmailPublic,
-      isPhonePublic: isPhonePublic,
-      instagramHandle: instagramController.text.trim().isEmpty
-          ? null
-          : instagramController.text.trim(),
-      facebookHandle: facebookController.text.trim().isEmpty
-          ? null
-          : facebookController.text.trim(),
-      tiktokHandle: tiktokController.text.trim().isEmpty
-          ? null
-          : tiktokController.text.trim(),
-      twitterHandle: twitterController.text.trim().isEmpty
-          ? null
-          : twitterController.text.trim(),
-      isSocialMediaPublic: isSocialMediaPublic,
-    );
-  }
-
-  Future<bool> savePersonal() async {
     final authController = ref.read(authControllerProvider.notifier);
-    String? photoUrl = avatarUrl;
 
-    if (isAvatarMarkedForRemoval) {
-      photoUrl = null;
-      // Delete from AWS S3
-      await avatarUploadService.deleteAvatar(actualUserId);
-    } else if (selectedAvatarPath != null) {
-      // Upload avatar to AWS S3
-      final result = await avatarUploadService.uploadAvatar(
-        userId: actualUserId,
-        imagePath: selectedAvatarPath!,
-      );
-
-      if (!result.isSuccess) {
-        if (mounted) {
-          AppSnackBar.showError(context, result.error!);
-        }
-        return false;
-      }
-      photoUrl = result.data;
-    }
-
-    // Username is IMMUTABLE after registration (canonical identity). It is NOT
-    // included in the profile-update payload — the backend would reject any
-    // change for an already-set username anyway (USERNAME_ALREADY_SET), but we
-    // do not attempt a mutation from this surface at all.
+    // Username is IMMUTABLE after registration (canonical identity) and is
+    // never sent. Social handles: empty clears the handle; presence = visible.
     final success = await authController.updateProfile(
-      photoUrl: photoUrl,
-      bio: bioController.text.trim().isEmpty ? null : bioController.text.trim(),
-      phoneNumber: null,
+      photoUrl: avatarReference,
+      bio: bio.isEmpty ? null : bio,
+      coverPhotoUrl: includeCover ? coverReference : null,
+      instagramHandle: socials.instagram,
+      facebookHandle: socials.facebook,
+      tiktokHandle: socials.tiktok,
+      twitterHandle: socials.twitter,
     );
 
     if (!success && mounted) {
-      AppSnackBar.showError(context, 'Failed to update personal information');
+      AppSnackBar.showError(
+        context,
+        'Perubahan profile belum bisa disimpan. Periksa isian lalu coba lagi.',
+      );
     }
-
     return success;
+  }
+
+  /// Empty text becomes an explicit empty string so the backend clears the
+  /// handle; non-empty is sent as-is (trimmed).
+  String _socialValue(TextEditingController controller) =>
+      controller.text.trim();
+
+  /// Logs the technical upload failure for diagnostics while the UI shows a
+  /// fixed user-facing message. Technical detail must never reach the user.
+  void _logUploadFailure(String asset, Object? technicalError) {
+    ref
+        .read(loggerServiceProvider)
+        .error('Edit Profile upload failed ($asset)', extra: {
+          'error': technicalError?.toString(),
+        });
   }
 }

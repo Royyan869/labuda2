@@ -39,6 +39,12 @@ func (m *mockQuoteRepo) GetCurrentActiveByChatAndSource(_ context.Context, _ db.
 func (m *mockQuoteRepo) GetByID(_ context.Context, _ db.Tx, _ uuid.UUID) (*shippingQuoteEntity.ShippingQuote, error) {
 	return m.quote, m.err
 }
+func (m *mockQuoteRepo) GetByIDs(_ context.Context, _ db.Tx, _ []uuid.UUID) (map[uuid.UUID]*shippingQuoteEntity.ShippingQuote, error) {
+	if m.quote == nil {
+		return map[uuid.UUID]*shippingQuoteEntity.ShippingQuote{}, m.err
+	}
+	return map[uuid.UUID]*shippingQuoteEntity.ShippingQuote{m.quote.ID: m.quote}, m.err
+}
 func (m *mockQuoteRepo) GetByIDForUpdate(_ context.Context, _ db.Tx, _ uuid.UUID) (*shippingQuoteEntity.ShippingQuote, error) {
 	return m.quote, m.err
 }

@@ -254,10 +254,8 @@ func requireLiveAuctionProjection(t *testing.T, proj *chatApp.ResourceProjection
 	require.Equal(t, chatApp.ProjectionStateLive, proj.State)
 	require.Equal(t, string(chatEntity.ResourceOccurrenceResourceTypeAuction), string(proj.ResourceType))
 	require.NotNil(t, proj.Auction)
-	require.NotNil(t, proj.CommerceActions)
 	require.True(t, proj.ViewerCapabilities.CanView)
 	require.False(t, proj.ViewerCapabilities.BlockedByTombstone)
-	require.Equal(t, proj.CommerceActions.CanBid || proj.CommerceActions.CanBuy, proj.ViewerCapabilities.CanInteract)
 
 	return *proj.Auction
 }
@@ -273,7 +271,6 @@ func requireTombstoneAuctionProjection(t *testing.T, proj *chatApp.ResourceProje
 	require.Nil(t, proj.ForSale)
 	require.Nil(t, proj.Profile)
 	require.Nil(t, proj.Content)
-	require.Nil(t, proj.CommerceActions)
 	require.False(t, proj.ViewerCapabilities.CanView)
 	require.False(t, proj.ViewerCapabilities.CanInteract)
 	require.True(t, proj.ViewerCapabilities.BlockedByTombstone)
@@ -320,13 +317,9 @@ func assertAuctionProjectionMatchesAuthority(
 		SellerTrustActive: viewercontext.CoarsenSellerTrust(subscriptionStatus) == viewercontext.PublicLifecycleStateActive,
 		BuyNowPrice:       buyNowPrice,
 	})
-	require.Equal(t, expectedCaps.Role, proj.CommerceActions.Role)
-	require.Equal(t, expectedCaps.CanChat, proj.CommerceActions.CanChat)
-	require.False(t, proj.CommerceActions.CanNegotiate)
-	require.Equal(t, expectedCaps.CanBid, proj.CommerceActions.CanBid)
-	require.Equal(t, expectedCaps.CanManage, proj.CommerceActions.CanManage)
-	require.Equal(t, expectedCaps.CanBuyNow, proj.CommerceActions.CanBuy)
 	require.Equal(t, expectedCaps.CanBid || expectedCaps.CanBuyNow, proj.ViewerCapabilities.CanInteract)
+	// Canonical Commerce ownership projected for the viewer (owner vs buyer).
+	require.Equal(t, expectedCaps.CanManage, proj.ViewerCapabilities.CanManage)
 }
 
 func assertAuctionLivePayloadContract(
@@ -341,6 +334,7 @@ func assertAuctionLivePayloadContract(
 	wantSellerUsername string,
 	wantSellerFarmName string,
 	wantAuctionLifecycle string,
+	wantHasWinner bool,
 	wantSellerLifecycle string,
 	wantUserLifecycle string,
 ) {
@@ -362,6 +356,8 @@ func assertAuctionLivePayloadContract(
 	}
 
 	require.Equal(t, wantAuctionLifecycle, payload.Lifecycle)
+	require.NotNil(t, payload.HasWinner)
+	require.Equal(t, wantHasWinner, *payload.HasWinner)
 
 	require.Equal(t, wantSellerID, payload.Seller.User.ID)
 	require.Equal(t, wantSellerUsername, payload.Seller.User.Username)
@@ -430,7 +426,6 @@ func TestAuctionProjectionResolver_OperationParity(t *testing.T) {
 	require.Equal(t, shareProj.ResourceType, directProj.ResourceType)
 	require.Equal(t, shareProj.ResourceID, directProj.ResourceID)
 	require.Equal(t, shareProj.ViewerCapabilities, directProj.ViewerCapabilities)
-	require.Equal(t, shareProj.CommerceActions, directProj.CommerceActions)
 
 	shareJSON, err := json.Marshal(shareProj)
 	require.NoError(t, err)
@@ -500,6 +495,7 @@ func TestAuctionProjectionResolver_LivePayloadContract(t *testing.T) {
 		sellerUsername,
 		"Seller Live Farm",
 		"active",
+		false, // active phase → no winner yet
 		"active",
 		"active",
 	)
@@ -508,10 +504,6 @@ func TestAuctionProjectionResolver_LivePayloadContract(t *testing.T) {
 	require.Equal(t, avatarURL, derefString(payload.Seller.AvatarURL))
 
 	require.Equal(t, chatApp.ProjectionStateLive, proj.State)
-	require.NotNil(t, proj.CommerceActions)
-	require.True(t, proj.CommerceActions.CanChat)
-	require.True(t, proj.CommerceActions.CanBid)
-	require.True(t, proj.CommerceActions.CanBuy)
 	require.True(t, proj.ViewerCapabilities.CanInteract)
 
 	expiredSellerUsername := uniqueAuctionUsername("seller-expired")
@@ -550,12 +542,13 @@ func TestAuctionProjectionResolver_LivePayloadContract(t *testing.T) {
 		expiredSellerUsername,
 		"Seller Expired Farm",
 		"active",
+		false, // active phase → no winner yet
 		"unavailable",
 		"active",
 	)
-	require.False(t, proj.CommerceActions.CanBid)
-	require.False(t, proj.CommerceActions.CanBuy)
-	require.False(t, proj.CommerceActions.CanChat)
+	// Seller trust expired: the viewer has no actionable capability, so the
+	// envelope-level can_interact is false.
+	require.False(t, proj.ViewerCapabilities.CanInteract)
 }
 
 func TestAuctionProjectionResolver_TombstonePrivacy(t *testing.T) {
@@ -567,7 +560,7 @@ func TestAuctionProjectionResolver_TombstonePrivacy(t *testing.T) {
 	auctionID := fx.seedAuction(
 		t,
 		sellerID,
-		auctionEntity.StatusDraft,
+		auctionEntity.StatusLapsed,
 		nil,
 		"Private Auction",
 		"Private Auction",
@@ -648,10 +641,10 @@ func TestAuctionProjectionResolver_AuthorityParityMatrix(t *testing.T) {
 			wantLive:         true,
 		},
 		{
-			name:             "tombstone draft non-owner",
+			name:             "tombstone lapsed non-owner",
 			viewerID:         viewerID,
 			sellerID:         sellerActiveID,
-			status:           auctionEntity.StatusDraft,
+			status:           auctionEntity.StatusLapsed,
 			buyNowPrice:      &buyNow,
 			sellerAccount:    "active",
 			subscriptionStat: "active",
@@ -778,7 +771,7 @@ func TestAuctionProjectionResolver_QueryCount_MatrixQ1ToQ7(t *testing.T) {
 	mixedActiveSeller := fx.seedSellerWithSubscriptionStatus(t, "active", nil, uniqueAuctionUsername("mixed-active"), "Mixed Active Farm", nil, "active")
 	mixedDraftSeller := fx.seedSellerWithSubscriptionStatus(t, "active", nil, uniqueAuctionUsername("mixed-draft"), "Mixed Draft Farm", nil, "active")
 	mixedActiveAuction := fx.seedAuction(t, mixedActiveSeller, auctionEntity.StatusActive, &buyNow, "Q6 active", "Q6 active", nil)
-	mixedDraftAuction := fx.seedAuction(t, mixedDraftSeller, auctionEntity.StatusDraft, &buyNow, "Q6 draft", "Q6 draft", nil)
+	mixedDraftAuction := fx.seedAuction(t, mixedDraftSeller, auctionEntity.StatusLapsed, &buyNow, "Q6 draft", "Q6 draft", nil)
 	q6 := make(map[uuid.UUID]*chatEntity.ChatMessageResourceOccurrence, 20)
 	for i := 0; i < 10; i++ {
 		q6[uuid.New()] = newAuctionOccurrenceWithOperation(uuid.New(), mixedActiveAuction, chatEntity.ResourceOccurrenceOperationShareToChat)
@@ -821,4 +814,95 @@ func TestAuctionProjectionResolver_QueryCount_MatrixQ1ToQ7(t *testing.T) {
 			require.Equal(t, tc.want, fx.tracer.value())
 		})
 	}
+}
+
+// TestAuctionProjectionResolver_LifecycleOutcomeRuntime proves the REAL DB →
+// auction projection resolver → AuctionLivePayload path for the three
+// outcome-critical phases, plus viewer independence.
+//
+// It seeds real persisted auctions (with a real persisted current_winner_id)
+// and asserts the resolver reads that DB state — never a fabricated payload.
+func TestAuctionProjectionResolver_LifecycleOutcomeRuntime(t *testing.T) {
+	fx := newAuctionProjectionFixture(t)
+	ctx := context.Background()
+
+	viewerID := fx.seedUser(t, "active", nil, uniqueAuctionUsername("viewer-outcome"), nil, nil)
+	otherViewerID := fx.seedUser(t, "active", nil, uniqueAuctionUsername("other-outcome"), nil, nil)
+	sellerID := fx.seedSellerWithSubscriptionStatus(t, "active", nil, uniqueAuctionUsername("seller-outcome"), "Outcome Farm", nil, "active")
+	bidderID := fx.seedUser(t, "active", nil, uniqueAuctionUsername("bidder-outcome"), nil, nil)
+
+	buyNow := int64(1500000)
+
+	cases := []struct {
+		name          string
+		status        auctionEntity.Status
+		winner        *uuid.UUID
+		wantLifecycle string
+		wantHasWinner bool
+	}{
+		{name: "waiting_settlement + winner", status: auctionEntity.StatusWaitingSettlement, winner: &bidderID, wantLifecycle: "waiting_settlement", wantHasWinner: true},
+		{name: "ended + winner", status: auctionEntity.StatusEnded, winner: &bidderID, wantLifecycle: "ended", wantHasWinner: true},
+		{name: "ended + no winner", status: auctionEntity.StatusEnded, winner: nil, wantLifecycle: "ended", wantHasWinner: false},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			auctionID := fx.seedAuction(t, sellerID, tc.status, &buyNow, tc.name, tc.name, nil)
+			if tc.winner != nil {
+				fx.setAuctionWinner(t, auctionID, *tc.winner)
+			}
+
+			projections, err := fx.resolve(ctx, viewerID, map[uuid.UUID]*chatEntity.ChatMessageResourceOccurrence{
+				uuid.New(): newAuctionOccurrenceWithOperation(uuid.New(), auctionID, chatEntity.ResourceOccurrenceOperationShareToChat),
+			})
+			require.NoError(t, err)
+			require.Len(t, projections, 1)
+
+			var proj *chatApp.ResourceProjection
+			for _, p := range projections {
+				proj = p
+			}
+			payload := requireLiveAuctionProjection(t, proj)
+
+			// Phase + outcome from the actual resolver output.
+			require.Equal(t, tc.wantLifecycle, payload.Lifecycle)
+			require.NotNil(t, payload.HasWinner)
+			require.Equal(t, tc.wantHasWinner, *payload.HasWinner)
+
+			// JSON wire shape: phase + outcome reach the serialized envelope.
+			got := projectionJSONMap(t, proj)
+			var auctionJSON map[string]any
+			require.NoError(t, json.Unmarshal(got["auction"], &auctionJSON))
+			require.Equal(t, tc.wantLifecycle, auctionJSON["lifecycle"])
+			require.Equal(t, tc.wantHasWinner, auctionJSON["has_winner"])
+
+			// Viewer independence: a second viewer sees the identical projection.
+			otherProjections, err := fx.resolve(ctx, otherViewerID, map[uuid.UUID]*chatEntity.ChatMessageResourceOccurrence{
+				uuid.New(): newAuctionOccurrenceWithOperation(uuid.New(), auctionID, chatEntity.ResourceOccurrenceOperationShareToChat),
+			})
+			require.NoError(t, err)
+			require.Len(t, otherProjections, 1)
+			var otherProj *chatApp.ResourceProjection
+			for _, p := range otherProjections {
+				otherProj = p
+			}
+			otherPayload := requireLiveAuctionProjection(t, otherProj)
+			require.Equal(t, payload.Lifecycle, otherPayload.Lifecycle)
+			require.NotNil(t, otherPayload.HasWinner)
+			require.Equal(t, *payload.HasWinner, *otherPayload.HasWinner)
+		})
+	}
+}
+
+// setAuctionWinner writes the canonical winner column directly so the resolver
+// reads persisted DB state (never a fabricated projection).
+func (f *auctionProjectionFixture) setAuctionWinner(t *testing.T, auctionID, winnerID uuid.UUID) {
+	t.Helper()
+
+	_, err := f.appDB.Pool().Exec(context.Background(), `
+		UPDATE auctions
+		SET current_winner_id = $2, updated_at = NOW()
+		WHERE id = $1
+	`, auctionID, winnerID)
+	require.NoError(t, err)
 }

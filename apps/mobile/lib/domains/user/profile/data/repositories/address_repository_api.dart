@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/user/profile/data/datasources/address_api_datasource.dart';
 import 'package:labuda/domains/user/profile/data/mappers/address_api_mapper.dart';
@@ -25,19 +23,6 @@ class AddressRepositoryApi implements IAddressRepository {
   }
 
   @override
-  Future<Result<List<AddressEntity>>> getAddressesByTag(
-    String userId,
-    AddressTag tag,
-  ) async {
-    final result = await _datasource.getAddresses(tag: tag.wireValue);
-
-    return result.fold((error) => Result.error(error), (response) {
-      final addresses = response.data.map(AddressApiMapper.toDomain).toList();
-      return Result.success(addresses);
-    });
-  }
-
-  @override
   Future<Result<AddressEntity>> getAddressById(String addressId) async {
     final result = await _datasource.getAddressById(addressId);
 
@@ -48,11 +33,8 @@ class AddressRepositoryApi implements IAddressRepository {
   }
 
   @override
-  Future<Result<AddressEntity?>> getPrimaryAddress(
-    String userId, {
-    AddressTag? tag,
-  }) async {
-    final result = await _datasource.getPrimaryAddress(tag: tag?.wireValue);
+  Future<Result<AddressEntity?>> getPrimaryAddress(String userId) async {
+    final result = await _datasource.getPrimaryAddress();
 
     return result.fold(
       (error) {
@@ -84,7 +66,6 @@ class AddressRepositoryApi implements IAddressRepository {
   Future<Result<void>> updateAddress(AddressEntity address) async {
     // Build update request from entity
     final updates = <String, dynamic>{
-      'tags': address.tagValues,
       'nickname': address.nickname,
       'recipientName': address.recipientName,
       'phone': address.phone,
@@ -136,48 +117,12 @@ class AddressRepositoryApi implements IAddressRepository {
   }
 
   @override
-  Stream<Result<List<AddressEntity>>> watchAddresses(String userId) {
-    // For API implementation, we use polling
-    return Stream.periodic(const Duration(seconds: 30)).asyncMap((_) async {
-      final result = await _datasource.getAddresses();
-
-      return result.fold((error) => Result.error(error), (response) {
-        final addresses = response.data.map(AddressApiMapper.toDomain).toList();
-        return Result.success(addresses);
-      });
-    });
-  }
-
-  @override
-  Stream<Result<List<AddressEntity>>> watchAddressesByTag(
-    String userId,
-    AddressTag tag,
-  ) {
-    // For API implementation, we use polling
-    return Stream.periodic(const Duration(seconds: 30)).asyncMap((_) async {
-      final result = await _datasource.getAddresses(tag: tag.wireValue);
-
-      return result.fold((error) => Result.error(error), (response) {
-        final addresses = response.data.map(AddressApiMapper.toDomain).toList();
-        return Result.success(addresses);
-      });
-    });
-  }
-
-  @override
-  Future<Result<int>> countAddresses(
-    String userId, {
-    AddressTag? tag,
-  }) async {
+  Future<Result<int>> countAddresses(String userId) async {
     final result = await _datasource.getAddressCount();
 
-    return result.fold((error) => Result.error(error), (response) {
-      if (tag == null) {
-        return Result.success(response.total);
-      }
-      return Result.success(tag == AddressTag.shipping
-          ? response.shippingCount
-          : response.senderCount);
-    });
+    return result.fold(
+      (error) => Result.error(error),
+      (response) => Result.success(response.total),
+    );
   }
 }

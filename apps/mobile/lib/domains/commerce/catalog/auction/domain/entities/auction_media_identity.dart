@@ -108,8 +108,6 @@ String auctionSnapshotFingerprint(Auction auction) {
     ..write(auction.winnerId ?? '')
     ..write('|productId:')
     ..write(auction.productId ?? '')
-    ..write('|farmAddressId:')
-    ..write(auction.farmAddressId ?? '')
     ..write('|media:');
 
   for (final media in auction.media) {

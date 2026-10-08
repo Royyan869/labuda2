@@ -86,7 +86,12 @@ class _AuctionSellerSettlementMonitorState
     if (widget.auction.winnerId == null) return const SizedBox.shrink();
 
     return Container(
-      margin: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p12, AppMetrics.p16, AppMetrics.p12),
+      margin: const EdgeInsets.fromLTRB(
+        AppMetrics.p16,
+        AppMetrics.p12,
+        AppMetrics.p16,
+        AppMetrics.p12,
+      ),
       padding: const EdgeInsets.all(AppMetrics.p16),
       decoration: BoxDecoration(
         color: _getStatusBackgroundColor(),
@@ -121,14 +126,17 @@ class _AuctionSellerSettlementMonitorState
             color: _getStatusIconColor().withValues(alpha: 0.15),
             shape: BoxShape.circle,
           ),
-          child: Icon(_getStatusIcon(), color: _getStatusIconColor(), size: 20),
+          child: Icon(
+            _getStatusIcon(),
+            color: _getStatusIconColor(),
+            size: AppIconSize.action,
+          ),
         ),
         const SizedBox(width: 12),
         Expanded(
           child: Text(
             _getStatusTitle(),
-            style: TextStyle(
-              fontSize: AppType.s16,
+            style: context.typeRoles.titleCompact.copyWith(
               fontWeight: FontWeight.w600,
               color: colorScheme.onSurface,
             ),
@@ -154,21 +162,21 @@ class _AuctionSellerSettlementMonitorState
         children: [
           Text(
             'Pemenang:',
-            style: TextStyle(
-              fontSize: AppType.s12,
+            style: context.typeRoles.labelMicro.copyWith(
               color: colorScheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             winnerUsername,
-            style: const TextStyle(fontSize: AppType.s16, fontWeight: FontWeight.w600),
+            style: context.typeRoles.titleCompact.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
             'Bid: Rp ${formatGroupedAmount(winningBid.round())}',
-            style: TextStyle(
-              fontSize: AppType.s14,
+            style: context.typeRoles.bodyDense.copyWith(
               color: colorScheme.onSurfaceVariant,
               fontWeight: FontWeight.w500,
             ),
@@ -198,7 +206,9 @@ class _AuctionSellerSettlementMonitorState
       children: [
         Text(
           'Menunggu pembayaran dari pemenang',
-          style: TextStyle(fontSize: AppType.s14, color: colorScheme.onSurface),
+          style: context.typeRoles.bodyDense.copyWith(
+            color: colorScheme.onSurface,
+          ),
         ),
         const SizedBox(height: 8),
         Row(
@@ -211,8 +221,7 @@ class _AuctionSellerSettlementMonitorState
             const SizedBox(width: 4),
             Text(
               'Selesaikan sebelum:',
-              style: TextStyle(
-                fontSize: AppType.s12,
+              style: context.typeRoles.labelMicro.copyWith(
                 color: colorScheme.onSurfaceVariant,
               ),
             ),
@@ -231,7 +240,9 @@ class _AuctionSellerSettlementMonitorState
       children: [
         Text(
           'Pembayaran sedang diproses',
-          style: TextStyle(fontSize: AppType.s14, color: colorScheme.onSurface),
+          style: context.typeRoles.bodyDense.copyWith(
+            color: colorScheme.onSurface,
+          ),
         ),
         const SizedBox(height: 12),
         // TODO: Add link to order when order_id is available
@@ -255,8 +266,7 @@ class _AuctionSellerSettlementMonitorState
               const SizedBox(width: 8),
               Text(
                 'Lihat Pesanan',
-                style: TextStyle(
-                  fontSize: AppType.s14,
+                style: context.typeRoles.bodyDense.copyWith(
                   fontWeight: FontWeight.w500,
                   color: colorScheme.onSurface,
                 ),
@@ -279,8 +289,7 @@ class _AuctionSellerSettlementMonitorState
         if (remaining.isNegative) {
           return Text(
             'Waktu habis',
-            style: TextStyle(
-              fontSize: AppType.s14,
+            style: context.typeRoles.bodyDense.copyWith(
               fontWeight: FontWeight.w600,
               color: colorScheme.error,
             ),
@@ -303,12 +312,15 @@ class _AuctionSellerSettlementMonitorState
 
         return Row(
           children: [
-            Icon(Icons.access_time, size: AppIconSize.inlineGlyph, color: timeColor),
+            Icon(
+              Icons.access_time,
+              size: AppIconSize.inlineGlyph,
+              color: timeColor,
+            ),
             const SizedBox(width: 4),
             Text(
               timeText,
-              style: TextStyle(
-                fontSize: AppType.s14,
+              style: context.typeRoles.bodyDense.copyWith(
                 fontWeight: FontWeight.w600,
                 color: timeColor,
               ),

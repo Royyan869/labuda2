@@ -16,50 +16,58 @@ class NotificationSettingsScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Notification Settings')),
-      body: ListView(
-        padding: const EdgeInsets.all(AppMetrics.p16),
-        children: [
-          const _StatusBanner(),
-          const SizedBox(height: 16),
-          _SectionCard(
-            title: 'Current scope',
-            children: const [
-              _ReadOnlyRow(
-                icon: Icons.phone_android_outlined,
-                title: 'Device notifications',
-                subtitle:
-                    'Manage push permissions from your phone or tablet settings.',
-              ),
-              _ReadOnlyRow(
-                icon: Icons.lock_outline,
-                title: 'Backend preferences',
-                subtitle:
-                    'Not available yet in this build, so no save action is shown.',
-              ),
-              _ReadOnlyRow(
-                icon: Icons.notifications_none,
-                title: 'In-app delivery',
-                subtitle:
-                    'Notification list and read-state APIs remain available elsewhere in the app.',
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          _SectionCard(
-            title: 'What changed',
-            children: [
-              Text(
-                'This screen is intentionally read-only for now. '
-                'It is safe to open from Settings, but it does not submit '
-                'any unsupported preference updates.',
-                style: TextStyle(
-                  color: colorScheme.onSurfaceVariant,
-                  height: 1.45,
+      // SAFE-AREA-35: the body content owns the LIVE system bottom inset —
+      // /settings/notifications is a FLAT top-level GoRoute (ProfileModule),
+      // so no shell bar owns it; the ListView's EXPLICIT p16 padding also
+      // bypasses the framework's automatic list-padding consumption, so
+      // nothing else could claim the bottom. Top stays with Scaffold.appBar
+      // (the body slot already drops the top padding — no phantom top).
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.all(AppMetrics.p16),
+          children: [
+            const _StatusBanner(),
+            const SizedBox(height: 16),
+            _SectionCard(
+              title: 'Current scope',
+              children: const [
+                _ReadOnlyRow(
+                  icon: Icons.phone_android_outlined,
+                  title: 'Device notifications',
+                  subtitle:
+                      'Manage push permissions from your phone or tablet settings.',
                 ),
-              ),
-            ],
-          ),
-        ],
+                _ReadOnlyRow(
+                  icon: Icons.lock_outline,
+                  title: 'Backend preferences',
+                  subtitle:
+                      'Not available yet in this build, so no save action is shown.',
+                ),
+                _ReadOnlyRow(
+                  icon: Icons.notifications_none,
+                  title: 'In-app delivery',
+                  subtitle:
+                      'Notification list and read-state APIs remain available elsewhere in the app.',
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            _SectionCard(
+              title: 'What changed',
+              children: [
+                Text(
+                  'This screen is intentionally read-only for now. '
+                  'It is safe to open from Settings, but it does not submit '
+                  'any unsupported preference updates.',
+                  style: TextStyle(
+                    color: colorScheme.onSurfaceVariant,
+                    height: 1.45,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -92,9 +100,8 @@ class _StatusBanner extends StatelessWidget {
               children: [
                 Text(
                   'Notification settings are under development',
-                  style: TextStyle(
+                  style: context.typeRoles.titleCompact.copyWith(
                     color: colorScheme.onSurface,
-                    fontSize: AppType.s16,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -138,8 +145,7 @@ class _SectionCard extends StatelessWidget {
           children: [
             Text(
               title,
-              style: TextStyle(
-                fontSize: AppType.s16,
+              style: context.typeRoles.titleSection.copyWith(
                 fontWeight: FontWeight.w600,
                 color: colorScheme.onSurface,
               ),
@@ -180,16 +186,14 @@ class _ReadOnlyRow extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
+                  style: context.typeRoles.titleCompact.copyWith(
                     fontWeight: FontWeight.w600,
-                    fontSize: AppType.s14,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   subtitle,
-                  style: TextStyle(
-                    fontSize: AppType.s14,
+                  style: context.typeRoles.bodyDense.copyWith(
                     color: colorScheme.onSurfaceVariant,
                     height: 1.4,
                   ),

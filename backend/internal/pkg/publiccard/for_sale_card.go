@@ -17,7 +17,7 @@ import (
 //   - No shipping configuration / preparation internals beyond what the
 //     surface separately emits as additive shipping refs (out of scope here).
 //   - Lifecycle is restricted to the coarsened vocabulary {active,
-//     unavailable, removed}. Raw enum values (draft, sold, withdrawn, …) are
+//     unavailable, removed}. Raw enum values (sold, withdrawn, …) are
 //     NEVER emitted through this card.
 //
 // Field nullability:
@@ -68,5 +68,3 @@ func NewForSaleCard(
 	}
 	return card
 }
-
-

@@ -21,7 +21,7 @@ func TestAuctionStatus_IsRepostable(t *testing.T) {
 		{StatusEnded, false},
 		{StatusCancelled, false},
 		{StatusWaitingSettlement, false},
-		{StatusDraft, false},
+		{StatusLapsed, false},
 		// The old "closed" string — must also be false (never existed).
 		{Status("closed"), false},
 		{Status("unknown"), false},
@@ -45,5 +45,3 @@ func TestAuctionStatus_ClosedNeverRepostable(t *testing.T) {
 		t.Error("Status(\"closed\") must not be repostable — this status does not exist in the enum")
 	}
 }
-
-

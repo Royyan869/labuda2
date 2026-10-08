@@ -65,7 +65,7 @@ func EvaluateForSaleViewerCapabilities(input ForSaleViewerCapabilitiesInput) Vie
 
 func isForSaleEditableStatus(status string) bool {
 	switch strings.TrimSpace(status) {
-	case forSaleStatusDraft, forSaleStatusActive:
+	case forSaleStatusActive:
 		return true
 	default:
 		return false
@@ -74,4 +74,12 @@ func isForSaleEditableStatus(status string) bool {
 
 func isForSaleAvailable(status string, quantityAvailable int) bool {
 	return strings.TrimSpace(status) == forSaleStatusActive && quantityAvailable > 0
+}
+
+// ForSaleNegotiationEnabled reports the canonical PRODUCT-LEVEL negotiation
+// attribute surfaced on the generic resource projection: the listing is
+// negotiable, active and in stock. It is viewer-independent — it must never be
+// derived from authentication, seller trust, role or a capability evaluation.
+func ForSaleNegotiationEnabled(status string, quantityAvailable int, negotiationEnabled bool) bool {
+	return negotiationEnabled && isForSaleAvailable(status, quantityAvailable)
 }

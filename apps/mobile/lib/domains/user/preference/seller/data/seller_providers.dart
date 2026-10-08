@@ -47,7 +47,6 @@ final storePhotoUploadServiceProvider = Provider<StorePhotoUploadService>((
 /// This replaces the GetIt-based sellerRepository.
 ///
 /// MIGRATION: Previously accessed via `sl<SellerRepository>()`
-/// CONTEST DOMAIN REMOVED: Contest dependencies removed as Contest domain has been sunset
 final sellerRepositoryProvider = Provider<SellerRepository>((ref) {
   final remoteDatasource = ref.watch(sellerRemoteDatasourceProvider);
   return SellerRepositoryImpl(remoteDatasource: remoteDatasource);

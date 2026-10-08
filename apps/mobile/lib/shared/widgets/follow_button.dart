@@ -16,7 +16,12 @@ final followProvider = followStatusProvider;
 class FollowButton extends ConsumerStatefulWidget {
   final String userId;
 
-  const FollowButton({super.key, required this.userId});
+  /// Domain gate: a viewer may be forbidden from following a degraded
+  /// identity. Disabled renders the ONE canonical disabled language
+  /// (`surfaceContainerHighest` / `onSurfaceVariant`), never a local opacity.
+  final bool enabled;
+
+  const FollowButton({super.key, required this.userId, this.enabled = true});
 
   @override
   ConsumerState<FollowButton> createState() => _FollowButtonState();
@@ -51,10 +56,12 @@ class _FollowButtonState extends ConsumerState<FollowButton> {
     if (!followState.followStatusMap.containsKey(widget.userId)) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
-          ref.read(followProvider.notifier).checkFollowStatus(
-            followerId: currentUserId,
-            followingId: widget.userId,
-          );
+          ref
+              .read(followProvider.notifier)
+              .checkFollowStatus(
+                followerId: currentUserId,
+                followingId: widget.userId,
+              );
         }
       });
       return _buildFollowButton(
@@ -77,30 +84,33 @@ class _FollowButtonState extends ConsumerState<FollowButton> {
 
   Widget _buildPlaceholderButton(ColorScheme scheme, {bool disabled = false}) {
     final bg = scheme.surfaceContainerHighest;
-    final fg = scheme.onSurface;
-    return Opacity(
-      opacity: disabled ? 0.4 : 1.0,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p8),
-        decoration: BoxDecoration(
-          color: bg,
-          borderRadius: BorderRadius.circular(AppShape.r8),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.person_add_outlined, size: AppIconSize.inlineGlyph, color: fg),
-            const SizedBox(width: 4),
-            Text(
-              'Follow',
-              style: TextStyle(
-                fontSize: AppType.s14,
-                color: fg,
-                fontWeight: FontWeight.w500,
-              ),
+    final fg = scheme.onSurfaceVariant;
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppMetrics.p12,
+        vertical: AppMetrics.p8,
+      ),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(AppShape.r8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.person_add_outlined,
+            size: AppIconSize.inlineGlyph,
+            color: fg,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            'Follow',
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+              color: fg,
+              fontWeight: FontWeight.w500,
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -112,50 +122,58 @@ class _FollowButtonState extends ConsumerState<FollowButton> {
     String currentUserName,
     bool isFollowing,
   ) {
-    final bg = isFollowing ? scheme.surfaceContainerHighest : scheme.primary;
-    final fg = isFollowing ? scheme.onSurface : scheme.onPrimary;
+    final isDisabled = !widget.enabled;
+    final bg = isDisabled || isFollowing
+        ? scheme.surfaceContainerHighest
+        : scheme.primary;
+    final fg = isDisabled
+        ? scheme.onSurfaceVariant
+        : isFollowing
+        ? scheme.onSurface
+        : scheme.onPrimary;
 
-    return Opacity(
-      opacity: _isLoading ? 0.6 : 1.0,
-      child: Material(
-        color: bg,
+    return Material(
+      color: bg,
+      borderRadius: BorderRadius.circular(AppShape.r8),
+      child: InkWell(
+        onTap: (isDisabled || _isLoading)
+            ? null
+            : () => _toggleFollow(currentUserId, currentUserName, isFollowing),
         borderRadius: BorderRadius.circular(AppShape.r8),
-        child: InkWell(
-          onTap: _isLoading
-              ? null
-              : () => _toggleFollow(currentUserId, currentUserName, isFollowing),
-          borderRadius: BorderRadius.circular(AppShape.r8),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p8),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (_isLoading)
-                  SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 1.5,
-                      valueColor: AlwaysStoppedAnimation<Color>(fg),
-                    ),
-                  )
-                else
-                  Icon(
-                    isFollowing ? Icons.person_remove : Icons.person_add_outlined,
-                    size: AppIconSize.inlineGlyph,
-                    color: fg,
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppMetrics.p12,
+            vertical: AppMetrics.p8,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (_isLoading)
+                SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 1.5,
+                    valueColor: AlwaysStoppedAnimation<Color>(fg),
                   ),
-                const SizedBox(width: 4),
-                Text(
-                  isFollowing ? 'Following' : 'Follow',
-                  style: TextStyle(
-                    fontSize: AppType.s14,
-                    color: fg,
-                    fontWeight: FontWeight.w500,
-                  ),
+                )
+              else
+                Icon(
+                  isFollowing
+                      ? Icons.person_remove
+                      : Icons.person_add_outlined,
+                  size: AppIconSize.inlineGlyph,
+                  color: fg,
                 ),
-              ],
-            ),
+              const SizedBox(width: 4),
+              Text(
+                isFollowing ? 'Following' : 'Follow',
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  color: fg,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -186,7 +204,7 @@ class _FollowButtonState extends ConsumerState<FollowButton> {
     if (followState.error == null) {
       AppSnackBar.showSuccess(
         context,
-        currentFollowStatus ? 'Unfollowed user' : 'Started following user',
+        currentFollowStatus ? 'Berhenti mengikuti' : 'Mulai mengikuti',
       );
     } else {
       AppSnackBar.showError(

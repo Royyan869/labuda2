@@ -15,6 +15,7 @@ import 'package:labuda/domains/user/identity/authentication/domain/entities/acco
 import 'package:labuda/domains/user/profile/domain/entities/profile_entity.dart';
 import 'package:labuda/domains/user/profile/presentation/providers/profile_view_provider.dart';
 import 'package:labuda/domains/user/profile/presentation/screens/profile_screen.dart';
+import 'package:labuda/generated/app_localizations.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
 import 'package:labuda/shared/providers/block_state_provider.dart';
 import 'package:labuda/shared/services/logger_service.dart';
@@ -383,7 +384,14 @@ void main() {
         authController: authController,
         repository: repository,
         profileUserId: 'target-1',
-        child: const MaterialApp(home: ProfileScreen(userId: 'target-1')),
+        child: MaterialApp(
+          // PageErrorState renders localized copy, so the app-level
+          // localization delegates must be registered by the harness.
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('id'),
+          home: const ProfileScreen(userId: 'target-1'),
+        ),
       );
 
       await tester.pumpWidget(profile);

@@ -30,10 +30,13 @@ class ContentToolbarWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     // Height is CONTENT-DRIVEN on purpose. A hand-summed literal height
     // (this used to be `height: 60`) has no slack budget in the foundation
-    // ladder, so any step move in AppType overflows the icon+label column.
-    // Let the row size itself from the roles instead.
+    // ladder, so any step move in the type roles overflows the icon+label
+    // column. Let the row size itself from the roles instead.
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8, vertical: AppMetrics.p8),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppMetrics.p8,
+        vertical: AppMetrics.p8,
+      ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
@@ -93,7 +96,10 @@ class _ToolbarIcon extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(AppShape.r8),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p4, vertical: AppMetrics.p4),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppMetrics.p4,
+          vertical: AppMetrics.p4,
+        ),
         child: Stack(
           clipBehavior: Clip.none,
           children: [
@@ -104,8 +110,7 @@ class _ToolbarIcon extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   label,
-                  style: TextStyle(
-                    fontSize: AppType.s12,
+                  style: context.typeRoles.labelMicro.copyWith(
                     color: scheme.onSurfaceVariant,
                     fontWeight: FontWeight.w500,
                   ),
@@ -128,9 +133,8 @@ class _ToolbarIcon extends StatelessWidget {
                   ),
                   child: Text(
                     badge!,
-                    style: TextStyle(
+                    style: context.typeRoles.labelMicro.copyWith(
                       color: scheme.onPrimary,
-                      fontSize: AppType.s12,
                       fontWeight: FontWeight.bold,
                     ),
                     textAlign: TextAlign.center,

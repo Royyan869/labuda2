@@ -19,10 +19,19 @@ abstract class PaymentRepository {
   Future<Result<Payment>> getPayment(String paymentId);
 
   /// Get the enabled canonical payment methods for [orderId], each with the
-  /// backend-calculated buyer payment fee and total (PASS_18V). Call this
-  /// before createPayment so the buyer can choose a method.
+  /// backend-calculated buyer payment fee and total (PASS_18V). This is the
+  /// POST-ORDER disclosure (retry / order detail).
   Future<Result<List<PaymentMethodOption>>> getPaymentMethodOptions(
     String orderId,
   );
 
+  /// Get the canonical PRE-ORDER payment pricing for [pricingToken]: every
+  /// enabled method with the backend-computed buyer payment fee and FINAL
+  /// payable amount. Read-only — no order is created and the token is not
+  /// consumed. This is the checkout authority for choosing a method and knowing
+  /// the final total before "Buat Pesanan".
+  Future<Result<PreOrderPaymentPricing>> getPreOrderPaymentPricing(
+    String pricingToken, {
+    bool useCoins,
+  });
 }

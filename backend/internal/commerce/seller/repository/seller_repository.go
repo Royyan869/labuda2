@@ -12,7 +12,6 @@ import (
 //
 // This repository handles:
 // - SellerProfile CRUD operations
-// - SellerMonthlyMetric insert (ANALYTICS ONLY — never read for tier decisions)
 // - SellerReputationState upsert and reads (LIVE REPUTATION AUTHORITY)
 //
 // No business logic - all validation belongs in service layer.
@@ -49,10 +48,6 @@ type SellerRepository interface {
 	// UpdateTierTx updates the tier of a seller profile.
 	UpdateTierTx(ctx context.Context, tx db.Tx, id uuid.UUID, tier entity.Tier) error
 
-	// InsertMonthlyMetricTx creates a new monthly metric snapshot within a transaction.
-	// Analytics-only write: seller_monthly_metrics is never read for tier decisions.
-	InsertMonthlyMetricTx(ctx context.Context, tx db.Tx, m *entity.SellerMonthlyMetric) error
-
 	// UpsertReputationStateTx creates or overwrites the live reputation state for a seller.
 	// Called by SellerReputationRecomputeWorker on every nightly cycle.
 	// Safe to call multiple times — last-write-wins (UPSERT semantics).
@@ -60,7 +55,11 @@ type SellerRepository interface {
 
 	// GetReputationStateForUpdate retrieves the live reputation state with a row-level lock.
 	// Returns nil if no state row exists yet (seller not yet processed by recompute worker).
+	// sellerID is the canonical commerce seller identity (users.id), NOT seller_profiles.id.
 	GetReputationStateForUpdate(ctx context.Context, tx db.Tx, sellerID uuid.UUID) (*entity.SellerReputationState, error)
+
+	// GetReputationState retrieves the live reputation state WITHOUT a row-level lock.
+	// Read projection only (e.g. Seller Performance). Returns nil if no state row exists.
+	// sellerID is the canonical commerce seller identity (users.id), NOT seller_profiles.id.
+	GetReputationState(ctx context.Context, tx db.Tx, sellerID uuid.UUID) (*entity.SellerReputationState, error)
 }
-
-

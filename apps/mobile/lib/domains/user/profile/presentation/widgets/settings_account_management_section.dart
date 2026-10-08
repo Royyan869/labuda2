@@ -40,19 +40,19 @@ class SettingsAccountManagementSection extends StatelessWidget {
     ColorScheme scheme,
   ) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p16, AppMetrics.p16, AppMetrics.p8),
+      padding: const EdgeInsets.fromLTRB(
+        AppMetrics.p16,
+        AppMetrics.p16,
+        AppMetrics.p16,
+        AppMetrics.p8,
+      ),
       child: Row(
         children: [
-          Icon(
-            icon,
-            size: AppIconSize.action,
-            color: scheme.onSurfaceVariant,
-          ),
+          Icon(icon, size: AppIconSize.action, color: scheme.onSurfaceVariant),
           const SizedBox(width: 8),
           Text(
             title,
-            style: TextStyle(
-              fontSize: AppType.s14,
+            style: context.typeRoles.bodyDense.copyWith(
               fontWeight: FontWeight.w600,
               color: scheme.onSurfaceVariant,
             ),
@@ -75,14 +75,9 @@ class SettingsAccountManagementSection extends StatelessWidget {
       title: Text(title, style: TextStyle(color: textColor)),
       subtitle: Text(
         subtitle,
-        style: TextStyle(
-          color: scheme.onSurfaceVariant,
-        ),
+        style: TextStyle(color: scheme.onSurfaceVariant),
       ),
-      trailing: Icon(
-        Icons.chevron_right,
-        color: scheme.onSurfaceVariant,
-      ),
+      trailing: Icon(Icons.chevron_right, color: scheme.onSurfaceVariant),
       onTap: onTap,
     );
   }

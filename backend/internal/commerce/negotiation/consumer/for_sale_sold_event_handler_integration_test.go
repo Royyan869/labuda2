@@ -127,16 +127,13 @@ func insertSoldForSale(t *testing.T, ctx context.Context, h *soldHarness, seller
 			return err
 		}
 		sale, err := forsaleEntity.NewForSaleSurface(
-			sellerID, money.New(500000), 1, true, forsaleEntity.ForSaleVisibilityPublic,
+			sellerID, money.New(500000), 1, true,
 		)
 		if err != nil {
 			return err
 		}
 		sale.ProductID = product.ID
 		sale.Product = product
-		if err := sale.Publish(); err != nil {
-			return err
-		}
 		if err := h.forSale.Create(ctx, tx, sale); err != nil {
 			return err
 		}

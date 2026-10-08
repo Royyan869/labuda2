@@ -67,10 +67,9 @@ class DropdownStateBuilders {
         ..._leading(context, prefixIcon),
         Text(
           text,
-          style: TextStyle(
-            color: scheme.onSurfaceVariant,
-            fontSize: AppType.s16,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.bodyLarge?.copyWith(color: scheme.onSurfaceVariant),
         ),
       ],
     );

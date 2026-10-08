@@ -17,7 +17,6 @@ void main() {
         ),
         resourceId: 'user-widget-1',
         canonicalUrl: '/user/user-widget-1',
-        commerceActions: null,
         payload: const ProfileLivePayload(
           username: 'alice',
           avatarUrl: null,

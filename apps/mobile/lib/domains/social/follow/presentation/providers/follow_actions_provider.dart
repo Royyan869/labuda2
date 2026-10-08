@@ -65,7 +65,7 @@ class FollowActionsNotifier extends _$FollowActionsNotifier {
         // Track follow analytics (presentation layer responsibility)
         if (success) {
           _trackFollowInteraction(
-            action: 'follow',
+            event: AnalyticsEvents.follow,
             followerId: followerId,
             followingId: followingId,
           );
@@ -107,7 +107,7 @@ class FollowActionsNotifier extends _$FollowActionsNotifier {
         // Track unfollow analytics (presentation layer responsibility)
         if (success) {
           _trackFollowInteraction(
-            action: 'unfollow',
+            event: AnalyticsEvents.unfollow,
             followerId: followerId,
             followingId: followingId,
           );
@@ -120,14 +120,17 @@ class FollowActionsNotifier extends _$FollowActionsNotifier {
 
   /// Track follow/unfollow analytics
   void _trackFollowInteraction({
-    required String action,
+    required String event,
     required String followerId,
     required String followingId,
   }) {
     try {
       _analytics.logEvent(
-        action,
-        parameters: {'follower_id': followerId, 'following_id': followingId},
+        event,
+        parameters: {
+          AnalyticsParams.followerId: followerId,
+          AnalyticsParams.followingId: followingId,
+        },
         userId: followerId,
       );
     } catch (e) {

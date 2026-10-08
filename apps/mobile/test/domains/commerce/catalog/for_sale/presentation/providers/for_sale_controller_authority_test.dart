@@ -1,8 +1,10 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/api/api_error_codes.dart' as codes;
 import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/domain/domain.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/presentation/providers/for_sale_controller.dart';
+import 'package:labuda/domains/commerce/catalog/for_sale/presentation/providers/for_sale_providers.dart';
 import 'package:labuda/domains/user/identity/authentication/domain/entities/account_status.dart';
 import 'package:labuda/domains/user/identity/authentication/domain/entities/seller_tier.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
@@ -90,38 +92,6 @@ class _NoopLogger implements ILoggerService {
   Future<void> log(String message, {LogLevel level = LogLevel.debug}) async {}
 
   @override
-  Future<Result<void>> logApiCall(
-    String endpoint, {
-    required String method,
-    required int statusCode,
-    required Duration duration,
-    Map<String, dynamic>? requestData,
-    Map<String, dynamic>? responseData,
-  }) async => Result.success(null);
-
-  @override
-  Future<Result<void>> logPerformance(
-    String operation, {
-    required Duration duration,
-    Map<String, dynamic>? metrics,
-  }) async => Result.success(null);
-
-  @override
-  Future<Result<void>> logSecurityEvent(
-    String event, {
-    String? userId,
-    String? severity,
-    Map<String, dynamic>? details,
-  }) async => Result.success(null);
-
-  @override
-  Future<Result<void>> logUserAction(
-    String action, {
-    String? userId,
-    Map<String, dynamic>? parameters,
-  }) async => Result.success(null);
-
-  @override
   Future<Result<void>> setLogLevel(LogLevel level) async =>
       Result.success(null);
 
@@ -135,6 +105,7 @@ class _NoopLogger implements ILoggerService {
 class _FakeForSaleRepository implements ForSaleRepository {
   int createCalls = 0;
   CreateForSaleRequest? lastRequest;
+  final List<bool> sellerForSalesIncludeWithdrawn = <bool>[];
 
   @override
   Future<Result<List<ForSale>>> getForSales(GetForSalesParams params) async {
@@ -151,8 +122,10 @@ class _FakeForSaleRepository implements ForSaleRepository {
     String sellerId, {
     int page = 1,
     int pageSize = 20,
+    bool includeWithdrawn = false,
   }) async {
-    throw UnimplementedError();
+    sellerForSalesIncludeWithdrawn.add(includeWithdrawn);
+    return Result.success(const <ForSale>[]);
   }
 
   @override
@@ -168,8 +141,8 @@ class _FakeForSaleRepository implements ForSaleRepository {
         price: request.price,
         stock: request.quantity,
         sellerId: 'seller-1',
-        status: ForSaleStatus.draft,
-        visibility: ForSaleVisibility.private,
+        status: ForSaleStatus.active,
+        visibility: ForSaleVisibility.public,
         isNegotiable: request.negotiationEnabled,
         createdAt: DateTime.utc(2026, 1, 1),
         updatedAt: DateTime.utc(2026, 1, 1),
@@ -196,22 +169,6 @@ class _FakeForSaleRepository implements ForSaleRepository {
     throw UnimplementedError();
   }
 
-  /// Backend response for a publish (draft → active) attempt. Publish authority
-  /// is never decided locally — the controller must surface whatever the owning
-  /// service returns.
-  Result<ForSale>? statusUpdateResult;
-
-  @override
-  Future<Result<ForSale>> updateForSaleStatus(
-    String forSaleId,
-    ForSaleStatus status,
-  ) async {
-    final result = statusUpdateResult;
-    if (result == null) {
-      throw UnimplementedError('statusUpdateResult not configured');
-    }
-    return result;
-  }
 }
 
 /// The three seller axes are passed independently on purpose: workspace
@@ -392,31 +349,58 @@ void main() {
       expect(controller.canCreateForSale(const AuthState.loading()), isFalse);
     });
 
-    test(
-      'publish is NOT granted locally: the backend rejection is surfaced',
-      () async {
-        // What the owning service returns for a capability-false publisher:
-        // 403 MARKET_AUTHORITY_REQUIRED on the draft → active transition.
-        final repo = _FakeForSaleRepository()
-          ..statusUpdateResult = Result.error(
-            'Active seller subscription required to publish for_sales',
-            code: codes.marketAuthorityRequired,
-            statusCode: 403,
-          );
-        final controller = ForSaleController(
-          repository: repo,
-          logger: const _NoopLogger(),
-        );
+  });
 
-        final result = await controller.updateForSaleStatus(
-          'forSale-1',
-          ForSaleStatus.active,
-        );
+  group('getSellerForSales — owner inventory opt-in', () {
+    test('forwards includeWithdrawn=true for the owner inventory surface',
+        () async {
+      final repo = _FakeForSaleRepository();
+      final controller = ForSaleController(
+        repository: repo,
+        logger: const _NoopLogger(),
+      );
 
-        expect(result.isError, isTrue);
-        expect(result.errorCode, codes.marketAuthorityRequired);
-        expect(result.statusCode, 403);
-      },
-    );
+      await controller.getSellerForSales('seller-1', includeWithdrawn: true);
+
+      expect(repo.sellerForSalesIncludeWithdrawn, [true]);
+    });
+
+    test('defaults includeWithdrawn=false for public/contextual surfaces',
+        () async {
+      final repo = _FakeForSaleRepository();
+      final controller = ForSaleController(
+        repository: repo,
+        logger: const _NoopLogger(),
+      );
+
+      await controller.getSellerForSales('seller-1');
+
+      expect(repo.sellerForSalesIncludeWithdrawn, [false]);
+    });
+
+    test('SellerForSalesParams distinguishes includeWithdrawn in provider key',
+        () {
+      const base = SellerForSalesParams(sellerId: 'seller-1');
+      const withWithdrawn = SellerForSalesParams(
+        sellerId: 'seller-1',
+        includeWithdrawn: true,
+      );
+
+      expect(base.includeWithdrawn, isFalse);
+      expect(withWithdrawn.includeWithdrawn, isTrue);
+      expect(withWithdrawn, isNot(equals(base)));
+    });
+
+    test('datasource and My For Sale screen lock the canonical opt-in', () {
+      final datasource = File(
+        'lib/domains/commerce/catalog/for_sale/data/remote/for_sale_remote_datasource.dart',
+      ).readAsStringSync();
+      expect(datasource.contains("'include_withdrawn': true"), isTrue);
+
+      final screen = File(
+        'lib/domains/commerce/catalog/for_sale/presentation/screens/my_for_sales_screen.dart',
+      ).readAsStringSync();
+      expect(screen.contains('includeWithdrawn: true'), isTrue);
+    });
   });
 }

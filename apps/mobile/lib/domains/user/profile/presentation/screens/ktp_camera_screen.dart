@@ -181,7 +181,9 @@ class _KtpCameraScreenState extends State<KtpCameraScreen>
                   padding: const EdgeInsets.all(AppMetrics.p16),
                   child: Text(
                     _errorMessage!,
-                    style: TextStyle(color: scheme.onPrimary, fontSize: AppType.s16),
+                    style: context.typeRoles.titleCompact.copyWith(
+                      color: scheme.onPrimary,
+                    ),
                     textAlign: TextAlign.center,
                   ),
                 ),
@@ -189,9 +191,7 @@ class _KtpCameraScreenState extends State<KtpCameraScreen>
 
             // Loading
             if (!_isCameraInitialized && _errorMessage == null)
-              Center(
-                child: CircularProgressIndicator(color: scheme.onPrimary),
-              ),
+              Center(child: CircularProgressIndicator(color: scheme.onPrimary)),
 
             // KTP Frame Overlay
             if (_isCameraInitialized)
@@ -280,17 +280,22 @@ class _KtpCameraScreenState extends State<KtpCameraScreen>
                     // Close Button
                     IconButton(
                       onPressed: () => Navigator.of(context).pop(),
-                      icon: const Icon(Icons.close),
+                      icon: const Icon(Icons.close, semanticLabel: 'Tutup'),
                       color: scheme.onPrimary,
-                      iconSize: 28,
+                      iconSize: AppIconSize.emphasis,
                     ),
 
                     // Flash Toggle
                     IconButton(
                       onPressed: _toggleFlash,
-                      icon: Icon(_isFlashOn ? Icons.flash_on : Icons.flash_off),
+                      icon: Icon(
+                        _isFlashOn ? Icons.flash_on : Icons.flash_off,
+                        semanticLabel: _isFlashOn
+                            ? 'Matikan senter'
+                            : 'Nyalakan senter',
+                      ),
                       color: scheme.onPrimary,
-                      iconSize: 28,
+                      iconSize: AppIconSize.emphasis,
                     ),
                   ],
                 ),
@@ -320,18 +325,16 @@ class _KtpCameraScreenState extends State<KtpCameraScreen>
                     // Instructions
                     Text(
                       'Posisikan KTP di dalam frame',
-                      style: TextStyle(
+                      style: context.typeRoles.titleCompact.copyWith(
                         color: scheme.onPrimary,
-                        fontSize: AppType.s16,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       'Pastikan semua bagian KTP terlihat jelas',
-                      style: TextStyle(
+                      style: context.typeRoles.bodyDense.copyWith(
                         color: scheme.onPrimary.withValues(alpha: 0.7),
-                        fontSize: AppType.s14,
                       ),
                     ),
                     const SizedBox(height: 24),
@@ -344,10 +347,7 @@ class _KtpCameraScreenState extends State<KtpCameraScreen>
                         height: 72,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          border: Border.all(
-                            color: scheme.onPrimary,
-                            width: 4,
-                          ),
+                          border: Border.all(color: scheme.onPrimary, width: 4),
                         ),
                         child: Center(
                           child: Container(

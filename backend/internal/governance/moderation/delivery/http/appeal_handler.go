@@ -278,10 +278,17 @@ func (h *AppealHandler) AdminListAppeals(c *gin.Context) {
 		statusFilterPtr = &status
 	}
 
-	var appeals []*appealEntity.Appeal
+	var (
+		appeals []*appealEntity.Appeal
+		total   int
+	)
 	err = h.db.WithTx(ctx, func(tx db.Tx) error {
 		var err error
 		appeals, err = h.appealService.ListAllAppeals(ctx, tx, statusFilterPtr, limit, offset)
+		if err != nil {
+			return err
+		}
+		total, err = h.appealService.CountAllAppeals(ctx, tx, statusFilterPtr)
 		return err
 	})
 
@@ -300,64 +307,20 @@ func (h *AppealHandler) AdminListAppeals(c *gin.Context) {
 	}
 
 	response.Success(c, gin.H{
-		"appeals": items,
-		"page":    page,
-		"limit":   limit,
-		"count":   len(items),
+		"appeals":     items,
+		"page":        page,
+		"limit":       limit,
+		"count":       total,
+		"total_pages": pageCount(total, limit),
 	})
 }
 
-// AdminListPendingAppeals handles GET /api/v1/admin/appeals/pending
-func (h *AppealHandler) AdminListPendingAppeals(c *gin.Context) {
-	ctx := c.Request.Context()
-
-	adminID, ok := middleware.MustGetUserIDFromContext(c)
-	if !ok {
-		return
+// pageCount returns the number of pages for a truthful total and page size.
+func pageCount(total, limit int) int {
+	if total <= 0 || limit <= 0 {
+		return 0
 	}
-
-	pageStr := c.DefaultQuery("page", "1")
-	limitStr := c.DefaultQuery("limit", "20")
-
-	page, err := strconv.Atoi(pageStr)
-	if err != nil || page < 1 {
-		page = 1
-	}
-
-	limit, err := strconv.Atoi(limitStr)
-	if err != nil || limit < 1 || limit > 100 {
-		limit = 20
-	}
-
-	offset := (page - 1) * limit
-
-	var appeals []*appealEntity.Appeal
-	err = h.db.WithTx(ctx, func(tx db.Tx) error {
-		var err error
-		appeals, err = h.appealService.ListPendingAppeals(ctx, tx, limit, offset)
-		return err
-	})
-
-	if err != nil {
-		h.log.Error("Failed to list pending appeals",
-			zap.String("admin_id", adminID.String()),
-			zap.Error(err),
-		)
-		response.InternalServerError(c, "Failed to retrieve pending appeals")
-		return
-	}
-
-	items := make([]gin.H, len(appeals))
-	for i, a := range appeals {
-		items[i] = h.appealToResponse(a)
-	}
-
-	response.Success(c, gin.H{
-		"appeals": items,
-		"page":    page,
-		"limit":   limit,
-		"count":   len(items),
-	})
+	return (total + limit - 1) / limit
 }
 
 // AdminGetAppeal handles GET /api/v1/admin/appeals/:id

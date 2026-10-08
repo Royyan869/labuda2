@@ -103,20 +103,12 @@ ProfileEntity _sellerProfile(String userId) {
     contactInfo: const ContactInfo(
       maskedPhone: '0812***6789',
       maskedEmail: 'owner***@example.com',
-      isPhonePublic: true,
-      isEmailPublic: true,
       instagramHandle: 'labuda_farm',
       facebookHandle: 'Labuda Farm',
       tiktokHandle: 'labuda_farm',
       twitterHandle: 'labuda_farm',
-      isSocialMediaPublic: true,
     ),
-    farmInfo: FarmInfo(
-      farmName: 'Labuda Farm',
-      farmWebsite: 'https://example.com',
-      specialties: <String>['organic'],
-      establishedDate: DateTime.utc(2020, 1, 1),
-    ),
+    farmInfo: FarmInfo(farmName: 'Labuda Farm'),
   );
 }
 

@@ -1,7 +1,6 @@
 package http
 
 import (
-	"fmt"
 	"strings"
 	"time"
 
@@ -47,7 +46,6 @@ func NewAddressHandler(
 // ============================================================================
 
 type createAddressRequest struct {
-	Tags          []string `json:"tags" binding:"required"`
 	Nickname      string   `json:"nickname"`
 	RecipientName string   `json:"recipient_name" binding:"required"`
 	Phone         string   `json:"phone" binding:"required"`
@@ -68,7 +66,6 @@ type createAddressRequest struct {
 }
 
 type updateAddressRequest struct {
-	Tags         []string `json:"tags"`
 	Nickname      *string  `json:"nickname"`
 	RecipientName *string  `json:"recipient_name"`
 	Phone         *string  `json:"phone"`
@@ -90,10 +87,7 @@ type updateAddressRequest struct {
 type addressResponse struct {
 	ID                     string   `json:"id"`
 	UserID                 string   `json:"user_id"`
-	Tags                   []string `json:"tags"`
-	TagLabels              []string `json:"tag_labels"`
 	Nickname               string   `json:"nickname"`
-	DisplayLabel           string   `json:"display_label"`
 	RecipientName          string   `json:"recipient_name"`
 	Phone                  string   `json:"phone"`
 	ProvinceID             string   `json:"province_id"`
@@ -123,49 +117,12 @@ type addressListResponse struct {
 }
 
 type addressCountResponse struct {
-	Total         int64 `json:"total"`
-	ShippingCount int64 `json:"shipping_count"`
-	SenderCount   int64 `json:"sender_count"`
+	Total int64 `json:"total"`
 }
 
 // ============================================================================
 // HELPERS
 // ============================================================================
-
-// tagLabel is the localized display name of a single address tag.
-func tagLabel(tag string) string {
-	switch tag {
-	case "shipping":
-		return "Alamat Pengiriman"
-	case "sender":
-		return "Alamat Pengirim"
-	default:
-		return tag
-	}
-}
-
-// tagLabels renders every tag of an address in canonical order.
-func tagLabels(tags []string) []string {
-	labels := make([]string, 0, len(tags))
-	for _, tag := range tags {
-		labels = append(labels, tagLabel(tag))
-	}
-	return labels
-}
-
-// displayLabel prefers the nickname, then falls back to the joined tag labels.
-func displayLabel(nickname string, tags []string) string {
-	if nickname != "" {
-		if len(tags) == 0 {
-			return nickname
-		}
-		return fmt.Sprintf("%s (%s)", nickname, strings.Join(tagLabels(tags), ", "))
-	}
-	if len(tags) == 0 {
-		return ""
-	}
-	return strings.Join(tagLabels(tags), ", ")
-}
 
 func buildFullAddress(a *addressEntity.Address) string {
 	parts := []string{}
@@ -198,10 +155,7 @@ func toAddressResponse(a *addressEntity.Address) addressResponse {
 	return addressResponse{
 		ID:                     a.ID.String(),
 		UserID:                 a.UserID.String(),
-		Tags:                   a.TagStrings(),
-		TagLabels:              tagLabels(a.TagStrings()),
 		Nickname:               a.Nickname,
-		DisplayLabel:           displayLabel(a.Nickname, a.TagStrings()),
 		RecipientName:          a.RecipientName,
 		Phone:                  a.Phone,
 		ProvinceID:             a.ProvinceID,
@@ -246,18 +200,6 @@ func (h *AddressHandler) CreateAddress(c *gin.Context) {
 		return
 	}
 
-	// Validate tags
-	if len(req.Tags) == 0 {
-		response.BadRequest(c, "Invalid tags: at least one of 'shipping' or 'sender' is required")
-		return
-	}
-	for _, tag := range req.Tags {
-		if !addressEntity.IsValidTag(tag) {
-			response.BadRequest(c, "Invalid tag: must be 'shipping' or 'sender'")
-			return
-		}
-	}
-
 	tx, err := h.db.BeginTx(ctx)
 	if err != nil {
 		response.InternalError(c, "Failed to start transaction")
@@ -267,7 +209,6 @@ func (h *AddressHandler) CreateAddress(c *gin.Context) {
 
 	address, err := h.service.CreateAddress(ctx, tx, addressApp.CreateAddressInput{
 		UserID:        userID,
-		Tags:          req.Tags,
 		Nickname:      req.Nickname,
 		RecipientName: req.RecipientName,
 		Phone:         req.Phone,
@@ -309,12 +250,6 @@ func (h *AddressHandler) ListAddresses(c *gin.Context) {
 		return
 	}
 
-	tag := c.Query("tag")
-	if tag != "" && !addressEntity.IsValidTag(tag) {
-		response.BadRequest(c, "Invalid tag filter: must be 'shipping' or 'sender'")
-		return
-	}
-
 	tx, err := h.db.BeginTx(ctx)
 	if err != nil {
 		response.InternalError(c, "Failed to start transaction")
@@ -322,7 +257,7 @@ func (h *AddressHandler) ListAddresses(c *gin.Context) {
 	}
 	defer tx.Rollback(ctx)
 
-	addresses, err := h.service.ListUserAddressesFiltered(ctx, tx, userID, tag)
+	addresses, err := h.service.ListUserAddresses(ctx, tx, userID)
 	if err != nil {
 		response.InternalError(c, "Failed to list addresses")
 		return
@@ -351,12 +286,6 @@ func (h *AddressHandler) GetPrimary(c *gin.Context) {
 		return
 	}
 
-	tag := c.Query("tag")
-	if tag != "" && !addressEntity.IsValidTag(tag) {
-		response.BadRequest(c, "Invalid tag filter: must be 'shipping' or 'sender'")
-		return
-	}
-
 	tx, err := h.db.BeginTx(ctx)
 	if err != nil {
 		response.InternalError(c, "Failed to start transaction")
@@ -364,7 +293,7 @@ func (h *AddressHandler) GetPrimary(c *gin.Context) {
 	}
 	defer tx.Rollback(ctx)
 
-	address, err := h.service.GetPrimaryFiltered(ctx, tx, userID, tag)
+	address, err := h.service.GetPrimaryFiltered(ctx, tx, userID)
 	if err != nil {
 		response.InternalError(c, "Failed to get primary address")
 		return
@@ -406,9 +335,7 @@ func (h *AddressHandler) GetCount(c *gin.Context) {
 	_ = tx.Commit(ctx)
 
 	response.Success(c, addressCountResponse{
-		Total:         count.Total,
-		ShippingCount: count.ShippingCount,
-		SenderCount:   count.SenderCount,
+		Total: count.Total,
 	})
 }
 
@@ -494,7 +421,6 @@ func (h *AddressHandler) UpdateAddress(c *gin.Context) {
 	input := addressApp.UpdateAddressInput{
 		AddressID:     addressID,
 		UserID:        userID,
-		Tags:          existing.TagStrings(),
 		Nickname:      existing.Nickname,
 		RecipientName: existing.RecipientName,
 		Phone:         existing.Phone,
@@ -513,19 +439,6 @@ func (h *AddressHandler) UpdateAddress(c *gin.Context) {
 		Notes:         existing.Notes,
 	}
 
-	if req.Tags != nil {
-		for _, tag := range req.Tags {
-			if !addressEntity.IsValidTag(tag) {
-				response.BadRequest(c, "Invalid tag: must be 'shipping' or 'sender'")
-				return
-			}
-		}
-		if len(req.Tags) == 0 {
-			response.BadRequest(c, "Invalid tags: at least one of 'shipping' or 'sender' is required")
-			return
-		}
-		input.Tags = req.Tags
-	}
 	if req.Nickname != nil {
 		input.Nickname = *req.Nickname
 	}

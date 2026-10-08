@@ -49,7 +49,7 @@ class MediaImageItem extends StatelessWidget {
             ),
 
             // Cover badge
-            if (showCoverBadge && index == 0) _buildCoverBadge(scheme),
+            if (showCoverBadge && index == 0) _buildCoverBadge(context, scheme),
 
             // Remove button
             if (onRemove != null) _buildRemoveButton(scheme),
@@ -59,21 +59,23 @@ class MediaImageItem extends StatelessWidget {
     );
   }
 
-  Widget _buildCoverBadge(ColorScheme scheme) {
+  Widget _buildCoverBadge(BuildContext context, ColorScheme scheme) {
     return Positioned(
       top: 8,
       left: 8,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8, vertical: AppMetrics.p4),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppMetrics.p8,
+          vertical: AppMetrics.p4,
+        ),
         decoration: BoxDecoration(
           color: scheme.primary,
           borderRadius: BorderRadius.circular(AppShape.r4),
         ),
         child: Text(
           'Cover',
-          style: TextStyle(
+          style: context.typeRoles.labelMicro.copyWith(
             color: scheme.onPrimary,
-            fontSize: AppType.s12,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -94,7 +96,12 @@ class MediaImageItem extends StatelessWidget {
             color: scheme.error.withValues(alpha: 0.9),
             shape: BoxShape.circle,
           ),
-          child: Icon(Icons.close, color: scheme.onPrimary, size: AppIconSize.inlineGlyph),
+          child: Icon(
+            Icons.close,
+            color: scheme.onPrimary,
+            size: AppIconSize.inlineGlyph,
+            semanticLabel: 'Hapus media',
+          ),
         ),
       ),
     );

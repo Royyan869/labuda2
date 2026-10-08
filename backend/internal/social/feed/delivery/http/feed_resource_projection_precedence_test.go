@@ -28,7 +28,6 @@ func TestFeedItemToResponseCanonicalWithProjection_PrefersCanonicalProjection(t 
 			Lifecycle: "active",
 		},
 		commerceshared.ProjectionViewerCapabilities{CanView: true},
-		nil,
 	)
 	if err != nil {
 		t.Fatalf("NewLiveResourceProjection: %v", err)

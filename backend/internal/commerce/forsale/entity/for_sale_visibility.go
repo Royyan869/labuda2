@@ -7,12 +7,13 @@ import "time"
 // ═══════════════════════════════════════════════════════════════════════════════
 // HARD RULE: STATUS → VISIBILITY MAPPING
 // ═══════════════════════════════════════════════════════════════════════════════
-// - Draft for_sales: MUST BE private (workspace-only)
 // - Active for_sales: MUST BE public (ACTIVE = PUBLIC ONLY invariant)
 // - Terminal states (sold/withdrawn): visibility field is irrelevant
 //
-// The Publish() method enforces this by automatically setting Visibility=Public.
-// No manual setting of visibility for active for_sales is allowed.
+// There is no draft state (create = publish), so there is no private
+// workspace for_sale either: NewForSaleSurface sets Visibility=Public
+// unconditionally. The private value survives only as defensive read
+// vocabulary for unknown/unpublished rows.
 type ForSaleVisibility string
 
 const (
@@ -20,7 +21,7 @@ const (
 	// This is the ONLY valid visibility for active for_sales.
 	ForSaleVisibilityPublic ForSaleVisibility = "public"
 	// ForSaleVisibilityPrivate is only visible to the seller.
-	// This is the ONLY valid visibility for draft for_sales.
+	// Never set for a created for_sale (there is no private active state).
 	ForSaleVisibilityPrivate ForSaleVisibility = "private"
 )
 
@@ -40,8 +41,8 @@ func (v ForSaleVisibility) String() string {
 }
 
 // DeriveVisibility returns the canonical for_sale visibility from status and
-// publish timestamp. Active for_sales become public only once published; every
-// other state remains private.
+// publish timestamp. A for_sale is published at create, so every known status
+// derives public; only an unknown/unpublished row can derive private.
 func DeriveVisibility(status ForSaleStatus, publishedAt *time.Time) ForSaleVisibility {
 	if publishedAt != nil {
 		switch status {

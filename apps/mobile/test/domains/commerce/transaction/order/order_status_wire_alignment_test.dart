@@ -12,6 +12,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:labuda/domains/commerce/transaction/order/domain/entities/order_status.dart';
 import 'package:labuda/domains/commerce/transaction/order/data/mappers/order_mapper.dart';
+import 'package:labuda/domains/commerce/transaction/order/data/models/api/order_api_response_dtos.dart';
 
 void main() {
   // =========================================================================
@@ -25,11 +26,10 @@ void main() {
       );
     });
 
-    test('"pending" parses to OrderStatus.pending', () {
-      expect(
-        OrderStatusExtension.parse('pending'),
-        equals(OrderStatus.pending),
-      );
+    test('"pending" (legacy non-canonical) is rejected', () {
+      // Canonical pending-payment wire value is "pending_payment"; the legacy
+      // frontend-only "pending" representation has no mapping.
+      expect(OrderStatusExtension.parse('pending'), isNull);
     });
 
     test('"paid" parses to OrderStatus.paid', () {
@@ -197,8 +197,8 @@ void main() {
       expect(OrderStatus.cancelledTimeout.value, equals('cancelled_timeout'));
     });
 
-    test('pending serializes to "pending"', () {
-      expect(OrderStatus.pending.value, equals('pending'));
+    test('pending serializes to "pending_payment"', () {
+      expect(OrderStatus.pending.value, equals('pending_payment'));
     });
 
     test('all statuses round-trip through parse(value)', () {
@@ -222,7 +222,7 @@ void main() {
       // mapOrderStatusToString uses the enum's canonical value
       expect(
         OrderMapper.mapOrderStatusToString(OrderStatus.pending),
-        equals('pending'),
+        equals('pending_payment'),
       );
     });
 
@@ -235,7 +235,41 @@ void main() {
   });
 
   // =========================================================================
-  // Backend completeness — every backend status has a mobile mapping
+  // Incoming Orders query filter — one status authority
+  // =========================================================================
+  group('OrderFilterParams — canonical query status', () {
+    test('pending filter serializes to "pending_payment"', () {
+      final params = OrderFilterParams(status: OrderStatus.pending);
+      expect(params.toQueryParams()['status'], equals('pending_payment'));
+    });
+
+    test('non-pending filters keep their canonical wire values', () {
+      expect(
+        OrderFilterParams(status: OrderStatus.paid).toQueryParams()['status'],
+        equals('paid'),
+      );
+      expect(
+        OrderFilterParams(status: OrderStatus.shipped).toQueryParams()['status'],
+        equals('shipped'),
+      );
+      expect(
+        OrderFilterParams(
+          status: OrderStatus.cancelledTimeout,
+        ).toQueryParams()['status'],
+        equals('cancelled_timeout'),
+      );
+    });
+
+    test('no status filter emits no status key', () {
+      expect(
+        OrderFilterParams().toQueryParams().containsKey('status'),
+        isFalse,
+      );
+    });
+  });
+
+  // =========================================================================
+  // Backend completeness — every backend wire value has a mobile mapping
   // =========================================================================
   group('Backend completeness — no unmapped wire values', () {
     // These are ALL the wire values from backend order_status.go

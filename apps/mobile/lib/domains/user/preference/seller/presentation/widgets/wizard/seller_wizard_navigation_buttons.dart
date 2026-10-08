@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/src/theme/app_theme.dart';
+import 'package:labuda/shared/widgets/bottom_action_bar.dart';
 
-/// Navigation buttons for Seller Wizard
-/// Extracted from SellerUpgradeWizardScreen to reduce complexity
+/// Navigation buttons for Seller Wizard — content only. Chrome (surface,
+/// separator, Safe Area, keyboard inset, button height, disabled language) is
+/// owned by [BottomActionBar].
 class SellerWizardNavigationButtons extends StatelessWidget {
   final int currentStep;
   final int totalSteps;
@@ -25,55 +26,20 @@ class SellerWizardNavigationButtons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Get bottom padding for devices with gesture navigation or navigation bar
-    final bottomPadding = MediaQuery.of(context).padding.bottom;
-    final scheme = Theme.of(context).colorScheme;
-
-    return Container(
-      padding: EdgeInsets.only(
-        left: AppMetrics.p24,
-        right: AppMetrics.p24,
-        top: AppMetrics.p16,
-        bottom: bottomPadding > AppMetrics.p0
-            ? bottomPadding + AppMetrics.p16
-            : AppMetrics.p24, // Add extra padding if navigation bar exists
-      ),
-      decoration: BoxDecoration(
-        color: scheme.surface,
-        boxShadow: [
-          BoxShadow(
-            color: scheme.scrim.withValues(alpha: 0.1),
-            blurRadius: 4,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          if (currentStep > 0) ...[
-            Expanded(
-              child: OutlinedButton(
-                onPressed: onPrevious,
-                child: const Text('Kembali'),
-              ),
-            ),
-            const SizedBox(width: 16),
-          ],
-          Expanded(
-            child: ElevatedButton(
-              onPressed: currentStep == totalSteps - 1
-                  ? (canSubmit ? onSubmit : null)
-                  : (isCurrentStepValid ? onNext : null),
-              child: Text(
-                currentStep == 0
-                    ? 'Lanjut Lengkapi Data'
-                    : currentStep == totalSteps - 1
-                    ? 'Bayar Sekarang'
-                    : 'Lanjut',
-              ),
-            ),
-          ),
-        ],
+    final isLast = currentStep == totalSteps - 1;
+    return BottomActionBar(
+      secondary: currentStep > 0
+          ? BottomBarAction(label: 'Kembali', onPressed: onPrevious)
+          : null,
+      primary: BottomBarAction(
+        label: currentStep == 0
+            ? 'Lanjut Lengkapi Data'
+            : isLast
+            ? 'Bayar Sekarang'
+            : 'Lanjut',
+        onPressed: isLast
+            ? (canSubmit ? onSubmit : null)
+            : (isCurrentStepValid ? onNext : null),
       ),
     );
   }

@@ -20,9 +20,8 @@ import (
 //
 // Authority boundary:
 //   - This is the SOLE input to tier evaluation logic
-//   - seller_monthly_metrics is ANALYTICS ONLY and must NOT drive tier decisions
 type SellerReputationState struct {
-	SellerID                uuid.UUID
+	SellerID                uuid.UUID  // Canonical commerce seller identity: users.id (= seller_profiles.user_id). NOT seller_profiles.id.
 	WindowDays              int        // Trailing window length in days (canonical: 90)
 	WindowStart             time.Time  // Evaluation window start: now - WindowDays
 	WindowEnd               time.Time  // Evaluation window end: now (at recompute time)
@@ -54,5 +53,3 @@ func (s *SellerReputationState) FulfillmentRate() float64 {
 func (s *SellerReputationState) HasSufficientActivity() bool {
 	return s.RollingCompletedOrders > 0 && s.RollingRatingCount > 0
 }
-
-

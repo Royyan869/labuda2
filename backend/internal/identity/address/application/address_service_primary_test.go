@@ -75,7 +75,7 @@ func (r *fakeAddressRepository) Delete(_ context.Context, _ db.Tx, id uuid.UUID)
 }
 
 func (r *fakeAddressRepository) GetByUserID(_ context.Context, _ db.Tx, userID uuid.UUID) ([]*addressEntity.Address, error) {
-	return r.activeAddresses(userID, ""), nil
+	return r.activeAddresses(userID), nil
 }
 
 // GetByUserIDForDisplay is the public-display read (no checkout filter);
@@ -85,35 +85,17 @@ func (r *fakeAddressRepository) GetByUserIDForDisplay(ctx context.Context, tx db
 	return r.GetByUserID(ctx, tx, userID)
 }
 
-func (r *fakeAddressRepository) GetByUserIDFiltered(
-	_ context.Context,
-	_ db.Tx,
-	userID uuid.UUID,
-	tag string,
-) ([]*addressEntity.Address, error) {
-	return r.activeAddresses(userID, tag), nil
-}
-
 func (r *fakeAddressRepository) GetPrimaryByUserID(
 	_ context.Context,
 	_ db.Tx,
 	userID uuid.UUID,
 ) (*addressEntity.Address, error) {
-	for _, address := range r.activeAddresses(userID, "") {
+	for _, address := range r.activeAddresses(userID) {
 		if address.IsPrimary {
 			return address, nil
 		}
 	}
 	return nil, nil
-}
-
-func (r *fakeAddressRepository) GetPrimaryByTag(
-	ctx context.Context,
-	tx db.Tx,
-	userID uuid.UUID,
-	_ string,
-) (*addressEntity.Address, error) {
-	return r.GetPrimaryByUserID(ctx, tx, userID)
 }
 
 func (r *fakeAddressRepository) SetPrimary(_ context.Context, _ db.Tx, addressID uuid.UUID) error {
@@ -147,31 +129,16 @@ func (r *fakeAddressRepository) CountByUserID(
 	_ db.Tx,
 	userID uuid.UUID,
 ) (*addressRepoInterface.AddressCount, error) {
-	count := &addressRepoInterface.AddressCount{}
-	for _, address := range r.addresses {
-		if address.UserID != userID || !address.IsAvailableForCheckout {
-			continue
-		}
-		count.Total++
-		if address.HasTag(addressEntity.TagShipping) {
-			count.ShippingCount++
-		}
-		if address.HasTag(addressEntity.TagSender) {
-			count.SenderCount++
-		}
-	}
-	return count, nil
+	var total int64
+	total = int64(len(r.activeAddresses(userID)))
+	return &addressRepoInterface.AddressCount{Total: total}, nil
 }
 
-// activeAddresses narrows a user's active rows to those carrying the tag
-// (an empty tag means "no narrowing").
-func (r *fakeAddressRepository) activeAddresses(userID uuid.UUID, tag string) []*addressEntity.Address {
+// activeAddresses returns a user's active rows.
+func (r *fakeAddressRepository) activeAddresses(userID uuid.UUID) []*addressEntity.Address {
 	addresses := make([]*addressEntity.Address, 0, len(r.addresses))
 	for _, address := range r.addresses {
 		if address.UserID != userID || !address.IsAvailableForCheckout {
-			continue
-		}
-		if tag != "" && !address.HasTag(addressEntity.AddressTag(tag)) {
 			continue
 		}
 		addresses = append(addresses, cloneAddress(address))
@@ -189,8 +156,7 @@ func cloneAddress(address *addressEntity.Address) *addressEntity.Address {
 
 func validAddressInput() CreateAddressInput {
 	return CreateAddressInput{
-		Tags:         []string{string(addressEntity.TagSender)},
-		Nickname:      "Farm",
+		Nickname:      "Rumah",
 		RecipientName: "Koikoi Farm",
 		Phone:         "08123456789",
 		ProvinceID:    "33",
@@ -210,7 +176,6 @@ func validAddressInput() CreateAddressInput {
 func makeAddress(
 	userID uuid.UUID,
 	id uuid.UUID,
-	tags []addressEntity.AddressTag,
 	createdAt time.Time,
 	isPrimary bool,
 	isAvailable bool,
@@ -218,7 +183,6 @@ func makeAddress(
 	return &addressEntity.Address{
 		ID:                     id,
 		UserID:                 userID,
-		Tags:                   tags,
 		RecipientName:          "Koikoi Farm",
 		Phone:                  "08123456789",
 		ProvinceID:             "33",
@@ -239,49 +203,10 @@ func makeAddress(
 	}
 }
 
-// TestCreateAddress_WithIsPrimaryTrue_PersistsAsPrimary verifies the current
-// service contract: when CreateAddress is called with IsPrimary=true the new
-// address is stored as primary (and existing primaries are unset).
-func TestCreateAddress_WithIsPrimaryTrue_PersistsAsPrimary(t *testing.T) {
-	userID := uuid.New()
-	repo := newFakeAddressRepository()
-	svc := &AddressService{repo: repo, log: zap.NewNop()}
-
-	input := validAddressInput()
-	input.UserID = userID
-	input.IsPrimary = true
-
-	address, err := svc.CreateAddress(context.Background(), addressServiceTx{},		CreateAddressInput{
-			UserID:        input.UserID,
-			Tags:          input.Tags,
-			Nickname:      input.Nickname,
-		RecipientName: input.RecipientName,
-		Phone:         input.Phone,
-		ProvinceID:    input.ProvinceID,
-		ProvinceName:  input.ProvinceName,
-		CityID:        input.CityID,
-		CityName:      input.CityName,
-		DistrictID:    input.DistrictID,
-		DistrictName:  input.DistrictName,
-		VillageID:     input.VillageID,
-		VillageName:   input.VillageName,
-		StreetAddress: input.StreetAddress,
-		PostalCode:    input.PostalCode,
-		Notes:         input.Notes,
-		IsPrimary:     input.IsPrimary,
-	})
-
-	require.NoError(t, err)
-	require.NotNil(t, address)
-	require.True(t, address.IsPrimary)
-	require.True(t, repo.addresses[address.ID].IsPrimary)
-}
-
-// TestCreateAddress_FirstAddressBecomesPrimaryWithBothTags locks the A2
-// write law: when the account owns no other active address, the row being
-// created becomes its everything — primary flag plus both role tags — no
-// matter what the caller supplied.
-func TestCreateAddress_FirstAddressBecomesPrimaryWithBothTags(t *testing.T) {
+// TestCreateAddress_FirstAddressBecomesPrimary locks the lifecycle law: when
+// the account owns no other active address, the row being created becomes the
+// primary no matter what the caller supplied.
+func TestCreateAddress_FirstAddressBecomesPrimary(t *testing.T) {
 	userID := uuid.New()
 	repo := newFakeAddressRepository()
 	svc := &AddressService{repo: repo, log: zap.NewNop()}
@@ -290,40 +215,20 @@ func TestCreateAddress_FirstAddressBecomesPrimaryWithBothTags(t *testing.T) {
 	input.UserID = userID
 	input.IsPrimary = false
 
-	address, err := svc.CreateAddress(context.Background(), addressServiceTx{},		CreateAddressInput{
-			UserID:        input.UserID,
-			Tags:          input.Tags,
-			Nickname:      input.Nickname,
-		RecipientName: input.RecipientName,
-		Phone:         input.Phone,
-		ProvinceID:    input.ProvinceID,
-		ProvinceName:  input.ProvinceName,
-		CityID:        input.CityID,
-		CityName:      input.CityName,
-		DistrictID:    input.DistrictID,
-		DistrictName:  input.DistrictName,
-		VillageID:     input.VillageID,
-		VillageName:   input.VillageName,
-		StreetAddress: input.StreetAddress,
-		PostalCode:    input.PostalCode,
-		Notes:         input.Notes,
-		IsPrimary:     input.IsPrimary,
-	})
+	address, err := svc.CreateAddress(context.Background(), addressServiceTx{}, input)
 
 	require.NoError(t, err)
 	require.NotNil(t, address)
 	require.True(t, address.IsPrimary, "the first address of an account is auto-primary")
 	require.True(t, repo.addresses[address.ID].IsPrimary)
-	require.True(t, address.HasTag(addressEntity.TagShipping), "the sole address carries both roles")
-	require.True(t, address.HasTag(addressEntity.TagSender))
 }
 
-// TestCreateAddress_SecondAddressKeepsCallerChoice locks the other half of
-// A2: once the account owns another active address, tags and the primary
-// flag stay exactly what the caller chose — no forcing.
-func TestCreateAddress_SecondAddressKeepsCallerChoice(t *testing.T) {
+// TestCreateAddress_SecondAddressKeepsPrimary locks the other half: once the
+// account owns another active address, the new address does not steal the
+// existing primary.
+func TestCreateAddress_SecondAddressKeepsPrimary(t *testing.T) {
 	userID := uuid.New()
-	existing := makeAddress(userID, uuid.New(), []addressEntity.AddressTag{addressEntity.TagShipping, addressEntity.TagSender}, time.Date(2026, 7, 1, 10, 0, 0, 0, time.UTC), true, true)
+	existing := makeAddress(userID, uuid.New(), time.Date(2026, 7, 1, 10, 0, 0, 0, time.UTC), true, true)
 	repo := newFakeAddressRepository(existing)
 	svc := &AddressService{repo: repo, log: zap.NewNop()}
 
@@ -336,57 +241,50 @@ func TestCreateAddress_SecondAddressKeepsCallerChoice(t *testing.T) {
 	require.NoError(t, err)
 	require.False(t, address.IsPrimary, "a non-first address does not steal the primary")
 	require.False(t, repo.addresses[address.ID].IsPrimary)
-	require.Equal(t, []addressEntity.AddressTag{addressEntity.TagSender}, address.Tags, "tags stay the caller's choice at ≥2")
 	require.True(t, repo.addresses[existing.ID].IsPrimary)
 }
 
-// TestCreateAddress_WithIsPrimaryTrue_UnsetsExistingPrimary verifies the
-// current service contract: creating a new primary unsets the user's existing
-// primary before persisting.
-func TestCreateAddress_WithIsPrimaryTrue_UnsetsExistingPrimary(t *testing.T) {
+// TestSetPrimary_ChangesPrimary locks the explicit "Jadikan alamat utama"
+// lifecycle: the previous primary is unset and the chosen address becomes the
+// only primary.
+func TestSetPrimary_ChangesPrimary(t *testing.T) {
 	userID := uuid.New()
-	existing := makeAddress(userID, uuid.New(), []addressEntity.AddressTag{addressEntity.TagSender}, time.Date(2026, 7, 1, 10, 0, 0, 0, time.UTC), true, true)
-	repo := newFakeAddressRepository(existing)
+	first := makeAddress(userID, uuid.New(), time.Date(2026, 7, 1, 10, 0, 0, 0, time.UTC), true, true)
+	second := makeAddress(userID, uuid.New(), time.Date(2026, 7, 2, 10, 0, 0, 0, time.UTC), false, true)
+	repo := newFakeAddressRepository(first, second)
 	svc := &AddressService{repo: repo, log: zap.NewNop()}
 
-	input := validAddressInput()
-	input.UserID = userID
-	input.IsPrimary = true
-
-	address, err := svc.CreateAddress(context.Background(), addressServiceTx{},		CreateAddressInput{
-			UserID:        input.UserID,
-			Tags:          input.Tags,
-			Nickname:      input.Nickname,
-		RecipientName: input.RecipientName,
-		Phone:         input.Phone,
-		ProvinceID:    input.ProvinceID,
-		ProvinceName:  input.ProvinceName,
-		CityID:        input.CityID,
-		CityName:      input.CityName,
-		DistrictID:    input.DistrictID,
-		DistrictName:  input.DistrictName,
-		VillageID:     input.VillageID,
-		VillageName:   input.VillageName,
-		StreetAddress: input.StreetAddress,
-		PostalCode:    input.PostalCode,
-		Notes:         input.Notes,
-		IsPrimary:     input.IsPrimary,
-	})
+	err := svc.SetPrimary(context.Background(), addressServiceTx{}, second.ID, userID)
 
 	require.NoError(t, err)
-	require.True(t, address.IsPrimary)
-	require.False(t, repo.addresses[existing.ID].IsPrimary, "previous primary must be unset")
-	require.True(t, repo.addresses[address.ID].IsPrimary)
+	require.False(t, repo.addresses[first.ID].IsPrimary)
+	require.True(t, repo.addresses[second.ID].IsPrimary)
 }
 
-// TestDeleteAddress_PromotesOldestRemainingPrimary locks A2 after a delete:
-// deleting the primary must leave exactly one primary behind — the oldest
-// remaining active address inherits it.
+// TestDeleteNonPrimary_PreservesPrimary: deleting a non-primary leaves the
+// current primary untouched.
+func TestDeleteNonPrimary_PreservesPrimary(t *testing.T) {
+	userID := uuid.New()
+	primary := makeAddress(userID, uuid.New(), time.Date(2026, 7, 1, 10, 0, 0, 0, time.UTC), true, true)
+	other := makeAddress(userID, uuid.New(), time.Date(2026, 7, 2, 10, 0, 0, 0, time.UTC), false, true)
+	repo := newFakeAddressRepository(primary, other)
+	svc := &AddressService{repo: repo, log: zap.NewNop()}
+
+	err := svc.DeleteAddress(context.Background(), addressServiceTx{}, other.ID, userID)
+
+	require.NoError(t, err)
+	require.True(t, repo.addresses[primary.ID].IsPrimary)
+	require.False(t, repo.addresses[other.ID].IsAvailableForCheckout)
+}
+
+// TestDeleteAddress_PromotesOldestRemainingPrimary locks the surviving-primary
+// selection rule: deleting the primary promotes the oldest remaining active
+// address (created_at ASC, id ASC).
 func TestDeleteAddress_PromotesOldestRemainingPrimary(t *testing.T) {
 	userID := uuid.New()
-	primary := makeAddress(userID, uuid.New(), []addressEntity.AddressTag{addressEntity.TagSender}, time.Date(2026, 7, 1, 10, 0, 0, 0, time.UTC), true, true)
-	oldestRemaining := makeAddress(userID, uuid.New(), []addressEntity.AddressTag{addressEntity.TagSender}, time.Date(2026, 7, 2, 10, 0, 0, 0, time.UTC), false, true)
-	newestRemaining := makeAddress(userID, uuid.New(), []addressEntity.AddressTag{addressEntity.TagSender}, time.Date(2026, 7, 3, 10, 0, 0, 0, time.UTC), false, true)
+	primary := makeAddress(userID, uuid.New(), time.Date(2026, 7, 1, 10, 0, 0, 0, time.UTC), true, true)
+	oldestRemaining := makeAddress(userID, uuid.New(), time.Date(2026, 7, 2, 10, 0, 0, 0, time.UTC), false, true)
+	newestRemaining := makeAddress(userID, uuid.New(), time.Date(2026, 7, 3, 10, 0, 0, 0, time.UTC), false, true)
 	repo := newFakeAddressRepository(primary, oldestRemaining, newestRemaining)
 	svc := &AddressService{repo: repo, log: zap.NewNop()}
 
@@ -402,7 +300,7 @@ func TestDeleteAddress_PromotesOldestRemainingPrimary(t *testing.T) {
 // a legal state — the reconciler forces nothing onto an empty book.
 func TestDeleteAddress_LastAddressDeletedLeavesBookEmpty(t *testing.T) {
 	userID := uuid.New()
-	only := makeAddress(userID, uuid.New(), []addressEntity.AddressTag{addressEntity.TagShipping, addressEntity.TagSender}, time.Date(2026, 7, 1, 10, 0, 0, 0, time.UTC), true, true)
+	only := makeAddress(userID, uuid.New(), time.Date(2026, 7, 1, 10, 0, 0, 0, time.UTC), true, true)
 	repo := newFakeAddressRepository(only)
 	svc := &AddressService{repo: repo, log: zap.NewNop()}
 
@@ -415,31 +313,12 @@ func TestDeleteAddress_LastAddressDeletedLeavesBookEmpty(t *testing.T) {
 	require.Empty(t, active, "an empty address book is legal")
 }
 
-// TestReconcile_SoleRemainingAddressBecomesEverything: when a delete leaves
-// exactly one active address behind, that address inherits BOTH roles and
-// the primary flag — no matter how it was tagged before.
-func TestReconcile_SoleRemainingAddressBecomesEverything(t *testing.T) {
-	userID := uuid.New()
-	primary := makeAddress(userID, uuid.New(), []addressEntity.AddressTag{addressEntity.TagSender}, time.Date(2026, 7, 1, 10, 0, 0, 0, time.UTC), true, true)
-	shippingOnly := makeAddress(userID, uuid.New(), []addressEntity.AddressTag{addressEntity.TagShipping}, time.Date(2026, 7, 2, 10, 0, 0, 0, time.UTC), false, true)
-	repo := newFakeAddressRepository(primary, shippingOnly)
-	svc := &AddressService{repo: repo, log: zap.NewNop()}
-
-	err := svc.DeleteAddress(context.Background(), addressServiceTx{}, primary.ID, userID)
-
-	require.NoError(t, err)
-	remaining := repo.addresses[shippingOnly.ID]
-	require.True(t, remaining.IsPrimary, "the sole survivor becomes the primary")
-	require.True(t, remaining.HasTag(addressEntity.TagShipping))
-	require.True(t, remaining.HasTag(addressEntity.TagSender), "the sole survivor carries both roles")
-}
-
 // TestReconcile_PromotesOldestWhenNoPrimary: pre-reconciler data with ≥2
 // active addresses and no primary gets exactly one — the oldest row.
 func TestReconcile_PromotesOldestWhenNoPrimary(t *testing.T) {
 	userID := uuid.New()
-	older := makeAddress(userID, uuid.New(), []addressEntity.AddressTag{addressEntity.TagShipping}, time.Date(2026, 7, 1, 10, 0, 0, 0, time.UTC), false, true)
-	newer := makeAddress(userID, uuid.New(), []addressEntity.AddressTag{addressEntity.TagSender}, time.Date(2026, 7, 2, 10, 0, 0, 0, time.UTC), false, true)
+	older := makeAddress(userID, uuid.New(), time.Date(2026, 7, 1, 10, 0, 0, 0, time.UTC), false, true)
+	newer := makeAddress(userID, uuid.New(), time.Date(2026, 7, 2, 10, 0, 0, 0, time.UTC), false, true)
 	repo := newFakeAddressRepository(newer, older)
 	svc := &AddressService{repo: repo, log: zap.NewNop()}
 
@@ -448,52 +327,36 @@ func TestReconcile_PromotesOldestWhenNoPrimary(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, repo.addresses[older.ID].IsPrimary, "oldest active address is promoted")
 	require.False(t, repo.addresses[newer.ID].IsPrimary)
-	// ≥2 keeps the user's tags untouched.
-	require.Equal(t, []addressEntity.AddressTag{addressEntity.TagShipping}, repo.addresses[older.ID].Tags)
 }
 
-// The primary flag is a single account-wide resource. Narrowing the read to
-// the "shipping" tag must NOT invent a second primary: the account's one
-// primary (here, tagged sender) is what comes back.
-func TestGetPrimaryFiltered_UsesCanonicalPrimaryRegardlessOfTag(t *testing.T) {
+// TestGetPrimaryFiltered_ReturnsAccountPrimary locks that the primary read is
+// account-wide with no role narrowing.
+func TestGetPrimaryFiltered_ReturnsAccountPrimary(t *testing.T) {
 	userID := uuid.New()
-	sender := makeAddress(userID, uuid.New(), []addressEntity.AddressTag{addressEntity.TagSender}, time.Date(2026, 7, 1, 10, 0, 0, 0, time.UTC), true, true)
-	shipping := makeAddress(userID, uuid.New(), []addressEntity.AddressTag{addressEntity.TagShipping}, time.Date(2026, 7, 2, 10, 0, 0, 0, time.UTC), false, true)
-	repo := newFakeAddressRepository(sender, shipping)
+	primary := makeAddress(userID, uuid.New(), time.Date(2026, 7, 1, 10, 0, 0, 0, time.UTC), true, true)
+	other := makeAddress(userID, uuid.New(), time.Date(2026, 7, 2, 10, 0, 0, 0, time.UTC), false, true)
+	repo := newFakeAddressRepository(primary, other)
 	svc := &AddressService{repo: repo, log: zap.NewNop()}
 
-	address, err := svc.GetPrimaryFiltered(context.Background(), addressServiceTx{}, userID, string(addressEntity.TagShipping))
+	address, err := svc.GetPrimaryFiltered(context.Background(), addressServiceTx{}, userID)
 
 	require.NoError(t, err)
 	require.NotNil(t, address)
-	require.Equal(t, sender.ID, address.ID)
-	require.Equal(t, []addressEntity.AddressTag{addressEntity.TagSender}, address.Tags)
+	require.Equal(t, primary.ID, address.ID)
 }
 
-// An address may serve both roles at once: tags are a set, not a choice.
-func TestAddress_CarriesShippingAndSenderTagsTogether(t *testing.T) {
+// TestCountByUserID_CountsActiveAddresses proves the count is a plain active
+// address count.
+func TestCountByUserID_CountsActiveAddresses(t *testing.T) {
 	userID := uuid.New()
-	dual := makeAddress(
-		userID,
-		uuid.New(),
-		[]addressEntity.AddressTag{addressEntity.TagShipping, addressEntity.TagSender},
-		time.Date(2026, 7, 1, 10, 0, 0, 0, time.UTC),
-		true,
-		true,
+	repo := newFakeAddressRepository(
+		makeAddress(userID, uuid.New(), time.Date(2026, 7, 1, 10, 0, 0, 0, time.UTC), true, true),
+		makeAddress(userID, uuid.New(), time.Date(2026, 7, 2, 10, 0, 0, 0, time.UTC), false, true),
 	)
+	svc := &AddressService{repo: repo, log: zap.NewNop()}
 
-	require.True(t, dual.HasTag(addressEntity.TagShipping))
-	require.True(t, dual.HasTag(addressEntity.TagSender))
+	count, err := svc.CountByUserID(context.Background(), addressServiceTx{}, userID)
 
-	// Both tag-narrowed reads resolve the same row.
-	repo := newFakeAddressRepository(dual)
-	require.Len(t, repo.activeAddresses(userID, "shipping"), 1)
-	require.Len(t, repo.activeAddresses(userID, "sender"), 1)
-
-	// And both counts pick it up while Total still counts one address.
-	count, err := repo.CountByUserID(context.Background(), addressServiceTx{}, userID)
 	require.NoError(t, err)
-	require.Equal(t, int64(1), count.Total)
-	require.Equal(t, int64(1), count.ShippingCount)
-	require.Equal(t, int64(1), count.SenderCount)
+	require.Equal(t, int64(2), count.Total)
 }

@@ -36,8 +36,8 @@
 //
 // The budget is `literal - everything the ladder decides`, and NOTHING in the
 // source proves any slack exists, so the day a step moves the content silently
-// overflows: that toolbar kept `height: 60` while its label moved
-// `AppType.s10 → s12` and the icon+label column overflowed by 3 px, which only
+// overflows: that toolbar kept `height: 60` while its label moved to a
+// different type step and the icon+label column overflowed by 3 px, which only
 // a widget test could see. The literal never changed; the ladder did. This is
 // NOT the same finding as `contentDimension`: that one says "this literal is not
 // on a ladder", this one says "this literal is a frozen BUDGET holding
@@ -52,8 +52,8 @@
 // WHY A CENSUS AND NOT A HARD GATE YET. A hard gate can only be switched on for
 // a rule the app already obeys. For these five it does not: the real app holds
 // thousands of them (measured by [geometryCensus]). Turning the rule on first
-// would clean nothing; it would only paint the suite red. So the ratchet that
-// tamed `AppType` is applied here: the census counts today's call sites, every
+// would clean nothing; it would only paint the suite red. So the same ratchet
+// doctrine is applied here: the census counts today's call sites, every
 // category is capped so it can only go DOWN, a finished file is locked to zero
 // BY PATH, and the detectors must fire on a planted resurrection before they
 // are allowed to certify anything.
@@ -97,7 +97,12 @@ const geometryCategories = <String>[
 /// The decision is counted PER SITE, not per property: a
 /// `SizedBox(width: 8, height: 8)` is one thing to migrate, not two.
 class GeometryRule {
-  const GeometryRule(this.category, this.hosts, this.property);
+  const GeometryRule(
+    this.category,
+    this.hosts,
+    this.property, {
+    this.sameHostOnly = false,
+  });
 
   final String category;
 
@@ -106,25 +111,37 @@ class GeometryRule {
 
   /// The property spelling inside the host.
   final RegExp property;
+
+  /// When true, a host block is only treated as "nested" — and therefore
+  /// skipped — if it contains another opener of the SAME kind. The icon-size
+  /// rule needs this: `IconButton(iconSize: 48, icon: Icon(...))` carries its
+  /// OWN size decision at its own level, and must not be hidden merely because
+  /// it also wraps an `Icon(`.
+  final bool sameHostOnly;
 }
 
 final RegExp _dimension = RegExp(r'(?<![A-Za-z])(?:width|height):');
 final RegExp _stroke = RegExp(r'(?<![A-Za-z])(?:width|thickness):');
-final RegExp _iconSize = RegExp(r'(?<![A-Za-z])size:');
-final RegExp _lineMetric = RegExp(
-  r'(?<![A-Za-z])(?:letterSpacing|height):',
-);
+// `IconButton(iconSize:)` is an icon-size decision too — without this the
+// property spelling (`iconSize:) slipped past the `size:` detector entirely.
+final RegExp _iconSize = RegExp(r'(?<![A-Za-z])(?:iconSize|size):');
+final RegExp _lineMetric = RegExp(r'(?<![A-Za-z])(?:letterSpacing|height):');
 final RegExp _shadow = RegExp(
   r'(?<![A-Za-z])(?:blurRadius|spreadRadius|offset):',
 );
 
 final List<GeometryRule> _rules = <GeometryRule>[
-  GeometryRule('iconSize', ['Icon(', 'IconThemeData('], _iconSize),
   GeometryRule(
-    'strokeWidth',
-    ['Border.all(', 'BorderSide(', 'Divider('],
-    _stroke,
+    'iconSize',
+    ['Icon(', 'IconThemeData(', 'IconButton('],
+    _iconSize,
+    sameHostOnly: true,
   ),
+  GeometryRule('strokeWidth', [
+    'Border.all(',
+    'BorderSide(',
+    'Divider(',
+  ], _stroke),
   GeometryRule('lineMetric', ['TextStyle('], _lineMetric),
   GeometryRule('shadow', ['BoxShadow('], _shadow),
 ];
@@ -194,7 +211,7 @@ bool _isSizedContent(String block) {
 /// the box promises exactly 60 logical pixels while the ladder decides how tall
 /// the content inside it comes out, so a step move consumes slack the source
 /// never proved existed. That is exactly how the toolbar regression shipped: it
-/// kept `height: 60` while its label moved `AppType.s10 → s12`, and the
+/// kept `height: 60` while its label moved to a different type step, and the
 /// icon+label column overflowed by 3 px — a failure only a widget test could
 /// see. The literal did not change; the ladder did.
 ///
@@ -237,9 +254,9 @@ bool _isSizedContent(String block) {
 /// extent: `AppMetrics` (spacing + padding + roles), `AppIconSize`,
 /// `AppContentSize` (the content/media ladder, added with its policy on
 /// 2026-10-02 — a content-size token inside the box measures what has to fit,
-/// exactly like a spacing step), an `AppType.s*` step and the
-/// `context.typeRoles` view of it. A bare colour, radius or shadow token
-/// inside the box changes no extent and is not counted;
+/// exactly like a spacing step) and the `context.typeRoles` view of the type
+/// ladder. A bare colour, radius or shadow token inside the box changes no
+/// extent and is not counted;
 /// (5) a box nested inside another sizing host IS still read here, unlike the
 /// split rule: the outer box's promise is its own decision, not a duplicate of
 /// the inner box's literal. Measured, the two readings differ by a handful of
@@ -248,7 +265,7 @@ bool _isSizedContent(String block) {
 final RegExp _frozenAxis = RegExp(r'(?<![A-Za-z])(height|width):');
 final RegExp _holdsContent = RegExp(r'(?<![A-Za-z])child(?:ren)?:');
 final RegExp _ladderContent = RegExp(
-  r'AppMetrics\.|AppIconSize\.|AppContentSize\.|AppType\.s[0-9]|typeRoles\.',
+  r'AppMetrics\.|AppIconSize\.|AppContentSize\.|typeRoles\.',
 );
 
 /// True when the block FREEZES an axis with a raw literal while its own
@@ -281,7 +298,7 @@ final RegExp _defaultedLiteral = RegExp(
 );
 
 /// A number in a geometry position. Digits glued to a word (`AppMetrics.p16`,
-/// `AppType.s12`) are token references, not literals.
+/// `AppIconSize.action`) are token references, not literals.
 final RegExp _number = RegExp(r'(?<![\w.])-?[0-9]+(?:\.[0-9]+)?(?![\d.])');
 
 /// The value text starting at [valueStart], walked to its real end.
@@ -320,9 +337,33 @@ bool _hasNestedHost(String block, List<String> hosts) {
     // (`Divider()` is shorter than `Border.all(`), so the search starts at the
     // block's own end rather than past it.
     final from = opener.length < block.length ? opener.length : block.length;
-    if (block.indexOf(opener, from) > 0) return true;
+    var idx = block.indexOf(opener, from);
+    while (idx > 0) {
+      // Only a real constructor counts as a nested host: an identifier tail
+      // (`_getSupportCategoryIcon(`) must not hide the block it sits in.
+      if (_isWidgetHostStart(block, idx)) return true;
+      idx = block.indexOf(opener, idx + 1);
+    }
   }
   return false;
+}
+
+/// True when [index] is the START of a widget/host constructor rather than the
+/// tail of an identifier.
+///
+/// `_getSupportCategoryIcon(` contains the substring `Icon(`; without this
+/// check the census treats the method name as a nested widget, skips the real
+/// `Icon(..., size: 14)` beside it, and reports a false zero.
+bool _isWidgetHostStart(String source, int index) {
+  if (index == 0) return true;
+  final prev = source.codeUnitAt(index - 1);
+  final isIdentifierChar =
+      (prev >= 0x30 && prev <= 0x39) || // 0-9
+      (prev >= 0x41 && prev <= 0x5A) || // A-Z
+      (prev >= 0x61 && prev <= 0x7A) || // a-z
+      prev == 0x5F || // _
+      prev == 0x24; // $
+  return !isIdentifierChar;
 }
 
 /// True when any [property] declared at the block's OWN level carries a step
@@ -368,6 +409,12 @@ Iterable<({int start, String block})> _blocks(
   while (true) {
     final idx = source.indexOf(opener, from);
     if (idx < 0) return;
+    // An identifier tail (`...Icon(`) is not a host: advance one char so a real
+    // `Icon(` later in the source is still found.
+    if (!_isWidgetHostStart(source, idx)) {
+      from = idx + 1;
+      continue;
+    }
     var depth = 0;
     var end = idx + opener.length - 1;
     for (; end < source.length; end++) {
@@ -416,7 +463,10 @@ Map<String, List<String>> geometryViolationsIn(
   for (final rule in _rules) {
     for (final host in rule.hosts) {
       for (final found in _blocks(blanked, host)) {
-        if (_hasNestedHost(found.block, rule.hosts)) continue;
+        final nestedHosts = rule.sameHostOnly
+            ? <String>[host]
+            : rule.hosts;
+        if (_hasNestedHost(found.block, nestedHosts)) continue;
         if (_blockDecidesGeometry(found.block, rule.property)) {
           record(rule.category, found.start);
         }
@@ -467,9 +517,7 @@ List<File> geometryCensusFiles({String dir = 'lib'}) => Directory(dir)
     .listSync(recursive: true)
     .whereType<File>()
     .where((file) => file.path.endsWith('.dart'))
-    .where(
-      (file) => !file.path.replaceAll(r'\', '/').contains('/generated/'),
-    )
+    .where((file) => !file.path.replaceAll(r'\', '/').contains('/generated/'))
     .toList();
 
 /// Category -> call-site count across `lib`.

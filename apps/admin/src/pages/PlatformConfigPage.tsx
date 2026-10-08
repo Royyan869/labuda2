@@ -3,6 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Modal } from '@/components/ui/Modal'
+import { Checkbox } from '@/components/ui/Checkbox'
+import { Input } from '@/components/ui/Input'
 import {
   getPlatformConfigs,
   getSellerSubscriptionConfig,
@@ -12,6 +14,7 @@ import {
 import type { PlatformConfigItem, SellerSubscriptionConfig } from '@/types/platform-config'
 import { useAuth } from '@/hooks/useAuth'
 import { hasCapability } from '@/lib/permissions'
+import { AdminLoadingState, AdminErrorState, AdminEmptyState, PageHeader } from '@/components/common'
 import { RefreshCw, AlertTriangle, Settings, Edit2, X, Check, Lock, ShieldAlert } from 'lucide-react'
 
 // ============================================================================
@@ -146,7 +149,7 @@ function FinancialConfirmModal({
           <dd className="font-mono font-bold text-foreground">{newValue}</dd>
         </dl>
 
-        <p className="text-xs text-muted-foreground">
+        <p className="type-caption">
           This action will be recorded in the audit log.
         </p>
 
@@ -230,28 +233,24 @@ function EditableRow({ item, meta, canEdit, onSaved }: EditableRowProps) {
         <td className="px-6 py-3 font-mono text-xs text-foreground font-medium">{item.key}</td>
         <td className="px-6 py-3" colSpan={2}>
           <div className="flex items-center gap-2">
-            <input
+            <Input
               type="text"
+              size="compact"
+              className="w-40 font-mono"
               value={draft}
               onChange={(e) => { setDraft(e.target.value); setError(null) }}
-              className="border border-info rounded px-2 py-1 text-sm font-mono w-40 focus:outline-none focus:ring-2 focus:ring-info"
               placeholder={meta.hint}
               autoFocus
               onKeyDown={(e) => { if (e.key === 'Enter') requestSave(); if (e.key === 'Escape') cancelEdit() }}
+              error={error ?? undefined}
             />
-            <span className="text-xs text-muted-foreground">{meta.hint}</span>
-            {error && (
-              <span className="text-xs text-destructive flex items-center gap-1">
-                <AlertTriangle className="h-3 w-3" />
-                {error}
-              </span>
-            )}
+            <span className="type-caption">{meta.hint}</span>
           </div>
         </td>
-        <td className="px-6 py-3 font-mono text-xs text-muted-foreground">
+        <td className="px-6 py-3 font-mono type-caption">
           {item.updated_by ? `${item.updated_by.slice(0, 8)}...` : '-'}
         </td>
-        <td className="px-6 py-3 text-xs text-muted-foreground whitespace-nowrap">
+        <td className="px-6 py-3 type-caption whitespace-nowrap">
           {new Date(item.updated_at * 1000).toLocaleString()}
         </td>
         <td className="px-6 py-3">
@@ -281,14 +280,14 @@ function EditableRow({ item, meta, canEdit, onSaved }: EditableRowProps) {
   return (
     <tr className="hover:bg-surface-muted">
       <td className="px-6 py-3 font-mono text-xs text-foreground font-medium">{item.key}</td>
-      <td className="px-6 py-3 font-mono text-sm text-foreground">{displayValue(item)}</td>
+      <td className="px-6 py-3 font-mono type-body">{displayValue(item)}</td>
       <td className="px-6 py-3">
         <Badge variant={valueType === 'numeric' ? 'info' : 'pending'}>{valueType}</Badge>
       </td>
-      <td className="px-6 py-3 font-mono text-xs text-muted-foreground">
+      <td className="px-6 py-3 font-mono type-caption">
         {item.updated_by ? `${item.updated_by.slice(0, 8)}...` : '-'}
       </td>
-      <td className="px-6 py-3 text-xs text-muted-foreground whitespace-nowrap">
+      <td className="px-6 py-3 type-caption whitespace-nowrap">
         {new Date(item.updated_at * 1000).toLocaleString()}
       </td>
       <td className="px-6 py-3">
@@ -298,7 +297,7 @@ function EditableRow({ item, meta, canEdit, onSaved }: EditableRowProps) {
             Edit
           </Button>
         ) : (
-          <span className="text-xs text-muted-foreground italic">
+          <span className="type-caption italic">
             Requires {meta.cap === 'config.update.financial' ? 'financial' : 'general'} cap
           </span>
         )}
@@ -320,14 +319,14 @@ function DangerousRow({ item }: { item: PlatformConfigItem }) {
           </span>
         </span>
       </td>
-      <td className="px-6 py-3 font-mono text-sm text-foreground">{displayValue(item)}</td>
+      <td className="px-6 py-3 font-mono type-body">{displayValue(item)}</td>
       <td className="px-6 py-3">
         <Badge variant={valueType === 'numeric' ? 'info' : 'pending'}>{valueType}</Badge>
       </td>
-      <td className="px-6 py-3 font-mono text-xs text-muted-foreground">
+      <td className="px-6 py-3 font-mono type-caption">
         {item.updated_by ? `${item.updated_by.slice(0, 8)}...` : '-'}
       </td>
-      <td className="px-6 py-3 text-xs text-muted-foreground whitespace-nowrap">
+      <td className="px-6 py-3 type-caption whitespace-nowrap">
         {new Date(item.updated_at * 1000).toLocaleString()}
       </td>
       <td className="px-6 py-3">
@@ -343,18 +342,18 @@ function ReadOnlyRow({ item }: { item: PlatformConfigItem }) {
   return (
     <tr className="hover:bg-surface-muted">
       <td className="px-6 py-3 font-mono text-xs text-foreground font-medium">{item.key}</td>
-      <td className="px-6 py-3 font-mono text-sm text-foreground">{displayValue(item)}</td>
+      <td className="px-6 py-3 font-mono type-body">{displayValue(item)}</td>
       <td className="px-6 py-3">
         <Badge variant={valueType === 'numeric' ? 'info' : 'pending'}>{valueType}</Badge>
       </td>
-      <td className="px-6 py-3 font-mono text-xs text-muted-foreground">
+      <td className="px-6 py-3 font-mono type-caption">
         {item.updated_by ? `${item.updated_by.slice(0, 8)}...` : '-'}
       </td>
-      <td className="px-6 py-3 text-xs text-muted-foreground whitespace-nowrap">
+      <td className="px-6 py-3 type-caption whitespace-nowrap">
         {new Date(item.updated_at * 1000).toLocaleString()}
       </td>
       <td className="px-6 py-3">
-        <span className="text-xs text-muted-foreground">-</span>
+        <span className="type-caption">-</span>
       </td>
     </tr>
   )
@@ -479,10 +478,13 @@ function SellerSubscriptionCard({ onRefreshParent, canEdit }: SellerSubscription
       </CardHeader>
       <CardContent>
         {loading && !config && (
-          <div className="space-y-3">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="animate-pulse h-4 bg-border rounded w-48" />
-            ))}
+          <div className="space-y-3" role="status" aria-busy="true">
+            <span className="sr-only">Loading seller subscription config…</span>
+            <div className="space-y-3" aria-hidden="true">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="animate-pulse h-4 bg-border rounded w-48" />
+              ))}
+            </div>
           </div>
         )}
 
@@ -514,10 +516,10 @@ function SellerSubscriptionCard({ onRefreshParent, canEdit }: SellerSubscription
             </dd>
 
             <dt className="font-medium text-muted-foreground">Config ID</dt>
-            <dd className="font-mono text-xs text-muted-foreground">{config.id}</dd>
+            <dd className="font-mono type-caption">{config.id}</dd>
 
             <dt className="font-medium text-muted-foreground">Created At</dt>
-            <dd className="text-xs text-muted-foreground">{new Date(config.created_at).toLocaleString()}</dd>
+            <dd className="type-caption">{new Date(config.created_at).toLocaleString()}</dd>
           </dl>
         )}
 
@@ -525,58 +527,48 @@ function SellerSubscriptionCard({ onRefreshParent, canEdit }: SellerSubscription
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-foreground mb-1">
-                  Yearly Fee (IDR)
-                </label>
-                <input
+                <Input
                   type="number"
+                  label="Yearly Fee (IDR)"
+                  className="font-mono"
                   min={1}
                   value={feeIdr}
                   onChange={(e) => setFeeIdr(e.target.value)}
-                  className="w-full border border-border rounded px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-info"
                   placeholder="e.g. 70000"
                 />
                 {feeIdr && !isNaN(parseInt(feeIdr)) && (
-                  <p className="mt-1 text-xs text-muted-foreground">
+                  <p className="mt-1 type-caption">
                     = {formatIdr(parseInt(feeIdr))}
                   </p>
                 )}
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1">Duration (days)</label>
-                <input
-                  type="number"
-                  min={1}
-                  value={durationDays}
-                  onChange={(e) => setDurationDays(e.target.value)}
-                  className="w-full border border-border rounded px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-info"
-                  placeholder="e.g. 365"
-                />
-              </div>
+              <Input
+                type="number"
+                label="Duration (days)"
+                className="font-mono"
+                min={1}
+                value={durationDays}
+                onChange={(e) => setDurationDays(e.target.value)}
+                placeholder="e.g. 365"
+              />
 
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1">Renewal Reminder (days)</label>
-                <input
-                  type="number"
-                  min={0}
-                  value={renewalReminderDays}
-                  onChange={(e) => setRenewalReminderDays(e.target.value)}
-                  className="w-full border border-border rounded px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-info"
-                  placeholder="e.g. 7"
-                />
-              </div>
+              <Input
+                type="number"
+                label="Renewal Reminder (days)"
+                className="font-mono"
+                min={0}
+                value={renewalReminderDays}
+                onChange={(e) => setRenewalReminderDays(e.target.value)}
+                placeholder="e.g. 7"
+              />
 
               <div className="flex items-end pb-2">
-                <label className="flex items-center gap-2 text-sm font-medium text-foreground cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={isEnabled}
-                    onChange={(e) => setIsEnabled(e.target.checked)}
-                    className="h-4 w-4 rounded border-border text-info focus:ring-info"
-                  />
-                  Enabled
-                </label>
+                <Checkbox
+                  label="Enabled"
+                  checked={isEnabled}
+                  onChange={(e) => setIsEnabled(e.target.checked)}
+                />
               </div>
             </div>
 
@@ -669,62 +661,48 @@ export function PlatformConfigPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Platform Config</h1>
-          <p className="text-muted-foreground mt-1">
+      <PageHeader
+        title="Platform Config"
+        description={
+          <>
             Runtime configuration.
             {canEditFinancial && ' Financial keys editable.'}
             {canEditGeneral && !canEditFinancial && ' General keys editable.'}
             {!canEditFinancial && !canEditGeneral && ' View only.'}
-          </p>
-        </div>
-        <Button variant="ghost" size="sm" onClick={fetchConfigs} disabled={loading}>
-          <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
-        </Button>
-      </div>
+          </>
+        }
+        actions={
+          <Button variant="ghost" size="sm" onClick={fetchConfigs} disabled={loading}>
+            <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+        }
+      />
 
       {/* Seller Subscription Config — editable card */}
       <SellerSubscriptionCard onRefreshParent={fetchConfigs} canEdit={canEditFinancial} />
 
       {/* Error State */}
       {error && (
-        <Card>
-          <CardContent className="p-8 text-center">
-            <AlertTriangle className="h-10 w-10 text-destructive mx-auto mb-3" />
-            <p className="text-foreground font-medium">Failed to load config</p>
-            <p className="text-muted-foreground text-sm mt-1">{error}</p>
-            <Button variant="secondary" size="sm" onClick={fetchConfigs} className="mt-4">
-              Retry
-            </Button>
-          </CardContent>
-        </Card>
+        <AdminErrorState
+          title="Failed to load config"
+          message={error}
+          onRetry={fetchConfigs}
+        />
       )}
 
       {/* Loading State */}
-      {loading && configs.length === 0 && !error && (
-        <Card>
-          <CardContent className="p-8">
-            <div className="space-y-4">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="animate-pulse flex items-center gap-4">
-                  <div className="h-4 bg-border rounded w-40" />
-                  <div className="h-4 bg-border rounded flex-1" />
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {loading && configs.length === 0 && !error && <AdminLoadingState />}
 
       {/* Empty State */}
       {!loading && !error && configs.length === 0 && (
         <Card>
-          <CardContent className="p-12 text-center">
-            <Settings className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h2 className="text-lg font-semibold text-foreground">No Config Values</h2>
-            <p className="text-muted-foreground mt-1">No platform configuration values are set.</p>
+          <CardContent>
+            <AdminEmptyState
+              icon={Settings}
+              title="No Config Values"
+              description="No platform configuration values are set."
+            />
           </CardContent>
         </Card>
       )}
@@ -748,7 +726,7 @@ export function PlatformConfigPage() {
                     <th className="px-6 py-3 text-left font-medium text-muted-foreground">Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[hsl(var(--border))]">
+                <tbody className="divide-y divide-border">
                   {grouped[category].map((item) => {
                     if (DANGEROUS_KEYS.has(item.key)) {
                       return <DangerousRow key={item.key} item={item} />

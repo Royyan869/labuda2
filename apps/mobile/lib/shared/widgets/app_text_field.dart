@@ -1,24 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:labuda/core/src/theme/app_theme.dart';
 
-/// Reusable Text Field dengan styling konsisten sesuai LABUDA design
+/// THE generic text-field producer — the ONE wrapper for ordinary data-entry
+/// text fields (owner decision 2026-10-05, Input/Form convergence).
 ///
-/// Features:
-/// - Adaptive theming (dark/light)
-/// - Consistent styling dengan auth fields
-/// - Built-in validation
-/// - Password field support dengan show/hide
-/// - Prefix/suffix icon support
-/// - Prefix/suffix text support (e.g., "Rp " for currency)
-class AppTextField extends StatefulWidget {
+/// It owns only the CONTENT of a field (label/hint/prefix/suffix/error slot)
+/// and forwards interaction state; the border/fill/geometry/state contract
+/// lives in `inputDecorationTheme` (AppTheme) — one form-field authority. It
+/// does NOT own password behaviour: password fields are the auth domain's
+/// `AuthPasswordField` / `AuthConfirmPasswordField`.
+class AppTextField extends StatelessWidget {
   final TextEditingController? controller;
   final String? labelText;
   final String? hintText;
   final String? Function(String?)? validator;
   final TextInputType keyboardType;
-  final bool obscureText;
-  final bool isPassword;
   final IconData? prefixIcon;
   final Widget? suffixIcon;
   final String? prefixText;
@@ -28,8 +24,33 @@ class AppTextField extends StatefulWidget {
   final int? maxLines;
   final int? maxLength;
   final bool enabled;
+
+  /// Shows the current value but blocks editing WITHOUT the disabled look.
+  /// Business read-only (e.g. an immutable identity) uses this, not `enabled`.
+  final bool readOnly;
+
   final TextCapitalization textCapitalization;
   final List<TextInputFormatter>? inputFormatters;
+  final TextInputAction? textInputAction;
+
+  /// Initial text for a controller-less field. Live requirement: the
+  /// create-auction/create-for-sale numeric fields seed values this way.
+  /// Never pass together with [controller] (Flutter asserts on that pair).
+  final String? initialValue;
+
+  /// Server/operation error text shown through the canonical decoration.
+  /// Live requirement: `withdraw_dialog` surfaces its withdrawal failure on
+  /// the amount field; the auth screens surface backend rejections here.
+  final String? errorText;
+
+  /// Focus the field when it is built. Live requirement: the negotiation
+  /// offer sheet opens with its money field focused so the buyer can type
+  /// the offer immediately.
+  final bool autofocus;
+
+  /// Helper line rendered under the field. Live requirement: the
+  /// for-sale stock field explains the unique-vs-stocked distinction.
+  final String? helperText;
 
   const AppTextField({
     super.key,
@@ -38,8 +59,6 @@ class AppTextField extends StatefulWidget {
     this.hintText,
     this.validator,
     this.keyboardType = TextInputType.text,
-    this.obscureText = false,
-    this.isPassword = false,
     this.prefixIcon,
     this.suffixIcon,
     this.prefixText,
@@ -49,11 +68,17 @@ class AppTextField extends StatefulWidget {
     this.maxLines = 1,
     this.maxLength,
     this.enabled = true,
+    this.readOnly = false,
     this.textCapitalization = TextCapitalization.none,
     this.inputFormatters,
+    this.textInputAction,
+    this.initialValue,
+    this.errorText,
+    this.autofocus = false,
+    this.helperText,
   });
 
-  /// Factory untuk email field
+  /// Email field with common defaults.
   const AppTextField.email({
     super.key,
     this.controller,
@@ -63,9 +88,10 @@ class AppTextField extends StatefulWidget {
     this.focusNode,
     this.onChanged,
     this.enabled = true,
+    this.readOnly = false,
+    this.errorText,
+    this.textInputAction,
   }) : keyboardType = TextInputType.emailAddress,
-       obscureText = false,
-       isPassword = false,
        prefixIcon = Icons.email_outlined,
        suffixIcon = null,
        prefixText = null,
@@ -73,138 +99,69 @@ class AppTextField extends StatefulWidget {
        maxLines = 1,
        maxLength = null,
        textCapitalization = TextCapitalization.none,
-       inputFormatters = null;
+       inputFormatters = null,
+       initialValue = null,
+       autofocus = false,
+       helperText = null;
 
-  /// Factory untuk password field
-  const AppTextField.password({
-    super.key,
-    this.controller,
-    this.labelText = 'Password',
-    this.hintText = 'Masukkan password',
-    this.validator,
-    this.focusNode,
-    this.onChanged,
-    this.enabled = true,
-  }) : keyboardType = TextInputType.text,
-       obscureText = false, // Will be handled internally
-       isPassword = true,
-       prefixIcon = Icons.lock_outline,
-       suffixIcon = null, // Will be handled internally
-       prefixText = null,
-       suffixText = null,
-       maxLines = 1,
-       maxLength = null,
-       textCapitalization = TextCapitalization.none,
-       inputFormatters = null;
-
-  @override
-  State<AppTextField> createState() => _AppTextFieldState();
-}
-
-class _AppTextFieldState extends State<AppTextField> {
-  late bool _obscureText;
-
-  @override
-  void initState() {
-    super.initState();
-    _obscureText = widget.isPassword;
-  }
-
-  /// Build label widget with red asterisk if needed
+  /// Build label widget with red asterisk if needed.
   Widget? _buildLabel(BuildContext context) {
-    if (widget.labelText == null) return null;
+    if (labelText == null) return null;
+    final text = labelText!;
+    if (!text.endsWith(' *')) return null;
 
-    final labelText = widget.labelText!;
-
-    // Check if label ends with " *"
-    if (labelText.endsWith(' *')) {
-      final textWithoutAsterisk = labelText.substring(0, labelText.length - 2);
-      final scheme = Theme.of(context).colorScheme;
-      return RichText(
-        text: TextSpan(
-          text: textWithoutAsterisk,
-          style: TextStyle(color: scheme.onSurface, fontSize: AppType.s16),
-          children: [
-            TextSpan(
-              text: ' *',
-              style: TextStyle(color: scheme.error),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return null; // Use labelText parameter instead
+    final scheme = Theme.of(context).colorScheme;
+    return RichText(
+      text: TextSpan(
+        text: text.substring(0, text.length - 2),
+        style: Theme.of(
+          context,
+        ).textTheme.bodyLarge?.copyWith(color: scheme.onSurface),
+        children: [
+          TextSpan(text: ' *', style: TextStyle(color: scheme.error)),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     final customLabel = _buildLabel(context);
 
+    // The border/fill/geometry/state contract lives in
+    // `inputDecorationTheme` (AppTheme) — one form-field authority. This
+    // widget only states the content it owns (label/hint/icons/error slot);
+    // restating borders, fill, hint or icon colours here would fork it.
     return TextFormField(
-      controller: widget.controller,
-      focusNode: widget.focusNode,
-      keyboardType: widget.keyboardType,
-      obscureText: _obscureText,
-      maxLines: widget.maxLines,
-      maxLength: widget.maxLength,
-      enabled: widget.enabled,
-      onChanged: widget.onChanged,
-      textCapitalization: widget.textCapitalization,
-      inputFormatters: widget.inputFormatters,
+      controller: controller,
+      focusNode: focusNode,
+      autofocus: autofocus,
+      initialValue: initialValue,
+      keyboardType: keyboardType,
+      maxLines: maxLines,
+      maxLength: maxLength,
+      enabled: enabled,
+      readOnly: readOnly,
+      onChanged: onChanged,
+      textCapitalization: textCapitalization,
+      inputFormatters: inputFormatters,
+      textInputAction: textInputAction,
       decoration: InputDecoration(
         label: customLabel,
-        labelText: customLabel == null ? widget.labelText : null,
-        hintText: widget.hintText,
+        labelText: customLabel == null ? labelText : null,
+        hintText: hintText,
+        errorText: errorText,
+        helperText: helperText,
         floatingLabelBehavior: FloatingLabelBehavior.always,
-        hintStyle: TextStyle(color: scheme.onSurfaceVariant),
-        alignLabelWithHint: widget.maxLines != null && widget.maxLines! > 1,
-        prefixIcon: widget.maxLines != null && widget.maxLines! > 1
+        alignLabelWithHint: maxLines != null && maxLines! > 1,
+        prefixIcon: maxLines != null && maxLines! > 1
             ? null
-            : (widget.prefixIcon != null
-                  ? Icon(
-                      widget.prefixIcon,
-                      color: scheme.onSurfaceVariant,
-                    )
-                  : null),
-        prefixText: widget.prefixText,
-        suffixText: widget.suffixText,
-        suffixIcon: widget.isPassword
-            ? IconButton(
-                onPressed: () {
-                  setState(() {
-                    _obscureText = !_obscureText;
-                  });
-                },
-                icon: Icon(
-                  _obscureText ? Icons.visibility : Icons.visibility_off,
-                  color: scheme.onSurfaceVariant,
-                ),
-              )
-            : widget.suffixIcon,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppShape.r12),
-          borderSide: BorderSide(color: scheme.outlineVariant),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppShape.r12),
-          borderSide: BorderSide(color: scheme.outlineVariant),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppShape.r12),
-          borderSide: BorderSide(color: scheme.primary, width: 2),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppShape.r12),
-          borderSide: BorderSide(color: scheme.error),
-        ),
-        focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppShape.r12),
-          borderSide: BorderSide(color: scheme.error, width: 2),
-        ),
+            : (prefixIcon != null ? Icon(prefixIcon) : null),
+        prefixText: prefixText,
+        suffixText: suffixText,
+        suffixIcon: suffixIcon,
       ),
-      validator: widget.validator,
+      validator: validator,
     );
   }
 }

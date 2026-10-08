@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:labuda/core/core.dart';
+import 'package:labuda/shared/shared.dart';
 
 /// Info section untuk Profile V2
 ///
@@ -76,8 +77,7 @@ class ProfileInfo extends StatelessWidget {
         Flexible(
           child: Text(
             name,
-            style: TextStyle(
-              fontSize: AppType.s20,
+            style: context.typeRoles.titleSection.copyWith(
               fontWeight: FontWeight.bold,
               color: scheme.onSurface,
             ),
@@ -87,7 +87,11 @@ class ProfileInfo extends StatelessWidget {
         ),
         if (isVerified) ...[
           const SizedBox(width: 4),
-          Icon(Icons.verified, size: AppIconSize.action, color: context.statusColors.info),
+          Icon(
+            Icons.verified,
+            size: AppIconSize.action,
+            color: context.statusColors.info,
+          ),
         ],
       ],
     );
@@ -96,13 +100,14 @@ class ProfileInfo extends StatelessWidget {
   Widget _buildFarmNameBadge(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8, vertical: AppMetrics.p4),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppMetrics.p8,
+        vertical: AppMetrics.p4,
+      ),
       decoration: BoxDecoration(
         color: scheme.surfaceContainerHigh,
         borderRadius: BorderRadius.circular(AppShape.r12),
-        border: Border.all(
-          color: scheme.outlineVariant,
-        ),
+        border: Border.all(color: scheme.outlineVariant),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -116,8 +121,7 @@ class ProfileInfo extends StatelessWidget {
           Flexible(
             child: Text(
               farmName!,
-              style: TextStyle(
-                fontSize: AppType.s12,
+              style: context.typeRoles.labelMicro.copyWith(
                 fontWeight: FontWeight.w500,
                 color: scheme.onSurface,
               ),
@@ -134,8 +138,7 @@ class ProfileInfo extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return Text(
       username.startsWith('@') ? username : '@$username',
-      style: TextStyle(
-        fontSize: AppType.s14,
+      style: context.typeRoles.bodyDense.copyWith(
         color: scheme.onSurfaceVariant,
       ),
     );
@@ -143,27 +146,16 @@ class ProfileInfo extends StatelessWidget {
 
   Widget _buildLocation(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Row(
+    return AddressLocationView(
+      location: location!,
+      mode: AddressLocationMode.compact,
+      icon: Icons.location_on_outlined,
+      iconSize: AppIconSize.inlineGlyph,
+      spacing: 4,
       mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(
-          Icons.location_on_outlined,
-          size: AppIconSize.inlineGlyph,
-          color: scheme.onSurfaceVariant,
-        ),
-        const SizedBox(width: 4),
-        Flexible(
-          child: Text(
-            location!,
-            style: TextStyle(
-              fontSize: AppType.s14,
-              color: scheme.onSurfaceVariant,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-      ],
+      style: context.typeRoles.bodyDense.copyWith(
+        color: scheme.onSurfaceVariant,
+      ),
     );
   }
 
@@ -171,8 +163,7 @@ class ProfileInfo extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return Text(
       bio!,
-      style: TextStyle(
-        fontSize: AppType.s14,
+      style: context.typeRoles.bodyDense.copyWith(
         color: scheme.onSurface.withValues(alpha: 0.9),
         height: 1.4,
       ),
@@ -207,8 +198,7 @@ class ProfileInfoCompact extends StatelessWidget {
         children: [
           Text(
             name,
-            style: TextStyle(
-              fontSize: AppType.s16,
+            style: context.typeRoles.titleCompact.copyWith(
               fontWeight: FontWeight.w600,
               color: scheme.onSurface,
             ),
@@ -217,8 +207,7 @@ class ProfileInfoCompact extends StatelessWidget {
           ),
           Text(
             username.startsWith('@') ? username : '@$username',
-            style: TextStyle(
-              fontSize: AppType.s12,
+            style: context.typeRoles.labelMicro.copyWith(
               color: scheme.onSurfaceVariant,
             ),
           ),

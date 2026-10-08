@@ -186,8 +186,8 @@ func (s *OrderCompletionService) reactivateShippingQuoteIfEligible(
 }
 
 // SetCommerceViolationRepo wires the canonical commerce violation/restriction
-// repository used when an auction order expires unpaid and its auction returns
-// to DRAFT. Called post-construction from serverboot.
+// repository used when an auction order expires unpaid and its auction
+// auto-reschedules. Called post-construction from serverboot.
 func (s *OrderCompletionService) SetCommerceViolationRepo(repo commercegov.Repository) {
 	s.commerceViolationRepo = repo
 }
@@ -370,7 +370,7 @@ func (s *OrderCompletionService) settleAuctionOnPaymentSuccess(
 		return fmt.Errorf("failed to lock auction for payment settlement: %w", err)
 	}
 	if auction.Status != auctionEntity.StatusWaitingSettlement {
-		// Already ended (buy-now) or returned to draft via a concurrent expiry —
+		// Already ended (buy-now) or auto-rescheduled by a concurrent expiry —
 		// nothing to settle.
 		return nil
 	}
@@ -1701,14 +1701,14 @@ func (s *OrderCompletionService) ReleaseFromDispute(
 // CANONICAL: escrow = total_before_coins_amount = PD+S. P+S is NOT canonical when D>0.
 //
 // CANONICAL FINANCIAL FLOW:
-// 1. Validate PD + S == escrow_amount where PD = total_before_coins - S, escrow = total_before_coins
-// 2. Record the admin's buyer-wins decision on the order's refund process row
-//    with the item-price amount (RefundService.AdminResolveRefundDecision),
-//    which also dispatches the gateway refund on that same row.
-// 3. The escrow primitive (PartialRefundGatewayEscrow) is invoked from
-//    RefundService.HandleGatewayRefundAck after the canonical ledger reversal
-//    commits — escrow stays holding until the gateway ack arrives.
-// 4. Update order status to partially_refunded
+//  1. Validate PD + S == escrow_amount where PD = total_before_coins - S, escrow = total_before_coins
+//  2. Record the admin's buyer-wins decision on the order's refund process row
+//     with the item-price amount (RefundService.AdminResolveRefundDecision),
+//     which also dispatches the gateway refund on that same row.
+//  3. The escrow primitive (PartialRefundGatewayEscrow) is invoked from
+//     RefundService.HandleGatewayRefundAck after the canonical ledger reversal
+//     commits — escrow stays holding until the gateway ack arrives.
+//  4. Update order status to partially_refunded
 //
 // CRITICAL: This method is idempotent and atomic.
 func (s *OrderCompletionService) PartialRefundFromDispute(
@@ -2012,15 +2012,15 @@ func (s *OrderCompletionService) restoreFixedPriceForSaleStock(
 // bound until payment succeeds. When the bound order is cancelled/expired
 // unpaid, the settlement has FAILED: release the binding, record the buyer's
 // commerce violation (buyer_bnr), apply/extend the buyer restriction, and
-// return the auction to DRAFT so the seller can relist the same auction
-// record. All in the caller's transaction.
+// AUTO-RESCHEDULE the auction (scheduled, start=now) so the same auction
+// record re-enters the market on a fresh run. All in the caller's transaction.
 //
 // Buy-now flow: the auction was ended at order creation; cancelling/expiring
 // the unpaid order only releases the binding (the auction stays ended —
 // a settled-by-buy-now auction never reopens).
 //
-// Idempotent: an auction with OrderID already nil or already returned to
-// DRAFT is a no-op.
+// Idempotent: an auction with OrderID already nil or already rescheduled by a
+// prior partial attempt is a no-op.
 func (s *OrderCompletionService) releaseAuctionOrderBinding(
 	ctx context.Context,
 	tx db.Tx,
@@ -2044,9 +2044,9 @@ func (s *OrderCompletionService) releaseAuctionOrderBinding(
 
 	if auction.Status == auctionEntity.StatusWaitingSettlement {
 		// Bid-win settlement failure: record the buyer violation + restriction
-		// and return the auction to DRAFT.
+		// and auto-reschedule the auction (start=now).
 		if s.commerceViolationRepo == nil {
-			return fmt.Errorf("commerce violation repo not wired; cannot return auction %s to draft safely", auction.ID)
+			return fmt.Errorf("commerce violation repo not wired; cannot auto-reschedule auction %s safely", auction.ID)
 		}
 		if _, _, err := commercegov.RecordViolationAndRestrict(
 			ctx, tx, s.commerceViolationRepo, commercegov.RecordInput{
@@ -2063,8 +2063,8 @@ func (s *OrderCompletionService) releaseAuctionOrderBinding(
 		); err != nil {
 			return fmt.Errorf("failed to record buyer violation for expired auction order: %w", err)
 		}
-		if err := auction.TransitionToDraftOnSettlementFailure(); err != nil {
-			return fmt.Errorf("failed to return auction to draft on payment failure: %w", err)
+		if err := auction.RescheduleAfterSettlementFailure(); err != nil {
+			return fmt.Errorf("failed to auto-reschedule auction on payment failure: %w", err)
 		}
 		// CROSS-LIFECYCLE ISOLATION: invalidate all ACTIVE shipping quotes
 		// for this product so no stale quote from the previous settlement

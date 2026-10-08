@@ -19,7 +19,6 @@ import (
 	shippingApp "github.com/labuda/backend/internal/commerce/shipping/application"
 	shippingRepo "github.com/labuda/backend/internal/commerce/shipping/infrastructure/repository"
 	shippingquoteRepo "github.com/labuda/backend/internal/commerce/shipping/quote/repository"
-	addressEntity "github.com/labuda/backend/internal/identity/address/entity"
 	addressRepoInterface "github.com/labuda/backend/internal/identity/address/repository"
 	"github.com/labuda/backend/internal/identity/auth"
 	"github.com/labuda/backend/internal/platform/events"
@@ -28,10 +27,10 @@ import (
 	"github.com/labuda/backend/pkg/money"
 )
 
-// ErrFarmAddressNotConfigured is returned when a for_sale is published without
-// a valid farm/sender address. The seller must set farm_address_id to an
-// address they own that carries the "sender" tag before publishing.
-var ErrFarmAddressNotConfigured = errors.New("FARM_ADDRESS_NOT_CONFIGURED: for_sale requires a valid sender address before publishing")
+// ErrSellerOriginNotConfigured is returned when a seller publishes without a
+// primary address. Every product's origin is the account's primary address, so
+// a seller with no address yet cannot publish.
+var ErrSellerOriginNotConfigured = errors.New("SELLER_ORIGIN_NOT_CONFIGURED: seller requires a primary address before publishing")
 
 // ForSaleService handles for_sale business operations.
 //
@@ -123,9 +122,10 @@ func (s *ForSaleService) requireSellerNotRestricted(ctx context.Context, tx db.T
 	return nil
 }
 
-// ensureWorkspaceAuthorityTx enforces workspace authority for private/draft creation:
+// ensureWorkspaceAuthorityTx enforces workspace authority for create:
 // active account (not suspended/banned/removed) + verified email + seller profile exists.
-// Uses tx for TOCTOU safety; does NOT require active subscription.
+// Uses tx for TOCTOU safety; does NOT require active subscription (that is the
+// market-authority gate, checked separately inside the same transaction).
 func (s *ForSaleService) ensureWorkspaceAuthorityTx(ctx context.Context, tx db.Tx, sellerID uuid.UUID) error {
 	if sellerID == uuid.Nil {
 		return auth.ErrInvalidCaller
@@ -214,8 +214,6 @@ type CreateForSaleInput struct {
 	PricePerUnit       money.Money
 	QuantityAvailable  int
 	NegotiationEnabled bool
-	// Shipping preferences
-	FarmAddressID *uuid.UUID
 	// Shipping selection (OWNER CANONICAL: create ships WITH its options —
 	// validated ownership + ≥1 active coverage, then linked to the product
 	// inside the same transaction. Create without options is rejected.)
@@ -231,12 +229,12 @@ type CreateForSaleInput struct {
 // AUTHORITY MODEL (OWNER CANONICAL):
 // - MARKET AUTHORITY: HasActiveSellerCapability (active + not deleted +
 //   profile + active subscription interval) is REQUIRED at create. An
-//   expired seller cannot create at all.
-// - SHIPPING: at least one shipping option (validated for ownership +
+//   expired seller cannot create at all.//   - SHIPPING: at least one shipping option (validated for ownership +
 //   active coverage) must be selected and is linked to the product in the
 //   same transaction. Farm/sender address must be valid.
-// Draft exists ONLY as a system-imposed demotion state when a subscription
-// lapses — never as a seller-chosen creation outcome.
+//
+// There is no draft state: a created for_sale is active and public
+// immediately, so the seller never observes a workspace stage.
 func (s *ForSaleService) Create(
 	ctx context.Context,
 	tx db.Tx,
@@ -256,12 +254,8 @@ func (s *ForSaleService) Create(
 
 	// MARKET AUTHORITY CHECK: canonical create requires market eligibility.
 	// Expired sellers are rejected up-front — they cannot create at all.
-	hasCapability, err := s.roleChecker.HasActiveSellerCapability(ctx, input.SellerID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to verify market authority: %w", err)
-	}
-	if !hasCapability {
-		return nil, auth.ErrMarketAuthorityRequired
+	if err := s.CheckMarketAuthorityForForSale(ctx, input.SellerID); err != nil {
+		return nil, err
 	}
 
 	// SHIPPING SELECTION: canonical create ships WITH its options. Reject
@@ -284,18 +278,14 @@ func (s *ForSaleService) Create(
 		input.PricePerUnit,
 		input.QuantityAvailable,
 		input.NegotiationEnabled,
-		entity.ForSaleVisibilityPublic,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("create for_sale entity failed: %w", err)
 	}
 
-	// CREATE = PUBLISH: transition draft → active immediately. The entity
-	// still owns the transition (and the ACTIVE=PUBLIC hard rule); the seller
-	// never observes a draft stage during create.
-	if err := for_sale.Publish(); err != nil {
-		return nil, fmt.Errorf("publish-on-create failed: %w", err)
-	}
+	// CREATE = PUBLISH: the constructor already produced an ACTIVE + PUBLIC
+	// for_sale (there is no draft stage to transition from), so the seller
+	// never observes a draft during create.
 
 	// Product handling — Product is the sole persistence authority for content.
 	// Explicit split: mint a new Product or reuse an existing one, then attach ForSale.
@@ -335,7 +325,6 @@ func (s *ForSaleService) Create(
 			Breeder:         input.Breeder,
 			Bloodline:       input.Bloodline,
 			Certificates:    certificates,
-			FarmAddressID:   input.FarmAddressID,
 			PreparationTime: string(input.PreparationTime),
 			SellingSurface:  productEntity.SellingSurfaceForSale,
 		}
@@ -361,7 +350,7 @@ func (s *ForSaleService) Create(
 	if err := s.EnsureShippingConfigured(ctx, tx, for_sale.ProductID); err != nil {
 		return nil, err
 	}
-	if err := s.EnsureFarmAddressValid(ctx, tx, for_sale); err != nil {
+	if err := s.EnsureSellerOriginValid(ctx, tx, for_sale.SellerID); err != nil {
 		return nil, err
 	}
 
@@ -389,8 +378,9 @@ func (s *ForSaleService) GetByID(
 	return s.repo.GetByID(ctx, tx, id)
 }
 
-// CheckMarketAuthorityForForSale checks if the seller has authority to publish for_sales.
-// This is used by the Publish method since ACTIVE = PUBLIC ONLY (all active for_sales are public).
+// CheckMarketAuthorityForForSale checks if the seller has authority to hold a
+// market-visible for_sale. Used at the create boundary — ACTIVE = PUBLIC ONLY
+// (all for_sales are public from the moment they exist).
 //
 // Returns nil if seller has authority, ErrMarketAuthorityRequired otherwise.
 func (s *ForSaleService) CheckMarketAuthorityForForSale(ctx context.Context, sellerID uuid.UUID) error {
@@ -414,9 +404,9 @@ func (s *ForSaleService) GetForUpdate(
 	return s.repo.GetForUpdate(ctx, tx, id)
 }
 
-// UpdateSellerInput contains the seller-controlled content fields that may be
-// mutated only while the ForSale is in draft. All fields are optional — only
-// non-nil fields are applied. Quantity is intentionally absent (stock-only path).
+// UpdateSellerInput carries the canonical seller-edit vocabulary for a
+// for_sale (content + price/stock-adjacent fields). Quantity is intentionally
+// absent (stock-only path). No field is mutable anymore — see UpdateSeller.
 type UpdateSellerInput struct {
 	ForSaleID          uuid.UUID
 	SellerID           uuid.UUID
@@ -436,85 +426,35 @@ type UpdateSellerInput struct {
 }
 
 // UpdateSeller is the canonical seller-edit authority for ForSale.
-// It enforces draft-only mutability inside a single transaction with row lock.
 //
-// Flow: GetForUpdate → ownership → status==draft → commerce restriction →
-// apply Product + ForSale mutations → persist both → commit.
+// CREATE = PUBLISH: there is no draft state, so every persisted for_sale is
+// live and seller content edits are rejected (live immutability invariant).
+// The canonical lock + ownership + commerce-restriction checks still run
+// first, so the caller always receives the most specific domain error.
+//
+// Flow: GetForUpdate → ownership → commerce restriction → LIVE_IMMUTABLE.
 func (s *ForSaleService) UpdateSeller(
 	ctx context.Context,
 	tx db.Tx,
 	input UpdateSellerInput,
 ) (*entity.ForSale, error) {
-	// Acquire canonical lock on for_sale + joined product.
+	// Acquire canonical lock on for_sale.
 	forSale, err := s.repo.GetForUpdate(ctx, tx, input.ForSaleID)
 	if err != nil {
 		return nil, err
-	}
-	if forSale.Product == nil {
-		return nil, fmt.Errorf("for_sale product not loaded")
 	}
 	// Ownership
 	if forSale.SellerID != input.SellerID {
 		return nil, fmt.Errorf("forbidden: you can only update your own for_sales")
 	}
-	// Lifecycle: seller edit allowed IFF status == draft
-	if forSale.Status != entity.ForSaleStatusDraft {
-		return nil, fmt.Errorf("%w: status=%s", entity.ErrLiveImmutable, forSale.Status)
-	}
 	// Commerce restriction inside same tx
 	if err := s.requireSellerNotRestricted(ctx, tx, input.SellerID); err != nil {
 		return nil, err
 	}
-	// Canonical Product validation (title 1-200, desc 5000, certs, prep)
-	patch := productEntity.ProductContentPatch{
-		Title:           input.Title,
-		Description:     input.Description,
-		MediaURLs:       input.Media,
-		Variety:         input.Variety,
-		SizeCM:          input.SizeCM,
-		AgeMonths:       input.AgeMonths,
-		Gender:          input.Gender,
-		Breeder:         input.Breeder,
-		Bloodline:       input.Bloodline,
-		Certificates:    input.Certificates,
-		PreparationTime: input.PreparationTime,
-	}
-	if err := patch.Validate(); err != nil {
-		return nil, err
-	}
-	// Apply Product-owned mutations via canonical helper
-	product := forSale.Product
-	patch.ApplyTo(product)
-	// Apply ForSale-owned mutations
-	if input.Price != nil {
-		forSale.PricePerUnit = money.New(*input.Price)
-	}
-	if input.NegotiationEnabled != nil {
-		forSale.NegotiationEnabled = *input.NegotiationEnabled
-	}
-	// Persist both authorities atomically — product first, then surface.
-	product.UpdatedAt = time.Now()
-	if err := s.productRepo.Update(ctx, tx, product); err != nil {
-		return nil, fmt.Errorf("update product failed: %w", err)
-	}
-	forSale.UpdatedAt = time.Now()
-	// Use narrow persistence that does not re-validate status transition (already done).
-	// Call repo.Update directly to avoid double restriction/transition checks that
-	// would interfere with draft-only guarantee. Emit event via repo.Update-like path.
-	if err := s.repo.Update(ctx, tx, forSale); err != nil {
-		return nil, err
-	}
-	if s.outboxRepo != nil {
-		if err := s.outboxRepo.InsertEvent(
-			ctx, tx,
-			events.EventForSaleUpdated,
-			forSale.ID,
-			buildForSaleEventPayload(forSale),
-		); err != nil {
-			return nil, fmt.Errorf("failed to insert for_sale.updated event: %w", err)
-		}
-	}
-	return forSale, nil
+	// LIVE IMMUTABILITY: a for_sale is born published (create = publish), so
+	// no status is an editable state. This is the single rejection authority
+	// for PUT /for-sale/:id content edits.
+	return nil, fmt.Errorf("%w: status=%s", entity.ErrLiveImmutable, forSale.Status)
 }
 
 // Withdraw withdraws a for_sale from sale.
@@ -632,35 +572,23 @@ func (s *ForSaleService) EnsureShippingConfigured(
 	return shippingApp.ErrShippingNotConfigured
 }
 
-// EnsureFarmAddressValid validates that the for_sale's Product has a valid farm/sender
-// address configured before publish. Checks:
-//   - Product.FarmAddressID is set (not nil)
-//   - The referenced address exists
-//   - The address belongs to the seller (ownership)
-//   - The address carries the "sender" tag
+// EnsureSellerOriginValid validates that the seller has a primary address
+// configured before publish. Every product's origin is the account's primary
+// address, so a seller with no address cannot publish.
 //
-// Returns ErrFarmAddressNotConfigured (wrapped) so handlers can branch via
-// errors.Is and surface the FARM_ADDRESS_NOT_CONFIGURED error code.
-func (s *ForSaleService) EnsureFarmAddressValid(
+// Returns ErrSellerOriginNotConfigured (wrapped) so handlers can branch via
+// errors.Is and surface the SELLER_ORIGIN_NOT_CONFIGURED error code.
+func (s *ForSaleService) EnsureSellerOriginValid(
 	ctx context.Context,
 	tx db.Tx,
-	for_sale *entity.ForSale,
+	sellerID uuid.UUID,
 ) error {
-	if for_sale.Product == nil || for_sale.Product.FarmAddressID == nil {
-		return fmt.Errorf("farm_address_id is required: %w", ErrFarmAddressNotConfigured)
-	}
-
-	address, err := s.addressRepo.GetByID(ctx, tx, *for_sale.Product.FarmAddressID)
+	address, err := s.addressRepo.GetPrimaryByUserID(ctx, tx, sellerID)
 	if err != nil {
-		return fmt.Errorf("farm address not found: %w", ErrFarmAddressNotConfigured)
+		return fmt.Errorf("failed to resolve seller primary address: %w", ErrSellerOriginNotConfigured)
 	}
-
-	if address.UserID != for_sale.SellerID {
-		return fmt.Errorf("farm address does not belong to seller: %w", ErrFarmAddressNotConfigured)
-	}
-
-	if !address.HasTag(addressEntity.TagSender) {
-		return fmt.Errorf("farm address must carry the 'sender' tag: %w", ErrFarmAddressNotConfigured)
+	if address == nil {
+		return fmt.Errorf("seller has no primary address: %w", ErrSellerOriginNotConfigured)
 	}
 
 	return nil
@@ -668,8 +596,8 @@ func (s *ForSaleService) EnsureFarmAddressValid(
 
 // PublicOriginLine returns the buyer-facing origin summary ("City, Province")
 // for a for_sale detail read. The rule itself lives once in
-// commerceshared.PublicListingOrigin (Product.FarmAddressID, seller fallback,
-// city+province only) so the for_sale and auction surfaces cannot drift.
+// commerceshared.PublicListingOrigin (account primary address, city+province
+// only) so the for_sale and auction surfaces cannot drift.
 func (s *ForSaleService) PublicOriginLine(
 	ctx context.Context,
 	tx db.Tx,
@@ -679,80 +607,6 @@ func (s *ForSaleService) PublicOriginLine(
 		return ""
 	}
 	return commerceshared.PublicListingOrigin(ctx, tx, s.addressRepo, for_sale.Product)
-}
-
-// Publish publishes a for_sale from draft to active (market-visible).
-// This is the EXPLICIT publish boundary - for_sales do NOT auto-publish.
-//
-// HARD RULE: ACTIVE = PUBLIC ONLY
-// Publishing automatically sets visibility to public (enforced by entity.Publish()).
-// Market authority check is always required since active for_sales are always public.
-func (s *ForSaleService) Publish(
-	ctx context.Context,
-	tx db.Tx,
-	for_saleID uuid.UUID,
-	callerID uuid.UUID,
-) error {
-	// Lock the for_sale for update
-	for_sale, err := s.repo.GetForUpdate(ctx, tx, for_saleID)
-	if err != nil {
-		return err
-	}
-
-	// Ownership check
-	if for_sale.SellerID != callerID {
-		return fmt.Errorf("for_sale does not belong to caller")
-	}
-
-	// COMMERCE RESTRICTION: Reject restricted seller at publish boundary.
-	// Checked inside the same transaction as the status mutation (TOCTOU prevention).
-	if err := s.requireSellerNotRestricted(ctx, tx, callerID); err != nil {
-		return err
-	}
-
-	// HARD RULE: Market authority check is ALWAYS required for publish
-	// because ACTIVE = PUBLIC ONLY (no such thing as private active for_sale)
-	if err := s.CheckMarketAuthorityForForSale(ctx, callerID); err != nil {
-		return err
-	}
-
-	// Shipping options check: product must have at least one shipping option configured.
-	// Returns the typed shippingApp.ErrShippingNotConfigured so handlers can branch
-	// via errors.Is and surface the SHIPPING_NOT_CONFIGURED error code.
-	if err := s.EnsureShippingConfigured(ctx, tx, for_sale.ProductID); err != nil {
-		return err
-	}
-
-	// Farm address check: for_sale must have a valid sender address configured.
-	// Returns the typed ErrFarmAddressNotConfigured so handlers can branch
-	// via errors.Is and surface the FARM_ADDRESS_NOT_CONFIGURED error code.
-	if err := s.EnsureFarmAddressValid(ctx, tx, for_sale); err != nil {
-		return err
-	}
-
-	// Transition to published (automatically sets visibility to public)
-	if err := for_sale.Publish(); err != nil {
-		return err
-	}
-
-	// Persist the status change
-	if err := s.repo.UpdateStatus(ctx, tx, for_sale); err != nil {
-		return err
-	}
-
-	// Emit for_sale.published event
-	if s.outboxRepo != nil {
-		if err := s.outboxRepo.InsertEvent(
-			ctx, tx,
-			events.EventForSalePublished,
-			for_sale.ID,
-			buildForSaleEventPayload(for_sale),
-		); err != nil {
-			return fmt.Errorf("failed to insert for_sale.published event: %w", err)
-		}
-	}
-
-	return nil
 }
 
 // GetBySellerIDPaginated retrieves for_sales for a seller with SQL-based pagination.

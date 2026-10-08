@@ -29,8 +29,7 @@ class AppliesToSection extends StatelessWidget {
         children: [
           Text(
             'Diskon Berlaku Untuk',
-            style: TextStyle(
-              fontSize: AppType.s16,
+            style: context.typeRoles.titleSection.copyWith(
               fontWeight: FontWeight.bold,
               color: Theme.of(context).colorScheme.onSurface,
             ),
@@ -39,10 +38,9 @@ class AppliesToSection extends StatelessWidget {
 
           DropdownButtonFormField<DiscountAppliesTo>(
             initialValue: appliesTo,
-            decoration: const InputDecoration(
-              labelText: 'Tipe Penjualan',
-              border: OutlineInputBorder(),
-            ),
+            // Border/fill come from `inputDecorationTheme` (AppTheme) — the
+            // one form-field authority.
+            decoration: const InputDecoration(labelText: 'Tipe Penjualan'),
             items: const [
               DropdownMenuItem(
                 value: DiscountAppliesTo.forSale,
@@ -66,8 +64,7 @@ class AppliesToSection extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             'Diskon berlaku untuk semua item pada tipe penjualan yang dipilih.',
-            style: TextStyle(
-              fontSize: AppType.s12,
+            style: context.typeRoles.bodyDense.copyWith(
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),

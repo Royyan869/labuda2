@@ -226,7 +226,7 @@ class _CreateContentScreenState extends ConsumerState<CreateContentScreen> {
 
       AppSnackBar.showSuccess(
         context,
-        'Starting upload... Check progress on home',
+        'Memulai unggahan... Lihat progres di beranda',
       );
       ref.read(navigationHandlerProvider).navigateToHome();
 

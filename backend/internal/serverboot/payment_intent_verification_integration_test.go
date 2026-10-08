@@ -23,9 +23,11 @@ import (
 	orderentity "github.com/labuda/backend/internal/commerce/order/entity"
 	orderrepo "github.com/labuda/backend/internal/commerce/order/infrastructure/repository"
 	paymentmethodrepo "github.com/labuda/backend/internal/commerce/paymentmethod/infrastructure/repository"
+	billingrepo "github.com/labuda/backend/internal/finance/billing/infrastructure/repository"
 	coinsentity "github.com/labuda/backend/internal/incentive/coins/entity"
 	coinsinfrepo "github.com/labuda/backend/internal/incentive/coins/infrastructure/repository"
 	coinsrepo "github.com/labuda/backend/internal/incentive/coins/repository"
+	paymentapp "github.com/labuda/backend/internal/integration/payment/application"
 	paymentrepo "github.com/labuda/backend/internal/integration/payment/infrastructure/repository"
 	"github.com/labuda/backend/internal/platform/logger"
 	pricingtokenentity "github.com/labuda/backend/internal/pricing/token/entity"
@@ -48,6 +50,7 @@ type paymentIntentHarness struct {
 	appDB               *database.DB
 	orderRepo           *orderrepo.OrderRepository
 	paymentRepo         *paymentrepo.PaymentRepository
+	billingRepo         *billingrepo.BillingRepository
 	coinsRepo           coinsrepo.CoinsRepository
 	paymentMethodRepo   *paymentmethodrepo.PaymentMethodRepository
 	pricingTokenService interface {
@@ -179,7 +182,7 @@ func (r *testPricingTokenSnapshotReader) GetSnapshot(ctx context.Context, _ db.T
 	return pricingToken, err
 }
 
-func newPaymentIntentHarness(t *testing.T, balance int64, gateway MidtransGateway, coinsOverride coinsrepo.CoinsRepository) *paymentIntentHarness {
+func newPaymentIntentHarness(t *testing.T, balance int64, gateway paymentapp.SnapGateway, coinsOverride coinsrepo.CoinsRepository) *paymentIntentHarness {
 	t.Helper()
 
 	ctx := context.Background()
@@ -188,6 +191,7 @@ func newPaymentIntentHarness(t *testing.T, balance int64, gateway MidtransGatewa
 
 	orderRepo := orderrepo.NewOrderRepository()
 	paymentRepo := paymentrepo.NewPaymentRepository()
+	billingRepo := billingrepo.NewBillingRepository()
 	paymentMethodRepo := paymentmethodrepo.NewPaymentMethodRepository()
 	coinsRepo := coinsrepo.CoinsRepository(coinsinfrepo.NewCoinsRepository())
 	if coinsOverride != nil {
@@ -211,9 +215,10 @@ func newPaymentIntentHarness(t *testing.T, balance int64, gateway MidtransGatewa
 		paymentRepo:         paymentRepo,
 		coinsRepo:           coinsRepo,
 		orderRepo:           orderRepo,
+		billingRepo:         billingRepo,
 		paymentMethodRepo:   paymentMethodRepo,
 		pricingTokenService: &testPricingTokenSnapshotReader{tdb: tdb},
-		midtransClient:      gateway,
+		snapService:         paymentapp.NewSnapService(gateway, ""),
 		log:                 log,
 	}
 
@@ -236,6 +241,7 @@ func newPaymentIntentHarness(t *testing.T, balance int64, gateway MidtransGatewa
 		appDB:               appDB,
 		orderRepo:           orderRepo,
 		paymentRepo:         paymentRepo,
+		billingRepo:         billingRepo,
 		coinsRepo:           coinsRepo,
 		paymentMethodRepo:   paymentMethodRepo,
 		pricingTokenService: &testPricingTokenSnapshotReader{tdb: tdb},
@@ -593,10 +599,10 @@ func createPaymentIntentOrderWithToken(
 		"JNE Reguler",
 		"reguler",
 		"1_3_days", // preparationTimeSnapshot
-		nil,         // shippingSource
-		nil,         // shippingQuoteID
-		nil,         // shippingQuotePrice
-		&tokenID,    // pricingTokenID
+		nil,        // shippingSource
+		nil,        // shippingQuoteID
+		nil,        // shippingQuotePrice
+		&tokenID,   // pricingTokenID
 		time.Now().Add(1*time.Hour),
 	)
 
@@ -644,7 +650,7 @@ func TestCreatePayment_BasicFlowAndPreviewAuthority(t *testing.T) {
 		return nil
 	}
 	successGateway.response = &midtrans.SnapResponse{Token: "tok-success", RedirectURL: "https://midtrans.example/redirect"}
-	h.handler.midtransClient = successGateway
+	h.handler.snapService = paymentapp.NewSnapService(successGateway, "")
 
 	resp := h.runCreatePayment(t, paymentOrderID, "bank_transfer", 18000)
 	require.NoError(t, err)
@@ -700,7 +706,7 @@ func TestCreatePayment_BasicFlowAndPreviewAuthority(t *testing.T) {
 		return nil
 	}
 	zeroGateway.response = &midtrans.SnapResponse{Token: "tok-zero", RedirectURL: "https://midtrans.example/zero"}
-	h.handler.midtransClient = zeroGateway
+	h.handler.snapService = paymentapp.NewSnapService(zeroGateway, "")
 	zeroOrderID := h.createOrder(t)
 	zeroResp := h.runCreatePayment(t, zeroOrderID, "bank_transfer", 0)
 	require.Equal(t, http.StatusOK, zeroResp.Code)
@@ -778,7 +784,7 @@ func TestCreatePayment_ShippingPositivePricingTokenCoinCap(t *testing.T) {
 		return nil
 	}
 	createGateway.response = &midtrans.SnapResponse{Token: "tok-shipping", RedirectURL: "https://midtrans.example/shipping"}
-	h.handler.midtransClient = createGateway
+	h.handler.snapService = paymentapp.NewSnapService(createGateway, "")
 
 	resp := h.runCreatePayment(t, orderID, "bank_transfer", 18000)
 	require.Equal(t, http.StatusOK, resp.Code)
@@ -844,7 +850,7 @@ func TestCreatePayment_ActiveIntentReuseConflictAndPercentagePreview(t *testing.
 		return nil
 	}
 	gateway.response = &midtrans.SnapResponse{Token: "tok-qris", RedirectURL: "https://midtrans.example/qris"}
-	h.handler.midtransClient = gateway
+	h.handler.snapService = paymentapp.NewSnapService(gateway, "")
 
 	firstResp := h.runCreatePayment(t, orderID, "qris", 10000)
 	require.Equal(t, http.StatusOK, firstResp.Code)
@@ -930,7 +936,7 @@ func TestCreatePayment_DefinitiveValidationRefusalCompensationAndUncertainOutcom
 			Body:       `{"error_messages":["transaction_details.gross_amount is not equal to the sum of item_details"]}`,
 		},
 	}
-	h.handler.midtransClient = definiteGateway
+	h.handler.snapService = paymentapp.NewSnapService(definiteGateway, "")
 	definiteOrderID := h.createOrder(t)
 	definiteResp := h.runCreatePayment(t, definiteOrderID, "bank_transfer", 18000)
 	require.Equal(t, http.StatusInternalServerError, definiteResp.Code)
@@ -955,7 +961,7 @@ func TestCreatePayment_DefinitiveValidationRefusalCompensationAndUncertainOutcom
 		tdb: h.tdb,
 		err: errors.New("network timeout"),
 	}
-	h.handler.midtransClient = uncertainGateway
+	h.handler.snapService = paymentapp.NewSnapService(uncertainGateway, "")
 	uncertainOrderID := h.createOrder(t)
 	uncertainResp := h.runCreatePayment(t, uncertainOrderID, "bank_transfer", 18000)
 	require.Equal(t, http.StatusInternalServerError, uncertainResp.Code)

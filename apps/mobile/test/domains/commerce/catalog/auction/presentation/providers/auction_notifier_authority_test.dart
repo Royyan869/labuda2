@@ -8,6 +8,7 @@ import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/commerce/catalog/auction/data/auction_providers.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/domain.dart';
 import 'package:labuda/domains/commerce/catalog/auction/presentation/providers/auction_notifier.dart';
+import 'package:labuda/domains/commerce/catalog/auction/presentation/providers/seller_auctions_pager.dart';
 import 'package:labuda/domains/user/identity/authentication/domain/entities/account_status.dart';
 import 'package:labuda/domains/user/identity/authentication/domain/entities/seller_tier.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
@@ -46,6 +47,7 @@ class _FakeAuctionRepository implements AuctionRepository {
   String? lastSellerFarmName;
   int? lastActiveLimit;
   int? lastUserLimit;
+  int userAuctionsCalls = 0;
   Completer<Result<Auction>>? pendingCreate;
 
   @override
@@ -148,6 +150,7 @@ class _FakeAuctionRepository implements AuctionRepository {
     String? lastAuctionId,
   }) async {
     lastUserLimit = limit;
+    userAuctionsCalls += 1;
     return Result.success(<Auction>[]);
   }
 
@@ -175,7 +178,9 @@ class _FakeAuctionRepository implements AuctionRepository {
   Future<Result<String>> claimAuction({
     required String auctionId,
     required String addressId,
-    required String shippingSetupId,
+    String? shippingSetupId,
+    String? shippingQuoteId,
+    String? chatId,
     String? discountCode,
     bool useCoins = false,
   }) async => throw UnimplementedError();
@@ -299,6 +304,53 @@ void main() {
       expect(
         container.read(auctionNotifierProvider).successMessage,
         'Lelang berhasil dibuat',
+      );
+    });
+
+    test('createAuction refreshes the My Auctions pager after success', () async {
+      final repo = _FakeAuctionRepository();
+      final controller = _FakeAuthController(
+        AuthState.authenticated(
+          _seller(
+            id: 'seller-1',
+            username: 'seller-a',
+            hasSellerProfile: true,
+            hasMarketAuthority: true,
+          ),
+          emailVerified: true,
+        ),
+      );
+      final container = _container(
+        authController: controller,
+        auctionRepository: repo,
+      );
+      addTearDown(container.dispose);
+
+      // Keep the owner-inventory pager alive exactly as SellerAuctionsScreen
+      // does while it is mounted.
+      final subscription = container.listen(
+        sellerAuctionsPagerProvider,
+        (_, _) {},
+        fireImmediately: true,
+      );
+      addTearDown(subscription.close);
+      await pumpEventQueue();
+
+      final callsAfterInitialLoad = repo.userAuctionsCalls;
+      expect(callsAfterInitialLoad, greaterThanOrEqualTo(1));
+
+      final future = _submitCreateAuction(container);
+      repo.completeCreateSuccess(
+        sellerId: 'seller-1',
+        sellerUsername: 'seller-a',
+      );
+      expect(await future, isTrue);
+      await pumpEventQueue();
+
+      expect(
+        repo.userAuctionsCalls,
+        greaterThan(callsAfterInitialLoad),
+        reason: 'the pager must refetch after a successful create',
       );
     });
 

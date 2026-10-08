@@ -55,8 +55,7 @@ class _BasicInfoSectionState extends State<BasicInfoSection> {
         children: [
           Text(
             'Basic Information',
-            style: TextStyle(
-              fontSize: core.AppType.s16,
+            style: context.typeRoles.titleSection.copyWith(
               fontWeight: FontWeight.bold,
               color: Theme.of(context).colorScheme.onSurface,
             ),
@@ -123,8 +122,7 @@ class _BasicInfoSectionState extends State<BasicInfoSection> {
                   Expanded(
                     child: Text(
                       'Discount code cannot be changed after creation',
-                      style: TextStyle(
-                        fontSize: core.AppType.s12,
+                      style: context.typeRoles.bodyDense.copyWith(
                         color: context.statusColors.info,
                       ),
                     ),

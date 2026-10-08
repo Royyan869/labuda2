@@ -77,35 +77,19 @@ type ProfileDTO struct {
 	FollowersCount int `json:"followers_count"`
 	FollowingCount int `json:"following_count"`
 
-	// Social media handles
+	// Social media handles (optional; presence = visible)
 	SocialMedia *SocialMediaDTO `json:"social_media,omitempty"`
-
-	// Privacy settings
-	Privacy *PrivacySettingsDTO `json:"privacy,omitempty"`
 
 	IsVerified *bool `json:"is_verified,omitempty"`
 }
 
-// SocialMediaDTO represents social media handles
+// SocialMediaDTO represents the optional social media handles a user exposes
+// publicly. Presence of a value is the visibility authority.
 type SocialMediaDTO struct {
 	InstagramHandle *string `json:"instagram_handle,omitempty"`
 	FacebookHandle  *string `json:"facebook_handle,omitempty"`
 	TwitterHandle   *string `json:"twitter_handle,omitempty"`
 	TiktokHandle    *string `json:"tiktok_handle,omitempty"`
-	YoutubeHandle   *string `json:"youtube_handle,omitempty"`
-	WebsiteURL      *string `json:"website_url,omitempty"`
-}
-
-// PrivacySettingsDTO represents privacy settings
-type PrivacySettingsDTO struct {
-	Visibility           string `json:"visibility"`
-	ShowPhoneNumber      bool   `json:"show_phone_number"`
-	ShowEmail            bool   `json:"show_email"`
-	ShowLocation         bool   `json:"show_location"`
-	AllowMessagesFrom    string `json:"allow_messages_from"`
-	AllowTagging         bool   `json:"allow_tagging"`
-	ShowActivityStatus   bool   `json:"show_activity_status"`
-	ShowTransactionCount bool   `json:"show_transaction_count"`
 }
 
 // SyncUserResponse represents the response from /users/sync endpoint
@@ -151,6 +135,10 @@ type PublicUserResponse struct {
 	Roles          []string             `json:"roles"`
 	CreatedAt      time.Time            `json:"created_at"`
 	Identity       *publiccard.UserCard `json:"identity"`
+
+	// Optional social media handles the target exposes publicly. Omitted when
+	// the target has none (presence = visible).
+	SocialMedia *SocialMediaDTO `json:"social_media,omitempty"`
 
 	// SellerTier is the public seller reputation badge.
 	// Emitted ONLY when ENABLE_PUBLIC_SELLER_TIER_PROFILE=true AND both

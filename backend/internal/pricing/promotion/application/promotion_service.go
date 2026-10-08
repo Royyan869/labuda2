@@ -21,17 +21,11 @@ type PromotionService struct {
 	log  *zap.Logger
 }
 
-// NewPromotionService creates the external product promotion service. The
-// operability checker parameter is retained for wiring compatibility; target
+// NewPromotionService creates the external product promotion service. Target
 // operability lives in the shared OperabilityChecker used by the contract
 // domain.
-func NewPromotionService(checker interface{}) *PromotionService {
+func NewPromotionService() *PromotionService {
 	return &PromotionService{log: zap.NewNop()}
-}
-
-// NewPromotionServiceWithRepo creates with injected repo.
-func NewPromotionServiceWithRepo(repo repository.ExternalProductRepository, db *db.DB) *PromotionService {
-	return &PromotionService{repo: repo, db: db, log: zap.NewNop()}
 }
 
 // SetRepo wires the external product repository.

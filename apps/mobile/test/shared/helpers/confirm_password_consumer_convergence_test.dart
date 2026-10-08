@@ -32,15 +32,17 @@ void main() {
       expect(source.contains('_passwordController?.removeListener'), isTrue);
     });
 
-    test('canonical match is trimmed equality consistent with the submit gate', () {
-      // Stage 4D: the indicator and the submit gates (sign_up _isFormValid,
-      // security validator) must agree. Both compare TRIMMED text, so trailing
-      // whitespace cannot make the indicator say "match" while the gate stays
-      // disabled (or vice versa). The widget trims the comparison values only —
-      // no lowercase/normalize transforms.
-      expect(source.contains("password == confirmPassword"), isTrue);
+    test('canonical match delegates to the one CanonicalPasswordMatch rule', () {
+      // Stage 4D / owner decision 2026-10-05: the indicator and the submit
+      // gates must agree. The rule now lives ONCE in CanonicalPasswordMatch;
+      // the widget consumes it and no longer re-implements the comparison.
+      expect(source.contains('CanonicalPasswordMatch.matches'), isTrue);
+      expect(
+        source.contains('password == confirmPassword'),
+        isFalse,
+        reason: 'the confirm rule must not be re-implemented in the widget',
+      );
       expect(source.contains('toLowerCase()'), isFalse);
-      expect(source.contains('.trim()'), isTrue);
     });
 
     test('realtime rebuild is listener-driven, not onChanged-dependent', () {
@@ -62,9 +64,14 @@ void main() {
       expect(source.contains('passwordController: _passwordController'), isTrue);
     });
 
-    test('submit gate still checks passwordsMatch via canonical equality', () {
+    test('submit gate uses the canonical match rule', () {
       expect(source.contains('passwordsMatch'), isTrue);
-      expect(source.contains('_confirmPasswordController.text.trim() =='), isTrue);
+      expect(source.contains('CanonicalPasswordMatch.matches('), isTrue);
+      expect(
+        source.contains('_confirmPasswordController.text.trim() =='),
+        isFalse,
+        reason: 'the sign-up gate must consume the one confirm rule',
+      );
     });
   });
 

@@ -12,12 +12,12 @@ import (
 
 // SCOPE 3 — for_sale status boundary.
 //
-// The raw internal state machine value ("draft", "withdrawn", …)
+// The raw internal state machine value ("withdrawn", …)
 // must never cross the public wire as `status`. The public wire vocabulary
-// is Status.PublicLifecycle() — {active, sold, unavailable; draft coarsens
+// is Status.PublicLifecycle() — {active, sold, unavailable; withdrawn coarsens
 // defensively to "unavailable"}. Honest-labeling decision: `sold` IS public
 // business truth (buyers may see an item was sold); the reason an item was
-// pulled (draft/withdrawn) stays coarsened. The exact internal state crosses
+// pulled (withdrawn) stays coarsened. The exact internal state crosses
 // the wire ONLY as `seller_status`, and only for the owning seller; every
 // other viewer — including anonymous — reads null there. Internal transition
 // timestamps (sold_at / withdrawn_at) are likewise owner-scoped.
@@ -44,18 +44,17 @@ func decodeForSaleBoundary(t *testing.T, resp map[string]interface{}) map[string
 }
 
 // TestForSalePublicStatusVocabulary_StatusNeverCarriesRawInternalState locks
-// the public `status` vocabulary across all four internal states, for the
-// anonymous viewer. Draft MUST coarsen (defensively) and MUST NOT appear in
-// the emitted value set; sold is honest public business truth; withdrawn
-// stays coarsened (reason withheld).
+// the public `status` vocabulary across every internal state, for the
+// anonymous viewer. Internal values MUST NOT appear in the emitted value set;
+// sold is honest public business truth; withdrawn stays coarsened (reason
+// withheld).
 func TestForSalePublicStatusVocabulary_StatusNeverCarriesRawInternalState(t *testing.T) {
 	cases := []struct {
 		internal entity.ForSaleStatus
 		wantPub  string
 	}{
-		{entity.ForSaleStatusDraft, "unavailable"}, // conservative defensive mapping — never "draft"
 		{entity.ForSaleStatusActive, "active"},
-		{entity.ForSaleStatusSold, "sold"}, // honest buyer-facing outcome
+		{entity.ForSaleStatusSold, "sold"},             // honest buyer-facing outcome
 		{entity.ForSaleStatusWithdrawn, "unavailable"}, // withdrawal reason stays private
 	}
 

@@ -75,15 +75,15 @@ func (r *profileMediaSellerRepo) UpdateTierTx(context.Context, db.Tx, uuid.UUID,
 	return nil
 }
 
-func (r *profileMediaSellerRepo) InsertMonthlyMetricTx(context.Context, db.Tx, *sellerEntity.SellerMonthlyMetric) error {
-	return nil
-}
-
 func (r *profileMediaSellerRepo) UpsertReputationStateTx(context.Context, db.Tx, *sellerEntity.SellerReputationState) error {
 	return nil
 }
 
 func (r *profileMediaSellerRepo) GetReputationStateForUpdate(context.Context, db.Tx, uuid.UUID) (*sellerEntity.SellerReputationState, error) {
+	return nil, nil
+}
+
+func (r *profileMediaSellerRepo) GetReputationState(context.Context, db.Tx, uuid.UUID) (*sellerEntity.SellerReputationState, error) {
 	return nil, nil
 }
 

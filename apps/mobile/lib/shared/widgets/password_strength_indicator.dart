@@ -18,10 +18,7 @@ import 'package:labuda/shared/helpers/canonical_password_strength.dart';
 class PasswordStrengthIndicator extends StatelessWidget {
   final String password;
 
-  const PasswordStrengthIndicator({
-    super.key,
-    required this.password,
-  });
+  const PasswordStrengthIndicator({super.key, required this.password});
 
   @override
   Widget build(BuildContext context) {
@@ -54,8 +51,7 @@ class PasswordStrengthIndicator extends StatelessWidget {
             const SizedBox(width: 8),
             Text(
               level.label,
-              style: TextStyle(
-                fontSize: AppType.s12,
+              style: context.typeRoles.labelMicro.copyWith(
                 fontWeight: FontWeight.w500,
                 color: color,
               ),

@@ -12,6 +12,7 @@
 library;
 
 // Dart
+import 'package:labuda/core/core.dart' show AppRouter;
 import 'package:labuda/core/interfaces/i_notification_trigger.dart';
 import 'package:labuda/core/navigation/navigation_handler.dart';
 import 'package:labuda/core/src/router/route_paths.dart';
@@ -22,47 +23,89 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:labuda/core/src/theme/app_theme.dart';
+import 'package:labuda/shared/widgets/app_snackbar.dart';
 
 class NotificationNavigationService {
   final NavigationHandler _navigationHandler;
 
   NotificationNavigationService(this._navigationHandler);
 
-  /// Handle notification tap and navigate to appropriate screen
+  /// Canonical instance for the push / local-notification surfaces. Those run
+  /// from FCM callbacks (no Riverpod container and no widget ref), so they use
+  /// the same thin [AppRouter] forwarding layer the providers use.
+  NotificationNavigationService.canonical() : _navigationHandler = AppRouter();
+
+  /// Handle an in-app notification tap and navigate to the destination.
   Future<void> handleNotificationTap(
     BuildContext context,
     NotificationEntity notification,
-  ) async {
-    switch (notification.type) {
+  ) => _dispatch(
+    context,
+    type: notification.type,
+    data: notification.data,
+    title: notification.title,
+    body: notification.body,
+  );
+
+  /// Handle a push / local-notification tap.
+  ///
+  /// FCM payloads carry the SAME canonical wire `type` value that the backend
+  /// stores in the notification row (`NotificationType.value`), so a push tap
+  /// resolves through the SAME destination decision as the in-app list. This
+  /// service is the app's only notification→destination decision table.
+  Future<void> handleNotificationPayload(
+    BuildContext context, {
+    required String type,
+    required Map<String, dynamic> data,
+    String title = '',
+    String body = '',
+  }) async {
+    final resolved = NotificationType.tryFromString(type);
+    if (resolved == null) {
+      _onUnknownType(type);
+      return;
+    }
+    await _dispatch(context, type: resolved, data: data, title: title, body: body);
+  }
+
+  /// THE single destination decision for every notification surface.
+  Future<void> _dispatch(
+    BuildContext context, {
+    required NotificationType type,
+    Map<String, dynamic>? data,
+    String title = '',
+    String body = '',
+  }) async {
+    switch (type) {
       // Chat notifications
       case NotificationType.chatMessage:
-        _navigateToChat(context, notification);
+        _navigateToChat(context, data);
         break;
 
       // Follow notifications
       case NotificationType.userFollowed:
-        _navigateToProfile(context, notification);
+        _navigateToProfile(context, data);
         break;
 
       // Mention notifications
       case NotificationType.contentMentioned:
-        _navigateToMention(context, notification);
+        _navigateToMention(context, data);
         break;
 
       // Comment notifications
       case NotificationType.comment:
       case NotificationType.commentReply:
-        _navigateToComment(context, notification);
+        _navigateToComment(context, data);
         break;
 
       // Like notifications
       case NotificationType.contentLiked:
-        _navigateToLikedContent(context, notification);
+        _navigateToLikedContent(context, data);
         break;
 
       // Seller response notifications
       case NotificationType.sellerResponse:
-        _navigateToSellerResponse(context, notification);
+        _navigateToSellerResponse(context, data);
         break;
 
       // Order notifications
@@ -81,7 +124,7 @@ class NotificationNavigationService {
       case NotificationType.orderConfirmationExtended:
       case NotificationType.orderOverdueReminderSeller:
       case NotificationType.orderOverdueReminderBuyer:
-        _navigateToOrder(context, notification);
+        _navigateToOrder(context, data);
         break;
 
       // Refund / dispute notifications
@@ -91,31 +134,31 @@ class NotificationNavigationService {
       case NotificationType.refundEscalated:
       case NotificationType.disputeResolved:
       case NotificationType.disputeOpened:
-        _navigateToRefund(context, notification);
+        _navigateToRefund(context, data);
         break;
 
       // Admin dispute timeout notifications — navigate to order for context
       case NotificationType.disputeOverdue:
       case NotificationType.disputeTimeoutEscalation:
-        _navigateToOrder(context, notification);
+        _navigateToOrder(context, data);
         break;
 
       // Negotiation notifications — pre-order: navigate to chat room
       case NotificationType.negotiationStarted:
       case NotificationType.negotiationMessageSent:
-        _navigateToNegotiationChat(context, notification);
+        _navigateToNegotiationChat(context, data);
         break;
 
       // Negotiation outcome — route to chat so buyer can initiate checkout or review.
       // Order does not exist at acceptance/expiry time; navigating to order would fail.
       case NotificationType.negotiationAccepted:
       case NotificationType.negotiationExpired:
-        _navigateToNegotiationChat(context, notification);
+        _navigateToNegotiationChat(context, data);
         break;
 
       // Negotiation cancellation — B1: navigate to chat room if available
       case NotificationType.negotiationCancelled:
-        _navigateToNegotiationChat(context, notification);
+        _navigateToNegotiationChat(context, data);
         break;
 
       // Auction notifications
@@ -123,10 +166,9 @@ class NotificationNavigationService {
       case NotificationType.auctionWaitingSettlement:
       case NotificationType.auctionSellerHasWinner:
       case NotificationType.auctionEndedNoWinner:
-      case NotificationType.auctionCancelledSeller:
       case NotificationType.auctionBnrSeller:
       case NotificationType.auctionBnrWinner:
-        _navigateToAuction(context, notification);
+        _navigateToAuction(context, data);
         break;
 
       // Withdrawal / payout notifications
@@ -167,7 +209,7 @@ class NotificationNavigationService {
       case NotificationType.moderationCommentRemoved:
       case NotificationType.moderationContentRestored:
       case NotificationType.moderationCommentRestored:
-        _navigateToModerationTarget(context, notification);
+        _navigateToModerationTarget(context, data);
         break;
       case NotificationType.moderationForSaleRemoved:
       case NotificationType.moderationForSaleRestored:
@@ -188,7 +230,7 @@ class NotificationNavigationService {
       case NotificationType.supportTicketClosed:
       case NotificationType.supportTicketWaitingUser:
       case NotificationType.supportTicketUserResponded:
-        _navigateToSupportTicket(context, notification);
+        _navigateToSupportTicket(context, data);
         break;
 
       // External product review notifications — owner navigates to their product management
@@ -196,30 +238,42 @@ class NotificationNavigationService {
       case NotificationType.externalProductReviewRejected:
       case NotificationType.externalProductReviewRequestChanges:
       case NotificationType.externalProductReviewHidden:
-        _navigateToExternalProductManagement(context, notification);
+        _navigateToExternalProductManagement(context, data);
         break;
 
       // Marketing / system notifications
       case NotificationType.promotion:
-        _navigateToPromotion(context, notification);
+        _navigateToPromotion(context, data);
         break;
 
       case NotificationType.announcement:
-        _showAnnouncementModal(context, notification);
+        _showAnnouncementModal(context, title: title, body: body);
         break;
 
       case NotificationType.systemMaintenance:
-        _showMaintenanceModal(context, notification);
+        _showMaintenanceModal(
+        context,
+        title: title,
+        body: body,
+        data: data,
+      );
         break;
     }
   }
 
+  /// A wire type outside the canonical catalog is not a Labuda notification
+  /// type: stay on the current screen (no invented destination) and log it so
+  /// the contract gap stays visible.
+  void _onUnknownType(String type) {
+    debugPrint('[NotificationNavigation] unknown notification type: $type');
+  }
+
   // ========== Private Navigation Methods ==========
 
-  void _navigateToChat(BuildContext context, NotificationEntity notification) {
+  void _navigateToChat(BuildContext context, Map<String, dynamic>? data) {
     final chatId =
-        notification.data?['chatRoomId'] as String? ??
-        notification.data?['chatId'] as String?;
+        data?['chatRoomId'] as String? ??
+        data?['chatId'] as String?;
     if (chatId != null) {
       _navigationHandler.navigateToChatConversation(chatId);
     }
@@ -227,9 +281,9 @@ class NotificationNavigationService {
 
   void _navigateToProfile(
     BuildContext context,
-    NotificationEntity notification,
+    Map<String, dynamic>? data,
   ) {
-    final userId = notification.data?['userId'] as String?;
+    final userId = data?['userId'] as String?;
     if (userId != null) {
       _navigationHandler.navigateToUserProfile(userId);
     }
@@ -237,10 +291,10 @@ class NotificationNavigationService {
 
   void _navigateToMention(
     BuildContext context,
-    NotificationEntity notification,
+    Map<String, dynamic>? data,
   ) {
-    final targetId = notification.data?['targetId'] as String?;
-    final targetType = notification.data?['targetType'] as String?;
+    final targetId = data?['targetId'] as String?;
+    final targetType = data?['targetType'] as String?;
 
     if (targetType == 'content' && targetId != null) {
       _navigationHandler.navigateToContentDetail(targetId);
@@ -251,13 +305,13 @@ class NotificationNavigationService {
 
   void _navigateToComment(
     BuildContext context,
-    NotificationEntity notification,
+    Map<String, dynamic>? data,
   ) {
-    final targetType = _firstString(notification.data, [
+    final targetType = _firstString(data, [
       'targetType',
       'target_type',
     ]);
-    final targetId = _firstString(notification.data, ['targetId', 'target_id']);
+    final targetId = _firstString(data, ['targetId', 'target_id']);
 
     if (targetType == null) {
       _navigateToNotifications(context);
@@ -280,7 +334,7 @@ class NotificationNavigationService {
         }
         return;
       case 'comment':
-        final contentId = _firstString(notification.data, [
+        final contentId = _firstString(data, [
           'parentContentId',
           'parent_content_id',
           'contentId',
@@ -303,13 +357,13 @@ class NotificationNavigationService {
 
   void _navigateToLikedContent(
     BuildContext context,
-    NotificationEntity notification,
+    Map<String, dynamic>? data,
   ) {
-    final targetType = _firstString(notification.data, [
+    final targetType = _firstString(data, [
       'targetType',
       'target_type',
     ]);
-    final targetId = _firstString(notification.data, ['targetId', 'target_id']);
+    final targetId = _firstString(data, ['targetId', 'target_id']);
 
     if (targetType == null) {
       _navigateToNotifications(context);
@@ -332,7 +386,7 @@ class NotificationNavigationService {
         }
         return;
       case 'comment':
-        final contentId = _firstString(notification.data, [
+        final contentId = _firstString(data, [
           'parentContentId',
           'parent_content_id',
           'contentId',
@@ -355,16 +409,16 @@ class NotificationNavigationService {
 
   void _navigateToSellerResponse(
     BuildContext context,
-    NotificationEntity notification,
+    Map<String, dynamic>? data,
   ) {
-    final targetId = notification.data?['targetId'] as String?;
+    final targetId = data?['targetId'] as String?;
     if (targetId != null) {
       _navigationHandler.navigateToContentDetail(targetId);
     }
   }
 
-  void _navigateToOrder(BuildContext context, NotificationEntity notification) {
-    final orderId = notification.data?['orderId'] as String?;
+  void _navigateToOrder(BuildContext context, Map<String, dynamic>? data) {
+    final orderId = data?['orderId'] as String?;
     if (orderId != null) {
       _navigationHandler.navigateToOrderDetail(orderId);
     }
@@ -372,9 +426,9 @@ class NotificationNavigationService {
 
   void _navigateToRefund(
     BuildContext context,
-    NotificationEntity notification,
+    Map<String, dynamic>? data,
   ) {
-    final orderId = notification.data?['orderId'] as String?;
+    final orderId = data?['orderId'] as String?;
     if (orderId != null) {
       _navigationHandler.navigateToOrderDetail(orderId);
     }
@@ -382,9 +436,9 @@ class NotificationNavigationService {
 
   void _navigateToAuction(
     BuildContext context,
-    NotificationEntity notification,
+    Map<String, dynamic>? data,
   ) {
-    final auctionId = notification.data?['auctionId'] as String?;
+    final auctionId = data?['auctionId'] as String?;
     if (auctionId != null) {
       _navigationHandler.navigateToAuction(auctionId);
     }
@@ -392,10 +446,10 @@ class NotificationNavigationService {
 
   void _navigateToModerationTarget(
     BuildContext context,
-    NotificationEntity notification,
+    Map<String, dynamic>? data,
   ) {
-    final targetId = notification.data?['targetId'] as String?;
-    final targetType = notification.data?['targetType'] as String?;
+    final targetId = data?['targetId'] as String?;
+    final targetType = data?['targetType'] as String?;
     if (targetId != null && targetType == 'content') {
       _navigationHandler.navigateToContentDetail(targetId);
     } else {
@@ -407,9 +461,9 @@ class NotificationNavigationService {
   /// Falls back to seller dashboard when externalProductId is missing or invalid.
   void _navigateToExternalProductManagement(
     BuildContext context,
-    NotificationEntity notification,
+    Map<String, dynamic>? data,
   ) {
-    final productId = notification.data?['externalProductId'] as String?;
+    final productId = data?['externalProductId'] as String?;
     if (productId != null && productId.isNotEmpty) {
       _navigationHandler.navigateToExternalProductDetail(productId);
     } else {
@@ -419,9 +473,9 @@ class NotificationNavigationService {
 
   void _navigateToPromotion(
     BuildContext context,
-    NotificationEntity notification,
+    Map<String, dynamic>? data,
   ) {
-    final externalProductId = _firstString(notification.data, [
+    final externalProductId = _firstString(data, [
       'externalProductId',
       'external_product_id',
     ]);
@@ -433,16 +487,18 @@ class NotificationNavigationService {
     // Canonical promotion surface: a contract id opens the contract analytics
     // screen; otherwise the seller lands on the promotion contract list.
     // The legacy /seller/promotions/:id detail route is purged.
-    final contractId = _firstString(notification.data, [
+    final contractId = _firstString(data, [
       'contractId',
       'contract_id',
     ]);
     if (contractId != null && contractId.isNotEmpty) {
-      context.push(RoutePaths.sellerCanonicalPromotionAnalyticsPath(contractId));
+      context.push(
+        RoutePaths.sellerCanonicalPromotionAnalyticsPath(contractId),
+      );
       return;
     }
 
-    final ctaRoute = _firstString(notification.data, ['ctaRoute', 'cta_route']);
+    final ctaRoute = _firstString(data, ['ctaRoute', 'cta_route']);
     if (ctaRoute != null && ctaRoute.isNotEmpty) {
       context.push(ctaRoute);
       return;
@@ -453,11 +509,11 @@ class NotificationNavigationService {
 
   void _navigateToSupportTicket(
     BuildContext context,
-    NotificationEntity notification,
+    Map<String, dynamic>? data,
   ) {
     final ticketId =
-        notification.data?['ticketId'] as String? ??
-        notification.data?['ticket_id'] as String?;
+        data?['ticketId'] as String? ??
+        data?['ticket_id'] as String?;
     if (ticketId != null && ticketId.isNotEmpty) {
       context.pushNamed(
         RouteNames.supportTicketThread,
@@ -467,8 +523,8 @@ class NotificationNavigationService {
     }
 
     final chatRoomId =
-        notification.data?['chatRoomId'] as String? ??
-        notification.data?['chatId'] as String?;
+        data?['chatRoomId'] as String? ??
+        data?['chatId'] as String?;
     if (chatRoomId != null && chatRoomId.isNotEmpty) {
       _navigationHandler.navigateToChatConversation(chatRoomId);
       return;
@@ -495,9 +551,9 @@ class NotificationNavigationService {
 
   void _navigateToNegotiationChat(
     BuildContext context,
-    NotificationEntity notification,
+    Map<String, dynamic>? data,
   ) {
-    final chatRoomId = notification.data?['chatRoomId'] as String?;
+    final chatRoomId = data?['chatRoomId'] as String?;
     if (chatRoomId != null) {
       _navigationHandler.navigateToChatConversation(chatRoomId);
     }
@@ -510,21 +566,16 @@ class NotificationNavigationService {
   void _showFallback(BuildContext context, String message) {
     if (!context.mounted) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 3),
-      ),
-    );
+    AppSnackBar.showInfo(context, message);
   }
 
   // ========== Modal Methods ==========
 
   void _showAnnouncementModal(
-    BuildContext context,
-    NotificationEntity notification,
-  ) {
+    BuildContext context, {
+    required String title,
+    required String body,
+  }) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -534,13 +585,13 @@ class NotificationNavigationService {
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                notification.title,
-                style: const TextStyle(fontSize: AppType.s20),
+                title,
+                style: context.typeRoles.titleSection,
               ),
             ),
           ],
         ),
-        content: Text(notification.body),
+        content: Text(body),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -552,9 +603,11 @@ class NotificationNavigationService {
   }
 
   void _showMaintenanceModal(
-    BuildContext context,
-    NotificationEntity notification,
-  ) {
+    BuildContext context, {
+    required String title,
+    required String body,
+    required Map<String, dynamic>? data,
+  }) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -562,8 +615,11 @@ class NotificationNavigationService {
           children: [
             Icon(Icons.build, color: context.statusColors.warning),
             const SizedBox(width: 8),
-            const Expanded(
-              child: Text('Maintenance System', style: TextStyle(fontSize: AppType.s20)),
+            Expanded(
+              child: Text(
+                'Maintenance System',
+                style: context.typeRoles.titleSection,
+              ),
             ),
           ],
         ),
@@ -571,21 +627,21 @@ class NotificationNavigationService {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(notification.body),
-            if (notification.data?['startTime'] != null ||
-                notification.data?['endTime'] != null) ...[
+            Text(body),
+            if (data?['startTime'] != null ||
+                data?['endTime'] != null) ...[
               const SizedBox(height: 16),
               const Divider(),
               const SizedBox(height: 8),
-              if (notification.data?['startTime'] != null)
+              if (data?['startTime'] != null)
                 Text(
-                  'Mulai: ${notification.data!['startTime']}',
-                  style: const TextStyle(fontSize: AppType.s12),
+                  'Mulai: ${data?['startTime']}',
+                  style: context.typeRoles.labelMicro,
                 ),
-              if (notification.data?['endTime'] != null)
+              if (data?['endTime'] != null)
                 Text(
-                  'Ends: ${notification.data!['endTime']}',
-                  style: const TextStyle(fontSize: AppType.s12),
+                  'Ends: ${data?['endTime']}',
+                  style: context.typeRoles.labelMicro,
                 ),
             ],
           ],

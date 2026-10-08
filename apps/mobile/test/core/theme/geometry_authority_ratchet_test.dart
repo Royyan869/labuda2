@@ -14,8 +14,8 @@
 ///
 /// A hard gate cannot be switched on for these yet: the real app holds ~2.9k of
 /// them, and turning the rule on first would clean nothing — it would only
-/// paint the suite red. So the ratchet that tamed `AppType`
-/// (`type_role_migration_ratchet_test.dart`) is applied here:
+/// paint the suite red. So the same ratchet doctrine used for typography is
+/// applied here:
 ///
 /// 1. every category is capped at the count measured on 2026-10-02, so a new
 ///    `SizedBox(height: 16)` or `Icon(size: 20)` fails the gate instead of
@@ -57,8 +57,8 @@ import '../../support/geometry_authority_gate.dart';
 /// this literal on the ladder?" but "does this literal promise an extent that
 /// content the ladder measures has to fit inside?". It was added on 2026-10-02
 /// because a real regression shipped through exactly that hole —
-/// `content_toolbar_widget` kept `height: 60` while its label moved
-/// `AppType.s10 → s12`, the icon+label column overflowed by 3 px, and only a
+/// `content_toolbar_widget` kept `height: 60` while its label moved to a
+/// different type step, the icon+label column overflowed by 3 px, and only a
 /// widget test could see it. The literal never changed; the ladder moved. A
 /// frozen box is usually BOTH a `contentDimension` and a `frozenExtent`, and the
 /// two are deliberately kept apart: "migrate this to a ladder" and "this promise
@@ -157,7 +157,7 @@ import '../../support/geometry_authority_gate.dart';
 /// micro band 14/12/11 → `inlineGlyph` (+2…+5 px). Iris 3 — the near band
 /// 18 → `action`, 22 → `header`, 28/36 → `emphasis`. Iris 4 — the display
 /// band 40/56/60/64 (×67!)/72/80 → `display` (nearest step, ties UP,
-/// clamped at the ends — the mapping rule documented on AppType). Two
+/// clamped at the ends). Two
 /// ternary windows kept a SECOND literal alive after their first number
 /// migrated (`compact ? … : 48` and `… : 14`) and were closed by a counted
 /// second pass. Five files with no import path to `app_theme` received one
@@ -185,14 +185,12 @@ const _gapTotalBeforeSplit = 2075;
 
 /// Slices that are DONE. Each path must read zero findings forever; the lock is
 /// by path (not by category) because a finished file is the unit of work.
-const _slicesLockedToZero = <String>[
-  // Irisan 1 — the link picker's tab label already read `AppMetrics` for its
-  // padding and `AppShape`/`AppType` for the badge; its last raw literal
-  // (`SizedBox(width: 6)`) now reads the ladder. The 2026-10-02 foundation pass
-  // moved that step from the retired `p6` to `AppMetrics.p8` (+2 px), so the
-  // file is at zero LITERALS, not zero pixels.
-  'lib/shared/widgets/link_picker/link_picker_tab_label.dart',
-];
+///
+/// The list is currently EMPTY: its only member, the link picker's tab label,
+/// lived in the orphaned `link_picker/` island that was purged with the dead
+/// `LinkPickerModal` (bottom-sheet foundation convergence). An empty lock is
+/// tolerated here because the file it guarded no longer exists.
+const _slicesLockedToZero = <String>[];
 
 /// Files locked to zero in ONE category only (`frozenExtent`), for a fix that
 /// must not be undone even though the file still holds other categories.
@@ -222,7 +220,6 @@ const _frozenExtentLockedToZero = <String>[
   'lib/shared/widgets/wilayah/city_dropdown.dart',
   'lib/shared/widgets/wilayah/district_dropdown.dart',
   'lib/shared/widgets/village_dropdown.dart',
-  'lib/shared/widgets/village_search_dropdown.dart',
   // Slice 2 — the media strip. Its tiles carry their own extent through one
   // named `_tileExtent`, and the strip's height reads the same name, so a taller
   // thumbnail can no longer be clipped by a strip that kept the old number. The
@@ -237,18 +234,16 @@ const _frozenExtentLockedToZero = <String>[
   // `contentDimension` cap instead (proved by planting one: `contentDimension:
   // 178 > cap 177`). What the lock below forbids is any OTHER frozen box that
   // would have to CONTAIN something — the kind of site this lens exists for.
-  // All fourteen files now read zero here (the fourteenth,
+  // The surviving files read zero frozen extents here (the last one,
   // `coordinate_preview_modal`, lost its `height: 180` map preview to
   // `AppContentSize.preview` in slice 8) and are locked by path.
   'lib/domains/finance/transaction/payment/presentation/widgets/'
       'payment_method_picker_sheet.dart',
   'lib/domains/social/comment/presentation/widgets/commerce_resource_picker.dart',
   'lib/domains/social/share/presentation/widgets/share_bottom_sheet.dart',
-  'lib/domains/social/share/presentation/widgets/share_to_chat_dialog.dart',
   'lib/domains/system/support/presentation/widgets/pre_chat_form_sheet.dart',
   'lib/domains/user/profile/presentation/widgets/address_form_dialog.dart',
   'lib/shared/widgets/create_content_bottom_sheet.dart',
-  'lib/shared/widgets/link_picker_modal.dart',
   'lib/shared/widgets/app_bottom_sheet_base.dart',
   'lib/domains/commerce/catalog/auction/presentation/widgets/detail/'
       'auction_action_modal.dart',
@@ -272,7 +267,10 @@ const _frozenExtentLockedToZero = <String>[
       'negotiation_proposal_card.dart',
   'lib/domains/commerce/transaction/checkout/presentation/widgets/'
       'checkout_action_bar.dart',
-  'lib/shared/widgets/action_buttons.dart',
+  // Bottom-action-bar convergence: the dead `ActionButtons` helper was purged
+  // and every bar reads the canonical foundation, whose spinner pair is ONE
+  // named policy (`_spinnerExtent`/`_spinnerStroke`), never a literal.
+  'lib/shared/widgets/bottom_action_bar.dart',
   'lib/domains/user/preference/onboarding/presentation/screens/'
       'welcome_screen.dart',
   'lib/features/home/presentation/widgets/main_app_bar.dart',
@@ -307,13 +305,11 @@ const _frozenExtentLockedToZero = <String>[
       'suggested_messages_widget.dart',
   'lib/domains/user/preference/seller/presentation/screens/'
       'seller_verification_screen.dart',
-  'lib/shared/widgets/app_date_picker.dart',
   'lib/shared/widgets/media_grid_uploader.dart',
   'lib/shared/widgets/mentions/mention_text_field.dart',
   'lib/shared/widgets/coordinate_preview_modal.dart',
   'lib/domains/user/identity/authentication/presentation/widgets/'
       'username_field.dart',
-  'lib/shared/widgets/block_confirmation_dialog.dart',
   'lib/shared/widgets/web_image_cropper.dart',
   'lib/shared/widgets/wizard_progress_indicator.dart',
 ];
@@ -406,14 +402,9 @@ void main() {
     });
 
     test('finished slices stay at zero', () {
-      // A ratchet whose lock list is empty has never proven it can lock, so the
-      // first migrated slice is what makes this mechanism non-vacuous.
-      expect(
-        _slicesLockedToZero,
-        isNotEmpty,
-        reason:
-            'at least one slice must be locked before the lock can be trusted',
-      );
+      // The lock list may be empty: its last member lived in the `link_picker/`
+      // island that was purged with the dead `LinkPickerModal`. Locking by path
+      // is still the contract for whatever slice is added next.
       final offenders = <String>[];
       for (final path in _slicesLockedToZero) {
         final counts = geometryViolationsInFile(path);
@@ -436,28 +427,31 @@ void main() {
       );
     });
 
-    test('the toolbar that shipped the regression keeps zero frozen extents', () {
-      expect(
-        _frozenExtentLockedToZero,
-        isNotEmpty,
-        reason:
-            'a per-category lock that holds nothing has never proven it can '
-            'hold anything',
-      );
-      for (final path in _frozenExtentLockedToZero) {
-        final counts = geometryViolationsInFile(path);
-        expect(counts, isNotEmpty, reason: '$path does not exist');
+    test(
+      'the toolbar that shipped the regression keeps zero frozen extents',
+      () {
         expect(
-          counts['frozenExtent'],
-          0,
+          _frozenExtentLockedToZero,
+          isNotEmpty,
           reason:
-              'a frozen literal extent came back to $path. This is the file '
-              'where `height: 60` died by 3 px when a type step moved: an '
-              'extent is driven by its content and the roles, never by a '
-              'summed-up literal.',
+              'a per-category lock that holds nothing has never proven it can '
+              'hold anything',
         );
-      }
-    });
+        for (final path in _frozenExtentLockedToZero) {
+          final counts = geometryViolationsInFile(path);
+          expect(counts, isNotEmpty, reason: '$path does not exist');
+          expect(
+            counts['frozenExtent'],
+            0,
+            reason:
+                'a frozen literal extent came back to $path. This is the file '
+                'where `height: 60` died by 3 px when a type step moved: an '
+                'extent is driven by its content and the roles, never by a '
+                'summed-up literal.',
+          );
+        }
+      },
+    );
   });
 
   group('the geometry detectors (negative proof)', () {
@@ -522,7 +516,8 @@ void main() {
       expect(
         _count('contentDimension', card),
         0,
-        reason: 'the box decides no dimension of its own — only the border does',
+        reason:
+            'the box decides no dimension of its own — only the border does',
       );
       expect(_count('strokeWidth', card), 1);
     });
@@ -545,9 +540,12 @@ void main() {
       expect(_sizing('SizedBox(height: AppMetrics.p16)'), 0);
       expect(_sizing('SizedBox(height: _getSize())'), 0);
       expect(_sizing('SizedBox(height: core.AppMetrics.p16)'), 0);
-      expect(_count('iconSize', 'Icon(Icons.x, size: AppType.s20)'), 0);
+      expect(_count('iconSize', 'Icon(Icons.x, size: AppIconSize.action)'), 0);
       expect(
-        _count('strokeWidth', 'Border.all(width: AppMetrics.focusedBorderWidth)'),
+        _count(
+          'strokeWidth',
+          'Border.all(width: AppMetrics.focusedBorderWidth)',
+        ),
         0,
       );
       expect(_count('lineMetric', 'TextStyle(height: bodyHeight)'), 0);
@@ -576,8 +574,7 @@ void main() {
           'Container(\n'
           '  height: 60,\n'
           '  padding: const EdgeInsets.symmetric(vertical: AppMetrics.p8),\n'
-          '  child: Row(children: [Text(t,\n'
-          '      style: TextStyle(fontSize: AppType.s12))]),\n'
+          '  child: Row(children: [Text(t, style: context.typeRoles.labelMicro)]),\n'
           ') ';
       expect(_count('frozenExtent', toolbar), 1);
       expect(
@@ -619,7 +616,10 @@ void main() {
         reason: 'the extent itself is a step — nothing about it is frozen',
       );
       expect(
-        _count('frozenExtent', 'Container(height: size * 0.5, child: c(AppMetrics.p8))'),
+        _count(
+          'frozenExtent',
+          'Container(height: size * 0.5, child: c(AppMetrics.p8))',
+        ),
         0,
         reason: 'proportional geometry is not a frozen promise',
       );
@@ -650,7 +650,10 @@ void main() {
         reason: 'a colour decides no extent, so it is not ladder-measured size',
       );
       expect(
-        _count('frozenExtent', '/// Container(height: 60, child: c(AppMetrics.p8))'),
+        _count(
+          'frozenExtent',
+          '/// Container(height: 60, child: c(AppMetrics.p8))',
+        ),
         0,
         reason: 'prose about a ladder is not a call site',
       );

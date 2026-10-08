@@ -22,11 +22,7 @@ class RatingOverviewSection extends StatelessWidget {
       padding: const EdgeInsets.all(AppMetrics.p16),
       decoration: BoxDecoration(
         color: scheme.surface,
-        border: Border(
-          bottom: BorderSide(
-            color: scheme.outlineVariant,
-          ),
-        ),
+        border: Border(bottom: BorderSide(color: scheme.outlineVariant)),
       ),
       child: Row(
         children: [
@@ -37,8 +33,7 @@ class RatingOverviewSection extends StatelessWidget {
               children: [
                 Text(
                   averageRating.toStringAsFixed(1),
-                  style: TextStyle(
-                    fontSize: AppType.s24,
+                  style: context.typeRoles.titleProminent.copyWith(
                     fontWeight: FontWeight.bold,
                     color: scheme.onSurface,
                   ),
@@ -47,8 +42,7 @@ class RatingOverviewSection extends StatelessWidget {
                 const SizedBox(height: 3),
                 Text(
                   '$totalReviews reviews',
-                  style: TextStyle(
-                    fontSize: AppType.s12,
+                  style: context.typeRoles.labelMicro.copyWith(
                     color: scheme.onSurfaceVariant,
                   ),
                 ),
@@ -75,12 +69,15 @@ class RatingOverviewSection extends StatelessWidget {
                     children: [
                       Text(
                         '$starCount',
-                        style: TextStyle(
-                          fontSize: AppType.s12,
+                        style: context.typeRoles.labelMicro.copyWith(
                           color: scheme.onSurfaceVariant,
                         ),
                       ),
-                      Icon(Icons.star, size: AppIconSize.inlineGlyph, color: AppColors.koiGold),
+                      Icon(
+                        Icons.star,
+                        size: AppIconSize.inlineGlyph,
+                        color: AppColors.koiGold,
+                      ),
                       const SizedBox(width: 6),
                       Expanded(
                         child: LinearProgressIndicator(
@@ -96,8 +93,7 @@ class RatingOverviewSection extends StatelessWidget {
                         width: AppContentSize.badge,
                         child: Text(
                           '$count',
-                          style: TextStyle(
-                            fontSize: AppType.s12,
+                          style: context.typeRoles.labelMicro.copyWith(
                             color: scheme.onSurfaceVariant,
                           ),
                           textAlign: TextAlign.end,

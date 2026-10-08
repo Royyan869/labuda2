@@ -1097,14 +1097,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get articleHowToPayContent =>
-      'To pay for your order:\n\n1. Go to your order from the Orders screen\n2. Tap the \'Pay Now\' button\n3. Select your payment method (GoPay, Bank Transfer, etc.)\n4. Follow the instructions to complete payment\n5. Your payment will be confirmed within 24 hours\n\nIf payment fails, you can retry from the order screen.';
+      'To pay for your order:\n\n1. Go to your order from the Orders screen\n2. Tap the \'Pay Now\' button\n3. Select your payment method (GoPay, Bank Transfer, etc.)\n4. Follow the instructions to complete payment\n\nComplete the payment before the deadline shown on the order screen. If the deadline passes, the order is cancelled automatically.\n\nYour order status updates as soon as the payment is confirmed. If payment fails, you can retry from the order screen.';
 
   @override
   String get articleTrackOrder => 'How to track my order?';
 
   @override
   String get articleTrackOrderContent =>
-      'To track your order:\n\n1. Go to \'My Orders\' from the profile menu\n2. Tap on the order you want to track\n3. You\'ll see the current status and tracking information\n\nOrder statuses:\n- Pending: Waiting for payment\n- Processing: Seller is preparing your order\n- Shipped: Order is on the way\n- Delivered: Order has arrived\n- Completed: Order is finished';
+      'To track your order:\n\n1. Go to \'My Orders\' from the profile menu\n2. Tap on the order you want to track\n3. You\'ll see the current status, shipping info, and tracking number\n\nOrder statuses:\n- Waiting for Payment: Your order has been created, please complete your payment\n- Being Prepared: Payment received, the seller is preparing your order\n- In Delivery: The order has been shipped\n- Completed: The order is finished\n\nIf the seller does not ship within the preparation time shown on the order, the order can be cancelled.';
 
   @override
   String get articleRequestRefund => 'How to request a refund?';
@@ -1118,21 +1118,21 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get articleBecomeSellerContent =>
-      'To become a seller on LABUDA:\n\n1. Go to Settings → Upgrade to Seller\n2. Choose your plan (Basic or Pro)\n3. Fill in your business information\n4. Complete payment for the subscription\n5. Wait for verification approval\n\nOnce approved, you can start creating For Sale for your koi for sale!';
+      'To become a seller on LABUDA:\n\n1. Go to Settings → Upgrade to Seller\n2. Choose your plan (Basic or Pro)\n3. Fill in your business information\n4. Complete payment for the subscription\n5. Wait for verification approval\n\nOnce approved, you can start creating For Sale for your koi!';
 
   @override
   String get articleCancelOrder => 'How to cancel an order?';
 
   @override
   String get articleCancelOrderContent =>
-      'Order cancellation depends on the status:\n\n- Pending payment: Auto-cancelled if not paid within 24 hours\n- Processing: Contact seller to cancel\n- Shipped: Cannot cancel, use refund process instead\n\nTo request cancellation, tap the order and select \'Contact Seller\' to discuss.';
+      'Order cancellation depends on the status:\n\n- Waiting for Payment: Cancel from the order details, or let it expire automatically if the payment deadline passes\n- Being Prepared or In Delivery: The order can\'t be cancelled directly, use the refund process instead\n- Seller overdue to ship: You can cancel the order from the order details\n- Completed: Use the refund process if there is a problem\n\nTo discuss cancellation, open the order and select \'Chat Seller\'.';
 
   @override
   String get articleConfirmDelivery => 'How to complete an order?';
 
   @override
   String get articleConfirmDeliveryContent =>
-      'To complete your order after receiving items:\n\n1. Open the order details\n2. Tap \'Terima Barang\' button\n3. Confirm that items match your order\n\nIf you don\'t confirm within 5 days of shipment, the order will auto-complete.';
+      'To complete your order after receiving the items:\n\n1. Open the order details\n2. Tap the \'Confirm Receipt\' button\n3. Confirm that the items match your order\n\nYou have 5 days from the moment the seller marks the order as shipped to confirm receipt or open a dispute. If you don\'t confirm in time, the order completes automatically.\n\nIf your order hasn\'t arrived yet and the 5 days are almost over, you can use \'Extend Confirmation\' once to extend the deadline by 3 days.';
 
   @override
   String get articlePaymentFailed => 'Payment failed, what to do?';
@@ -1146,7 +1146,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get articleRefundTimeContent =>
-      'Refund processing time:\n\n1. Seller review: 1-3 days\n2. If approved: 3-7 business days for funds to return\n\nThe exact time depends on your payment method. GoPay refunds are usually faster than bank transfers.';
+      'Refund processing depends on the case:\n\n1. Submit the refund request with the required evidence\n2. The seller reviews the request. If it is rejected, you can escalate to admin for the final decision\n3. If the refund is approved, the funds are returned to your original payment method\n\nThe review time and the time for the funds to arrive depend on the case and your payment provider. You can follow the status from the order details.';
 
   @override
   String get articleCreateForSale => 'How to create a For Sale?';
@@ -1160,7 +1160,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get articleShippingSetupContent =>
-      'To set up shipping:\n\n1. Go to Seller Dashboard\n2. Select a shipping partner (available options)\n3. Set your shipping zones and rates\n4. Add packaging instructions\n\nAlways use proper packaging with oxygen for live koi shipping!';
+      'To set up shipping:\n\n1. Go to Settings → Pengiriman, or Seller Dashboard → Atur Pengiriman\n2. Add a shipping option (train, bus, travel, plane, or custom)\n3. Set the province coverage with the rate you charge for each province\n4. Toggle the option active to make it available for your For Sales\n5. When creating a For Sale, choose which of your options apply to that For Sale\n\nShipping is seller-managed: you decide the options, rates, and courier. For irregular cases (large fish, special handling), send a shipping quote to the buyer in chat as a fallback.\n\nAlways use proper packaging with oxygen for live koi shipping!';
 
   @override
   String get articleEditProfile => 'How to edit my profile?';
@@ -1181,21 +1181,56 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get articleSellerVerificationContent =>
-      'Seller verification requires:\n\n1. Valid KTP (Indonesian ID card)\n2. Clear photo of KTP\n3. KTP number (16 digits)\n4. Name matching KTP\n5. Business address\n6. Active phone number\n\nVerification usually takes 1-3 business days.';
+      'Seller verification requires:\n\n1. Valid KTP (Indonesian ID card)\n2. Clear photo of KTP\n3. KTP number (16 digits)\n4. Name matching KTP\n5. Business address\n6. Active phone number\n\nVerification usually takes 1-2 business days.';
 
   @override
   String get articleAppNotWorking => 'App not working properly?';
 
   @override
   String get articleAppNotWorkingContent =>
-      'If the app is not working:\n\n1. Check your internet connection\n2. Close and reopen the app\n3. Clear app cache (Settings → Clear Cache)\n4. Update to the latest app version\n5. Restart your phone\n\nIf issues persist, contact support with details of what\'s not working.';
+      'If the app is not working properly:\n\n1. Check your internet connection\n2. Close and reopen the app\n3. Make sure you are using the latest app version\n4. Restart your phone\n\nIf the problem continues, contact support with details of what\'s not working.';
 
   @override
-  String get articleClearCache => 'How to clear app cache?';
+  String get articleAppSlowOrNotLoading => 'App is slow or not loading?';
 
   @override
-  String get articleClearCacheContent =>
-      'To clear app cache:\n\n1. Go to Settings\n2. Scroll to \'App Preferences\'\n3. Tap \'Clear Cache\'\n4. Confirm when prompted\n\nThis will free up storage but won\'t delete your data. You\'ll need to log in again.';
+  String get articleAppSlowOrNotLoadingContent =>
+      'If the app feels slow or a screen is not loading:\n\n1. Check your internet connection — try Wi-Fi or mobile data\n2. Close the app completely and open it again\n3. Make sure you are using the latest app version\n4. Restart your phone\n\nIf the problem continues, contact support and mention which screen is affected.';
+
+  @override
+  String get articleWithdrawalFailed => 'Withdrawal failed, what to do?';
+
+  @override
+  String get articleWithdrawalFailedContent =>
+      'If your withdrawal fails:\n\n1. Check that your bank account details are correct\n2. Make sure your seller verification (KTP) is complete\n3. Check that the amount meets the minimum withdrawal shown on the Earnings screen\n\nWithdrawals are reviewed by admin first. Once approved, the funds are transferred to your registered bank account within 1-3 business days.\n\nNext steps:\n• Open the Earnings screen and check the withdrawal status\n• If the withdrawal failed, check your bank details and submit a new request\n• Contact support if the funds were deducted from your balance but not received';
+
+  @override
+  String get articleForSaleNotVisible => 'Why is my For Sale not visible?';
+
+  @override
+  String get articleForSaleNotVisibleContent =>
+      'Your For Sale may not be visible to buyers because:\n\n1. It is sold — the stock has been sold out, so it is no longer offered\n2. It is withdrawn — the For Sale has been removed from sale\n3. Its details are incomplete — make sure the photos, price, and shipping options are filled in\n\nA new For Sale is shown to buyers as soon as you publish it — there is no approval stage to wait for.\n\nNext steps:\n• Go to My For Sales and check the status\n• Complete any missing details and save again\n\nIf the For Sale is still active but not showing to buyers, contact support.';
+
+  @override
+  String get articleSellerPaymentPending => 'Payment from order not received?';
+
+  @override
+  String get articleSellerPaymentPendingContent =>
+      'Order payments reach the seller in these stages:\n\n1. Payment completed → the funds are held in escrow while the order is running\n2. Order shipped → the funds stay in escrow until the buyer confirms receipt\n3. Order completed → the funds are released to your income and can be withdrawn immediately\n\nCheck these screens:\n• Order status in the Seller Dashboard\n• Earnings screen for your available balance\n\nOnce the buyer taps \'Confirm Receipt\' (or the order completes automatically), the order amount enters your income and there is no waiting period before you can withdraw it.\n\nIf a completed order is not showing in your earnings, contact support with the order number.';
+
+  @override
+  String get articleOrderShipmentHelp => 'Track shipment and delivery issues';
+
+  @override
+  String get articleOrderShipmentHelpContent =>
+      'For shipment issues:\n\n1. Open the order details\n2. Check the tracking number in the shipping info\n3. Track the package with the courier\'s website or app\n\nCommon issues:\n• Tracking not updating — it can take some time before the courier records the first scan\n• Delivery delayed — contact the seller through the order chat for an update\n• Wrong address — message the seller immediately\n\nIf the package has not arrived:\n• Check the order status and delivery confirmation\n• Contact the seller through the order chat\n• If the delivery window has passed, open a dispute from the order\n\nStill having issues? Contact support with your order number.';
+
+  @override
+  String get articleItemNotReceived => 'Item paid but not received?';
+
+  @override
+  String get articleItemNotReceivedContent =>
+      'If you paid but haven\'t received your item:\n\nStep 1: Check the order status\n• Being Prepared: the seller is preparing your order\n• In Delivery: check the tracking number on the order\n\nStep 2: Contact the seller\n• Use the \'Chat Seller\' button on the order\n• Ask for a shipping update or the tracking number\n\nStep 3: Use the protection window\n• You have 5 days from the moment the seller ships to confirm receipt or open a dispute\n• If you need more time, use \'Extend Confirmation\' once to add 3 days\n• If the seller does not ship in time, the order can be cancelled\n\nNext actions:\n1. Chat with the seller first (fastest resolution)\n2. If there is no response, contact support with your order details';
 
   @override
   String get sellerTierPro => 'Pro Seller';
@@ -1220,4 +1255,281 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get accountRestrictedSupport =>
       'If you believe this is a mistake, please contact our support team via email.';
+
+  @override
+  String get pageErrorTitle => 'Something Went Wrong';
+
+  @override
+  String get pageErrorMessage =>
+      'We couldn\'t load the data. Please try again.';
+
+  @override
+  String get retryAction => 'Try Again';
+
+  @override
+  String get emptyCollectionTitle => 'No Data Yet';
+
+  @override
+  String get emptyCollectionMessage => 'There are no items to show.';
+
+  @override
+  String get emptySearchTitle => 'No Results Found';
+
+  @override
+  String get emptySearchMessage => 'Try different keywords or filters.';
+
+  @override
+  String get resetFilterAction => 'Reset';
+
+  @override
+  String get exploreMarketplaceAction => 'Explore Marketplace';
+
+  @override
+  String get createForSaleAction => 'Create Listing';
+
+  @override
+  String get startChatAction => 'Start Chat';
+
+  @override
+  String get createTicketAction => 'Create Ticket';
+
+  @override
+  String get addAddressAction => 'Add Address';
+
+  @override
+  String get emptyForSaleTitle => 'No listings yet';
+
+  @override
+  String get emptyAuctionTitle => 'No auctions yet';
+
+  @override
+  String get emptyCheckBackMessage => 'Check back later!';
+
+  @override
+  String get emptySellerForSaleMessage => 'This seller has no active listings.';
+
+  @override
+  String get emptySellerAuctionMessage => 'This seller has no active auctions.';
+
+  @override
+  String get myForSalesTitle => 'No Listings Yet';
+
+  @override
+  String get firstUseForSaleMessage =>
+      'Create your first listing to start selling.';
+
+  @override
+  String get emptySavedTitle => 'No saved items yet';
+
+  @override
+  String get emptySavedMessage =>
+      'For Sale and auction items you save will appear here.';
+
+  @override
+  String get emptyOrdersTitle => 'No Orders Yet';
+
+  @override
+  String get emptyOrdersMessage =>
+      'Start shopping from the best Koi collection';
+
+  @override
+  String get emptyIncomingOrdersTitle => 'No Incoming Orders';
+
+  @override
+  String get emptyIncomingOrdersMessage =>
+      'Orders from buyers will appear here';
+
+  @override
+  String get emptyChatsTitle => 'No Chats Yet';
+
+  @override
+  String get emptyChatsMessage => 'Contact sellers to ask about products';
+
+  @override
+  String get emptyChatSearchTitle => 'No Chats Found';
+
+  @override
+  String get emptyFollowersTitle => 'No followers yet';
+
+  @override
+  String get emptyFollowingTitle => 'Not following anyone yet';
+
+  @override
+  String get emptyReportsTitle => 'No reports yet';
+
+  @override
+  String get emptyReportsMessage =>
+      'You haven\'t submitted any reports yet. Use the report action on content to report it.';
+
+  @override
+  String get emptySupportTicketsTitle => 'No support tickets yet';
+
+  @override
+  String get emptySupportTicketsMessage =>
+      'Create a ticket to get help from our support team';
+
+  @override
+  String get supportCategoryOrderIssue => 'Order Problems';
+
+  @override
+  String get supportCategoryPaymentIssue => 'Payment Issues';
+
+  @override
+  String get supportCategoryAccountIssue => 'Account Help';
+
+  @override
+  String get supportCategoryListingIssue => 'Listing Problems';
+
+  @override
+  String get supportCategoryShippingIssue => 'Shipping Issues';
+
+  @override
+  String get supportCategoryRefundRequest => 'Refund Request';
+
+  @override
+  String get supportCategoryDispute => 'Dispute';
+
+  @override
+  String get supportCategoryTechnicalIssue => 'Technical Help';
+
+  @override
+  String get supportCategoryOther => 'Other';
+
+  @override
+  String get supportStatusOpen => 'Open';
+
+  @override
+  String get supportStatusInProgress => 'In Progress';
+
+  @override
+  String get supportStatusWaitingUser => 'Waiting User';
+
+  @override
+  String get supportStatusResolved => 'Resolved';
+
+  @override
+  String get supportStatusClosed => 'Closed';
+
+  @override
+  String get supportPriorityLow => 'Low';
+
+  @override
+  String get supportPriorityMedium => 'Medium';
+
+  @override
+  String get supportPriorityHigh => 'High';
+
+  @override
+  String get supportPriorityUrgent => 'Urgent';
+
+  @override
+  String get supportEventTicketCreated => 'Ticket Created';
+
+  @override
+  String get supportEventTicketClaimed => 'Ticket Claimed';
+
+  @override
+  String get supportEventTicketWaitingUser => 'Waiting for Your Reply';
+
+  @override
+  String get supportEventStatusChanged => 'Status Changed';
+
+  @override
+  String get supportEventPriorityChanged => 'Priority Changed';
+
+  @override
+  String get supportEventCategoryChanged => 'Category Changed';
+
+  @override
+  String get supportEventTicketResolved => 'Ticket Resolved';
+
+  @override
+  String get supportEventTicketClosed => 'Ticket Closed';
+
+  @override
+  String get supportEventTicketReopened => 'Ticket Reopened';
+
+  @override
+  String get supportEventAdminAssigned => 'Support Agent Assigned';
+
+  @override
+  String get supportEventAdminUnassigned => 'Support Agent Unassigned';
+
+  @override
+  String get supportEventTicketEscalated => 'Escalated to Dispute';
+
+  @override
+  String get supportEventUnknown => 'Ticket Activity';
+
+  @override
+  String supportEventTransition(String from, String to) {
+    return 'From $from to $to';
+  }
+
+  @override
+  String get supportTimelineTitle => 'Activity Timeline';
+
+  @override
+  String get supportTimelineEmpty => 'No activity recorded yet';
+
+  @override
+  String get emptyAddressTitle => 'No address yet';
+
+  @override
+  String get emptyAddressMessage => 'Add an address to shop and to ship from';
+
+  @override
+  String get emptyProfileContentTitle => 'No content yet';
+
+  @override
+  String get emptyProfileContentMessage =>
+      'This user hasn\'t shared any content';
+
+  @override
+  String get orderActionMarkShipped => 'Ship Order';
+
+  @override
+  String get orderActionConfirmReceipt => 'Confirm Receipt';
+
+  @override
+  String get orderActionProvideEvidence => 'Provide Evidence';
+
+  @override
+  String get orderActionCancelOrderOverdue => 'Cancel Order';
+
+  @override
+  String get orderActionPayNow => 'Pay Now';
+
+  @override
+  String get orderActionPaymentContinue => 'Continue Payment';
+
+  @override
+  String get orderActionPaymentCheckStatus => 'Check Payment Status';
+
+  @override
+  String get orderActionPayAgain => 'Retry Payment';
+
+  @override
+  String get orderActionCancelOrder => 'Cancel';
+
+  @override
+  String get orderActionExtendConfirmation => 'Extend Confirmation';
+
+  @override
+  String get orderActionRequestRefund => 'Request Refund';
+
+  @override
+  String get orderActionOpenDispute => 'Open Dispute';
+
+  @override
+  String get orderActionUpdateTracking => 'Update Tracking';
+
+  @override
+  String get orderActionChatSeller => 'Chat Seller';
+
+  @override
+  String get orderActionContactSupport => 'Contact Support';
+
+  @override
+  String get homeFirstUseTitle => '🎯 Kamu ingin apa hari ini?';
 }

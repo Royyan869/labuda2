@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/common/types/payment_types.dart';
 import 'package:labuda/domains/commerce/transaction/order/data/mappers/order_mapper.dart';
 import 'package:labuda/domains/commerce/transaction/order/data/models/api/order_api_response_dtos.dart';
 import 'package:labuda/domains/commerce/transaction/order/data/order_providers.dart';
@@ -32,7 +31,7 @@ Order _baseOrder({
     sellerId: 'seller-1',
     items: const [],
     status: OrderStatus.shipped,
-    paymentMethod: PaymentMethodType.bankTransfer,
+    paymentMethodCode: 'bank_transfer',
     paymentStatus: PaymentStatus.pending,
     shippingInfo: const ShippingInfo(
       recipientName: 'Buyer',

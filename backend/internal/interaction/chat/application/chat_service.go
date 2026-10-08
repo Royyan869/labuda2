@@ -335,12 +335,12 @@ func (s *Service) CreateSupportTicketRoom(ctx context.Context, ownerID uuid.UUID
 // 5. COMMIT
 //
 // Business rules:
-// - No rate limit (system messages)
-// - No block checking (system messages)
-// - senderID is the real participant the system speaks for (message
-//   attribution for the reader); message_type='system' is the authoritative
-//   system-authored signal for renderers, never sender_id.
-// - message_type is always 'system'
+//   - No rate limit (system messages)
+//   - No block checking (system messages)
+//   - senderID is the real participant the system speaks for (message
+//     attribution for the reader); message_type='system' is the authoritative
+//     system-authored signal for renderers, never sender_id.
+//   - message_type is always 'system'
 func (s *Service) SendSystemMessage(ctx context.Context, roomID uuid.UUID, senderID uuid.UUID, body string) error {
 	// Validate body
 	if body == "" {
@@ -856,7 +856,8 @@ func (s *Service) attachMediaAssets(
 }
 
 // sendMessage is the single canonical implementation behind SendMessage and
-// SendMessageWithResourceOccurrence.
+// SendMessageWithResourceOccurrence. It owns its transaction boundary and
+// records the send metric exactly once on success.
 func (s *Service) sendMessage(
 	ctx context.Context,
 	roomID, senderID uuid.UUID,
@@ -874,8 +875,82 @@ func (s *Service) sendMessage(
 	// Support domain and flows through SendSupportMessage.
 	requireParticipant bool,
 ) (*chatEntity.ChatMessage, error) {
+	if err := s.validateMessageSend(ctx, senderID, messageType, body, attachmentJSON, mediaAssetIDs, resourceOccurrence, idempotencyKey); err != nil {
+		return nil, err
+	}
+
+	var message *chatEntity.ChatMessage
+	err := s.db.WithTx(ctx, func(tx db.Tx) error {
+		var innerErr error
+		message, innerErr = s.persistMessage(ctx, tx, roomID, senderID, messageType, body, attachmentJSON, idempotencyKey, mediaAssetIDs, resourceOccurrence, requireParticipant)
+		return innerErr
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if s.metrics != nil {
+		s.metrics.RecordChatMessage()
+	}
+	return message, nil
+}
+
+// SendMessageInTx persists a chat message using the transaction the caller
+// already owns, so an owning-domain business operation (e.g. creating a
+// shipping quote) and its conversation representation commit as ONE atomic
+// business operation.
+//
+// It runs the EXACT same validation and persistence as SendMessage — it is not
+// a bypass — but it never opens a transaction of its own. This is what makes
+// cross-domain atomicity correct: the caller may already hold row locks (for
+// example a FOR UPDATE on the chat room), and a nested independent transaction
+// would self-block on the chat_messages → chat_rooms foreign-key lock and hang
+// forever.
+//
+// The message content authority stays with Chat; the caller's domain stays the
+// business authority. Persisting the message is a durable representation of the
+// caller's operation, not a transfer of authority.
+func (s *Service) SendMessageInTx(
+	ctx context.Context,
+	tx db.Tx,
+	roomID, senderID uuid.UUID,
+	messageType chatEntity.MessageType,
+	body *string,
+	attachmentJSON map[string]interface{},
+	idempotencyKey string,
+) (*chatEntity.ChatMessage, error) {
+	if err := s.validateMessageSend(ctx, senderID, messageType, body, attachmentJSON, nil, nil, idempotencyKey); err != nil {
+		return nil, err
+	}
+
+	message, err := s.persistMessage(ctx, tx, roomID, senderID, messageType, body, attachmentJSON, idempotencyKey, nil, nil, true)
+	if err != nil {
+		return nil, err
+	}
+
+	if s.metrics != nil {
+		s.metrics.RecordChatMessage()
+	}
+	return message, nil
+}
+
+// validateMessageSend runs the transaction-independent checks shared by
+// SendMessage and SendMessageInTx. It is the single authority for message send
+// policy: idempotency key presence, rate limits, payload shape, and account
+// state. Both entry points must pass through it so SendMessageInTx can never
+// become an unchecked bypass.
+func (s *Service) validateMessageSend(
+	ctx context.Context,
+	senderID uuid.UUID,
+	messageType chatEntity.MessageType,
+	body *string,
+	attachmentJSON map[string]interface{},
+	mediaAssetIDs []uuid.UUID,
+	resourceOccurrence *chatEntity.ResourceOccurrenceIdentity,
+	idempotencyKey string,
+) error {
 	if idempotencyKey == "" {
-		return nil, chatRepo.ErrInvalidIdempotencyKey
+		return chatRepo.ErrInvalidIdempotencyKey
 	}
 
 	// Rate limit: 5 messages per 5 seconds (short-term burst protection)
@@ -884,7 +959,7 @@ func (s *Service) sendMessage(
 		if s.metrics != nil {
 			s.metrics.RecordChatRateLimited()
 		}
-		return nil, chatRepo.ErrRateLimited
+		return chatRepo.ErrRateLimited
 	}
 
 	// Rate limit: 60 messages per minute (long-term guard)
@@ -893,17 +968,17 @@ func (s *Service) sendMessage(
 		if s.metrics != nil {
 			s.metrics.RecordChatRateLimited()
 		}
-		return nil, chatRepo.ErrRateLimited
+		return chatRepo.ErrRateLimited
 	}
 
 	if !messageType.IsValid() {
-		return nil, chatRepo.ErrInvalidMessageType
+		return chatRepo.ErrInvalidMessageType
 	}
 
 	// Media attach policy is checked before any read or write so an oversized
 	// request fails fast and cheap.
 	if len(mediaAssetIDs) > chatEntity.MaxMediaPerMessage {
-		return nil, chatRepo.ErrTooManyMediaAssets
+		return chatRepo.ErrTooManyMediaAssets
 	}
 
 	// A text message must carry SOMETHING: a body, media, a commerce
@@ -914,10 +989,10 @@ func (s *Service) sendMessage(
 		hasBody := body != nil && len(*body) > 0
 		hasPayload := hasBody || len(mediaAssetIDs) > 0 || resourceOccurrence != nil || attachmentJSON != nil
 		if !hasPayload {
-			return nil, fmt.Errorf("text message requires a body, media, or product reference")
+			return fmt.Errorf("text message requires a body, media, or product reference")
 		}
 		if body != nil && len(*body) > MaxMessageBodyLength {
-			return nil, chatRepo.ErrMessageBodyTooLong
+			return chatRepo.ErrMessageBodyTooLong
 		}
 	}
 
@@ -925,12 +1000,32 @@ func (s *Service) sendMessage(
 	// Service re-checks independently of RequireActiveAccount middleware.
 	if s.statusChecker != nil {
 		if err := s.statusChecker.EnsureActive(ctx, senderID); err != nil {
-			return nil, err
+			return err
 		}
 	}
 
+	return nil
+}
+
+// persistMessage is the single canonical message-persistence body. It performs
+// ALL database work for a send using the transaction it is handed and NEVER
+// opens a transaction of its own — callers own the transaction boundary. It is
+// shared verbatim by SendMessage (inside its own tx) and SendMessageInTx
+// (inside the caller's tx).
+func (s *Service) persistMessage(
+	ctx context.Context,
+	tx db.Tx,
+	roomID, senderID uuid.UUID,
+	messageType chatEntity.MessageType,
+	body *string,
+	attachmentJSON map[string]interface{},
+	idempotencyKey string,
+	mediaAssetIDs []uuid.UUID,
+	resourceOccurrence *chatEntity.ResourceOccurrenceIdentity,
+	requireParticipant bool,
+) (*chatEntity.ChatMessage, error) {
 	var message *chatEntity.ChatMessage
-	err := s.db.WithTx(ctx, func(tx db.Tx) error {
+	run := func() error {
 		// Verify room exists
 		room, err := s.repo.GetRoomByID(ctx, tx, roomID)
 		if err != nil {
@@ -1132,17 +1227,11 @@ func (s *Service) sendMessage(
 
 		message = newMessage
 		return nil
-	})
+	}
 
-	if err != nil {
+	if err := run(); err != nil {
 		return nil, err
 	}
-
-	// Record metrics for successful message send
-	if s.metrics != nil {
-		s.metrics.RecordChatMessage()
-	}
-
 	return message, nil
 }
 

@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/core/core.dart' as core;
 import 'package:labuda/core/src/theme/app_theme.dart';
+import 'package:labuda/shared/widgets/app_dialog.dart';
 import 'package:labuda/shared/widgets/app_snackbar.dart';
-import 'package:labuda/shared/shared.dart' show authenticatedUserProvider;
+import 'package:labuda/shared/shared.dart'
+    show authenticatedUserProvider, BottomActionBar, BottomBarAction;
 import 'package:labuda/domains/commerce/pricing/discount/domain/entities/discount_entity.dart';
 import 'package:labuda/domains/commerce/pricing/discount/domain/use_cases/discount_usecase_providers.dart';
 import 'package:labuda/domains/commerce/pricing/discount/presentation/providers/discount_provider.dart';
@@ -23,8 +25,7 @@ class EditDiscountScreen extends ConsumerStatefulWidget {
   const EditDiscountScreen({super.key, required this.discount});
 
   @override
-  ConsumerState<EditDiscountScreen> createState() =>
-      _EditDiscountScreenState();
+  ConsumerState<EditDiscountScreen> createState() => _EditDiscountScreenState();
 }
 
 class _EditDiscountScreenState extends ConsumerState<EditDiscountScreen> {
@@ -106,7 +107,7 @@ class _EditDiscountScreenState extends ConsumerState<EditDiscountScreen> {
     if (validationResult.isError) {
       AppSnackBar.showWarning(
         context,
-        validationResult.error ?? 'Validation failed',
+        validationResult.error ?? 'Validasi gagal',
       );
       return false;
     }
@@ -119,7 +120,7 @@ class _EditDiscountScreenState extends ConsumerState<EditDiscountScreen> {
 
     final currentUser = ref.read(authenticatedUserProvider);
     if (currentUser == null) {
-      AppSnackBar.showError(context, 'User not found');
+      AppSnackBar.showError(context, 'Pengguna tidak ditemukan');
       return;
     }
 
@@ -157,7 +158,7 @@ class _EditDiscountScreenState extends ConsumerState<EditDiscountScreen> {
         (discount) {
           ref.invalidate(sellerDiscountsProvider(currentUser.id));
 
-          AppSnackBar.showSuccess(context, 'Discount updated successfully!');
+          AppSnackBar.showSuccess(context, 'Diskon berhasil diperbarui!');
           Navigator.of(context).pop(true);
         },
       );
@@ -173,32 +174,19 @@ class _EditDiscountScreenState extends ConsumerState<EditDiscountScreen> {
   }
 
   void _showDiscardDialog() {
-    showDialog(
+    AppDialog.confirm(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Discard Changes?'),
-        content: const Text(
+      title: 'Discard Changes?',
+      message:
           'Anda memiliki perubahan yang belum disimpan. '
           'Yakin ingin keluar?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              Navigator.of(context).pop();
-            },
-            child: Text(
-              'Discard',
-              style: TextStyle(color: context.statusColors.error),
-            ),
-          ),
-        ],
-      ),
-    );
+      confirmLabel: 'Discard',
+      cancelLabel: 'Cancel',
+      intent: AppDialogIntent.destructive,
+    ).then((discard) {
+      if (!discard || !mounted) return;
+      Navigator.of(context).pop();
+    });
   }
 
   Widget _buildUsedDiscountBanner() {
@@ -217,7 +205,11 @@ class _EditDiscountScreenState extends ConsumerState<EditDiscountScreen> {
         children: [
           Row(
             children: [
-              Icon(Icons.info_outline, color: context.statusColors.warning, size: AppIconSize.action),
+              Icon(
+                Icons.info_outline,
+                color: context.statusColors.warning,
+                size: AppIconSize.action,
+              ),
               const SizedBox(width: 8),
               Text(
                 'Discount Already Used',
@@ -232,14 +224,15 @@ class _EditDiscountScreenState extends ConsumerState<EditDiscountScreen> {
           Text(
             'This discount has been used ${_original.currentUsageCount} times. '
             'Some fields cannot be changed to maintain data consistency.',
-            style: TextStyle(fontSize: core.AppType.s14, color: context.statusColors.warning),
+            style: context.typeRoles.bodyDense.copyWith(
+              color: context.statusColors.warning,
+            ),
           ),
           const SizedBox(height: 12),
           Text(
             'What can be changed:',
-            style: TextStyle(
+            style: context.typeRoles.titleCompact.copyWith(
               fontWeight: FontWeight.w600,
-              fontSize: core.AppType.s14,
               color: context.statusColors.warning,
             ),
           ),
@@ -251,10 +244,15 @@ class _EditDiscountScreenState extends ConsumerState<EditDiscountScreen> {
             '• Add usage limit',
           ].map(
             (text) => Padding(
-              padding: const EdgeInsets.only(left: core.AppMetrics.p8, top: core.AppMetrics.p4),
+              padding: const EdgeInsets.only(
+                left: core.AppMetrics.p8,
+                top: core.AppMetrics.p4,
+              ),
               child: Text(
                 text,
-                style: TextStyle(fontSize: core.AppType.s12, color: context.statusColors.warning),
+                style: context.typeRoles.bodyDense.copyWith(
+                  color: context.statusColors.warning,
+                ),
               ),
             ),
           ),
@@ -280,7 +278,7 @@ class _EditDiscountScreenState extends ConsumerState<EditDiscountScreen> {
         appBar: AppBar(
           title: const Text('Edit Diskon'),
           leading: IconButton(
-            icon: const Icon(Icons.close),
+            icon: const Icon(Icons.close, semanticLabel: 'Tutup'),
             onPressed: () {
               if (_hasUnsavedChanges) {
                 _showDiscardDialog();
@@ -351,7 +349,8 @@ class _EditDiscountScreenState extends ConsumerState<EditDiscountScreen> {
                 IgnorePointer(
                   ignoring: _isUsed,
                   child: Opacity(
-                    opacity: _isUsed ? 0.5 : 1.0,                     child: AppliesToSection(
+                    opacity: _isUsed ? 0.5 : 1.0,
+                    child: AppliesToSection(
                       appliesTo: _appliesTo,
                       onAppliesToChanged: (value) {
                         setState(() {
@@ -400,42 +399,15 @@ class _EditDiscountScreenState extends ConsumerState<EditDiscountScreen> {
                     });
                   },
                 ),
-
-                const SizedBox(height: 80), // Space for bottom button
               ],
             ),
           ),
         ),
-        bottomNavigationBar: Container(
-          padding: const EdgeInsets.all(core.AppMetrics.p12),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface,
-            boxShadow: [
-              BoxShadow(
-                color: Theme.of(
-                  context,
-                ).colorScheme.scrim.withValues(alpha: 0.05),
-                blurRadius: 10,
-                offset: const Offset(0, -2),
-              ),
-            ],
-          ),
-          child: SafeArea(
-            child: ElevatedButton(
-              onPressed: _isLoading ? null : _submit,
-              child: _isLoading
-                  ? SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation(
-                          Theme.of(context).colorScheme.onPrimary,
-                        ),
-                      ),
-                    )
-                  : const Text('Save Changes'),
-            ),
+        bottomNavigationBar: BottomActionBar(
+          primary: BottomBarAction(
+            label: 'Save Changes',
+            onPressed: _isLoading ? null : _submit,
+            isLoading: _isLoading,
           ),
         ),
       ),

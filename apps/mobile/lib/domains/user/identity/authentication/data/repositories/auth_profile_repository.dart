@@ -83,6 +83,11 @@ class AuthProfileRepository {
     String? username,
     String? bio,
     String? location,
+    String? coverPhotoUrl,
+    String? instagramHandle,
+    String? facebookHandle,
+    String? tiktokHandle,
+    String? twitterHandle,
     DateTime? dateOfBirth,
   }) async {
     try {
@@ -100,6 +105,11 @@ class AuthProfileRepository {
         photoUrl: photoUrl,
         phoneNumber: phoneNumber,
         location: location,
+        coverPhotoUrl: coverPhotoUrl,
+        instagramHandle: instagramHandle,
+        facebookHandle: facebookHandle,
+        tiktokHandle: tiktokHandle,
+        twitterHandle: twitterHandle,
         phoneVerifiedAt: phoneVerifiedAt,
         dateOfBirth: dateOfBirth,
       );
@@ -450,7 +460,7 @@ class AuthProfileRepository {
     }
 
     // Parse account_status — default to suspended when absent (fail-closed).
-    // Guards (AuthGuard/SellerGuard) rely on backend rejection for enforcement;
+    // The router redirect guards rely on backend rejection for enforcement;
     // this parse provides the correct local state for display paths.
     final accountStatusStr = data['account_status'] as String?;
     final accountStatus = accountStatusStr != null

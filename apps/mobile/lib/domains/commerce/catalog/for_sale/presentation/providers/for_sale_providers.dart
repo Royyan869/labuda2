@@ -47,10 +47,6 @@ final forSaleControllerProvider = Provider<ForSaleController>((ref) {
   return ForSaleController(repository: repository, logger: logger);
 });
 
-// NOTE: `senderAddressIdProvider` (Product shipping origin) moved to
-// catalog/shared/presentation/sender_address_provider.dart — it is shared by
-// BOTH sale channels and must not be owned by the for_sale domain.
-
 // =============================================================================
 // READ-ONLY PROVIDERS (UI Consumption)
 // =============================================================================
@@ -152,6 +148,7 @@ final sellerForSalesProvider = FutureProvider.autoDispose
         params.sellerId,
         page: params.page,
         pageSize: params.pageSize,
+        includeWithdrawn: params.includeWithdrawn,
       );
 
       return result.fold(
@@ -165,12 +162,18 @@ class SellerForSalesParams extends Equatable {
   final int page;
   final int pageSize;
 
+  /// Opt into the owner's full inventory history (active + sold + withdrawn).
+  /// Defaults to false: public/contextual surfaces (store tab, link pickers)
+  /// must never see withdrawn items.
+  final bool includeWithdrawn;
+
   const SellerForSalesParams({
     required this.sellerId,
     this.page = 1,
     this.pageSize = 20,
+    this.includeWithdrawn = false,
   });
 
   @override
-  List<Object?> get props => [sellerId, page, pageSize];
+  List<Object?> get props => [sellerId, page, pageSize, includeWithdrawn];
 }

@@ -47,15 +47,23 @@ class _ExternalLinkDialog extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
 
     return AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppShape.r16)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppShape.r16),
+      ),
       title: Row(
         children: [
-          Icon(Icons.open_in_new, color: scheme.secondary, size: AppIconSize.header),
+          Icon(
+            Icons.open_in_new,
+            color: scheme.secondary,
+            size: AppIconSize.header,
+          ),
           const SizedBox(width: 8),
-          const Expanded(
+          Expanded(
             child: Text(
               'Buka tautan eksternal?',
-              style: TextStyle(fontSize: AppType.s20, fontWeight: FontWeight.w700),
+              style: context.typeRoles.titleSection.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
         ],
@@ -66,8 +74,7 @@ class _ExternalLinkDialog extends StatelessWidget {
         children: [
           Text(
             'Anda akan meninggalkan Labuda dan membuka situs eksternal.',
-            style: TextStyle(
-              fontSize: AppType.s14,
+            style: context.typeRoles.bodyDense.copyWith(
               color: scheme.onSurfaceVariant,
             ),
           ),
@@ -78,17 +85,14 @@ class _ExternalLinkDialog extends StatelessWidget {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(AppShape.r8),
               color: scheme.surfaceContainerHigh,
-              border: Border.all(
-                color: scheme.outlineVariant,
-              ),
+              border: Border.all(color: scheme.outlineVariant),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   uri.host,
-                  style: TextStyle(
-                    fontSize: AppType.s16,
+                  style: context.typeRoles.titleCompact.copyWith(
                     fontWeight: FontWeight.w600,
                     color: scheme.onSurface,
                   ),
@@ -98,8 +102,7 @@ class _ExternalLinkDialog extends StatelessWidget {
                   uri.toString(),
                   maxLines: 3,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: AppType.s12,
+                  style: context.typeRoles.labelMicro.copyWith(
                     color: scheme.onSurfaceVariant,
                   ),
                 ),
@@ -109,12 +112,18 @@ class _ExternalLinkDialog extends StatelessWidget {
           const SizedBox(height: 12),
           Row(
             children: [
-              Icon(Icons.warning_amber_rounded, size: AppIconSize.inlineGlyph, color: context.statusColors.warning),
+              Icon(
+                Icons.warning_amber_rounded,
+                size: AppIconSize.inlineGlyph,
+                color: context.statusColors.warning,
+              ),
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
                   'Labuda tidak bertanggung jawab atas konten di situs eksternal.',
-                  style: TextStyle(fontSize: AppType.s12, color: context.statusColors.warning),
+                  style: context.typeRoles.labelMicro.copyWith(
+                    color: context.statusColors.warning,
+                  ),
                 ),
               ),
             ],
@@ -133,10 +142,6 @@ class _ExternalLinkDialog extends StatelessWidget {
           onPressed: () => Navigator.of(context).pop(true),
           icon: const Icon(Icons.open_in_new, size: AppIconSize.inlineGlyph),
           label: const Text('Buka'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: scheme.secondary,
-            foregroundColor: scheme.onSecondary,
-          ),
         ),
       ],
     );

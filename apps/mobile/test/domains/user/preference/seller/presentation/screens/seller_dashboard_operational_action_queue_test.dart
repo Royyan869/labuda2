@@ -86,10 +86,7 @@ OrderItem _orderItem({required String id, required String label}) {
   );
 }
 
-Order _order({
-  required String id,
-  required OrderStatus status,
-}) {
+Order _order({required String id, required OrderStatus status}) {
   final now = DateTime.now();
   return Order(
     id: id,
@@ -97,7 +94,7 @@ Order _order({
     sellerId: _sellerId,
     items: [_orderItem(id: id, label: 'Order $id')],
     status: status,
-    paymentMethod: PaymentMethodType.bankTransfer,
+    paymentMethodCode: 'bank_transfer',
     paymentStatus: PaymentStatus.pending,
     shippingInfo: const ShippingInfo(
       recipientName: 'Buyer',
@@ -131,9 +128,7 @@ ShippingSetup _activeShippingSetup() {
   );
 }
 
-SellerSubscription _subscription({
-  required Duration expiresIn,
-}) {
+SellerSubscription _subscription({required Duration expiresIn}) {
   final now = DateTime.now();
   return SellerSubscription(
     isActive: true,
@@ -146,9 +141,7 @@ SellerSubscription _subscription({
   );
 }
 
-SellerUpgradeConfigEntity _upgradeConfig({
-  int renewalReminderDays = 7,
-}) {
+SellerUpgradeConfigEntity _upgradeConfig({int renewalReminderDays = 7}) {
   return SellerUpgradeConfigEntity(
     yearlyFee: 70000,
     durationDays: 365,
@@ -196,9 +189,7 @@ dynamic _dashboardOverrides({
     shippingNotifierProvider.overrideWith(
       () => _StaticShippingNotifier(shippingState),
     ),
-    sellerEarningsProvider(_sellerId).overrideWith(
-      (ref) async => _earnings(),
-    ),
+    sellerEarningsProvider(_sellerId).overrideWith((ref) async => _earnings()),
     watchSellerOrdersProvider(
       sellerId: _sellerId,
       status: OrderStatus.pending,
@@ -207,12 +198,10 @@ dynamic _dashboardOverrides({
       sellerId: _sellerId,
       status: OrderStatus.paid,
     ).overrideWith((ref) => Stream.value(paidOrders)),
-    sellerSubscriptionFutureProvider(_sellerId).overrideWith(
-      (ref) async => subscription,
-    ),
-    sellerUpgradeConfigProvider.overrideWith(
-      (ref) async => upgradeConfig,
-    ),
+    sellerSubscriptionFutureProvider(
+      _sellerId,
+    ).overrideWith((ref) async => subscription),
+    sellerUpgradeConfigProvider.overrideWith((ref) async => upgradeConfig),
   ];
 }
 
@@ -226,45 +215,38 @@ GoRouter _router() {
       ),
       GoRoute(
         path: '/seller/orders',
-        builder: (context, state) => Scaffold(
-          body: Center(child: Text(state.uri.toString())),
-        ),
+        builder: (context, state) =>
+            Scaffold(body: Center(child: Text(state.uri.toString()))),
       ),
       GoRoute(
         path: RoutePaths.addresses,
-        builder: (context, state) => Scaffold(
-          body: Center(child: Text(state.uri.toString())),
-        ),
+        builder: (context, state) =>
+            Scaffold(body: Center(child: Text(state.uri.toString()))),
       ),
       GoRoute(
         path: RoutePaths.sellerShipping,
-        builder: (context, state) => Scaffold(
-          body: Center(child: Text(state.uri.toString())),
-        ),
+        builder: (context, state) =>
+            Scaffold(body: Center(child: Text(state.uri.toString()))),
       ),
       GoRoute(
         path: RoutePaths.sellerForSales,
-        builder: (context, state) => Scaffold(
-          body: Center(child: Text(state.uri.toString())),
-        ),
+        builder: (context, state) =>
+            Scaffold(body: Center(child: Text(state.uri.toString()))),
       ),
       GoRoute(
         path: RoutePaths.sellerForSales,
-        builder: (context, state) => Scaffold(
-          body: Center(child: Text(state.uri.toString())),
-        ),
+        builder: (context, state) =>
+            Scaffold(body: Center(child: Text(state.uri.toString()))),
       ),
       GoRoute(
         path: RoutePaths.sellerVerification,
-        builder: (context, state) => Scaffold(
-          body: Center(child: Text(state.uri.toString())),
-        ),
+        builder: (context, state) =>
+            Scaffold(body: Center(child: Text(state.uri.toString()))),
       ),
       GoRoute(
         path: RoutePaths.sellerUpgrade,
-        builder: (context, state) => Scaffold(
-          body: Center(child: Text(state.uri.toString())),
-        ),
+        builder: (context, state) =>
+            Scaffold(body: Center(child: Text(state.uri.toString()))),
       ),
     ],
   );
@@ -365,13 +347,31 @@ void main() {
         anchor: find.byKey(const Key('seller-action-queue-pending-orders')),
       );
 
-      expect(find.byKey(const Key('seller-action-queue-pending-orders')), findsOneWidget);
-      expect(find.byKey(const Key('seller-action-queue-paid-orders')), findsOneWidget);
-      expect(find.byKey(const Key('seller-action-queue-verification')), findsOneWidget);
-      expect(find.byKey(const Key('seller-action-queue-sender-address')), findsOneWidget);
-      expect(find.byKey(const Key('seller-action-queue-shipping-option')), findsOneWidget);
+      expect(
+        find.byKey(const Key('seller-action-queue-pending-orders')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('seller-action-queue-paid-orders')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('seller-action-queue-verification')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('seller-action-queue-sender-address')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('seller-action-queue-shipping-option')),
+        findsOneWidget,
+      );
       // Expired is banner-owned now — the queue must NOT repeat it.
-      expect(find.byKey(const Key('seller-action-queue-subscription-expired')), findsNothing);
+      expect(
+        find.byKey(const Key('seller-action-queue-subscription-expired')),
+        findsNothing,
+      );
       expect(find.text('Antrian Tindakan Operasional'), findsOneWidget);
     });
 
@@ -499,7 +499,7 @@ void main() {
       );
     });
 
-    testWidgets('routes ForSale Saya to the canonical seller inventory page', (
+    testWidgets('routes For Sale Saya to the canonical seller inventory page', (
       tester,
     ) async {
       final overrides = _dashboardOverrides(
@@ -520,7 +520,7 @@ void main() {
       await _tapDashboardQuickActionAndExpectRoute(
         tester,
         overrides: overrides,
-        target: find.text('ForSale Saya'),
+        target: find.text('For Sale Saya'),
         expectedLocation: '/seller/for-sale',
       );
     });
@@ -551,7 +551,10 @@ void main() {
         anchor: find.text('Subscription Segera Berakhir'),
       );
 
-      expect(find.byKey(const Key('seller-action-queue-subscription-expiring')), findsOneWidget);
+      expect(
+        find.byKey(const Key('seller-action-queue-subscription-expiring')),
+        findsOneWidget,
+      );
       expect(find.text('Subscription Segera Berakhir'), findsOneWidget);
       expect(find.textContaining('Berakhir dalam'), findsOneWidget);
     });
@@ -575,17 +578,44 @@ void main() {
         ),
       );
 
-      await _showActionQueue(tester, anchor: find.text('Operasional toko siap'));
+      await _showActionQueue(
+        tester,
+        anchor: find.text('Operasional toko siap'),
+      );
 
       expect(find.text('Operasional toko siap'), findsOneWidget);
-      expect(find.text('Tidak ada tindakan yang menunggu saat ini.'), findsOneWidget);
-      expect(find.byKey(const Key('seller-action-queue-pending-orders')), findsNothing);
-      expect(find.byKey(const Key('seller-action-queue-paid-orders')), findsNothing);
-      expect(find.byKey(const Key('seller-action-queue-verification')), findsNothing);
-      expect(find.byKey(const Key('seller-action-queue-sender-address')), findsNothing);
-      expect(find.byKey(const Key('seller-action-queue-shipping-option')), findsNothing);
-      expect(find.byKey(const Key('seller-action-queue-subscription-expiring')), findsNothing);
-      expect(find.byKey(const Key('seller-action-queue-subscription-expired')), findsNothing);
+      expect(
+        find.text('Tidak ada tindakan yang menunggu saat ini.'),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('seller-action-queue-pending-orders')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const Key('seller-action-queue-paid-orders')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const Key('seller-action-queue-verification')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const Key('seller-action-queue-sender-address')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const Key('seller-action-queue-shipping-option')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const Key('seller-action-queue-subscription-expiring')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const Key('seller-action-queue-subscription-expired')),
+        findsNothing,
+      );
     });
   });
 }

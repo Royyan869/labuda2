@@ -1,5 +1,6 @@
 import 'package:labuda/core/core.dart';
 import 'package:flutter/material.dart';
+import 'package:labuda/shared/utils/app_formatters.dart';
 
 /// Phone verification field widget
 class PhoneVerificationField extends StatelessWidget {
@@ -14,7 +15,6 @@ class PhoneVerificationField extends StatelessWidget {
     required this.phoneVerified,
     this.phoneVerifiedAt,
     required this.onVerifyPhone,
-    
   });
 
   @override
@@ -54,8 +54,7 @@ class PhoneVerificationField extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 'Phone Number',
-                style: TextStyle(
-                  fontSize: AppType.s12,
+                style: context.typeRoles.labelMicro.copyWith(
                   color: scheme.onSurfaceVariant,
                 ),
               ),
@@ -67,8 +66,7 @@ class PhoneVerificationField extends StatelessWidget {
           TextField(
             controller: phoneController,
             keyboardType: TextInputType.phone,
-            style: TextStyle(
-              fontSize: AppType.s14,
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
               fontWeight: FontWeight.w500,
               color: scheme.onSurface,
             ),
@@ -80,9 +78,8 @@ class PhoneVerificationField extends StatelessWidget {
           if (phoneVerified && phoneVerifiedAt != null) ...[
             const SizedBox(height: 8),
             Text(
-              'Verified on ${phoneVerifiedAt!.day}/${phoneVerifiedAt!.month}/${phoneVerifiedAt!.year}',
-              style: TextStyle(
-                fontSize: AppType.s12,
+              'Verified on ${AppFormatters.formatShortDate(phoneVerifiedAt!)}',
+              style: context.typeRoles.labelMicro.copyWith(
                 color: scheme.onSurfaceVariant,
               ),
             ),
@@ -94,7 +91,10 @@ class PhoneVerificationField extends StatelessWidget {
 
   Widget _buildVerificationBadge(BuildContext context, ColorScheme scheme) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8, vertical: AppMetrics.p4),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppMetrics.p8,
+        vertical: AppMetrics.p4,
+      ),
       decoration: BoxDecoration(
         color: phoneVerified
             ? context.statusColors.success.withValues(alpha: 0.1)
@@ -111,15 +111,18 @@ class PhoneVerificationField extends StatelessWidget {
         children: [
           Icon(
             phoneVerified ? Icons.verified : Icons.warning,
-            color: phoneVerified ? context.statusColors.success : context.statusColors.warning,
+            color: phoneVerified
+                ? context.statusColors.success
+                : context.statusColors.warning,
             size: AppIconSize.inlineGlyph,
           ),
           const SizedBox(width: 4),
           Text(
             phoneVerified ? 'Verified' : 'Unverified',
-            style: TextStyle(
-              color: phoneVerified ? context.statusColors.success : context.statusColors.warning,
-              fontSize: AppType.s12,
+            style: context.typeRoles.labelMicro.copyWith(
+              color: phoneVerified
+                  ? context.statusColors.success
+                  : context.statusColors.warning,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -134,25 +137,27 @@ class PhoneVerificationField extends StatelessWidget {
       decoration: BoxDecoration(
         color: context.statusColors.warning.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(AppShape.r8),
-        border: Border.all(color: context.statusColors.warning.withValues(alpha: 0.2)),
+        border: Border.all(
+          color: context.statusColors.warning.withValues(alpha: 0.2),
+        ),
       ),
       child: Row(
         children: [
-          Icon(Icons.info_outline, color: context.statusColors.warning, size: AppIconSize.inlineGlyph),
+          Icon(
+            Icons.info_outline,
+            color: context.statusColors.warning,
+            size: AppIconSize.inlineGlyph,
+          ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               'Please verify your phone number',
-              style: TextStyle(
-                fontSize: AppType.s12,
+              style: context.typeRoles.labelMicro.copyWith(
                 color: scheme.onSurfaceVariant,
               ),
             ),
           ),
-          TextButton(
-            onPressed: onVerifyPhone,
-            child: const Text('Verify'),
-          ),
+          TextButton(onPressed: onVerifyPhone, child: const Text('Verify')),
         ],
       ),
     );

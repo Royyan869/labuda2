@@ -10,6 +10,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/labuda/backend/internal/commerce/auction/entity"
 	productEntity "github.com/labuda/backend/internal/commerce/product/entity"
+	sharedpkg "github.com/labuda/backend/internal/commerce/shared"
 	"github.com/labuda/backend/pkg/db"
 )
 
@@ -75,7 +76,7 @@ const joinedAuctionColumns = `a.id, a.seller_id, a.product_id, a.order_id,
 	a.status, a.created_at, a.updated_at, a.anti_snipe_extension_seconds,
 	p.id, p.seller_id, p.title, p.description, p.media_urls,
 	p.variety, p.size_cm, p.age_months, p.gender, p.breeder, p.bloodline, p.certificates,
-	p.farm_address_id, p.preparation_time,
+	p.preparation_time,
 	p.created_at, p.updated_at`
 
 // scanJoinedAuction scans a row produced by joinedAuctionColumns into an
@@ -97,7 +98,6 @@ func scanJoinedAuction(row interface {
 	var sizeCM, ageMonths *int
 	var gender, breeder, bloodline *string
 	var certificates []string
-	var farmAddressID *uuid.UUID
 	var productCreatedAt, productUpdatedAt time.Time
 
 	err := row.Scan(
@@ -108,7 +108,7 @@ func scanJoinedAuction(row interface {
 		&status, &createdAt, &updatedAt, &antiSnipeExtensionSeconds,
 		&p.ID, &p.SellerID, &p.Title, &p.Description, &mediaURLsRaw,
 		&p.Variety, &sizeCM, &ageMonths, &gender, &breeder, &bloodline, &certificates,
-		&farmAddressID, &p.PreparationTime,
+		&p.PreparationTime,
 		&productCreatedAt, &productUpdatedAt,
 	)
 	if err != nil {
@@ -143,7 +143,6 @@ func scanJoinedAuction(row interface {
 	p.Breeder = breeder
 	p.Bloodline = bloodline
 	p.Certificates = certificates
-	p.FarmAddressID = farmAddressID
 	p.CreatedAt = productCreatedAt
 	p.UpdatedAt = productUpdatedAt
 	a.Product = &p
@@ -325,6 +324,15 @@ type AuctionFilter struct {
 	SellerID *uuid.UUID     // Filter by seller ID (optional)
 	Cursor   *time.Time     // Cursor for pagination (created_at based)
 	Limit    int            // Max results (default 20, max 50)
+
+	// OwnerInventory: the seller reading their OWN inventory. With no
+	// explicit status there is deliberately no status condition — every
+	// status (waiting_settlement, ended, cancelled, lapsed) is
+	// reachable; with an explicit status the status still applies but the
+	// read-side market-authority hide is skipped (owners see their own
+	// hidden listings). Only meaningful when SellerID is set, which is what
+	// pins the rows. Set exclusively by the handler when seller_id == viewer.
+	OwnerInventory bool
 }
 
 // List retrieves auctions with filtering and cursor-based pagination.
@@ -365,16 +373,34 @@ func (r *AuctionRepository) List(
 	var args []interface{}
 	argIdx := 1
 
-	if filter.Status != nil {
+	// Read-side market-authority hide (owner decision Oct 2026): listings of
+	// sellers without a live subscription are excluded from viewer surfaces
+	// outright. Skipped for the seller's own inventory (OwnerInventory is
+	// set whenever seller_id == viewer) — owners always see their own rows.
+	marketAuthority := sharedpkg.ActiveSellerMarketAuthoritySQL("a.seller_id")
+
+	switch {
+	case filter.Status != nil:
 		conditions = append(conditions, fmt.Sprintf("a.status = $%d", argIdx))
 		args = append(args, string(*filter.Status))
 		argIdx++
-	} else {
+		if !filter.OwnerInventory {
+			conditions = append(conditions, marketAuthority)
+		}
+	case filter.OwnerInventory && filter.SellerID != nil:
+		// OWNER INVENTORY: deliberately NO status condition, so the seller's
+		// own waiting_settlement, ended and cancelled auctions are
+		// reachable. The SellerID predicate added below pins every row to this
+		// seller, and the handler only sets OwnerInventory when
+		// seller_id == viewer — so this can never leak into public discovery.
+	default:
 		// Default browse (no explicit status filter) is public discovery:
-		// only pre-sale/live-sale states. Draft, cancelled, waiting_settlement
-		// and ended (settled/no-winner) are owned/historical surfaces and must
-		// not surface in anonymous public browse.
+		// only pre-sale/live-sale states. Cancelled, waiting_settlement,
+		// lapsed and ended (settled/no-winner) are owned/historical surfaces
+		// and must not surface in anonymous public browse. Sellers without
+		// live market authority are hidden here too.
 		conditions = append(conditions, "a.status IN ('scheduled', 'active')")
+		conditions = append(conditions, marketAuthority)
 	}
 
 	if filter.SellerID != nil {

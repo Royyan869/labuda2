@@ -56,6 +56,37 @@ defect this structure exists to prevent.
 000121_preparation_time_three_ranges.up.sql                       — Preparation time narrows to exactly three ranges (owner decision):
                                                                      1_3_days | 4_7_days | 8_15_days (default 1_3_days). Data mapping never
                                                                      shortens an existing promise; guard refuses historical values.
+000122_auction_status_lapsed.up.sql                               — Settlement-lapse vocabulary: auction_status_enum gains 'lapsed'. A scheduled
+                                                                     auction whose market authority expires before activation becomes 'lapsed'
+                                                                     (never live, hidden from viewers, relistable), never 'cancelled'.
+000123_purge_draft_from_selling_surfaces.up.sql                   — Draft purge end-to-end: the Auction and For Sale lifecycles lose 'draft'
+                                                                     entirely - both surfaces are born published (auction: scheduled,
+                                                                     for_sale: active). Rebuilds both enum types without 'draft', remaps
+                                                                     legacy rows (auction draft -> lapsed, for_sale draft -> withdrawn),
+                                                                     and narrows the defaults and live-surface partial unique indexes.
+000124_address_single_book_convergence.up.sql                     — Canonical address model: one account address book with exactly one
+                                                                     primary when any active address exists. Drops the rejected role/
+                                                                     purpose/tag architecture (addresses.purpose, addresses.tags and
+                                                                     their constraints/indexes) and the product-level origin pointer
+                                                                     (products.farm_address_id). Idempotent: a fresh baseline (which
+                                                                     already omits these) and an existing database converge to the
+                                                                     same shape. The single-primary invariant (000017) is unchanged.
+000125_product_view_events.up.sql                                  — Canonical Product View authority: an append-only event log
+                                                                     (product_view_events) keyed by products.id, with a nullable
+                                                                     viewer_user_id (NULL = anonymous) and a server-clock viewed_at.
+                                                                     Seller self-views and admin/moderator views are excluded at the
+                                                                     producer, never written. This is NOT a revival of the dropped
+                                                                     listing_views schema.
+000130_canonical_geography_master.up.sql                           — ONE Geography Master (owner locked): replaces the retired
+                                                                     city-only canonical_geographies (000083) with a single
+                                                                     self-referential Province -> Regency -> District -> Village
+                                                                     hierarchy (normalized BPS codes, village postal code). Parent
+                                                                     integrity is enforced by a self-FK; level vocabulary and
+                                                                     parent presence are CHECK-constrained. Populated by the
+                                                                     canonical seeder (internal/platform/geography) invoked by
+                                                                     cmd/migrate and the test bootstrap. Address and Shipping writes
+                                                                     validate against this master; mobile local geography datasets
+                                                                     and postal-code authority are purged.
 ```
 
 This baseline was generated from the live DB state (v100–v229) on 2026-07-03 and represents
@@ -63,7 +94,7 @@ the authoritative schema for a clean Labuda installation.
 
 ## Adding new migrations
 
-New migrations continue the sequence (`000121` is the current head). Use `NNNNNN_description.{up,down}.sql` naming.
+New migrations continue the sequence (`000130` is the current head). Use `NNNNNN_description.{up,down}.sql` naming.
 Both `.up.sql` and `.down.sql` files are required.
 
 ## Legacy history

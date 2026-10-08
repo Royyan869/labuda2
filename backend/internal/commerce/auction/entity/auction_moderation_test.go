@@ -14,7 +14,7 @@ import (
 // TestCancel_FromWaitingSettlement_Succeeds proves the new state machine
 // transition is wired: moderation can cancel a waiting_settlement auction.
 func TestCancel_FromWaitingSettlement_Succeeds(t *testing.T) {
-	auction := createTestDraftAuction()
+	auction := createTestAuction()
 	auction.Status = StatusWaitingSettlement
 
 	err := auction.Cancel()
@@ -26,9 +26,12 @@ func TestCancel_FromWaitingSettlement_Succeeds(t *testing.T) {
 	}
 }
 
-// TestCancel_FromEnded_Fails proves ended is a terminal state (unchanged).
+// TestCancel_FromEnded_Fails proves ended still cannot be cancelled.
+// The relist transition (ended -> scheduled, republish) deliberately does NOT
+// open ended to cancellation: relist and cancel remain independent business
+// actions.
 func TestCancel_FromEnded_Fails(t *testing.T) {
-	auction := createTestDraftAuction()
+	auction := createTestAuction()
 	auction.Status = StatusEnded
 
 	err := auction.Cancel()
@@ -41,19 +44,19 @@ func TestCancel_FromEnded_Fails(t *testing.T) {
 	}
 }
 
-// TestCancel_FromDraftReturnedSettlementFailure_Succeeds proves an auction
-// that returned to DRAFT after a settlement failure can be cancelled (the
-// relist is under the seller's control).
-func TestCancel_FromDraftReturnedSettlementFailure_Succeeds(t *testing.T) {
-	auction := createTestDraftAuction()
+// TestCancel_FromRescheduledSettlementFailure_Succeeds proves an auction
+// that AUTO-RESCHEDULED after a settlement failure can be cancelled (the
+// seller still controls the reopened run).
+func TestCancel_FromRescheduledSettlementFailure_Succeeds(t *testing.T) {
+	auction := createTestAuction()
 	auction.Status = StatusWaitingSettlement
-	if err := auction.TransitionToDraftOnSettlementFailure(); err != nil {
-		t.Fatalf("TransitionToDraftOnSettlementFailure() failed: %v", err)
+	if err := auction.RescheduleAfterSettlementFailure(); err != nil {
+		t.Fatalf("RescheduleAfterSettlementFailure() failed: %v", err)
 	}
 
 	err := auction.Cancel()
 	if err != nil {
-		t.Errorf("Cancel() from draft failed: %v — want nil", err)
+		t.Errorf("Cancel() from scheduled reschedule failed: %v — want nil", err)
 	}
 	if auction.Status != StatusCancelled {
 		t.Errorf("Status = %s, want %s", auction.Status, StatusCancelled)
@@ -62,7 +65,7 @@ func TestCancel_FromDraftReturnedSettlementFailure_Succeeds(t *testing.T) {
 
 // TestCancel_FromCancelled_Fails proves cancelled is a terminal state (idempotency guard).
 func TestCancel_FromCancelled_Fails(t *testing.T) {
-	auction := createTestDraftAuction()
+	auction := createTestAuction()
 	auction.Status = StatusCancelled
 
 	err := auction.Cancel()
@@ -79,7 +82,7 @@ func TestCancel_FromCancelled_Fails(t *testing.T) {
 // regardless of existing bids (governance bypass — unlike seller Cancel which
 // requires CanCancel() = no bids).
 func TestCancel_FromActive_WithBids_Succeeds(t *testing.T) {
-	auction := createTestDraftAuction()
+	auction := createTestAuction()
 	auction.Status = StatusActive
 	// Simulate bids
 	bid := int64(25000)
@@ -107,5 +110,3 @@ func isInvalidTransition(err error, out **InvalidTransitionError) bool {
 	}
 	return ok
 }
-
-

@@ -106,16 +106,18 @@ class MediaCounter extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8, vertical: AppMetrics.p4),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppMetrics.p8,
+        vertical: AppMetrics.p4,
+      ),
       decoration: BoxDecoration(
         color: scheme.scrim.withValues(alpha: 0.6),
         borderRadius: BorderRadius.circular(AppShape.r12),
       ),
       child: Text(
         '${currentIndex + 1}/$totalItems',
-        style: TextStyle(
+        style: context.typeRoles.labelMicro.copyWith(
           color: scheme.onPrimary,
-          fontSize: AppType.s12,
           fontWeight: FontWeight.w500,
         ),
       ),

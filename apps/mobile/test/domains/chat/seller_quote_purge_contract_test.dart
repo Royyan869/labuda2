@@ -107,22 +107,41 @@ void main() {
       expect(screen, isNot(contains('Kirim Tawaran')));
     });
 
-    test('shipping quote (ongkir) moved to the Shipping domain — chat holds '
-        'no producer (Owner 2026-10-01)', () {
-      // Negative proof: the chat-side write path was a competing authority
-      // and is killed end-to-end. Positive proof: the Shipping domain owns
-      // the intent + request builder now (chat only forwards the tap).
+    test('shipping quote (ongkir) is owned by the Shipping domain — chat only '
+        'forwards an explicit seller intent (Owner decision)', () {
+      // Negative proof: the chat-side write path was a competing authority and
+      // is killed end-to-end. Chat never calls the create endpoint itself.
       final chatRepo = File(
         'lib/domains/chat/chat/data/repositories/chat_repository_impl.dart',
       ).readAsStringSync();
       expect(chatRepo, isNot(contains('createShippingQuote')));
 
-      final shippingSource = File(
+      // The obsolete generic product-card "Kirim Ongkir" entry stays purged:
+      // the generic product reference card is display/navigation only.
+      final card = File(
+        'lib/domains/chat/chat/presentation/widgets/'
+        'chat_resource_projection_card.dart',
+      ).readAsStringSync();
+      expect(card, isNot(contains('Kirim Ongkir')));
+      expect(card, isNot(contains('onQuoteShipping')));
+
+      // Positive proof: the Commerce (Shipping) domain owns the form + wire,
+      // invoked through the canonical seller intent.
+      final intent = File(
         'lib/domains/commerce/transaction/shipping/presentation/'
         'shipping_quote_intent.dart',
       ).readAsStringSync();
-      expect(shippingSource, contains('openSellerShippingQuoteSheet'));
-      expect(shippingSource, contains('buildForSaleShippingQuoteRequest'));
+      expect(intent, contains('openSellerShippingQuoteSheet'));
+      expect(intent, contains('buildShippingQuoteRequest'));
+
+      // Static guardrail: chat exposes the seller-only explicit intent (never
+      // the generic product card), gated by the seller capability.
+      final screen = File(
+        'lib/domains/chat/chat/presentation/screens/chat_detail_screen.dart',
+      ).readAsStringSync();
+      expect(screen, contains('Penawaran Ongkir'));
+      expect(screen, contains('openSellerShippingQuoteSheet'));
+      expect(screen, contains('canAccessSellerFeatures'));
     });
   });
 }

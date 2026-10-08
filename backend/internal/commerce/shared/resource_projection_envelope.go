@@ -22,15 +22,16 @@ import (
 // Wire contract (strict, state-specific — see ResourceProjection.Validate):
 //
 //	LIVE:      {state, resource_type, resource_id, canonical_url,
-//	            viewer_capabilities, commerce_actions?, <payload>}
+//	            viewer_capabilities, <payload>}
 //	TOMBSTONE: {state, resource_type, resource_id, viewer_capabilities}
 //
 // Decisions locked during convergence:
 //   - resource_id is ALWAYS present (content contract; a tombstone still has
 //     to be identifiable for dedup/audit — chat's former ID omission died).
 //   - canonical_url is LIVE-only (a URL into a dead resource is a lie).
-//   - capabilities are ENVELOPE-level (viewer_capabilities + commerce_actions);
-//     payload-level can_interact died.
+//   - viewer_capabilities is ENVELOPE-level; the former commerce_actions
+//     viewer capability matrix was purged — product attributes (e.g. the
+//     for_sale `negotiation_enabled` flag) live on the payload.
 //   - price is a money object {amount, currency} (chat's "canonical live
 //     money envelope"); the content scalar died.
 //   - seller is always publiccard.SellerCard (tier-gated public card);
@@ -77,25 +78,17 @@ func (t ProjectionResourceType) IsValid() bool {
 // present in BOTH states: in TOMBSTONE it carries the honest
 // blocked_by_tombstone=true explanation.
 type ProjectionViewerCapabilities struct {
-	CanView            bool `json:"can_view"`
-	CanInteract        bool `json:"can_interact"`
+	CanView     bool `json:"can_view"`
+	CanInteract bool `json:"can_interact"`
+	// CanManage is the canonical Commerce OWNERSHIP capability for the viewer
+	// (ViewerCapabilities.Role == "owner", i.e. viewer == product seller),
+	// evaluated by the SAME authority that powers the detail wire
+	// (EvaluateForSaleViewerCapabilities / EvaluateAuctionViewerCapabilities).
+	// It is the sole viewer-scoped authorization a conversation surface may use
+	// to offer an owner-only product action; the surface never derives
+	// ownership from a message/bubble sender.
+	CanManage          bool `json:"can_manage"`
 	BlockedByTombstone bool `json:"blocked_by_tombstone"`
-}
-
-// CommerceActionCapabilities carries the FPS/Auction interactive actions.
-// Present iff the projection is LIVE for_sale or auction; forbidden otherwise.
-type CommerceActionCapabilities struct {
-	Role         string `json:"role,omitempty"`
-	CanChat      bool   `json:"can_chat"`
-	CanNegotiate bool   `json:"can_negotiate"`
-	CanBuy       bool   `json:"can_buy"`
-	CanBid       bool   `json:"can_bid"`
-	CanManage    bool   `json:"can_manage"`
-}
-
-// HasAnyAction reports whether at least one actionable commerce flag is set.
-func (c CommerceActionCapabilities) HasAnyAction() bool {
-	return c.CanChat || c.CanNegotiate || c.CanBuy || c.CanBid || c.CanManage
 }
 
 // LivePrice is the canonical live money envelope {amount, currency}.
@@ -108,35 +101,6 @@ type LivePrice struct {
 // envelope — every commerce surface prices in IDR today; the field exists so
 // the currency is explicit on the wire instead of implied by convention.
 const LivePriceCurrencyIDR = "IDR"
-
-// ForSaleCommerceActions maps the evaluated for-sale viewer capabilities onto
-// the canonical wire action set. This is the SINGLE mapping authority: the
-// content resolver and the chat resolvers both call it, so the two wires can
-// never disagree about which actions one viewer gets.
-func ForSaleCommerceActions(caps ViewerCapabilities) CommerceActionCapabilities {
-	return CommerceActionCapabilities{
-		Role:         caps.Role,
-		CanChat:      caps.CanChat,
-		CanNegotiate: caps.CanNegotiate,
-		CanBuy:       caps.CanBuy,
-		CanBid:       caps.CanBid,
-		CanManage:    caps.CanManage,
-	}
-}
-
-// AuctionCommerceActions maps evaluated auction capabilities onto the wire.
-// Auction has no negotiation; CanBuy carries the buy-now action (parity with
-// the former chat mapping).
-func AuctionCommerceActions(caps ViewerCapabilities) CommerceActionCapabilities {
-	return CommerceActionCapabilities{
-		Role:         caps.Role,
-		CanChat:      caps.CanChat,
-		CanNegotiate: false,
-		CanBuy:       caps.CanBuyNow,
-		CanBid:       caps.CanBid,
-		CanManage:    caps.CanManage,
-	}
-}
 
 // NestedResourceIndicator captures the depth-1 nested identity (identity only).
 type NestedResourceIndicator struct {
@@ -167,25 +131,39 @@ type ContentLivePayload struct {
 
 // ForSaleLivePayload is the LIVE fixed-price sale payload.
 type ForSaleLivePayload struct {
-	Title             string                `json:"title"`
-	Media             []mediaref.MediaRef   `json:"media"`
-	ThumbnailURL      *string               `json:"thumbnail_url,omitempty"`
-	Price             LivePrice             `json:"price"`
-	Status            string                `json:"status"`
-	QuantityAvailable int                   `json:"quantity_available"`
-	Seller            publiccard.SellerCard `json:"seller"`
+	Title             string              `json:"title"`
+	Media             []mediaref.MediaRef `json:"media"`
+	ThumbnailURL      *string             `json:"thumbnail_url,omitempty"`
+	Price             LivePrice           `json:"price"`
+	Status            string              `json:"status"`
+	QuantityAvailable int                 `json:"quantity_available"`
+	// NegotiationEnabled is the canonical PRODUCT-LEVEL negotiation attribute:
+	// the listing is negotiable, active and in stock. It is viewer-independent
+	// (never derived from authentication, seller trust, role or a capability
+	// evaluation). Surfaces render it as the informational "Nego" attribute.
+	NegotiationEnabled bool                  `json:"negotiation_enabled"`
+	Seller             publiccard.SellerCard `json:"seller"`
 }
 
 // AuctionLivePayload is the LIVE auction payload.
 type AuctionLivePayload struct {
-	Title        string                `json:"title"`
-	Media        []mediaref.MediaRef   `json:"media"`
-	ThumbnailURL *string               `json:"thumbnail_url,omitempty"`
-	CurrentBid   *int64                `json:"current_bid,omitempty"`
-	BuyNowPrice  *int64                `json:"buy_now_price,omitempty"`
-	EndAt        string                `json:"end_at"`
-	Lifecycle    string                `json:"lifecycle"`
-	Seller       publiccard.SellerCard `json:"seller"`
+	Title        string              `json:"title"`
+	Media        []mediaref.MediaRef `json:"media"`
+	ThumbnailURL *string             `json:"thumbnail_url,omitempty"`
+	CurrentBid   *int64              `json:"current_bid,omitempty"`
+	BuyNowPrice  *int64              `json:"buy_now_price,omitempty"`
+	EndAt        string              `json:"end_at"`
+	// Lifecycle is the canonical public auction PHASE vocabulary:
+	// {scheduled, active, waiting_settlement, ended, cancelled}. It is sourced
+	// from auctionentity.Status.PublicPhase() — Commerce owns the value.
+	// `lapsed` is not public and coarsens to `cancelled`.
+	Lifecycle string `json:"lifecycle"`
+	// HasWinner is the minimal outcome discriminator for an `ended` phase
+	// (ended+winner vs ended+no-winner). Sourced from the canonical winner
+	// authority (Auction.WinnerID()). Conversation reads it; it never derives
+	// the outcome itself. Nil means the producer did not set it.
+	HasWinner *bool                 `json:"has_winner,omitempty"`
+	Seller    publiccard.SellerCard `json:"seller"`
 }
 
 // ResourceProjection is the sealed canonical projection envelope.
@@ -195,7 +173,6 @@ type ResourceProjection struct {
 	ResourceID   uuid.UUID
 
 	ViewerCapabilities ProjectionViewerCapabilities
-	CommerceActions    *CommerceActionCapabilities
 
 	Profile *ProfileLivePayload
 	Content *ContentLivePayload
@@ -224,20 +201,17 @@ func CanonicalResourceURL(rt ProjectionResourceType, id uuid.UUID) (string, erro
 }
 
 // NewLiveResourceProjection builds a LIVE envelope and validates it.
-// commerceActions must be non-nil for for_sale/auction and nil otherwise.
 func NewLiveResourceProjection(
 	rt ProjectionResourceType,
 	id uuid.UUID,
 	payload any,
 	caps ProjectionViewerCapabilities,
-	commerceActions *CommerceActionCapabilities,
 ) (ResourceProjection, error) {
 	p := ResourceProjection{
 		State:              ProjectionStateLive,
 		ResourceType:       rt,
 		ResourceID:         id,
 		ViewerCapabilities: caps,
-		CommerceActions:    commerceActions,
 	}
 	switch v := payload.(type) {
 	case ProfileLivePayload:
@@ -319,18 +293,12 @@ func (p ResourceProjection) Validate() error {
 			if p.Profile == nil {
 				return fmt.Errorf("shared: LIVE profile projection requires profile payload")
 			}
-			if p.CommerceActions != nil {
-				return fmt.Errorf("shared: LIVE profile projection forbids commerce_actions")
-			}
 			if caps.CanInteract {
 				return fmt.Errorf("shared: LIVE profile projection requires can_interact=false")
 			}
 		case ProjectionResourceTypeContent:
 			if p.Content == nil {
 				return fmt.Errorf("shared: LIVE content projection requires content payload")
-			}
-			if p.CommerceActions != nil {
-				return fmt.Errorf("shared: LIVE content projection forbids commerce_actions")
 			}
 			if caps.CanInteract {
 				return fmt.Errorf("shared: LIVE content projection requires can_interact=false")
@@ -339,29 +307,14 @@ func (p ResourceProjection) Validate() error {
 			if p.ForSale == nil {
 				return fmt.Errorf("shared: LIVE for_sale projection requires for_sale payload")
 			}
-			if p.CommerceActions == nil {
-				return fmt.Errorf("shared: LIVE for_sale projection requires commerce_actions")
-			}
-			if caps.CanInteract && !p.CommerceActions.CanBuy && !p.CommerceActions.CanNegotiate {
-				return fmt.Errorf("shared: can_interact=true requires an actionable commerce flag")
-			}
 		case ProjectionResourceTypeAuction:
 			if p.Auction == nil {
 				return fmt.Errorf("shared: LIVE auction projection requires auction payload")
-			}
-			if p.CommerceActions == nil {
-				return fmt.Errorf("shared: LIVE auction projection requires commerce_actions")
-			}
-			if caps.CanInteract && !p.CommerceActions.CanBid && !p.CommerceActions.CanBuy {
-				return fmt.Errorf("shared: can_interact=true requires an actionable commerce flag")
 			}
 		}
 	case ProjectionStateTombstone:
 		if payloadCount != 0 {
 			return fmt.Errorf("shared: TOMBSTONE projection forbids payloads")
-		}
-		if p.CommerceActions != nil {
-			return fmt.Errorf("shared: TOMBSTONE projection forbids commerce_actions")
 		}
 		caps := p.ViewerCapabilities
 		if caps.CanView || caps.CanInteract || !caps.BlockedByTombstone {
@@ -389,7 +342,6 @@ func (p ResourceProjection) MarshalJSON() ([]byte, error) {
 			ResourceID         string                       `json:"resource_id"`
 			CanonicalURL       string                       `json:"canonical_url"`
 			ViewerCapabilities ProjectionViewerCapabilities `json:"viewer_capabilities"`
-			CommerceActions    *CommerceActionCapabilities  `json:"commerce_actions,omitempty"`
 			Profile            *ProfileLivePayload          `json:"profile,omitempty"`
 			Content            *ContentLivePayload          `json:"content,omitempty"`
 			ForSale            *ForSaleLivePayload          `json:"for_sale,omitempty"`
@@ -400,7 +352,6 @@ func (p ResourceProjection) MarshalJSON() ([]byte, error) {
 			ResourceID:         p.ResourceID.String(),
 			CanonicalURL:       url,
 			ViewerCapabilities: p.ViewerCapabilities,
-			CommerceActions:    p.CommerceActions,
 			Profile:            p.Profile,
 			Content:            p.Content,
 			ForSale:            p.ForSale,

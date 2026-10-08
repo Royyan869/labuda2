@@ -13,11 +13,10 @@ import (
 // ("City, Province") for a profile.
 //
 // DELEGATION: it calls the SAME resolver as the commerce detail cards
-// (identity/address/repository.ResolvePublicOrigin) — the profile passes no
-// listing address, so the rule reads primary sender → any sender → shipping.
-// One rule, one redaction, one origin per seller. Missing truth resolves to
-// "" — the line is hidden, never fabricated, and an unresolvable address
-// never fails the read.
+// (identity/address/repository.ResolvePublicOrigin) — the account's primary
+// address (oldest as fallback). One rule, one redaction, one origin per
+// account. Missing truth resolves to "" — the line is hidden, never
+// fabricated, and an unresolvable address never fails the read.
 func publicOriginLineFor(ctx context.Context, tx db.Tx, userID uuid.UUID) string {
 	if tx == nil || userID == uuid.Nil {
 		return ""
@@ -28,6 +27,5 @@ func publicOriginLineFor(ctx context.Context, tx db.Tx, userID uuid.UUID) string
 		tx,
 		addressInfraRepo.NewAddressRepository(),
 		userID,
-		nil,
 	)
 }

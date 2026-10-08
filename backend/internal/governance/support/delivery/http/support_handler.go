@@ -583,34 +583,32 @@ func (h *Handler) ListAllTickets(c *gin.Context) {
 		filter.IsUnassigned = &isUnassigned
 	}
 
-	// Parse cursor
-	var cursorCreatedAt *time.Time
-	var cursorID *uuid.UUID
-
-	if cursorStr := c.Query("cursor_created_at"); cursorStr != "" {
-		if t, err := time.Parse(time.RFC3339Nano, cursorStr); err == nil {
-			cursorCreatedAt = &t
+	// Page-based navigation for the admin review queue.
+	page := 1
+	if pageStr := c.Query("page"); pageStr != "" {
+		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+			page = p
 		}
 	}
-
-	if cursorStr := c.Query("cursor_id"); cursorStr != "" {
-		if id, err := uuid.Parse(cursorStr); err == nil {
-			cursorID = &id
+	pageSize := 50
+	if psStr := c.Query("page_size"); psStr != "" {
+		if ps, err := strconv.Atoi(psStr); err == nil && ps > 0 && ps <= 100 {
+			pageSize = ps
 		}
 	}
+	offset := (page - 1) * pageSize
 
-	// Parse limit
-	limit := 50
-	if limitStr := c.Query("limit"); limitStr != "" {
-		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 && l <= 100 {
-			limit = l
-		}
-	}
-
-	tickets, err := h.supportService.ListTickets(ctx, filter, cursorCreatedAt, cursorID, limit)
+	// Ordering is owned by the server (canonical SLA-urgency order); the page
+	// is a slice of one global order. The client must not re-sort.
+	tickets, total, err := h.supportService.ListTicketsOrdered(ctx, filter, pageSize, offset)
 	if err != nil {
 		response.InternalServerError(c, "Failed to retrieve tickets")
 		return
+	}
+
+	totalPages := 0
+	if total > 0 {
+		totalPages = int((total + int64(pageSize) - 1) / int64(pageSize))
 	}
 
 	// Batch-fetch status events for SLA computation (single query, no N+1)
@@ -638,7 +636,11 @@ func (h *Handler) ListAllTickets(c *gin.Context) {
 	}
 
 	response.Success(c, gin.H{
-		"data": data,
+		"data":        data,
+		"total":       total,
+		"page":        page,
+		"page_size":   pageSize,
+		"total_pages": totalPages,
 	})
 }
 

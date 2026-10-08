@@ -71,7 +71,6 @@
                 <data android:pathPrefix="/auction"/>
                 <data android:pathPrefix="/profile"/>
                 <data android:pathPrefix="/content"/>
-                <data android:pathPrefix="/contest"/>
             </intent-filter>
 
             <!-- Custom URL Scheme fallback -->

@@ -143,15 +143,15 @@ func (r *processSellerRepo) UpdateTierTx(context.Context, db.Tx, uuid.UUID, sell
 	return nil
 }
 
-func (r *processSellerRepo) InsertMonthlyMetricTx(context.Context, db.Tx, *sellerEntity.SellerMonthlyMetric) error {
-	return nil
-}
-
 func (r *processSellerRepo) UpsertReputationStateTx(context.Context, db.Tx, *sellerEntity.SellerReputationState) error {
 	return nil
 }
 
 func (r *processSellerRepo) GetReputationStateForUpdate(context.Context, db.Tx, uuid.UUID) (*sellerEntity.SellerReputationState, error) {
+	return nil, nil
+}
+
+func (r *processSellerRepo) GetReputationState(context.Context, db.Tx, uuid.UUID) (*sellerEntity.SellerReputationState, error) {
 	return nil, nil
 }
 
@@ -231,19 +231,11 @@ func (r *processUserRepo) GetProfileByID(context.Context, db.Tx, uuid.UUID) (*us
 }
 
 type processAddressRepo struct {
-	addresses []*addressEntity.Address
+	primary *addressEntity.Address
 }
 
-func (r *processAddressRepo) GetByUserIDFiltered(context.Context, db.Tx, uuid.UUID, string) ([]*addressEntity.Address, error) {
-	return r.addresses, nil
-}
-
-type processConfigRepo struct {
-	config *subscriptionEntity.SellerSubscriptionConfig
-}
-
-func (r *processConfigRepo) GetActiveConfig(context.Context, db.Tx) (*subscriptionEntity.SellerSubscriptionConfig, error) {
-	return r.config, nil
+func (r *processAddressRepo) GetPrimaryByUserID(context.Context, db.Tx, uuid.UUID) (*addressEntity.Address, error) {
+	return r.primary, nil
 }
 
 type processPaymentTx struct {
@@ -372,27 +364,27 @@ func newProcessServiceForStacking(
 		},
 		&processSellerRepo{profile: onboardingSellerProfile},
 		&processAddressRepo{
-			addresses: []*addressEntity.Address{
-				{
-					ID:     uuid.New(),
-					UserID: userID,
-					Tags:   []addressEntity.AddressTag{addressEntity.TagSender},
-					Phone:  userPhone,
-				},
+			primary: &addressEntity.Address{
+				ID:        uuid.New(),
+				UserID:    userID,
+				IsPrimary: true,
+				Phone:     userPhone,
 			},
 		},
 	)
 
+	durationDays := 365
 	payment := &paymentRepository.Payment{
-		ID:              paymentID,
-		UserID:          userID,
-		Status:          paymentRepository.PaymentStatusSettlement,
-		ReferenceType:   paymentRepository.ReferenceTypeSubscription,
-		PaidAt:          &paidAt,
-		ExpiredAt:       paidAt.Add(24 * time.Hour),
-		MidtransOrderID: "LAB-SUB-STACK",
-		GrossAmount:     money.New(70000),
-		ServiceFeeAmount: money.Zero(),
+		ID:                       paymentID,
+		UserID:                   userID,
+		Status:                   paymentRepository.PaymentStatusSettlement,
+		ReferenceType:            paymentRepository.ReferenceTypeSubscription,
+		PaidAt:                   &paidAt,
+		ExpiredAt:                paidAt.Add(24 * time.Hour),
+		MidtransOrderID:          "LAB-SUB-STACK",
+		GrossAmount:              money.New(70000),
+		ServiceFeeAmount:         money.Zero(),
+		SubscriptionDurationDays: &durationDays,
 	}
 
 	subRepo := &processSubscriptionRepo{
@@ -420,12 +412,6 @@ func newProcessServiceForStacking(
 		onboardingService,
 		financeService,
 		&mockOutboxRepo{},
-		&processConfigRepo{config: &subscriptionEntity.SellerSubscriptionConfig{
-			ID:              uuid.New(),
-			YearlyFeeRupiah: 70000,
-			DurationDays:    365,
-			Enabled:         true,
-		}},
 	)
 
 	return svc, subRepo, ledger, newProcessPaymentTx(paymentID)
@@ -463,17 +449,19 @@ func TestProcessSuccessfulPaymentTx_StacksAtChainEnd(t *testing.T) {
 			userID := subRepo.chainEnd.UserID
 			paymentID := uuid.New()
 			tx.paymentID = paymentID
+			durationDays := 365
 			svc.paymentRepo = &processPaymentRepo{
 				payment: &paymentRepository.Payment{
-					ID:              paymentID,
-					UserID:          userID,
-					Status:          paymentRepository.PaymentStatusSettlement,
-					ReferenceType:   paymentRepository.ReferenceTypeSubscription,
-					PaidAt:          &tc.paidAt,
-					ExpiredAt:       tc.paidAt.Add(24 * time.Hour),
-					MidtransOrderID: "LAB-SUB-STACK",
-					GrossAmount:     money.New(70000),
-					ServiceFeeAmount: money.Zero(),
+					ID:                       paymentID,
+					UserID:                   userID,
+					Status:                   paymentRepository.PaymentStatusSettlement,
+					ReferenceType:            paymentRepository.ReferenceTypeSubscription,
+					PaidAt:                   &tc.paidAt,
+					ExpiredAt:                tc.paidAt.Add(24 * time.Hour),
+					MidtransOrderID:          "LAB-SUB-STACK",
+					GrossAmount:              money.New(70000),
+					ServiceFeeAmount:         money.Zero(),
+					SubscriptionDurationDays: &durationDays,
 				},
 			}
 			subRepo.chainEnd = &subscriptionEntity.SellerSubscription{
@@ -505,17 +493,19 @@ func TestProcessSuccessfulPaymentTx_ReplaySkipsSecondInterval(t *testing.T) {
 	userID := subRepo.chainEnd.UserID
 	paymentID := uuid.New()
 	tx.paymentID = paymentID
+	durationDays := 365
 	svc.paymentRepo = &processPaymentRepo{
 		payment: &paymentRepository.Payment{
-			ID:              paymentID,
-			UserID:          userID,
-			Status:          paymentRepository.PaymentStatusSettlement,
-			ReferenceType:   paymentRepository.ReferenceTypeSubscription,
-			PaidAt:          &paidAt,
-			ExpiredAt:       paidAt.Add(24 * time.Hour),
-			MidtransOrderID: "LAB-SUB-REPLAY",
-			GrossAmount:     money.New(70000),
-			ServiceFeeAmount: money.Zero(),
+			ID:                       paymentID,
+			UserID:                   userID,
+			Status:                   paymentRepository.PaymentStatusSettlement,
+			ReferenceType:            paymentRepository.ReferenceTypeSubscription,
+			PaidAt:                   &paidAt,
+			ExpiredAt:                paidAt.Add(24 * time.Hour),
+			MidtransOrderID:          "LAB-SUB-REPLAY",
+			GrossAmount:              money.New(70000),
+			ServiceFeeAmount:         money.Zero(),
+			SubscriptionDurationDays: &durationDays,
 		},
 	}
 

@@ -13,7 +13,9 @@
 /// ═══════════════════════════════════════════════════════════════════════════════
 /// LIFECYCLE STATES (canonical):
 /// ═══════════════════════════════════════════════════════════════════════════════
-/// - draft:      Workspace-only, NOT in market, seller can edit
+/// There is NO draft state (owner decision, Oct 2026): create = publish —
+/// a forSale is born active and public.
+///
 /// - active:     Market-visible, purchasable if stock > 0 (ALWAYS PUBLIC)
 /// - sold:       Successfully sold (TERMINAL for marketplace)
 /// - withdrawn:  Seller removed from sale (TERMINAL)
@@ -21,10 +23,8 @@
 /// ═══════════════════════════════════════════════════════════════════════════════
 /// HARD RULE: ACTIVE = PUBLIC ONLY
 /// ═══════════════════════════════════════════════════════════════════════════════
-/// - Draft forSales: MUST BE private (workspace-only)
-/// - Active forSales: MUST BE public (enforced by backend)
+/// - Active forSales: MUST BE public (enforced by backend at create)
 /// - Terminal states: visibility irrelevant
-/// - Backend automatically sets visibility to public on publish
 /// - active + private combination is INVALID and rejected
 /// ═══════════════════════════════════════════════════════════════════════════════
 /// BUYABILITY (market operability):
@@ -64,7 +64,6 @@ import 'package:labuda/domains/commerce/catalog/shared/domain/entities/commerce_
 /// ═══════════════════════════════════════════════════════════════════════════════
 /// HARD RULE: STATUS → VISIBILITY MAPPING
 /// ═══════════════════════════════════════════════════════════════════════════════
-/// - Draft forSales: MUST BE private (workspace-only, NOT in market)
 /// - Active forSales: MUST BE public (ACTIVE = PUBLIC ONLY invariant)
 /// - Terminal states (sold/withdrawn): visibility field is irrelevant
 ///
@@ -72,8 +71,7 @@ import 'package:labuda/domains/commerce/catalog/shared/domain/entities/commerce_
 /// No manual setting of visibility for active forSales is allowed.
 /// ═══════════════════════════════════════════════════════════════════════════════
 enum ForSaleVisibility {
-  /// Seller-only visibility (workspace forSale)
-  /// This is the ONLY valid visibility for draft forSales
+  /// Legacy seller-only visibility (no workspace state exists: create = publish)
   private,
 
   /// Market-visible (discoverable by buyers)
@@ -130,7 +128,7 @@ class ForSale extends Equatable {
   final String? sellerFarmName;
   final String? sellerAvatar;
 
-  /// Buyer-facing origin summary of the listing's sender address
+  /// Buyer-facing origin summary of the listing's primary address
   /// ("City, Province"). Detail payloads only — null on discovery payloads,
   /// and the seller card HIDES the line rather than fabricating one.
   final String? publicOriginLine;
@@ -195,7 +193,6 @@ class ForSale extends Equatable {
   final ForSaleStatus status;
   final ForSaleVisibility visibility;
   final bool isNegotiable;
-  final int viewCount;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -234,7 +231,6 @@ class ForSale extends Equatable {
     required this.status,
     this.visibility = ForSaleVisibility.public,
     this.isNegotiable = false,
-    this.viewCount = 0,
     this.preparationTime = PreparationTime.days1_3,
     required this.createdAt,
     required this.updatedAt,
@@ -252,24 +248,19 @@ class ForSale extends Equatable {
   // ═══════════════════════════════════════════════════════════════════════════════
 
   /// Available for purchase: must be active (published) AND have stock
-  /// Draft forSales are NEVER available for purchase.
   ///
   /// NOTE: Visibility check is redundant because ACTIVE = PUBLIC ONLY (enforced by backend)
   /// This is the authoritative buyability check - use this everywhere
   bool get isAvailable => status == ForSaleStatus.active && stock > 0;
 
-  /// Returns true if this is a workspace forSale (not in market)
-  /// Workspace forSales: draft status only
-  /// NOTE: active + private is INVALID (backend rejects this combination)
-  bool get isWorkspaceForSale => status == ForSaleStatus.draft;
+  /// There is no workspace forSale: create = publish — every forSale that
+  /// exists is active and public (or terminal).
 
   /// Returns true if this is a market forSale (visible to buyers)
   /// Market forSales: active status (automatically public due to ACTIVE = PUBLIC ONLY)
-  /// Draft forSales are NEVER market forSales
   bool get isMarketForSale => status == ForSaleStatus.active;
 
   /// Sold out or unavailable: no stock OR sold OR withdrawn
-  /// Note: draft forSales are not "sold out", they're just not published
   bool get isSoldOut =>
       stock <= 0 ||
       status == ForSaleStatus.sold ||
@@ -279,25 +270,15 @@ class ForSale extends Equatable {
   // EDITABILITY (mutability)
   // ═══════════════════════════════════════════════════════════════════════════════
 
-  /// Returns true if this forSale can be edited by the seller
-  /// Editable when: NOT in terminal state (sold/withdrawn)
-  /// Draft and active forSales are editable
-  bool get isEditable => !status.isTerminal;
+  /// Returns true if this forSale can be withdrawn
+  /// Can be withdrawn when: active (never-live states do not exist)
+  bool get canBeWithdrawn => status == ForSaleStatus.active;
 
   /// Returns true if this forSale is historical/reference only
   /// Historical forSales: terminal states (sold, withdrawn)
   bool get isHistorical => status.isTerminal;
 
-  /// Returns true if this forSale can be withdrawn
-  /// Can be withdrawn when: draft or active
-  bool get canBeWithdrawn =>
-      status == ForSaleStatus.draft || status == ForSaleStatus.active;
-
-  /// Returns true if this forSale can be published
-  /// Can be published when: draft status
-  bool get canBePublished => status == ForSaleStatus.draft;
-
-  /// Display price for surfaces without a canonical envelope (draft/workspace).
+  /// Display price for surfaces without a canonical envelope.
   /// Grouping belongs to the single formatting authority, never to an entity.
   String get formattedPrice {
     return 'Rp ${formatGroupedAmount(price.round())}';
@@ -324,7 +305,6 @@ class ForSale extends Equatable {
     ForSaleStatus? status,
     ForSaleVisibility? visibility,
     bool? isNegotiable,
-    int? viewCount,
     PreparationTime? preparationTime,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -357,7 +337,6 @@ class ForSale extends Equatable {
       status: status ?? this.status,
       visibility: visibility ?? this.visibility,
       isNegotiable: isNegotiable ?? this.isNegotiable,
-      viewCount: viewCount ?? this.viewCount,
       preparationTime: preparationTime ?? this.preparationTime,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -393,7 +372,6 @@ class ForSale extends Equatable {
     status,
     visibility,
     isNegotiable,
-    viewCount,
     preparationTime,
     createdAt,
     updatedAt,
@@ -416,12 +394,7 @@ class ForSale extends Equatable {
 /// ═══════════════════════════════════════════════════════════════════════════════
 /// CANONICAL LIFECYCLE (backend-authoritative):
 /// ═══════════════════════════════════════════════════════════════════════════════
-/// Lifecycle flow: draft -> active (published) -> sold/withdrawn
-///
-/// - draft:      Workspace-only, NOT yet published to market.
-///               Seller can create/edit without active subscription.
-///               NOT visible to buyers, NOT purchasable.
-///               MUST BE private visibility.
+/// Lifecycle flow: active (create = publish) -> sold/withdrawn
 ///
 /// - active:     Published and market-ready. ALWAYS PUBLIC (ACTIVE = PUBLIC ONLY).
 ///               Visible to buyers if stock > 0. Purchasable when all conditions met.
@@ -435,22 +408,14 @@ class ForSale extends Equatable {
 /// ═══════════════════════════════════════════════════════════════════════════════
 /// HARD RULE: STATUS → VISIBILITY MAPPING
 /// ═══════════════════════════════════════════════════════════════════════════════
-/// - Draft forSales: MUST BE private (workspace-only)
-/// - Active forSales: MUST BE public (enforced by backend on publish)
+/// - Active forSales: MUST BE public (enforced by backend at create)
 /// - Terminal states: visibility irrelevant
 ///
 /// A forSale can be:
-/// - draft + private:    Workspace draft (ONLY valid draft state)
-/// - draft + public:     Invalid (visibility ignored for draft)
 /// - active + private:   INVALID (rejected by backend)
 /// - active + public:    Full market forSale (ONLY valid active state)
 /// ═══════════════════════════════════════════════════════════════════════════════
 enum ForSaleStatus {
-  /// Workspace-only, NOT yet published to market
-  /// Seller can create/edit without active subscription
-  /// MUST BE private visibility
-  draft,
-
   /// Published and market-visible (purchasable if stock > 0)
   /// ALWAYS PUBLIC (ACTIVE = PUBLIC ONLY invariant)
   /// Requires active seller subscription to reach this state
@@ -465,8 +430,6 @@ enum ForSaleStatus {
 
   String get displayName {
     switch (this) {
-      case ForSaleStatus.draft:
-        return 'Draft';
       case ForSaleStatus.active:
         return 'Active';
       case ForSaleStatus.withdrawn:
@@ -478,13 +441,9 @@ enum ForSaleStatus {
 
   /// Returns true if this forSale is available for commerce actions.
   /// Only active (published) forSales with positive stock can be purchased/negotiated.
-  /// Draft forSales are NOT available for commerce.
   bool get isAvailableForCommerce => this == ForSaleStatus.active;
 
-  /// Returns true if this forSale is in draft state (not yet published).
-  bool get isDraft => this == ForSaleStatus.draft;
-
-  /// Returns true if this forSale has been published (active state).
+  /// Returns true if this forSale is published (active state).
   bool get isPublished => this == ForSaleStatus.active;
 
   /// Returns true if this forSale is in a terminal state (cannot be changed).
@@ -558,7 +517,6 @@ class CreateForSaleRequest {
   final String? breeder;
   final String? bloodline;
   final List<String> certificates;
-  final String? farmAddressId;
   // Shipping selection (OWNER CANONICAL: create = publish — at least one
   // shipping option is mandatory and travels INSIDE the create request;
   // there is no separate draft-then-link flow).
@@ -580,7 +538,6 @@ class CreateForSaleRequest {
     this.breeder,
     this.bloodline,
     this.certificates = const [],
-    this.farmAddressId,
     this.shippingSetupIds = const [],
     this.preparationTime,
   });
@@ -596,7 +553,8 @@ class UpdateForSaleRequest {
   final String? description;
   final double? price;
   final bool? negotiationEnabled;
-  final ForSaleStatus? status; // For publishing draft → active
+  // Lifecycle status (create = publish; no draft state).
+  final ForSaleStatus? status;
   final List<String>? mediaUrls;
   final String? variety;
   final double? sizeCm;

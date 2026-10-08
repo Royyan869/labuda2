@@ -66,7 +66,7 @@ extension OrderStatusExtension on OrderStatus {
   String get value {
     switch (this) {
       case OrderStatus.pending:
-        return 'pending';
+        return 'pending_payment';
       case OrderStatus.paid:
         return 'paid';
       case OrderStatus.shipped:
@@ -93,7 +93,6 @@ extension OrderStatusExtension on OrderStatus {
   static OrderStatus? parse(String? value) {
     if (value == null) return null;
     switch (value.toLowerCase()) {
-      case 'pending':
       case 'pending_payment': // Backend canonical wire value (StatusPending = "pending_payment")
         return OrderStatus.pending;
       case 'paid':
@@ -153,7 +152,7 @@ extension OrderStatusExtension on OrderStatus {
 // - "refunded": Funds refunded to buyer
 //
 // STATES REMOVED (no longer derivable from Wallet):
-// - "none": Use Order.Status = "pending" instead
+// - "none": Use Order.Status = "pending_payment" instead
 // - "frozen": Use Order.HasDispute = true instead
 // - "partially_refunded": Use Order.Status + separate tracking
 // - "partially_released": Use Order.Status + separate tracking

@@ -53,8 +53,7 @@ class CommerceAccessGate extends StatelessWidget {
               const SizedBox(height: 16),
               Text(
                 headline,
-                style: const TextStyle(
-                  fontSize: AppType.s20,
+                style: context.typeRoles.titleProminent.copyWith(
                   fontWeight: FontWeight.w700,
                 ),
                 textAlign: TextAlign.center,
@@ -62,8 +61,7 @@ class CommerceAccessGate extends StatelessWidget {
               const SizedBox(height: 8),
               Text(
                 message,
-                style: TextStyle(
-                  fontSize: AppType.s14,
+                style: context.typeRoles.bodyDense.copyWith(
                   color: scheme.onSurfaceVariant,
                 ),
                 textAlign: TextAlign.center,

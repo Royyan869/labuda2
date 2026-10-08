@@ -5,9 +5,9 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/core/core.dart';
+import 'package:labuda/shared/utils/money_input_formatter.dart';
 import 'package:labuda/shared/widgets/app_bottom_sheet_base.dart';
 import 'package:labuda/shared/widgets/app_snackbar.dart';
 import 'package:labuda/shared/domain/entities/resource_projection.dart';
@@ -33,16 +33,27 @@ int? parseCanonicalBidAmount(String rawInput) {
   final input = rawInput.trim();
   if (input.isEmpty) return null;
   // Thousands-grouped form: strip separators only for strictly valid
-  // grouping ("1,000,000"). Any other comma placement (e.g. "12,5", which
-  // in id-ID locale means 12.5) is REJECTED explicitly — never silently
-  // reinterpreted. Fractional and malformed input likewise return null so
-  // the caller rejects the bid instead of coercing the nominal.
-  final grouped = RegExp(r'^\d{1,3}(,\d{3})+$');
+  // grouping — the canonical mask emits `1.000.000`; the legacy comma form
+  // (`1,000,000`) stays accepted so already-typed values keep parsing. Any
+  // other placement (e.g. `12,5`, which in id-ID locale means 12.5) is
+  // REJECTED explicitly — never silently reinterpreted. Fractional and
+  // malformed input likewise return null so the caller rejects the bid
+  // instead of coercing the nominal.
+  final grouped = RegExp(r'^\d{1,3}([.,]\d{3})+$');
   final normalized = grouped.hasMatch(input)
-      ? input.replaceAll(',', '')
+      ? input.replaceAll(RegExp(r'[.,]'), '')
       : input;
-  if (normalized.contains(',')) return null;
-  return int.tryParse(normalized);
+  if (normalized.contains(',') || normalized.contains('.')) return null;
+  // Strict digit shape (an optional sign only): "12a" must stay rejected
+  // instead of being silently coerced by a lenient digit stripper.
+  final negative = normalized.startsWith('-');
+  final unsigned = negative ? normalized.substring(1) : normalized;
+  if (!RegExp(r'^\d+$').hasMatch(unsigned)) return null;
+  // The digit-to-int step is the canonical money parse (no second parse
+  // engine; the strict separator/shape rejection above is the bid rule).
+  final parsed = MoneyInputFormatter.parseAmount(unsigned);
+  if (parsed == null) return null;
+  return negative ? -parsed : parsed;
 }
 
 /// Action modal for auction detail
@@ -65,10 +76,10 @@ class AuctionActionModal extends ConsumerStatefulWidget {
     required BidCallback onPlaceBid,
     required BuyNowCallback onBuyNow,
   }) {
-    return showModalBottomSheet(
+    return AppBottomSheetBase.show<void>(
       context: context,
-      isScrollControlled: true,
-      builder: (context) => AuctionActionModal(
+      title: 'Tawar Lelang',
+      content: AuctionActionModal(
         auction: auction,
         onPlaceBid: onPlaceBid,
         onBuyNow: onBuyNow,
@@ -90,7 +101,12 @@ class _AuctionActionModalState extends ConsumerState<AuctionActionModal> {
     // Read entity is canonical int (PASS 1 numeric read convergence) — the
     // minimum is computed int + int with no conversion bridge of any kind.
     _minimumBid = widget.auction.currentBid + widget.auction.bidIncrement;
-    _bidController = TextEditingController(text: _minimumBid.toString());
+    // Seeded in the canonical display form: the input mask groups while
+    // editing, so the prefilled value must read the same way (and the parse
+    // below reads both forms).
+    _bidController = TextEditingController(
+      text: MoneyInputFormatter.display(_minimumBid),
+    );
   }
 
   @override
@@ -133,8 +149,7 @@ class _AuctionActionModalState extends ConsumerState<AuctionActionModal> {
             const SizedBox(height: 12),
             Text(
               'Rp ${formatGroupedAmount(amount)}',
-              style: TextStyle(
-                fontSize: AppType.s24,
+              style: context.typeRoles.titleProminent.copyWith(
                 fontWeight: FontWeight.bold,
                 // Money reads as the brand price role — same authority the
                 // ForSale detail price and the checkout totals use.
@@ -164,11 +179,8 @@ class _AuctionActionModalState extends ConsumerState<AuctionActionModal> {
                   Expanded(
                     child: Text(
                       'Jika Anda menang dan tidak membayar, akun Anda dapat dibatasi',
-                      style: TextStyle(
-                        fontSize: AppType.s12,
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onSurfaceVariant,
+                      style: context.typeRoles.labelMicro.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ),
@@ -217,26 +229,10 @@ class _AuctionActionModalState extends ConsumerState<AuctionActionModal> {
         ? widget.auction.buyNowPrice != null
         : caps.canBuyNow;
 
-    return Container(
-      padding: EdgeInsets.only(
-        left: AppMetrics.p16,
-        right: AppMetrics.p16,
-        top: AppMetrics.p16,
-        bottom: MediaQuery.of(context).viewInsets.bottom + AppMetrics.p16,
-      ),
-      child: Column(
+    return Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Handle — ONE authority: `AppDragHandle` beside the bottom-sheet base
-          const Center(child: AppDragHandle(padding: EdgeInsets.zero)),
-          const SizedBox(height: 16),
-          // Title
-          const Text(
-            'Tawar Lelang',
-            style: TextStyle(fontSize: AppType.s20, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 16),
           // Current bid info
           Container(
             padding: const EdgeInsets.all(AppMetrics.p12),
@@ -287,17 +283,17 @@ class _AuctionActionModalState extends ConsumerState<AuctionActionModal> {
           const SizedBox(height: 8),
           TextField(
             controller: _bidController,
-            // Canonical integer amount: digits-only input, no decimal keypad,
-            // no thousands separators. Fractions cannot be typed, pasted, or
-            // silently coerced anywhere on the Place Bid path.
+            // Canonical integer amount: digits-only, grouped with the one
+            // money-input mask while typing (`1000000` → `1.000.000`). The
+            // business value stays an int — fractions cannot be typed,
+            // pasted, or silently coerced anywhere on the Place Bid path.
             keyboardType: const TextInputType.numberWithOptions(decimal: false),
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            inputFormatters: const [MoneyInputFormatter()],
+            // Border/fill come from `inputDecorationTheme` (AppTheme) — the
+            // one form-field authority.
             decoration: InputDecoration(
               hintText: 'Rp $_minimumBid',
               prefixText: 'Rp ',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppShape.r8),
-              ),
             ),
           ),
           const SizedBox(height: 16),
@@ -332,9 +328,7 @@ class _AuctionActionModalState extends ConsumerState<AuctionActionModal> {
                       widget.onBuyNow();
                     },
               style: OutlinedButton.styleFrom(
-                foregroundColor: scheme.secondary,
                 padding: const EdgeInsets.symmetric(vertical: AppMetrics.p16),
-                side: BorderSide(color: scheme.secondary),
               ),
               child: Text(
                 'Buy Now - Rp ${formatGroupedAmount(widget.auction.buyNowPrice!.round())}',
@@ -343,7 +337,6 @@ class _AuctionActionModalState extends ConsumerState<AuctionActionModal> {
             ),
           ],
         ],
-      ),
     );
   }
 }

@@ -143,8 +143,9 @@ class GoRouterRefresh extends ChangeNotifier {
 
 /// W14-B2: Seller route guard - router-level protection for seller routes
 ///
-/// Gates /seller/* routes, `/create/for-sale`, and seller verification entry routes using
-/// backend-derived seller authority, NOT users.role.
+/// Gates /seller/* routes, the market-action create routes
+/// (`/create/for-sale`, `/create/auction`), and seller verification entry routes
+/// using backend-derived seller authority, NOT users.role.
 ///
 /// Policy:
 /// - /seller/upgrade is ALWAYS accessible (REGISTRATION entry point for
@@ -155,15 +156,17 @@ class GoRouterRefresh extends ChangeNotifier {
 ///   deliberately does NOT require market authority (its canonical caller is the
 ///   expired seller). Non-sellers are redirected to /seller/upgrade.
 /// - All other /seller/* routes require hasMarketAuthority (active subscription)
-/// - /create/for-sale creates a PRIVATE DRAFT (workspace state): requires only
-///   hasSellerProfile. Market authority is NOT required to draft; it is enforced
-///   transactionally at publish (draft → active) by the owning service.
-/// - /verification and /verification/seller are seller-scoped verification surfaces
-///   and follow the same authority rule
+/// - /create/for-sale and /create/auction PUBLISH at create (create = publish,
+///   owner decision Oct 2026): both require hasSellerProfile AND
+///   hasMarketAuthority. There is no draft workspace; market authority is
+///   enforced at create by the client guard and by the owning service.
+/// - /verification/seller is the seller-scoped verification surface and
+///   follows the same authority rule
 /// - Users WITHOUT a seller profile are redirected to /seller/upgrade (registration)
 /// - Existing sellers missing market authority are redirected to /seller/renewal
 ///   (payment-only renewal lifecycle — never back into registration) on MARKET
-///   ACTION routes only (draft creation is not one of them)
+///   ACTION routes (create for-sale / create auction are market actions:
+///   create = publish)
 /// - Market feature gates are evaluated here for router-level protection
 ///   and rechecked at the screen/mutation boundary
 ///
@@ -321,31 +324,43 @@ String? _handleSellerRouteGuard(
 ) => _sellerRouteGuardCore(authenticatedUser, state.uri.path);
 
 String? _sellerRouteGuardCore(AuthUser? authenticatedUser, String location) {
-  final isCreateForSaleRoute = location == RoutePaths.createForSale;
+  // Canonical market-action create routes (create = publish). For Sale and
+  // Auction publish atomically at create, so both share the SAME authority
+  // branch below — one authority, exact-match route class, no per-channel guard.
+  const createMarketActionRoutes = <String>[
+    RoutePaths.createForSale,
+    RoutePaths.createAuction,
+  ];
+  final isCreateMarketActionRoute = createMarketActionRoutes.contains(location);
   // Only check seller-scoped routes.
   final isSellerRoute = location.startsWith('/seller');
-  final isSellerVerificationRoute =
-      location == '/verification' ||
-      location.startsWith('/verification/seller');
-  if (!isCreateForSaleRoute && !isSellerRoute && !isSellerVerificationRoute) {
+  final isSellerVerificationRoute = location.startsWith(
+    RoutePaths.sellerVerification,
+  );
+  if (!isCreateMarketActionRoute &&
+      !isSellerRoute &&
+      !isSellerVerificationRoute) {
     return null;
   }
 
-  if (isCreateForSaleRoute) {
-    // PRIVATE DRAFT CREATION = WORKSPACE STATE.
-    // Authority: seller profile only. The backend route gate for POST
-    // /for-sale is the same workspace gate (active account + verified email +
-    // seller profile), and market authority is enforced transactionally at
-    // publish (draft → active). Requiring hasMarketAuthority here blocked
-    // draft creation the canonical contract explicitly allows.
-    if (authenticatedUser?.hasSellerProfile == true) {
-      return null;
+  if (isCreateMarketActionRoute) {
+    // CREATE = PUBLISH (owner decision, Oct 2026): POST /for-sale and
+    // POST /auctions publish atomically, so market authority (active
+    // subscription) is required at create — there is no draft workspace to
+    // fall back to.
+    if (authenticatedUser?.hasSellerProfile != true) {
+      LoggerService.instance.warning(
+        'User without seller profile attempted market-action create route: $location',
+      );
+      return RoutePaths.sellerUpgrade;
     }
 
-    LoggerService.instance.warning(
-      'User without seller profile attempted create-for-sale route: $location',
-    );
-    return RoutePaths.sellerUpgrade;
+    if (authenticatedUser?.hasMarketAuthority != true) {
+      // Market action tier: payment-only renewal, never back to registration.
+      return RoutePaths.sellerRenewal;
+    }
+
+    return null;
   }
 
   // TIER 0: /seller/upgrade — always accessible.
@@ -484,31 +499,13 @@ class AppRouter implements NavigationHandler {
   void navigateToHome() => _currentRouter?.go('/home');
 
   @override
-  void navigateBack() {
-    final router = _currentRouter;
-    if (router != null && router.canPop()) {
-      router.pop();
-    } else {
-      _logger.warning(
-        'Cannot navigate back - no previous route or router not ready',
-      );
-    }
-  }
-
-  @override
   void navigateToProfile() => _currentRouter?.push('/profile');
 
   @override
-  void navigateToLogin() => _currentRouter?.push('/auth/sign-in');
+  void navigateToSignIn() => _currentRouter?.push('/auth/sign-in');
 
   @override
-  void navigateToSignIn() => navigateToLogin();
-
-  @override
-  void navigateToRegister() => _currentRouter?.push('/auth/sign-up');
-
-  @override
-  void navigateToSignUp() => navigateToRegister();
+  void navigateToSignUp() => _currentRouter?.push('/auth/sign-up');
 
   @override
   void navigateToForgotPassword() =>
@@ -518,14 +515,8 @@ class AppRouter implements NavigationHandler {
   void navigateToWelcome() => _currentRouter?.go('/welcome');
 
   @override
-  void navigateToEditProfile() => _currentRouter?.go('/profile');
-
-  @override
   void navigateToUserProfile(String userId) =>
       _currentRouter?.push('/user/$userId');
-
-  void navigateToAuctionDetail(String auctionId) =>
-      _currentRouter?.push('/auction/$auctionId');
 
   @override
   void navigateToChat() => _currentRouter?.push('/chat');
@@ -542,9 +533,6 @@ class AppRouter implements NavigationHandler {
       _currentRouter?.push('/settings/notifications');
 
   @override
-  void navigateToPrivacySettings() => _currentRouter?.push('/settings');
-
-  @override
   void navigateToSearch() => _currentRouter?.push('/search');
 
   @override
@@ -556,33 +544,10 @@ class AppRouter implements NavigationHandler {
     _currentRouter?.push(route);
   }
 
-  // Report methods - not part of NavigationHandler interface
-  void navigateToReport(String targetId, String targetType) =>
-      _currentRouter?.push('/report/$targetType/$targetId');
-
-  // Named-route navigation (used by notification/deep-link flows)
-  void navigateTo(String route, {Map<String, String>? parameters}) {
-    try {
-      if (parameters != null && parameters.isNotEmpty) {
-        _currentRouter?.goNamed(route, pathParameters: parameters);
-      } else {
-        _currentRouter?.goNamed(route);
-      }
-      _logger.info('Navigated to: $route');
-    } catch (e) {
-      _logger.error('Navigation error to $route: $e');
-    }
-  }
-
-  // Missing NavigationHandler implementations
   @override
   void navigateToForSaleDetail(String forSaleId) => _currentRouter?.push(
-    RoutePaths.forSaleDetail.replaceFirst(
-      ':forSaleId',
-      forSaleId,
-    ),
+    RoutePaths.forSaleDetail.replaceFirst(':forSaleId', forSaleId),
   );
-
   @override
   void navigateToAuction(String auctionId) =>
       _currentRouter?.push('/auction/$auctionId');
@@ -591,27 +556,8 @@ class AppRouter implements NavigationHandler {
   void navigateToNotifications() => _currentRouter?.push('/notifications');
 
   @override
-  void navigateToKycVerification({String? userId}) {
-    _logger.warning(
-      'navigateToKycVerification${userId == null ? '' : '($userId)'} is deprecated; routing to seller verification',
-    );
-    _currentRouter?.push('/verification/seller');
-  }
-
-  @override
-  void navigateToBusinessDocuments() =>
-      _currentRouter?.push('/verification/seller');
-
-  @override
   void navigateToSellerVerification() =>
       _currentRouter?.push('/verification/seller');
-
-  @override
-  void navigateToCheckout() {
-    _logger.warning(
-      'navigateToCheckout requires a For Sale context; no bare route emitted',
-    );
-  }
 
   @override
   void navigateToSavedItems() => _currentRouter?.push('/saved-items');
@@ -624,28 +570,8 @@ class AppRouter implements NavigationHandler {
       _currentRouter?.push('/orders/$orderId');
 
   @override
-  void navigateToOrderHistory() => _currentRouter?.push('/orders');
-
-  @override
-  void navigateToPayment(dynamic paymentRequest) {
-    _logger.warning(
-      'navigateToPayment called - payment navigation should be handled by payment module',
-    );
-    _logger.warning(
-      'navigateToPayment is deprecated here; payment flow must start from checkout',
-    );
-  }
-
-  @override
   void navigateToSellerEarnings() =>
       _currentRouter?.push(RoutePaths.sellerEarnings);
-
-  @override
-  void navigateToSellerForSales() =>
-      _currentRouter?.push(RoutePaths.sellerForSales);
-
-  @override
-  void navigateToSellerRefundList() => _currentRouter?.push('/seller/orders');
 
   @override
   void navigateToSellerUpgrade() =>
@@ -660,17 +586,11 @@ class AppRouter implements NavigationHandler {
       _currentRouter?.push('/seller/promotions/external-products/$productId');
 
   @override
-  void navigateToCoinBalance() => _currentRouter?.push('/coins');
-
-  @override
   void navigateToCoinHistory() => _currentRouter?.push('/coins/history');
 
   @override
   void navigateToSellerDashboard() =>
       _currentRouter?.push(RoutePaths.sellerDashboard);
-
-  @override
-  void navigateToBlockedUsers() => _currentRouter?.push('/settings');
 
   @override
   void navigateToContentDetail(String contentId) =>
@@ -679,23 +599,4 @@ class AppRouter implements NavigationHandler {
   @override
   void navigateToCreateContent() =>
       _currentRouter?.push(RoutePaths.createContent);
-
-  @override
-  void navigateToAddressPayment() => _currentRouter?.go('/settings');
-
-  @override
-  void navigateToSecurity() => _currentRouter?.push('/settings');
-
-  @override
-  void showBottomSheet<T>(Widget Function(BuildContext) builder) =>
-      _logger.warning('showBottomSheet called but requires BuildContext');
-
-  @override
-  void showModalDialog<T>(Widget Function(BuildContext) builder) =>
-      _logger.warning('showModalDialog called but requires BuildContext');
-
-  @override
-  void showSnackBar(String message, {bool isError = false}) => _logger.warning(
-    'showSnackBar called but requires BuildContext: $message',
-  );
 }

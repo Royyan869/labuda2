@@ -25,15 +25,16 @@ class ContentVisibilityHeader extends StatelessWidget {
     final user = authenticatedUser;
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p8, AppMetrics.p16, AppMetrics.p8),
+      padding: const EdgeInsets.fromLTRB(
+        AppMetrics.p16,
+        AppMetrics.p8,
+        AppMetrics.p16,
+        AppMetrics.p8,
+      ),
       child: Row(
         children: [
           if (user != null)
-            ProfileAvatar(
-              userId: user.id,
-              size: 40,
-              imageUrl: user.avatarUrl,
-            )
+            ProfileAvatar(userId: user.id, size: 40, imageUrl: user.avatarUrl)
           else
             Container(
               width: AppIconSize.action * 2,
@@ -53,9 +54,8 @@ class ContentVisibilityHeader extends StatelessWidget {
             child: user != null && user.username.isNotEmpty
                 ? Text(
                     '@${user.username}',
-                    style: const TextStyle(
+                    style: context.typeRoles.titleCompact.copyWith(
                       fontWeight: FontWeight.w600,
-                      fontSize: AppType.s16,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -82,9 +82,7 @@ class ContentVisibilityHeader extends StatelessWidget {
       height: AppContentSize.controlCompact,
       padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8),
       decoration: BoxDecoration(
-        border: Border.all(
-          color: scheme.outlineVariant,
-        ),
+        border: Border.all(color: scheme.outlineVariant),
         borderRadius: BorderRadius.circular(AppShape.r6),
       ),
       child: DropdownButtonHideUnderline(
@@ -122,7 +120,7 @@ class ContentVisibilityHeader extends StatelessWidget {
                   Flexible(
                     child: Text(
                       value,
-                      style: const TextStyle(fontSize: AppType.s14),
+                      style: Theme.of(context).textTheme.labelLarge,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),

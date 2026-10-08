@@ -142,7 +142,7 @@ class _WebImageCropperState extends State<WebImageCropper> {
 
         // Validate minimum size and PNG header
         if (croppedBytes.length < 100) {
-          AppSnackBar.showError(context, 'Cropped image is invalid');
+          AppSnackBar.showError(context, 'Hasil potongan gambar tidak valid');
           return;
         }
 
@@ -158,7 +158,7 @@ class _WebImageCropperState extends State<WebImageCropper> {
           }
 
           if (!isValidPNG) {
-            AppSnackBar.showError(context, 'Cropped image format is invalid');
+            AppSnackBar.showError(context, 'Format gambar hasil potongan tidak valid');
             return;
           }
         }
@@ -167,7 +167,7 @@ class _WebImageCropperState extends State<WebImageCropper> {
       } else {}
     } catch (e) {
       if (mounted) {
-        AppSnackBar.showError(context, 'Failed to crop image');
+        AppSnackBar.showError(context, 'Gagal memotong gambar. Coba lagi.');
       }
     }
   }
@@ -212,8 +212,7 @@ class _WebImageCropperState extends State<WebImageCropper> {
                       children: [
                         Text(
                           widget.title,
-                          style: TextStyle(
-                            fontSize: AppType.s20,
+                          style: context.typeRoles.titleSection.copyWith(
                             fontWeight: FontWeight.w600,
                             color: scheme.onSurface,
                           ),
@@ -224,7 +223,8 @@ class _WebImageCropperState extends State<WebImageCropper> {
                           icon: Icon(
                             Icons.close,
                             color: scheme.onSurfaceVariant,
-                          ),
+                           semanticLabel: 'Tutup',
+                           ),
                         ),
                       ],
                     ),

@@ -2,83 +2,95 @@ import { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
+import { Input } from '@/components/ui/Input'
 import { getWhitelistAudit } from '@/lib/api'
 import type { WhitelistAuditRow, WhitelistAuditAction } from '@/types/finance'
 import { whitelistActionLabels, whitelistActionVariants } from '@/types/finance'
-import { RefreshCw, AlertTriangle, ClipboardCheck } from 'lucide-react'
+import { RefreshCw, ClipboardCheck } from 'lucide-react'
+import { AdminLoadingState, AdminErrorState, AdminEmptyState, PageHeader } from '@/components/common'
 
 const PAGE_SIZE = 50
 
+/**
+ * Payout Whitelist Audit.
+ *
+ * Read-only, append-only compliance log of every pilot whitelist mutation.
+ * Navigation is keyset-based (`next_cursor` + `has_more`), not page-based:
+ * the log is ordered (created_at DESC, id DESC) and grows by appends, so a
+ * truthful total / page number would be neither stable nor useful.
+ */
 export function PayoutWhitelistAuditPage() {
   const [rows, setRows] = useState<WhitelistAuditRow[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [count, setCount] = useState(0)
-  const [offset, setOffset] = useState(0)
+  const [hasMore, setHasMore] = useState(false)
+  const [nextCursor, setNextCursor] = useState<string | null>(null)
   const [sellerIdFilter, setSellerIdFilter] = useState('')
 
-  const hasMore = count >= PAGE_SIZE
-  const currentPage = Math.floor(offset / PAGE_SIZE) + 1
+  const fetchPage = useCallback(
+    async (cursor: string | null) => {
+      setLoading(true)
+      setError(null)
+      try {
+        const response = await getWhitelistAudit({
+          seller_id: sellerIdFilter || undefined,
+          limit: PAGE_SIZE,
+          cursor,
+        })
+        const pageRows = response?.audit_log ?? []
+        setRows((prev) => (cursor ? [...prev, ...pageRows] : pageRows))
+        setHasMore(Boolean(response?.has_more))
+        setNextCursor(response?.next_cursor ?? null)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to fetch whitelist audit')
+      } finally {
+        setLoading(false)
+      }
+    },
+    [sellerIdFilter]
+  )
 
-  const fetchAudit = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      const response = await getWhitelistAudit({
-        seller_id: sellerIdFilter || undefined,
-        limit: PAGE_SIZE,
-        offset,
-      })
-      setRows(response?.audit_log ?? [])
-      setCount(response?.count ?? 0)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch whitelist audit')
-    } finally {
-      setLoading(false)
-    }
-  }, [sellerIdFilter, offset])
-
+  // A filter change resets the keyset and reloads from the newest page.
   useEffect(() => {
-    fetchAudit()
-  }, [fetchAudit])
+    fetchPage(null)
+  }, [fetchPage])
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Payout Whitelist Audit</h1>
-          <p className="text-muted-foreground mt-1">Payout pilot whitelist change log (read-only)</p>
-        </div>
-        <Button variant="ghost" size="sm" onClick={fetchAudit} disabled={loading}>
-          <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
-        </Button>
-      </div>
+      <PageHeader
+        title="Payout Whitelist Audit"
+        description="Payout pilot whitelist change log (read-only)"
+        actions={
+          <Button variant="ghost" size="sm" onClick={() => fetchPage(null)} disabled={loading}>
+            <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+        }
+      />
 
       {/* Filters */}
       <Card>
         <CardContent className="p-4">
-          <div className="flex items-center gap-4 flex-wrap">
-            <div>
-              <label className="text-xs font-medium text-muted-foreground block mb-1">Seller ID</label>
-              <input
-                type="text"
-                placeholder="UUID"
-                className="border border-border rounded-md px-3 py-1.5 text-sm w-72 font-mono"
-                value={sellerIdFilter}
-                onChange={(e) => { setSellerIdFilter(e.target.value); setOffset(0) }}
-              />
-            </div>
+          <div className="flex items-end gap-4 flex-wrap">
+            <Input
+              type="text"
+              label="Seller ID"
+              size="compact"
+              placeholder="UUID"
+              className="w-72 font-mono"
+              value={sellerIdFilter}
+              onChange={(e) => setSellerIdFilter(e.target.value)}
+            />
             {sellerIdFilter && (
               <div className="self-end">
-                <Button variant="ghost" size="sm" onClick={() => { setSellerIdFilter(''); setOffset(0) }}>
+                <Button variant="ghost" size="sm" onClick={() => setSellerIdFilter('')}>
                   Clear
                 </Button>
               </div>
             )}
-            <div className="ml-auto text-sm text-muted-foreground">
-              {count} record{count !== 1 ? 's' : ''} on this page
+            <div className="ml-auto type-secondary">
+              {rows.length} record{rows.length !== 1 ? 's' : ''} loaded
             </div>
           </div>
         </CardContent>
@@ -86,42 +98,31 @@ export function PayoutWhitelistAuditPage() {
 
       {/* Error State */}
       {error && (
-        <Card>
-          <CardContent className="p-8 text-center">
-            <AlertTriangle className="h-10 w-10 text-destructive mx-auto mb-3" />
-            <p className="text-foreground font-medium">Failed to load whitelist audit</p>
-            <p className="text-muted-foreground text-sm mt-1">{error}</p>
-            <Button variant="secondary" size="sm" onClick={fetchAudit} className="mt-4">
-              Retry
-            </Button>
-          </CardContent>
-        </Card>
+        <AdminErrorState
+          title="Failed to load whitelist audit"
+          message={error}
+          onRetry={() => fetchPage(null)}
+        />
       )}
 
       {/* Loading State */}
-      {loading && rows.length === 0 && !error && (
-        <Card>
-          <CardContent className="p-8">
-            <div className="space-y-4">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="animate-pulse flex items-center gap-4">
-                  <div className="h-4 bg-border rounded w-32" />
-                  <div className="h-4 bg-border rounded flex-1" />
-                  <div className="h-6 w-20 bg-border rounded-full" />
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {loading && rows.length === 0 && !error && <AdminLoadingState />}
 
       {/* Empty State */}
       {!loading && !error && rows.length === 0 && (
         <Card>
-          <CardContent className="p-12 text-center">
-            <ClipboardCheck className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h2 className="text-lg font-semibold text-foreground">No Audit Records</h2>
-            <p className="text-muted-foreground mt-1">No whitelist audit records match the current filter.</p>
+          <CardContent>
+            <AdminEmptyState
+              icon={ClipboardCheck}
+              title="No Audit Records"
+              description={
+                sellerIdFilter
+                  ? 'No whitelist audit records match the current filter.'
+                  : 'No whitelist audit records have been recorded yet.'
+              }
+              filtered={Boolean(sellerIdFilter)}
+              onClearFilters={() => setSellerIdFilter('')}
+            />
           </CardContent>
         </Card>
       )}
@@ -145,7 +146,7 @@ export function PayoutWhitelistAuditPage() {
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">Created At</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[hsl(var(--border))]">
+                <tbody className="divide-y divide-border">
                   {rows.map((row) => {
                     const actionKey = row.action as WhitelistAuditAction
                     return (
@@ -167,7 +168,7 @@ export function PayoutWhitelistAuditPage() {
                         <td className="px-4 py-3 text-muted-foreground max-w-[300px] truncate" title={row.reason}>
                           {row.reason || '-'}
                         </td>
-                        <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
+                        <td className="px-4 py-3 type-caption whitespace-nowrap">
                           {new Date(row.created_at).toLocaleString()}
                         </td>
                       </tr>
@@ -180,28 +181,24 @@ export function PayoutWhitelistAuditPage() {
         </Card>
       )}
 
-      {/* Pagination */}
-      {(offset > 0 || hasMore) && (
+      {/* Keyset continuation */}
+      {rows.length > 0 && (
         <div className="flex items-center justify-between">
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => setOffset((o) => Math.max(0, o - PAGE_SIZE))}
-            disabled={offset <= 0}
-          >
-            Previous
-          </Button>
-          <span className="text-sm text-muted-foreground">
-            Page {currentPage}
+          <span className="type-secondary">
+            {rows.length} record{rows.length !== 1 ? 's' : ''} loaded
           </span>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => setOffset((o) => o + PAGE_SIZE)}
-            disabled={!hasMore}
-          >
-            Next
-          </Button>
+          {hasMore ? (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => fetchPage(nextCursor)}
+              disabled={loading || !nextCursor}
+            >
+              {loading ? 'Loading…' : 'Load more'}
+            </Button>
+          ) : (
+            <span className="type-secondary">End of log</span>
+          )}
         </div>
       )}
     </div>

@@ -37,6 +37,15 @@ type SellerShippingService struct {
 	coverageRepo        shippingRepo.ShippingCoverageRepository
 	cityOverrideRepo    shippingRepo.CityOverrideRepository
 	productShippingRepo shippingRepo.ProductShippingSetupRepository
+	geo                 GeographyScopeValidator
+}
+
+// GeographyScopeValidator is the canonical Geography write gate for shipping
+// coverage. A seller may select canonical provinces/cities but may NOT define
+// an independent geographic identity. Implemented by the canonical
+// geography.Validator; nil only in unit-test construction (check skipped).
+type GeographyScopeValidator interface {
+	ValidateProvinceCity(ctx context.Context, tx db.Tx, provinceCode, cityCode string) error
 }
 
 // NewSellerShippingService creates a new SellerShippingService.
@@ -52,6 +61,34 @@ func NewSellerShippingService(
 		cityOverrideRepo:    cityOverrideRepo,
 		productShippingRepo: productShippingRepo,
 	}
+}
+
+// SetGeographyValidator wires the canonical Geography write gate.
+func (s *SellerShippingService) SetGeographyValidator(v GeographyScopeValidator) {
+	s.geo = v
+}
+
+// validateGeography rejects any destination province or city qualification
+// that is not in the ONE Geography Master (and not a child of its province).
+func (s *SellerShippingService) validateGeography(
+	ctx context.Context,
+	tx db.Tx,
+	input ShippingPackageInput,
+) error {
+	if s.geo == nil {
+		return nil
+	}
+	for _, dest := range input.Destinations {
+		if err := s.geo.ValidateProvinceCity(ctx, tx, dest.ProvinceCode, ""); err != nil {
+			return err
+		}
+		for _, city := range dest.CityQualifications {
+			if err := s.geo.ValidateProvinceCity(ctx, tx, dest.ProvinceCode, city.CityCode); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 // ============================================================================
@@ -172,6 +209,9 @@ func (s *SellerShippingService) CreateShippingPackage(
 	if err := s.validatePackageInput(input); err != nil {
 		return nil, err
 	}
+	if err := s.validateGeography(ctx, tx, input); err != nil {
+		return nil, err
+	}
 
 	existing, err := s.shippingSetupRepo.GetByName(ctx, tx, input.SellerID, input.Name)
 	if err == nil && existing != nil {
@@ -236,6 +276,10 @@ func (s *SellerShippingService) UpdateShippingPackage(
 	}
 	if option.SellerID != input.SellerID {
 		return nil, fmt.Errorf("forbidden: shipping option does not belong to seller")
+	}
+
+	if err := s.validateGeography(ctx, tx, input); err != nil {
+		return nil, err
 	}
 
 	if input.Name != option.Name {

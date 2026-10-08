@@ -1,154 +1,40 @@
 import 'package:labuda/core/common/result.dart';
 
-/// Repository interface untuk analytics dan tracking data.
+/// Canonical product-analytics authority for Labuda mobile.
 ///
-/// Mengikuti interface-first design pattern sesuai ARCHITECTURE.md.
-/// Digunakan untuk tracking user behavior, circumvention attempts,
-/// dan analytics data untuk business intelligence.
+/// ONE sink for product/behaviour/business measurement. Features MUST emit
+/// through this interface and MUST NOT call the Firebase SDK directly.
+///
+/// Boundary: this interface measures what users DO. It is NOT crash reporting,
+/// performance monitoring, or diagnostic logging, and it is NEVER the authority
+/// for business/financial state.
+///
+/// Event names and parameter keys are owned by the canonical taxonomy in
+/// `core/observability/analytics_events.dart`. Screen names are owned by
+/// `core/observability/screen_names.dart`.
 abstract class IAnalyticsRepository {
-  /// Log analytics event dengan parameters.
+  /// Log a canonical product event.
   ///
   /// **Parameters:**
-  /// - [eventName]: Nama event yang di-track
-  /// - [parameters]: Data tambahan untuk event
-  /// - [userId]: ID user yang melakukan event (optional)
+  /// - [eventName]: canonical event name (see `AnalyticsEvents`).
+  /// - [parameters]: additional event parameters.
+  /// - [userId]: the acting user's id, if any. Sets the SDK user id.
   ///
-  /// **Returns:**
-  /// [Result<void>] success atau error.
+  /// **Returns:** [Result<void>] success or error.
   Future<Result<void>> logEvent(
     String eventName, {
     Map<String, dynamic>? parameters,
     String? userId,
   });
 
-  /// Log user action untuk tracking behavior.
+  /// Log a screen view using the canonical screen taxonomy.
   ///
-  /// **Parameters:**
-  /// - [action]: Action yang dilakukan user
-  /// - [userId]: ID user
-  /// - [extra]: Data tambahan (optional)
+  /// [screenName] MUST be a static product concept (e.g. `profile`,
+  /// `product_detail`) — never a user/resource identifier.
   ///
-  /// **Returns:**
-  /// [Result<void>] success atau error.
-  Future<Result<void>> logUserAction(
-    String action,
-    String userId, {
-    Map<String, dynamic>? extra,
+  /// **Returns:** [Result<void>] success or error.
+  Future<Result<void>> logScreenView({
+    required String screenName,
+    String? screenClass,
   });
-
-  /// Log circumvention attempt dengan detail lengkap.
-  ///
-  /// **Parameters:**
-  /// - [content]: Konten yang mengandung violation
-  /// - [userId]: ID user yang melakukan attempt
-  /// - [extra]: Data tambahan seperti violation type, pattern, etc
-  ///
-  /// **Returns:**
-  /// [Result<void>] success atau error.
-  Future<Result<void>> logCircumventionAttempt(
-    String content,
-    String userId, {
-    Map<String, dynamic>? extra,
-  });
-
-  /// Set user properties untuk segmentasi.
-  ///
-  /// **Parameters:**
-  /// - [properties]: Map dari property name ke value
-  ///
-  /// **Returns:**
-  /// [Result<void>] success atau error.
-  Future<Result<void>> setUserProperties(Map<String, dynamic> properties);
-
-  /// Track engagement dengan konten.
-  ///
-  /// **Parameters:**
-  /// - [userId]: ID user
-  /// - [contentId]: ID konten
-  /// - [contentType]: Jenis konten (post, product, collection)
-  /// - [engagementType]: Jenis engagement (view, like, share, comment)
-  /// - [duration]: Durasi engagement dalam seconds (optional)
-  ///
-  /// **Returns:**
-  /// [Result<void>] success atau error.
-  Future<Result<void>> trackEngagement({
-    required String userId,
-    required String contentId,
-    required String contentType,
-    required String engagementType,
-    int? duration,
-  });
-
-  /// Mendapatkan circumvention statistics.
-  ///
-  /// **Parameters:**
-  /// - [startDate]: Tanggal mulai
-  /// - [endDate]: Tanggal akhir
-  /// - [userId]: Filter berdasarkan user (optional)
-  /// - [violationType]: Filter berdasarkan jenis violation (optional)
-  ///
-  /// **Returns:**
-  /// [Result<AnalyticsCircumventionStats>] dengan statistik circumvention.
-  Future<Result<AnalyticsCircumventionStats>> getCircumventionStats({
-    required DateTime startDate,
-    required DateTime endDate,
-    String? userId,
-    String? violationType,
-  });
-
-  /// Flush pending analytics data ke server.
-  ///
-  /// **Returns:**
-  /// [Result<void>] success atau error.
-  Future<Result<void>> flush();
-}
-
-/// Data model untuk analytics circumvention statistics
-class AnalyticsCircumventionStats {
-  final int totalAttempts;
-  final int uniqueUsers;
-  final Map<String, int> violationTypes;
-  final Map<String, int> dailyAttempts;
-  final double averageConfidence;
-  final int blockedAttempts;
-  final int filteredAttempts;
-
-  const AnalyticsCircumventionStats({
-    required this.totalAttempts,
-    required this.uniqueUsers,
-    required this.violationTypes,
-    required this.dailyAttempts,
-    required this.averageConfidence,
-    required this.blockedAttempts,
-    required this.filteredAttempts,
-  });
-
-  /// Business logic: Get block rate
-  double get blockRate {
-    if (totalAttempts == 0) return 0.0;
-    return blockedAttempts / totalAttempts;
-  }
-
-  /// Business logic: Get filter rate
-  double get filterRate {
-    if (totalAttempts == 0) return 0.0;
-    return filteredAttempts / totalAttempts;
-  }
-
-  /// Business logic: Get most common violation type
-  String? get mostCommonViolation {
-    if (violationTypes.isEmpty) return null;
-
-    String? mostCommon;
-    int maxCount = 0;
-
-    for (final entry in violationTypes.entries) {
-      if (entry.value > maxCount) {
-        maxCount = entry.value;
-        mostCommon = entry.key;
-      }
-    }
-
-    return mostCommon;
-  }
 }

@@ -80,12 +80,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen>
 
         if (backButtonHasNotBeenPressedOrSnackBarHasBeenClosed) {
           _lastBackPressed = now;
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Press back again to exit'),
-              duration: Duration(seconds: 2),
-            ),
-          );
+          AppSnackBar.showInfo(context, 'Tekan sekali lagi untuk keluar');
         } else {
           // Exit app properly
           SystemNavigator.pop();
@@ -197,10 +192,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen>
 
         return IconButton(
           onPressed: () => showThemeSelectionSheet(context, ref),
-          icon: Icon(
-            themeState.themeMode.icon,
-            color: scheme.onSurfaceVariant,
-          ),
+          icon: Icon(themeState.themeMode.icon, color: scheme.onSurfaceVariant),
           tooltip: 'Change Theme',
         );
       },
@@ -289,9 +281,11 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen>
           height: AppContentSize.control,
           child: OutlinedButton(
             onPressed: _navigateToSignUp,
-            child: const Text(
+            child: Text(
               'Join Now',
-              style: TextStyle(fontSize: AppType.s16, fontWeight: FontWeight.w600),
+              style: Theme.of(
+                context,
+              ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
             ),
           ),
         ),
@@ -310,9 +304,11 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen>
                 width: 1.5,
               ),
             ),
-            child: const Text(
+            child: Text(
               'Already have an account? Sign In',
-              style: TextStyle(fontSize: AppType.s16, fontWeight: FontWeight.w500),
+              style: Theme.of(
+                context,
+              ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w500),
             ),
           ),
         ),

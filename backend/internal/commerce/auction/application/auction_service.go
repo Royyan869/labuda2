@@ -21,9 +21,8 @@ import (
 	commerceshared "github.com/labuda/backend/internal/commerce/shared"
 	shippingApp "github.com/labuda/backend/internal/commerce/shipping/application"
 	shippingRepo "github.com/labuda/backend/internal/commerce/shipping/infrastructure/repository"
-	"github.com/labuda/backend/internal/identity/auth"
-	addressEntity "github.com/labuda/backend/internal/identity/address/entity"
 	addressRepo "github.com/labuda/backend/internal/identity/address/repository"
+	"github.com/labuda/backend/internal/identity/auth"
 	platformconfigApp "github.com/labuda/backend/internal/platform/config/application"
 	outboxRepo "github.com/labuda/backend/internal/platform/outbox/infrastructure/repository"
 	"github.com/labuda/backend/pkg/db"
@@ -49,27 +48,28 @@ type ProductCreator interface {
 // single responsibility principle.
 //
 // MARKET AUTHORITY ENFORCEMENT (PHASE 1B):
-// - CreateDraft: Allowed without active subscription (workspace safety)
-// - Schedule: Requires active seller subscription (hasMarketAuthority)
+//   - Create (create = publish): requires an active seller subscription — the
+//     shared market-entry gate runs inside the create transaction
+//   - Relist (republish): the identical gate, no exceptions
 type AuctionService struct {
-	auctionRepo          *auctionRepo.AuctionRepository
-	bidRepo              *auctionRepo.AuctionBidRepository
-	orderRepo            *orderRepo.OrderRepository
-	orderService         *orderApp.OrderService
-	shippingSvc          *shippingApp.ShippingService
-	shippingSetupRepo   shippingRepo.ShippingSetupRepository
-	shippingCoverageRepo shippingRepo.ShippingCoverageRepository
-	productShippingRepo  shippingRepo.ProductShippingSetupRepository
-	addressRepo          addressRepo.AddressRepository
-	outboxRepo           *outboxRepo.OutboxRepository
-	ownership            *auth.OwnershipValidator
-	accountStatus        auth.AccountStatusChecker
-	roleChecker          auth.RoleChecker
-	configService  *platformconfigApp.ConfigService
-	productRepo    ProductCreator
-	commerceGovRepo commercegov.Repository // COMMERCE RESTRICTION: canonical restriction checker
+	auctionRepo              *auctionRepo.AuctionRepository
+	bidRepo                  *auctionRepo.AuctionBidRepository
+	orderRepo                *orderRepo.OrderRepository
+	orderService             *orderApp.OrderService
+	shippingSvc              *shippingApp.ShippingService
+	shippingSetupRepo        shippingRepo.ShippingSetupRepository
+	shippingCoverageRepo     shippingRepo.ShippingCoverageRepository
+	productShippingRepo      shippingRepo.ProductShippingSetupRepository
+	addressRepo              addressRepo.AddressRepository
+	outboxRepo               *outboxRepo.OutboxRepository
+	ownership                *auth.OwnershipValidator
+	accountStatus            auth.AccountStatusChecker
+	roleChecker              auth.RoleChecker
+	configService            *platformconfigApp.ConfigService
+	productRepo              ProductCreator
+	commerceGovRepo          commercegov.Repository   // COMMERCE RESTRICTION: canonical restriction checker
 	shippingQuoteInvalidator ShippingQuoteInvalidator // CROSS-LIFECYCLE: invalidate stale quotes on settlement failure
-	log            *zap.Logger
+	log                      *zap.Logger
 }
 
 // NewAuctionService creates a new AuctionService.
@@ -97,7 +97,7 @@ func NewAuctionService(
 		orderRepo:            orderRepo.NewOrderRepository(),
 		orderService:         orderService,
 		shippingSvc:          shippingService,
-		shippingSetupRepo:   shippingSetupRepo,
+		shippingSetupRepo:    shippingSetupRepo,
 		shippingCoverageRepo: shippingCoverageRepo,
 		productShippingRepo:  productShippingRepo,
 		addressRepo:          addressRepository,
@@ -105,13 +105,13 @@ func NewAuctionService(
 		ownership:            auth.NewOwnershipValidator(),
 		accountStatus:        accountStatus,
 		roleChecker:          roleChecker,
-		configService:  configService,
-		log:            log,
+		configService:        configService,
+		log:                  log,
 	}
 }
 
 // SetProductRepo attaches the product creator for inline product creation
-// during CreateDraft. Must be called before any CreateDraft invocation.
+// during create. Must be called before any AuctionService.Create invocation.
 func (s *AuctionService) SetProductRepo(repo ProductCreator) {
 	s.productRepo = repo
 }
@@ -124,7 +124,7 @@ func (s *AuctionService) SetCommerceGovRepository(repo commercegov.Repository) {
 }
 
 // ShippingQuoteInvalidator marks ACTIVE shipping quotes for a product as INVALID.
-// Used during settlement failure (return-to-draft) to prevent stale quotes from
+// Used during settlement failure (auto-reschedule) to prevent stale quotes from
 // being usable in the next settlement lifecycle.
 type ShippingQuoteInvalidator interface {
 	InvalidateQuotesByProduct(ctx context.Context, tx db.Tx, productID uuid.UUID) error
@@ -174,8 +174,9 @@ func (s *AuctionService) requireUserNotRestricted(ctx context.Context, tx db.Tx,
 //
 // cancel_reason is stamped ONLY on auction.cancelled events (empty/omitted
 // for every other lifecycle event — matching entity.CancelReasonLegacy).
-// See entity.CancelReason for the authority vocabulary; the notification
-// worker routes the seller-facing auto-cancel notification on it.
+// See entity.CancelReason for the authority vocabulary — an internal
+// outbox-audit field, never a public wire field and never a notification
+// routing key.
 func buildAuctionPayload(auction *entity.Auction, cancelReason ...entity.CancelReason) []byte {
 	type payload struct {
 		AuctionID     string  `json:"auction_id"`
@@ -243,27 +244,32 @@ func buildAuctionBidPayload(bid *entity.AuctionBid) []byte {
 	return b
 }
 
-// CreateDraftInput contains parameters for creating a draft auction.
+// ErrBuyNowBelowFloor is returned when buy_now_price is below
+// start_price + bid_increment. The canonical pricing floor for BOTH create and
+// relist-republish — a client-fixable request error (handlers map it to 400),
+// never a server fault.
+var ErrBuyNowBelowFloor = fmt.Errorf("buy_now_price must be >= start_price + bid_increment")
+
+// CreateAuctionInput contains parameters for creating an auction.
 // By default a Product is created inline from the product fields. When
 // ProductID is set (Product identity reuse), the auction attaches to that
 // existing Product instead of minting a new one; the product must exist and
 // belong to the seller.
-type CreateDraftInput struct {
+type CreateAuctionInput struct {
 	SellerID uuid.UUID
 	// ProductID (optional) — Product identity reuse target.
 	ProductID *uuid.UUID
 	// Product fields — created atomically with the auction unless reused
-	Title             string
-	Description       string
-	Media             []productEntity.ProductMedia
-	Variety           string
-	SizeCM            *int
-	AgeMonths         *int
-	Gender            *string
-	Breeder           *string
-	Bloodline         *string
-	Certificates      []string
-	FarmAddressID     *uuid.UUID
+	Title            string
+	Description      string
+	Media            []productEntity.ProductMedia
+	Variety          string
+	SizeCM           *int
+	AgeMonths        *int
+	Gender           *string
+	Breeder          *string
+	Bloodline        *string
+	Certificates     []string
 	ShippingSetupIDs []uuid.UUID
 	// Auction-specific fields
 	StartPrice   int64
@@ -279,7 +285,9 @@ type CreateDraftInput struct {
 	PreparationTime forsaleEntity.PreparationTime
 }
 
-// CreateDraft creates a new draft auction.
+// Create creates a new auction. CREATE = PUBLISH: there is no draft state —
+// the auction is constructed already scheduled (or activated immediately for
+// an immediate start) after clearing the shared market-entry gate.
 //
 // LOCK DISCIPLINE:
 // - Validate product reference
@@ -287,10 +295,10 @@ type CreateDraftInput struct {
 // - Emit outbox event
 //
 // All operations happen within the same transaction for atomicity.
-func (s *AuctionService) CreateDraft(
+func (s *AuctionService) Create(
 	ctx context.Context,
 	tx db.Tx,
-	input CreateDraftInput,
+	input CreateAuctionInput,
 ) (*entity.Auction, error) {
 	// Validate seller account status
 	if err := s.accountStatus.EnsureActive(ctx, input.SellerID); err != nil {
@@ -314,7 +322,7 @@ func (s *AuctionService) CreateDraft(
 
 	// Validate buy_now_price >= start_price + bid_increment
 	if input.BuyNowPrice != nil && *input.BuyNowPrice < input.StartPrice+input.BidIncrement {
-		return nil, fmt.Errorf("buy_now_price must be >= start_price + bid_increment")
+		return nil, ErrBuyNowBelowFloor
 	}
 
 	shippingSetupIDs, err := shippingApp.ValidateSellableCreateShippingSelection(
@@ -383,7 +391,6 @@ func (s *AuctionService) CreateDraft(
 			Breeder:         input.Breeder,
 			Bloodline:       input.Bloodline,
 			Certificates:    input.Certificates,
-			FarmAddressID:   input.FarmAddressID,
 			PreparationTime: string(input.PreparationTime),
 			SellingSurface:  productEntity.SellingSurfaceAuction,
 		}
@@ -393,9 +400,10 @@ func (s *AuctionService) CreateDraft(
 		productID = product.ID
 	}
 
-	// Create draft auction — Product content (title, description, koi attributes,
+	// Create the auction — already in its initial market state (scheduled);
+	// Product content (title, description, koi attributes,
 	// preparation, media) is owned by Product entity, not by Auction.
-	auction := entity.NewDraft(
+	auction := entity.NewScheduled(
 		input.SellerID,
 		productID,
 		input.StartPrice,
@@ -430,12 +438,11 @@ func (s *AuctionService) CreateDraft(
 		return nil, fmt.Errorf("failed to insert outbox event: %w", err)
 	}
 
-	// PASS_18C: create no longer leaves the auction sitting in draft waiting
-	// on a separate seller action. Progress it to scheduled — and, for an
-	// immediate start, straight through to active — in the same transaction,
-	// reusing the exact market-authority + shipping-coverage gate Schedule()
-	// enforces so nothing can bypass it via the create path.
-	if err := s.scheduleAuctionInternal(ctx, tx, auction, input.SellerID); err != nil {
+	// CREATE = PUBLISH: the auction reaches the single market-entry gate
+	// (ownership + restriction + market authority + shipping coverage) in this
+	// same transaction, so no path can bypass it. It persists as scheduled and,
+	// for an immediate start, progresses straight through to active below.
+	if err := s.validateScheduleGates(ctx, tx, auction, input.SellerID); err != nil {
 		return nil, err
 	}
 	if err := s.auctionRepo.UpdateTx(ctx, tx, auction); err != nil {
@@ -477,65 +484,12 @@ func (s *AuctionService) CreateDraft(
 	return auction, nil
 }
 
-// ScheduleInput contains parameters for scheduling an auction.
-type ScheduleInput struct {
-	AuctionID uuid.UUID
-	CallerID  uuid.UUID
-}
-
-// Schedule transitions an auction from draft to scheduled.
-//
-// MARKET AUTHORITY ENFORCEMENT (PHASE 1B):
-// Requires active seller subscription to schedule auctions.
-// Expired sellers can create drafts but cannot schedule them.
-//
-// LOCK DISCIPLINE:
-// - Lock Auction (FOR UPDATE)
-// - Validate ownership
-// - MARKET AUTHORITY CHECK
-// - SHIPPING COVERAGE CHECK
-// - Validate state transition
-// - Update auction
-// - Emit outbox event
-func (s *AuctionService) Schedule(
-	ctx context.Context,
-	tx db.Tx,
-	input ScheduleInput,
-) error {
-	// Lock auction
-	auction, err := s.auctionRepo.GetForUpdate(ctx, tx, input.AuctionID)
-	if err != nil {
-		return err
-	}
-
-	if err := s.scheduleAuctionInternal(ctx, tx, auction, input.CallerID); err != nil {
-		return err
-	}
-
-	// Persist
-	if err := s.auctionRepo.UpdateTx(ctx, tx, auction); err != nil {
-		return err
-	}
-
-	// Emit outbox event
-	if err := s.outboxRepo.InsertEvent(
-		ctx, tx,
-		"auction.scheduled",
-		auction.ID,
-		buildAuctionPayload(auction),
-	); err != nil {
-		return fmt.Errorf("failed to insert outbox event: %w", err)
-	}
-
-	return nil
-}
-
-// scheduleAuctionInternal performs the shared ownership + MARKET AUTHORITY +
-// SHIPPING COVERAGE checks and transitions auction from draft to scheduled.
-// Shared by the explicit Schedule() service method and CreateDraft's
-// immediate/scheduled auto-progression (PASS_18C), so both paths enforce the
-// exact same gate before an auction ever becomes market-visible.
-func (s *AuctionService) scheduleAuctionInternal(
+// validateScheduleGates performs the shared ownership + COMMERCE RESTRICTION +
+// MARKET AUTHORITY + SHIPPING COVERAGE checks required before an auction may
+// (re)enter the market. It performs no state mutation, so every entry path —
+// create and relist-republish — runs the identical gate. There is no separate
+// schedule step: create IS the schedule (create = publish).
+func (s *AuctionService) validateScheduleGates(
 	ctx context.Context,
 	tx db.Tx,
 	auction *entity.Auction,
@@ -565,12 +519,7 @@ func (s *AuctionService) scheduleAuctionInternal(
 	// with at least one active coverage before going live. Buyers cannot
 	// checkout an auction with no coverable address, so we block here rather
 	// than surprising them at claim time.
-	if err := s.ensureShippingCoverage(ctx, tx, auction.ProductID); err != nil {
-		return err
-	}
-
-	// Validate state transition
-	return auction.Schedule()
+	return s.ensureShippingCoverage(ctx, tx, auction.ProductID)
 }
 
 // ensureShippingCoverage verifies that the product has at least one shipping
@@ -600,112 +549,6 @@ func (s *AuctionService) ensureShippingCoverage(
 		}
 	}
 	return shippingApp.ErrShippingNotConfigured
-}
-
-// UpdateDraftInput contains parameters for updating a draft auction.
-//
-// Canonical flow: Product content (full editable Product) → products,
-// Auction surface (pricing/timing) → auctions — in ONE transaction.
-type UpdateDraftInput struct {
-	AuctionID   uuid.UUID
-	CallerID    uuid.UUID
-	Title              *string
-	Description        *string
-	Media              *[]productEntity.ProductMedia
-	Variety            *string
-	SizeCM             *int
-	AgeMonths          *int
-	Gender             *string
-	Breeder            *string
-	Bloodline          *string
-	Certificates       *[]string
-	PreparationTime    *string
-	StartPrice   int64
-	BidIncrement int64
-	BuyNowPrice *int64
-	StartAt     time.Time
-	EndAt       time.Time
-}
-
-// UpdateDraft updates a draft auction and its Product content atomically.
-//
-// Canonical order: GetForUpdate → ownership → lifecycle guard → validation → mutate → persist.
-func (s *AuctionService) UpdateDraft(
-	ctx context.Context,
-	tx db.Tx,
-	input UpdateDraftInput,
-) error {
-	// Lock auction
-	auction, err := s.auctionRepo.GetForUpdate(ctx, tx, input.AuctionID)
-	if err != nil {
-		return err
-	}
-
-	// Validate ownership
-	if !s.ownership.IsSeller(input.CallerID, auction.SellerID) {
-		return auth.ErrSellerRequired
-	}
-
-	// Lifecycle guard before any Product mutation (self-contained authority)
-	if auction.Status != entity.StatusDraft {
-		return &entity.InvalidOperationError{Status: auction.Status, Reason: "can only update draft auctions"}
-	}
-
-	// Canonical Product validation (reusable)
-	patch := productEntity.ProductContentPatch{
-		Title:           input.Title,
-		Description:     input.Description,
-		MediaURLs:       input.Media,
-		Variety:         input.Variety,
-		SizeCM:          input.SizeCM,
-		AgeMonths:       input.AgeMonths,
-		Gender:          input.Gender,
-		Breeder:         input.Breeder,
-		Bloodline:       input.Bloodline,
-		Certificates:    input.Certificates,
-		PreparationTime: input.PreparationTime,
-	}
-	if err := patch.Validate(); err != nil {
-		return err
-	}
-
-	// Product content authority: update products when any product field provided.
-	hasProductContent := input.Title != nil || input.Description != nil || input.Media != nil || input.Variety != nil || input.SizeCM != nil || input.AgeMonths != nil || input.Gender != nil || input.Breeder != nil || input.Bloodline != nil || input.Certificates != nil || input.PreparationTime != nil
-	if hasProductContent {
-		if s.productRepo == nil {
-			return fmt.Errorf("product repo not wired for auction draft update")
-		}
-		product, err := s.productRepo.GetByID(ctx, tx, auction.ProductID)
-		if err != nil {
-			return fmt.Errorf("failed to load product for auction update: %w", err)
-		}
-		if product.SellerID != auction.SellerID {
-			return fmt.Errorf("product ownership mismatch")
-		}
-		patch.ApplyTo(product)
-		product.UpdatedAt = time.Now()
-		if err := s.productRepo.Update(ctx, tx, product); err != nil {
-			return fmt.Errorf("failed to update product: %w", err)
-		}
-	}
-
-	// Update draft auction surface
-	if err := auction.UpdateDraft(
-		input.StartPrice,
-		input.BidIncrement,
-		input.BuyNowPrice,
-		input.StartAt,
-		input.EndAt,
-	); err != nil {
-		return err
-	}
-
-	// Persist auction surface
-	if err := s.auctionRepo.UpdateTx(ctx, tx, auction); err != nil {
-		return err
-	}
-
-	return nil
 }
 
 // UpdateScheduledInput contains parameters for updating a scheduled auction.
@@ -796,7 +639,6 @@ type CancelInput struct {
 // Cancel cancels an auction.
 //
 // Can cancel from:
-// - Draft: Always allowed
 // - Scheduled: Always allowed
 // - Active: Only if no bids
 //
@@ -848,6 +690,172 @@ func (s *AuctionService) Cancel(
 	}
 
 	return nil
+}
+
+// RelistInput contains parameters for REPUBLISHING a finished auction.
+//
+// Create-like payload by owner decision: relist IS the create form run again
+// (autofilled, duration re-chosen), so it carries the same run-shaping
+// authorities as create — timing (start mode + duration) and pricing — plus an
+// optional Product content patch. Product identity and shipping selection are
+// deliberately NOT part of it: the auction's Product is already bound and its
+// shipping coverage is re-validated by the schedule gate, not re-selected.
+type RelistInput struct {
+	AuctionID uuid.UUID
+	CallerID  uuid.UUID
+	// Timing (create authority: entity.ResolveAuctionTiming)
+	StartMode        entity.StartMode
+	ScheduledStartAt *time.Time // required only when StartMode == StartModeScheduled
+	Duration         time.Duration
+	// Pricing (create authority: start price, increment, buy-now floor)
+	StartPrice   int64
+	BidIncrement int64
+	BuyNowPrice  *int64
+	// Product content patch — nil fields keep the Product's current values.
+	Title           *string
+	Description     *string
+	Media           *[]productEntity.ProductMedia
+	Variety         *string
+	SizeCM          *int
+	AgeMonths       *int
+	Gender          *string
+	Breeder         *string
+	Bloodline       *string
+	Certificates    *[]string
+	PreparationTime *string
+}
+
+// Relist REPUBLISHES a finished auction: ended (no bid/winner/order) or
+// lapsed -> scheduled (or active for start_mode=now), with a fresh run.
+//
+// OWNER BUSINESS TRUTH: relist = republish via the create form. Same record,
+// new run, NO draft detour — the create-form UX must behave identically the
+// second time around.
+//
+// LOCK DISCIPLINE:
+//   - Lock Auction (FOR UPDATE)
+//   - Shared schedule gates (ownership, restriction, market authority, coverage)
+//   - Canonical timing + pricing validation (identical to create)
+//   - Optional Product content patch (identical to update authority)
+//   - Entity gate + lifecycle reset (entity.Relist)
+//   - Invalidate stale shipping quotes, persist, emit auction.scheduled
+//     (+ auction.activated for start_mode=now — same events as create)
+func (s *AuctionService) Relist(
+	ctx context.Context,
+	tx db.Tx,
+	input RelistInput,
+) (*entity.Auction, error) {
+	auction, err := s.auctionRepo.GetForUpdate(ctx, tx, input.AuctionID)
+	if err != nil {
+		return nil, err
+	}
+
+	// SAME GATE AS CREATE/SCHEDULE: an auction may only (re)enter the market
+	// with live market authority, an unrestricted seller, and coverable shipping.
+	if err := s.validateScheduleGates(ctx, tx, auction, input.CallerID); err != nil {
+		return nil, err
+	}
+
+	// Canonical timing authority (identical to create): server clock is the
+	// only "now", 1-7 day duration bound, future scheduled start, 30-day horizon.
+	startAt, endAt, err := entity.ResolveAuctionTiming(input.StartMode, input.ScheduledStartAt, input.Duration, time.Now())
+	if err != nil {
+		return nil, err
+	}
+
+	// Canonical pricing floor (identical to create).
+	if input.BuyNowPrice != nil && *input.BuyNowPrice < input.StartPrice+input.BidIncrement {
+		return nil, ErrBuyNowBelowFloor
+	}
+
+	// Product content authority: apply the provided patch before the run commits.
+	patch := productEntity.ProductContentPatch{
+		Title:           input.Title,
+		Description:     input.Description,
+		MediaURLs:       input.Media,
+		Variety:         input.Variety,
+		SizeCM:          input.SizeCM,
+		AgeMonths:       input.AgeMonths,
+		Gender:          input.Gender,
+		Breeder:         input.Breeder,
+		Bloodline:       input.Bloodline,
+		Certificates:    input.Certificates,
+		PreparationTime: input.PreparationTime,
+	}
+	if err := patch.Validate(); err != nil {
+		return nil, err
+	}
+	hasProductContent := input.Title != nil || input.Description != nil || input.Media != nil || input.Variety != nil ||
+		input.SizeCM != nil || input.AgeMonths != nil || input.Gender != nil || input.Breeder != nil ||
+		input.Bloodline != nil || input.Certificates != nil || input.PreparationTime != nil
+	if hasProductContent {
+		if s.productRepo == nil {
+			return nil, fmt.Errorf("product repo not wired for auction relist")
+		}
+		product, err := s.productRepo.GetByID(ctx, tx, auction.ProductID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load product for auction relist: %w", err)
+		}
+		if product.SellerID != auction.SellerID {
+			return nil, fmt.Errorf("product ownership mismatch")
+		}
+		patch.ApplyTo(product)
+		product.UpdatedAt = time.Now()
+		if err := s.productRepo.Update(ctx, tx, product); err != nil {
+			return nil, fmt.Errorf("failed to update product on relist: %w", err)
+		}
+	}
+
+	// ENTITY: gate (ended-no-outcome | lapsed) + lifecycle reset + new run.
+	if err := auction.Relist(startAt, endAt, input.StartPrice, input.BidIncrement, input.BuyNowPrice); err != nil {
+		return nil, err
+	}
+
+	// CROSS-LIFECYCLE: drop quotes produced by the finished run so no stale
+	// quote can price the republished auction.
+	if s.shippingQuoteInvalidator != nil {
+		if err := s.shippingQuoteInvalidator.InvalidateQuotesByProduct(ctx, tx, auction.ProductID); err != nil {
+			return nil, fmt.Errorf("failed to invalidate shipping quotes for relist: %w", err)
+		}
+	}
+
+	if err := s.auctionRepo.UpdateTx(ctx, tx, auction); err != nil {
+		return nil, fmt.Errorf("failed to persist auction relist: %w", err)
+	}
+	if err := s.outboxRepo.InsertEvent(
+		ctx, tx,
+		"auction.scheduled",
+		auction.ID,
+		buildAuctionPayload(auction),
+	); err != nil {
+		return nil, fmt.Errorf("failed to insert outbox event: %w", err)
+	}
+
+	// start_mode=now republishes straight to live — same event pair as create.
+	if input.StartMode == entity.StartModeNow {
+		if err := auction.Activate(); err != nil {
+			return nil, err
+		}
+		if err := s.auctionRepo.UpdateTx(ctx, tx, auction); err != nil {
+			return nil, fmt.Errorf("failed to activate relisted auction: %w", err)
+		}
+		if err := s.outboxRepo.InsertEvent(
+			ctx, tx,
+			"auction.activated",
+			auction.ID,
+			buildAuctionPayload(auction),
+		); err != nil {
+			return nil, fmt.Errorf("failed to insert outbox event: %w", err)
+		}
+	}
+
+	s.log.Info("Auction republished",
+		zap.String("auction_id", auction.ID.String()),
+		zap.String("seller_id", auction.SellerID.String()),
+		zap.String("status", string(auction.Status)),
+	)
+
+	return auction, nil
 }
 
 // PlaceBidInput contains parameters for placing a bid.
@@ -1013,7 +1021,7 @@ type CreateOrderFromAuctionInput struct {
 	BuyerID               uuid.UUID
 	WinningBid            int64
 	AddressID             uuid.UUID // Buyer's shipping address ID
-	ShippingSetupID      uuid.UUID
+	ShippingSetupID       uuid.UUID
 	ProvinceCode          string                            // Deprecated: Use AddressID instead
 	CityCode              string                            // Deprecated: Use AddressID instead
 	DiscountCode          *string                           // Optional discount code
@@ -1069,14 +1077,14 @@ func (s *AuctionService) CreateOrderFromAuction(
 		BuyerID:               input.BuyerID,
 		WinningBid:            input.WinningBid,
 		AddressID:             input.AddressID,
-		ShippingSetupID:      input.ShippingSetupID,
+		ShippingSetupID:       input.ShippingSetupID,
 		ProvinceCode:          input.ProvinceCode,
 		CityCode:              input.CityCode,
 		DiscountCode:          input.DiscountCode,
 		AuctionSettlementType: input.AuctionSettlementType,
 		PricingSnapshot:       input.PricingSnapshot,
 		IdempotencyKey:        input.IdempotencyKey,
-		ShippingResolvedAt:     auctionShippingResolvedAt(input.Auction),
+		ShippingResolvedAt:    auctionShippingResolvedAt(input.Auction),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create order from auction: %w", err)
@@ -1122,7 +1130,7 @@ func (s *AuctionService) sellerQuoteRequiredForWinner(
 	}
 	winnerID := *auction.WinnerID()
 
-	primary, err := s.addressRepo.GetPrimaryByTag(ctx, tx, winnerID, string(addressEntity.TagShipping))
+	primary, err := s.addressRepo.GetPrimaryByUserID(ctx, tx, winnerID)
 	if err != nil {
 		return false, err
 	}
@@ -1142,17 +1150,18 @@ func (s *AuctionService) sellerQuoteRequiredForWinner(
 	return len(options) == 0, nil
 }
 
-// ReturnToDraftOnSettlementFailure atomically returns a waiting_settlement
-// auction to DRAFT after a settlement failure. Callers must already hold the
-// auction FOR UPDATE. The auction's settlement context (order binding,
-// shipping resolution, seller flags, current bid/winner) is cleared on the
-// entity; persist via auctionRepo.UpdateTx within the same transaction.
-func (s *AuctionService) ReturnToDraftOnSettlementFailure(
+// RescheduleAfterSettlementFailure atomically auto-reschedules a
+// waiting_settlement auction after a settlement failure: settlement context is
+// cleared on the entity and the auction re-enters the market at start=now,
+// end=now+previous duration. Callers must already hold the auction FOR UPDATE.
+// Persist via auctionRepo.UpdateTx within the same transaction; the caller
+// emits auction.settlement_failed as the audit event for this transition.
+func (s *AuctionService) RescheduleAfterSettlementFailure(
 	ctx context.Context,
 	tx db.Tx,
 	auction *entity.Auction,
 ) error {
-	if err := auction.TransitionToDraftOnSettlementFailure(); err != nil {
+	if err := auction.RescheduleAfterSettlementFailure(); err != nil {
 		return err
 	}
 	// CROSS-LIFECYCLE ISOLATION: invalidate all ACTIVE shipping quotes
@@ -1164,7 +1173,7 @@ func (s *AuctionService) ReturnToDraftOnSettlementFailure(
 		}
 	}
 	if err := s.auctionRepo.UpdateTx(ctx, tx, auction); err != nil {
-		return fmt.Errorf("failed to persist auction return to draft: %w", err)
+		return fmt.Errorf("failed to persist auction reschedule after settlement failure: %w", err)
 	}
 	return nil
 }
@@ -1172,10 +1181,10 @@ func (s *AuctionService) ReturnToDraftOnSettlementFailure(
 // EndAuctionInput contains parameters for ending an auction internally.
 // Used by the auction end worker.
 type EndAuctionInput struct {
-	AuctionID        uuid.UUID
+	AuctionID       uuid.UUID
 	ShippingSetupID uuid.UUID
-	ProvinceCode     string
-	CityCode         string
+	ProvinceCode    string
+	CityCode        string
 }
 
 // EndAuctionInternal ends an auction and prepares it for settlement.
@@ -1319,7 +1328,7 @@ func (s *AuctionService) GetAuction(
 
 // PublicOriginLine returns the buyer-facing origin summary ("City, Province")
 // for an auction detail read. The rule itself lives once in
-// commerceshared.PublicListingOrigin (Product.FarmAddressID, seller fallback,
+// commerceshared.PublicListingOrigin (account primary address,
 // city+province only) so the auction and for_sale surfaces cannot drift.
 func (s *AuctionService) PublicOriginLine(
 	ctx context.Context,
@@ -1348,6 +1357,12 @@ type ListAuctionsFilter struct {
 	SellerID *uuid.UUID     // Filter by seller ID (optional)
 	Cursor   *time.Time     // Cursor for pagination (created_at based)
 	Limit    int            // Max results (default 20, max 50)
+
+	// OwnerInventory marks a seller reading their OWN list with no explicit
+	// status: every status is returned, including waiting_settlement, ended,
+	// cancelled and lapsed. Set only by the handler when seller_id == viewer.
+	// It never widens public browse — that keeps the public discovery default.
+	OwnerInventory bool
 }
 
 // ListAuctionsResult holds the result of ListAuctions with pagination metadata.
@@ -1366,10 +1381,11 @@ func (s *AuctionService) ListAuctions(
 ) (ListAuctionsResult, error) {
 	// Map filter to repository filter
 	repoFilter := auctionRepo.AuctionFilter{
-		Status:   filter.Status,
-		SellerID: filter.SellerID,
-		Cursor:   filter.Cursor,
-		Limit:    filter.Limit,
+		Status:         filter.Status,
+		SellerID:       filter.SellerID,
+		Cursor:         filter.Cursor,
+		Limit:          filter.Limit,
+		OwnerInventory: filter.OwnerInventory,
 	}
 
 	// Fetch from repository (with limit+1 to detect has_more)
@@ -1410,9 +1426,9 @@ func (s *AuctionService) ListAuctions(
 
 // GeneratePricingTokenForAuctionInput contains parameters for generating pricing token for auction claim.
 type GeneratePricingTokenForAuctionInput struct {
-	AuctionID        uuid.UUID
-	WinnerID         uuid.UUID
-	AddressID        uuid.UUID
+	AuctionID       uuid.UUID
+	WinnerID        uuid.UUID
+	AddressID       uuid.UUID
 	ShippingSetupID uuid.UUID
 }
 
@@ -1548,30 +1564,23 @@ func (s *AuctionService) ActivateScheduledAuction(
 	}
 
 	if !hasCapability {
-		// Seller subscription expired - cancel auction instead of activating
-		s.log.Info("Seller subscription expired, cancelling scheduled auction",
+		// Seller market authority expired before activation. Owner decision
+		// (Oct 2026): LAPSE, not cancel — the seller took no action. The
+		// auction never went live; it is hidden from viewer surfaces and
+		// relistable after renewal. Deliberately emits no outbox event: the
+		// seller already receives the global seller.subscription.expired
+		// notification, and this outcome is not an auction.cancelled.
+		s.log.Info("Seller market authority lapsed, holding scheduled auction",
 			zap.String("auction_id", auction.ID.String()),
 			zap.String("seller_id", auction.SellerID.String()),
 		)
 
-		if err := auction.Cancel(); err != nil {
+		if err := auction.Lapse(); err != nil {
 			return err
 		}
 
 		if err := s.auctionRepo.UpdateTx(ctx, tx, auction); err != nil {
 			return err
-		}
-
-		// Scope B — subscription-expired auto-cancel: stamp the canonical
-		// reason so the notification worker routes the seller notification
-		// (the ONLY cancel reason that notifies today).
-		if err := s.outboxRepo.InsertEvent(
-			ctx, tx,
-			"auction.cancelled",
-			auction.ID,
-			buildAuctionPayload(auction, entity.CancelReasonSubscriptionExpired),
-		); err != nil {
-			return fmt.Errorf("failed to insert outbox event: %w", err)
 		}
 
 		return nil
@@ -1634,13 +1643,15 @@ func (s *AuctionService) ActivateScheduledAuction(
 // This method is only callable from moderation/governance workers — never from
 // seller-facing API handlers.
 //
-// Handles all non-terminal states: draft, scheduled, active, waiting_settlement.
-// Terminal states (ended, cancelled) return InvalidTransitionError;
+// Handles all non-cancellable states: scheduled, active, waiting_settlement.
+// Non-cancellable states (ended, cancelled) return InvalidTransitionError;
 // callers must treat that as idempotent success.
+//
 //	// Emits auction.cancelled outbox event for downstream audit trail.
-	// Reason: governance enforcement (outcome also travels the canonical
-	// moderation channel).
-	func (s *AuctionService) CancelForModeration(
+//
+// Reason: governance enforcement (outcome also travels the canonical
+// moderation channel).
+func (s *AuctionService) CancelForModeration(
 	ctx context.Context,
 	tx db.Tx,
 	auctionID uuid.UUID,
@@ -1753,7 +1764,7 @@ func applyAdminCancel(auction *entity.Auction) error {
 // or order state at this stage: PlaceBid only ever writes bid rows and
 // auction.current_bid; no ledger/order side effect exists until an order is
 // actually created via claim/buy-now):
-//   - draft, scheduled, active (with or without bids), waiting_settlement
+//   - scheduled, active (with or without bids), waiting_settlement
 //     (winner determined; safe only while no order is bound — the non-nil
 //     OrderID conflict guard below covers the claimed-but-unpaid case).
 //

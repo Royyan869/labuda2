@@ -66,7 +66,6 @@ func stage1ForSale(sellerID, productID uuid.UUID, title string, quantity int) *f
 		money.New(100000),
 		quantity,
 		false,
-		forsaleEntity.ForSaleVisibilityPrivate,
 	)
 	if err != nil {
 		panic(err)
@@ -178,7 +177,7 @@ func TestProductSellingSurfaceExclusivity(t *testing.T) {
 				start_price, bid_increment, buy_now_price, start_at, end_at,
 				status, created_at, updated_at
 			)
-			VALUES ($1, $2, $3, $4, $5, NULL, NOW(), NOW() + INTERVAL '24 hours', 'draft', NOW(), NOW())
+			VALUES ($1, $2, $3, $4, $5, NULL, NOW(), NOW() + INTERVAL '24 hours', 'scheduled', NOW(), NOW())
 		`, uuid.New(), sellerID, productID, 10000, 1000)
 		return err
 	})
@@ -199,7 +198,7 @@ func TestProductSellingSurfaceExclusivity(t *testing.T) {
 				start_price, bid_increment, buy_now_price, start_at, end_at,
 				status, created_at, updated_at
 			)
-			VALUES ($1, $2, $3, $4, $5, NULL, NOW(), NOW() + INTERVAL '24 hours', 'draft', NOW(), NOW())
+			VALUES ($1, $2, $3, $4, $5, NULL, NOW(), NOW() + INTERVAL '24 hours', 'scheduled', NOW(), NOW())
 		`, uuid.New(), sellerID, auctionProductID, 10000, 1000)
 		return err
 	}))
@@ -216,7 +215,7 @@ func TestProductSellingSurfaceExclusivity(t *testing.T) {
 	err = appDB.WithTx(ctx, func(tx db.Tx) error {
 		_, err := tx.Exec(ctx, `
 			INSERT INTO for_sales (id, product_id, seller_id, price_per_unit, negotiation_enabled, status, quantity_available, created_at, updated_at)
-			VALUES ($1, $2, $3, 100000, false, 'draft', 1, NOW(), NOW())
+			VALUES ($1, $2, $3, 100000, false, 'active', 1, NOW(), NOW())
 		`, uuid.New(), auctionProductID, sellerID)
 		return err
 	})

@@ -47,11 +47,11 @@ func (r *ProductRepositoryImpl) Create(ctx context.Context, tx db.Tx, product *e
 		INSERT INTO products (
 			id, seller_id, title, description, media_urls,
 			variety, size_cm, age_months, gender, breeder, bloodline, certificates,
-			farm_address_id, preparation_time,
+			preparation_time,
 			selling_surface,
 			created_at, updated_at
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
 	`,
 		product.ID,
 		product.SellerID,
@@ -65,7 +65,6 @@ func (r *ProductRepositoryImpl) Create(ctx context.Context, tx db.Tx, product *e
 		product.Breeder,
 		product.Bloodline,
 		certificates,
-		product.FarmAddressID,
 		product.PreparationTime,
 		nullString(string(product.SellingSurface)),
 		product.CreatedAt,
@@ -83,7 +82,7 @@ func (r *ProductRepositoryImpl) GetByID(ctx context.Context, tx db.Tx, id uuid.U
 	row := tx.QueryRow(ctx, `
 		SELECT id, seller_id, title, description, media_urls,
 		       variety, size_cm, age_months, gender, breeder, bloodline, certificates,
-		       farm_address_id, preparation_time,
+		       preparation_time,
 		       selling_surface,
 		       created_at, updated_at
 		FROM products
@@ -128,9 +127,8 @@ func (r *ProductRepositoryImpl) Update(ctx context.Context, tx db.Tx, product *e
 		    breeder = $10,
 		    bloodline = $11,
 		    certificates = $12,
-		    farm_address_id = $13,
-		    preparation_time = $14,
-		    updated_at = $15
+		    preparation_time = $13,
+		    updated_at = $14
 		WHERE id = $1
 	`,
 		product.ID,
@@ -145,7 +143,6 @@ func (r *ProductRepositoryImpl) Update(ctx context.Context, tx db.Tx, product *e
 		product.Breeder,
 		product.Bloodline,
 		certificates,
-		product.FarmAddressID,
 		product.PreparationTime,
 		product.UpdatedAt,
 	)
@@ -163,7 +160,6 @@ func scanProductRow(row pgx.Row) (*entity.Product, error) {
 	var certificates []string
 	var sizeCM, ageMonths *int
 	var gender, breeder, bloodline *string
-	var farmAddressID *uuid.UUID
 	var sellingSurfaceRaw *string
 	var createdAt, updatedAt time.Time
 	if err := row.Scan(
@@ -179,7 +175,6 @@ func scanProductRow(row pgx.Row) (*entity.Product, error) {
 		&breeder,
 		&bloodline,
 		&certificates,
-		&farmAddressID,
 		&product.PreparationTime,
 		&sellingSurfaceRaw,
 		&createdAt,
@@ -205,7 +200,6 @@ func scanProductRow(row pgx.Row) (*entity.Product, error) {
 	product.Breeder = breeder
 	product.Bloodline = bloodline
 	product.Certificates = certificates
-	product.FarmAddressID = farmAddressID
 	if sellingSurfaceRaw != nil {
 		product.SellingSurface = entity.SellingSurface(*sellingSurfaceRaw)
 	}

@@ -1,5 +1,4 @@
 import 'package:equatable/equatable.dart';
-import 'package:labuda/shared/attachment/entities/share_reference.dart';
 
 enum ChatResourceOccurrenceOperation {
   shareToChat,
@@ -108,17 +107,6 @@ class ChatResourceOccurrenceRequest extends Equatable {
     );
   }
 
-  factory ChatResourceOccurrenceRequest.shareToChat({
-    required ChatResourceOccurrenceResourceType resourceType,
-    required String resourceId,
-  }) {
-    return ChatResourceOccurrenceRequest(
-      operation: ChatResourceOccurrenceOperation.shareToChat,
-      resourceType: resourceType,
-      resourceId: resourceId,
-    );
-  }
-
   factory ChatResourceOccurrenceRequest.directCommerceInsertChat({
     required ChatResourceOccurrenceResourceType resourceType,
     required String resourceId,
@@ -128,39 +116,6 @@ class ChatResourceOccurrenceRequest extends Equatable {
       resourceType: resourceType,
       resourceId: resourceId,
     );
-  }
-
-  /// Derive the canonical occurrence for a shared reference.
-  ///
-  /// Commerce references (for_sale / auction) are inserted into the
-  /// conversation as a direct-commerce reference; social references
-  /// (content / profile) are a plain share. This declares WHAT the message is
-  /// about — it never carries Commerce business state.
-  factory ChatResourceOccurrenceRequest.fromShareReference(
-    ShareReference reference,
-  ) {
-    switch (reference.targetType) {
-      case ShareTargetType.forSale:
-        return ChatResourceOccurrenceRequest.directCommerceInsertChat(
-          resourceType: ChatResourceOccurrenceResourceType.forSale,
-          resourceId: reference.targetId,
-        );
-      case ShareTargetType.auction:
-        return ChatResourceOccurrenceRequest.directCommerceInsertChat(
-          resourceType: ChatResourceOccurrenceResourceType.auction,
-          resourceId: reference.targetId,
-        );
-      case ShareTargetType.content:
-        return ChatResourceOccurrenceRequest.shareToChat(
-          resourceType: ChatResourceOccurrenceResourceType.content,
-          resourceId: reference.targetId,
-        );
-      case ShareTargetType.profile:
-        return ChatResourceOccurrenceRequest.shareToChat(
-          resourceType: ChatResourceOccurrenceResourceType.profile,
-          resourceId: reference.targetId,
-        );
-    }
   }
 
   Map<String, dynamic> toJson() => {

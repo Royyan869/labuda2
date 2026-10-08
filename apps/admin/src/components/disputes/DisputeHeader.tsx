@@ -80,8 +80,8 @@ export function DisputeHeader({ dispute, onRefresh, refreshing, onBack }: Disput
             </Button>
           )}
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Dispute Workspace</h1>
-            <p className="text-sm text-muted-foreground mt-0.5">
+            <h1 className="type-page-title">Dispute Workspace</h1>
+            <p className="type-secondary mt-0.5">
               Dispute ID: <span className="font-mono">{dispute.id}</span>
             </p>
           </div>
@@ -120,13 +120,13 @@ export function DisputeHeader({ dispute, onRefresh, refreshing, onBack }: Disput
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {/* Order ID */}
         <div className="bg-background rounded-lg border border-border p-4">
-          <p className="text-xs text-muted-foreground uppercase tracking-wide">Order ID</p>
+          <p className="type-caption uppercase tracking-wide">Order ID</p>
           <p className="font-mono text-sm mt-1">{dispute.order_id.slice(0, 12)}...</p>
         </div>
 
         {/* Reason */}
         <div className="bg-background rounded-lg border border-border p-4">
-          <p className="text-xs text-muted-foreground uppercase tracking-wide">Reason</p>
+          <p className="type-caption uppercase tracking-wide">Reason</p>
           <p className="font-medium text-sm mt-1">
             {disputeReasonLabels[dispute.reason] || dispute.reason}
           </p>
@@ -135,14 +135,14 @@ export function DisputeHeader({ dispute, onRefresh, refreshing, onBack }: Disput
         {/* Escrow Amount (money at risk) — canonical total_before_coins_amount */}
         {dispute.total_before_coins_amount != null && (
           <div className="bg-background rounded-lg border border-border p-4">
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">Escrow at Risk</p>
+            <p className="type-caption uppercase tracking-wide">Escrow at Risk</p>
             <p className="font-semibold text-sm mt-1">{formatRupiah(dispute.total_before_coins_amount)}</p>
           </div>
         )}
 
         {/* Opened Date */}
         <div className="bg-background rounded-lg border border-border p-4">
-          <p className="text-xs text-muted-foreground uppercase tracking-wide">Opened</p>
+          <p className="type-caption uppercase tracking-wide">Opened</p>
           <p className="text-sm mt-1">{formatDate(dispute.opened_at)}</p>
         </div>
       </div>
@@ -150,8 +150,8 @@ export function DisputeHeader({ dispute, onRefresh, refreshing, onBack }: Disput
       {/* Description */}
       {dispute.description && (
         <div className="bg-background rounded-lg border border-border p-4">
-          <p className="text-xs text-muted-foreground uppercase tracking-wide mb-2">Description</p>
-          <p className="text-sm text-foreground whitespace-pre-wrap">{dispute.description}</p>
+          <p className="type-caption uppercase tracking-wide mb-2">Description</p>
+          <p className="type-body whitespace-pre-wrap">{dispute.description}</p>
         </div>
       )}
 
@@ -184,7 +184,7 @@ export function DisputeHeader({ dispute, onRefresh, refreshing, onBack }: Disput
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Next Action */}
           <div>
-            <p className="text-xs text-muted-foreground mb-1">Next Action</p>
+            <p className="type-caption mb-1">Next Action</p>
             <Badge variant={getNextActionVariant(dispute.next_action)} className="text-xs">
               {getNextActionLabel(dispute.next_action)}
             </Badge>
@@ -193,7 +193,7 @@ export function DisputeHeader({ dispute, onRefresh, refreshing, onBack }: Disput
           {/* Admin Response Time */}
           {dispute.admin_response_time && (
             <div>
-              <p className="text-xs text-muted-foreground mb-1">Admin Response</p>
+              <p className="type-caption mb-1">Admin Response</p>
               <p className="text-sm font-medium">{dispute.admin_response_time}</p>
               {dispute.admin_response_overdue && dispute.admin_response_overdue_duration && (
                 <p className="text-xs text-destructive mt-0.5">
@@ -206,7 +206,7 @@ export function DisputeHeader({ dispute, onRefresh, refreshing, onBack }: Disput
           {/* Resolution Time */}
           {dispute.resolution_time && (
             <div>
-              <p className="text-xs text-muted-foreground mb-1">Resolution Time</p>
+              <p className="type-caption mb-1">Resolution Time</p>
               <p className="text-sm font-medium">{dispute.resolution_time}</p>
               {dispute.resolution_overdue && dispute.resolution_overdue_duration && (
                 <p className="text-xs text-destructive mt-0.5">
@@ -219,7 +219,7 @@ export function DisputeHeader({ dispute, onRefresh, refreshing, onBack }: Disput
           {/* Active Time */}
           {dispute.active_time && (
             <div>
-              <p className="text-xs text-muted-foreground mb-1">Active Time</p>
+              <p className="type-caption mb-1">Active Time</p>
               <p className="text-sm font-medium flex items-center gap-1">
                 <Activity className="h-3 w-3" />
                 {dispute.active_time}

@@ -38,13 +38,12 @@ class NotificationListAppBar extends ConsumerWidget
 
     return AppBar(
       leading: IconButton(
-        icon: const Icon(Icons.arrow_back),
+        icon: const Icon(Icons.arrow_back, semanticLabel: 'Kembali'),
         onPressed: () => Navigator.of(context).pop(),
       ),
-      title: const Text(
+      title: Text(
         'Notifications',
-        style: TextStyle(
-          fontSize: AppType.s20,
+        style: Theme.of(context).textTheme.titleLarge?.copyWith(
           fontWeight: FontWeight.w600,
           letterSpacing: -0.5,
         ),
@@ -81,9 +80,13 @@ class NotificationListAppBar extends ConsumerWidget
                 value: 'delete_all',
                 child: Row(
                   children: [
-                      Icon(Icons.delete_forever, size: AppIconSize.action, color: scheme.error),
+                    Icon(
+                      Icons.delete_forever,
+                      size: AppIconSize.action,
+                      color: scheme.error,
+                    ),
                     SizedBox(width: 12),
-                      Text('Delete All', style: TextStyle(color: scheme.error)),
+                    Text('Delete All', style: TextStyle(color: scheme.error)),
                   ],
                 ),
               ),

@@ -23,7 +23,7 @@ class BankAccountCardWidget extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: AppMetrics.p16),
       padding: const EdgeInsets.all(AppMetrics.p24),
       decoration: BoxDecoration(
-         color: scheme.surface,
+        color: scheme.surface,
         borderRadius: BorderRadius.circular(AppShape.r16),
         border: Border.all(
           color: account.isDefault
@@ -65,18 +65,16 @@ class BankAccountCardWidget extends StatelessWidget {
                   children: [
                     Text(
                       account.bankName,
-                      style: TextStyle(
+                      style: context.typeRoles.titleCompact.copyWith(
                         color: scheme.onSurface,
-                        fontSize: AppType.s16,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       account.isDefault ? 'Rekening Utama' : account.bankCode,
-                      style: TextStyle(
+                      style: context.typeRoles.labelMicro.copyWith(
                         color: scheme.onSurfaceVariant,
-                        fontSize: AppType.s12,
                       ),
                     ),
                   ],
@@ -121,7 +119,10 @@ class BankAccountCardWidget extends StatelessWidget {
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8, vertical: AppMetrics.p4),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppMetrics.p8,
+        vertical: AppMetrics.p4,
+      ),
       decoration: BoxDecoration(
         color: badgeColor,
         borderRadius: BorderRadius.circular(AppShape.r6),
@@ -133,9 +134,8 @@ class BankAccountCardWidget extends StatelessWidget {
           const SizedBox(width: 4),
           Text(
             statusText,
-            style: TextStyle(
+            style: context.typeRoles.labelMicro.copyWith(
               color: textColor,
-              fontSize: AppType.s12,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -163,20 +163,18 @@ class BankAccountCardWidget extends StatelessWidget {
           width: AppContentSize.termLabel,
           child: Text(
             label,
-            style: TextStyle(
+            style: context.typeRoles.labelMicro.copyWith(
               color: scheme.onSurfaceVariant,
-              fontSize: AppType.s12,
               fontWeight: FontWeight.w500,
             ),
           ),
         ),
-        const Text(': ', style: TextStyle(fontSize: AppType.s12)),
+        Text(': ', style: context.typeRoles.labelMicro),
         Expanded(
           child: Text(
             value,
-            style: TextStyle(
+            style: context.typeRoles.labelMicro.copyWith(
               color: scheme.onSurface,
-              fontSize: AppType.s12,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -197,10 +195,7 @@ class BankAccountCardWidget extends StatelessWidget {
           ),
         if (!account.isDefault) const SizedBox(width: 8),
         Expanded(
-          child: OutlinedButton(
-            onPressed: onEdit,
-            child: const Text('Edit'),
-          ),
+          child: OutlinedButton(onPressed: onEdit, child: const Text('Edit')),
         ),
         const SizedBox(width: 8),
         Expanded(

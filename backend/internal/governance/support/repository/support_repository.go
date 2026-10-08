@@ -13,7 +13,8 @@ import (
 //
 // DESIGN PRINCIPLES:
 // - All mutations use db.Tx for transaction safety
-// - Cursor-based pagination only (NO OFFSET)
+// - User-facing lists use cursor pagination; the admin review queue loads the
+//   filtered set and the service computes its canonical SLA-urgency order
 // - Concurrency-safe with SELECT FOR UPDATE
 // - No SQL in service layer
 type Repository interface {
@@ -34,7 +35,7 @@ type Repository interface {
 	GetTicketByChatRoomID(ctx context.Context, tx interface{}, chatRoomID uuid.UUID) (*entity.Ticket, error)
 
 	// ListTickets lists all tickets with optional filters.
-	// Uses cursor-based pagination.
+	// Uses cursor-based pagination (user-facing "my tickets" surface).
 	ListTickets(
 		ctx context.Context,
 		tx interface{},
@@ -42,6 +43,15 @@ type Repository interface {
 		cursorCreatedAt *time.Time,
 		cursorID *uuid.UUID,
 		limit int,
+	) ([]*entity.Ticket, error)
+
+	// ListTicketsForOrdering returns the FULL filtered ticket set (no limit)
+	// in a deterministic base order. The admin support queue computes its
+	// canonical SLA-urgency ordering on top of this set before slicing a page.
+	ListTicketsForOrdering(
+		ctx context.Context,
+		tx interface{},
+		filter *TicketFilter,
 	) ([]*entity.Ticket, error)
 
 	// CountTickets returns the count of tickets matching the filter.

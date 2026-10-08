@@ -188,6 +188,7 @@ func TestPhase4A_ContractLifecycleRealAuthority_RealDB(t *testing.T) {
 	c, err := h.contracts.Create(ctx, contractapp.CreatePromotionInput{
 		SellerID:     sellerA,
 		Kind:         entity.KindInternal,
+		Targets:      []contractapp.PromotionTargetInput{{TargetType: "for_sale", TargetID: uuid.New()}},
 		BudgetRupiah: budget,
 		DurationDays: 3,
 	})
@@ -209,7 +210,8 @@ func TestPhase4A_ContractLifecycleRealAuthority_RealDB(t *testing.T) {
 	_, err = h.contracts.Create(ctx, contractapp.CreatePromotionInput{
 		SellerID:     sellerA,
 		Kind:         entity.KindExternal, // separate slot; failure must be financial, not slot
-		BudgetRupiah: funded,              // > remaining 50k
+		Targets:      []contractapp.PromotionTargetInput{{TargetType: "external_product", TargetID: uuid.New()}},
+		BudgetRupiah: funded, // > remaining 50k
 		DurationDays: 1,
 	})
 	require.ErrorIs(t, err, financeapp.ErrPromoteBalanceInsufficient)
@@ -283,6 +285,7 @@ func TestPhase4A_IneligibleSellerCannotCreate_RealDB(t *testing.T) {
 	_, err := h.contracts.Create(ctx, contractapp.CreatePromotionInput{
 		SellerID:     ghost,
 		Kind:         entity.KindInternal,
+		Targets:      []contractapp.PromotionTargetInput{{TargetType: "for_sale", TargetID: uuid.New()}},
 		BudgetRupiah: 50_000,
 		DurationDays: 1,
 	})

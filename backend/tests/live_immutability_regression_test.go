@@ -124,41 +124,6 @@ func seedLiveUser(t *testing.T, ctx context.Context, tdb *testdb.TestDB) uuid.UU
 func intPtrLive(v int) *int       { return &v }
 func strPtrLive(v string) *string { return &v }
 
-func TestForSale_DraftRemainsEditable_PositiveControl(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	tdb, cleanup := testdb.SetupDB(t)
-	defer cleanup()
-	ctx := context.Background()
-	appDB := db.NewFromPool(tdb.Pool())
-	seller := seedLiveUser(t, ctx, tdb)
-	svc := forsaleApp.NewForSaleService(liveFakeActorResolver{allow: true}, liveFakeRoleChecker{})
-	handler := forsaleHttp.NewForSaleHandler(svc, appDB, zap.NewNop(), liveFakeOrderRepo{}, nil)
-	// Direct SQL setup to avoid service overhead (faster, no actor/role checks)
-	productID := uuid.New()
-	forSaleID := uuid.New()
-	_, err := tdb.Pool().Exec(ctx, `INSERT INTO products (id, seller_id, title, description, media_urls, variety, size_cm, preparation_time, selling_surface, created_at, updated_at) VALUES ($1,$2,'draft original','draft desc','["https://cdn.test/a.jpg"]','Kohaku',30,'1_3_days','for_sale',NOW(),NOW())`, productID, seller)
-	require.NoError(t, err)
-	_, err = tdb.Pool().Exec(ctx, `INSERT INTO for_sales (id, product_id, seller_id, price_per_unit, negotiation_enabled, status, quantity_available, created_at, updated_at) VALUES ($1,$2,$3,100000,false,'draft',2,NOW(),NOW())`, forSaleID, productID, seller)
-	require.NoError(t, err)
-	created := &forsaleEntity.ForSale{ID: forSaleID, ProductID: productID}
-	// draft edit should succeed
-	body, _ := json.Marshal(map[string]interface{}{"title": "draft edited", "price": int64(200000)})
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Request = httptest.NewRequest(http.MethodPut, "/api/v1/for-sale/"+created.ID.String(), bytes.NewReader(body))
-	c.Request.Header.Set("Content-Type", "application/json")
-	c.Params = gin.Params{{Key: "id", Value: created.ID.String()}}
-	c.Set("userID", seller)
-	handler.UpdateForSale(c)
-	require.Equal(t, http.StatusOK, w.Code)
-	var prodTitle string
-	var fsPrice int64
-	require.NoError(t, tdb.Pool().QueryRow(ctx, `SELECT title FROM products WHERE id=$1`, created.ProductID).Scan(&prodTitle))
-	require.Equal(t, "draft edited", prodTitle)
-	require.NoError(t, tdb.Pool().QueryRow(ctx, `SELECT price_per_unit FROM for_sales WHERE id=$1`, created.ID).Scan(&fsPrice))
-	require.Equal(t, int64(200000), fsPrice)
-}
-
 func TestForSale_ActiveImmutable_ZeroOrders(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	tdb, cleanup := testdb.SetupDB(t)
@@ -167,12 +132,12 @@ func TestForSale_ActiveImmutable_ZeroOrders(t *testing.T) {
 	appDB := db.NewFromPool(tdb.Pool())
 	seller := seedLiveUser(t, ctx, tdb)
 	svc := forsaleApp.NewForSaleService(liveFakeActorResolver{allow: true}, liveFakeRoleChecker{})
-	handler := forsaleHttp.NewForSaleHandler(svc, appDB, zap.NewNop(), liveFakeOrderRepo{}, nil)
+	handler := forsaleHttp.NewForSaleHandler(svc, appDB, zap.NewNop(), liveFakeOrderRepo{}, nil, nil)
 	productID := uuid.New()
 	forSaleID := uuid.New()
 	_, err := tdb.Pool().Exec(ctx, `INSERT INTO products (id, seller_id, title, description, media_urls, variety, size_cm, preparation_time, selling_surface, created_at, updated_at) VALUES ($1,$2,'live original','live desc','["https://cdn.test/live.jpg"]','Kohaku',30,'1_3_days','for_sale',NOW(),NOW())`, productID, seller)
 	require.NoError(t, err)
-	_, err = tdb.Pool().Exec(ctx, `INSERT INTO for_sales (id, product_id, seller_id, price_per_unit, negotiation_enabled, status, quantity_available, created_at, updated_at) VALUES ($1,$2,$3,100000,false,'draft',2,NOW(),NOW())`, forSaleID, productID, seller)
+	_, err = tdb.Pool().Exec(ctx, `INSERT INTO for_sales (id, product_id, seller_id, price_per_unit, negotiation_enabled, status, quantity_available, created_at, updated_at) VALUES ($1,$2,$3,100000,false,'active',2,NOW(),NOW())`, forSaleID, productID, seller)
 	require.NoError(t, err)
 	created := &forsaleEntity.ForSale{ID: forSaleID, ProductID: productID}
 	// Force to active via direct SQL (simulate publish without shipping guard for test)
@@ -212,8 +177,6 @@ func TestForSale_ShippingImmutable_WhenActive(t *testing.T) {
 	forSaleID := uuid.New()
 	_, err := tdb.Pool().Exec(ctx, `INSERT INTO products (id, seller_id, title, description, media_urls, variety, preparation_time, selling_surface, created_at, updated_at) VALUES ($1,$2,'ship test','desc','["https://cdn.test/a.jpg"]','Kohaku','1_3_days','for_sale',NOW(),NOW())`, productID, seller)
 	require.NoError(t, err)
-	_, err = tdb.Pool().Exec(ctx, `INSERT INTO for_sales (id, product_id, seller_id, price_per_unit, negotiation_enabled, status, quantity_available, created_at, updated_at) VALUES ($1,$2,$3,100000,false,'draft',1,NOW(),NOW())`, forSaleID, productID, seller)
-	require.NoError(t, err)
 	created := &forsaleEntity.ForSale{ID: forSaleID, ProductID: productID}
 	// Create two shipping options for seller
 	opt1 := uuid.New()
@@ -222,7 +185,7 @@ func TestForSale_ShippingImmutable_WhenActive(t *testing.T) {
 	require.NoError(t, err)
 	_, err = tdb.Pool().Exec(ctx, `INSERT INTO shipping_coverages (id, shipping_option_id, province_code, province_name, province_rate, is_available, created_at) VALUES ($1,$2,'31','DKI Jakarta',10000,true,NOW()), ($3,$4,'31','DKI Jakarta',12000,true,NOW())`, uuid.New(), opt1, uuid.New(), opt2)
 	require.NoError(t, err)
-	// Initially link opt1 while draft — should succeed
+	// Link opt1 while the product has no selling surface yet — should succeed
 	shippingSetupRepo := shippingInfraRepo.NewShippingSetupRepository()
 	productShippingRepo := shippingInfraRepo.NewProductShippingSetupRepository(shippingSetupRepo)
 	shippingSvc := shippingApp.NewProductShippingService(
@@ -241,8 +204,8 @@ func TestForSale_ShippingImmutable_WhenActive(t *testing.T) {
 	var cnt int64
 	require.NoError(t, tdb.Pool().QueryRow(ctx, `SELECT COUNT(*) FROM product_shipping_options WHERE product_id=$1`, created.ProductID).Scan(&cnt))
 	require.Equal(t, int64(1), cnt)
-	// Publish to active (direct SQL)
-	_, err = tdb.Pool().Exec(ctx, `UPDATE for_sales SET status='active', published_at=NOW(), updated_at=NOW() WHERE id=$1`, created.ID)
+	// Selling surface now exists (born active — create = publish) → immutable
+	_, err = tdb.Pool().Exec(ctx, `INSERT INTO for_sales (id, product_id, seller_id, price_per_unit, negotiation_enabled, status, quantity_available, published_at, created_at, updated_at) VALUES ($1,$2,$3,100000,false,'active',1,NOW(),NOW(),NOW())`, created.ID, productID, seller)
 	require.NoError(t, err)
 	// Attempt to change shipping while active — must be rejected even with zero orders
 	err = appDB.WithTx(ctx, func(tx db.Tx) error {
@@ -262,45 +225,6 @@ func TestForSale_ShippingImmutable_WhenActive(t *testing.T) {
 	require.Equal(t, opt1, linkedOpt)
 }
 
-func TestForSale_ShippingMutable_WhenDraft(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	tdb, cleanup := testdb.SetupDB(t)
-	defer cleanup()
-	ctx := context.Background()
-	appDB := db.NewFromPool(tdb.Pool())
-	seller := seedLiveUser(t, ctx, tdb)
-	productID := uuid.New()
-	forSaleID := uuid.New()
-	_, err := tdb.Pool().Exec(ctx, `INSERT INTO products (id, seller_id, title, description, media_urls, variety, preparation_time, selling_surface, created_at, updated_at) VALUES ($1,$2,'draft ship','desc','["https://cdn.test/a.jpg"]','Kohaku','1_3_days','for_sale',NOW(),NOW())`, productID, seller)
-	require.NoError(t, err)
-	_, err = tdb.Pool().Exec(ctx, `INSERT INTO for_sales (id, product_id, seller_id, price_per_unit, negotiation_enabled, status, quantity_available, created_at, updated_at) VALUES ($1,$2,$3,50000,false,'draft',1,NOW(),NOW())`, forSaleID, productID, seller)
-	require.NoError(t, err)
-	created := &forsaleEntity.ForSale{ID: forSaleID, ProductID: productID}
-	opt1 := uuid.New()
-	_, err = tdb.Pool().Exec(ctx, `INSERT INTO shipping_options (id, seller_id, name, transport_type, is_active, created_at, updated_at) VALUES ($1,$2,'optA','custom',true,NOW(),NOW())`, opt1, seller)
-	require.NoError(t, err)
-	_, err = tdb.Pool().Exec(ctx, `INSERT INTO shipping_coverages (id, shipping_option_id, province_code, province_name, province_rate, is_available, created_at) VALUES ($1,$2,'31','DKI',10000,true,NOW())`, uuid.New(), opt1)
-	require.NoError(t, err)
-	shippingSetupRepo := shippingInfraRepo.NewShippingSetupRepository()
-	productShippingRepo := shippingInfraRepo.NewProductShippingSetupRepository(shippingSetupRepo)
-	shippingSvc := shippingApp.NewProductShippingService(
-		&liveForSaleRepoAdapter{tdb: tdb},
-		shippingSetupRepo,
-		productShippingRepo,
-		liveFakeOrderRepo{},
-	)
-	require.NoError(t, appDB.WithTx(ctx, func(tx db.Tx) error {
-		return shippingSvc.SetProductShippingSetups(ctx, tx, shippingApp.SetProductShippingSetupsInput{
-			ProductID:        created.ProductID,
-			SellerID:         seller,
-			ShippingSetupIDs: []uuid.UUID{opt1},
-		})
-	}))
-	var cnt int64
-	require.NoError(t, tdb.Pool().QueryRow(ctx, `SELECT COUNT(*) FROM product_shipping_options WHERE product_id=$1`, created.ProductID).Scan(&cnt))
-	require.Equal(t, int64(1), cnt)
-}
-
 func TestAuction_ShippingLifecycle(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	tdb, cleanup := testdb.SetupDB(t)
@@ -308,14 +232,10 @@ func TestAuction_ShippingLifecycle(t *testing.T) {
 	ctx := context.Background()
 	appDB := db.NewFromPool(tdb.Pool())
 	seller := seedLiveUser(t, ctx, tdb)
-	// Create product + auction draft via direct SQL (simpler than service which auto-schedules)
+	// Create the product FIRST with no selling surface: shipping may be
+	// configured while the product is still unattached.
 	productID := uuid.New()
 	_, err := tdb.Pool().Exec(ctx, `INSERT INTO products (id, seller_id, title, description, media_urls, variety, preparation_time, selling_surface, created_at, updated_at) VALUES ($1,$2,'auction prod','desc','[]','Kohaku','1_3_days','auction',NOW(),NOW())`, productID, seller)
-	require.NoError(t, err)
-	auctionID := uuid.New()
-	startAt := time.Now().Add(2 * time.Hour)
-	endAt := startAt.Add(48 * time.Hour)
-	_, err = tdb.Pool().Exec(ctx, `INSERT INTO auctions (id, seller_id, product_id, start_price, bid_increment, start_at, end_at, status, created_at, updated_at) VALUES ($1,$2,$3,100000,10000,$4,$5,'draft',NOW(),NOW())`, auctionID, seller, productID, startAt, endAt)
 	require.NoError(t, err)
 	opt1 := uuid.New()
 	opt2 := uuid.New()
@@ -331,12 +251,15 @@ func TestAuction_ShippingLifecycle(t *testing.T) {
 		productShippingRepo,
 		liveFakeOrderRepo{},
 	)
-	// draft → shipping allowed
+	// no selling surface yet → shipping allowed
 	require.NoError(t, appDB.WithTx(ctx, func(tx db.Tx) error {
 		return shippingSvc.SetProductShippingSetups(ctx, tx, shippingApp.SetProductShippingSetupsInput{ProductID: productID, SellerID: seller, ShippingSetupIDs: []uuid.UUID{opt1}})
 	}))
-	// scheduled → shipping blocked
-	_, err = tdb.Pool().Exec(ctx, `UPDATE auctions SET status='scheduled', updated_at=NOW() WHERE id=$1`, auctionID)
+	// selling surface exists (born scheduled — create = publish) → immutable
+	auctionID := uuid.New()
+	startAt := time.Now().Add(2 * time.Hour)
+	endAt := startAt.Add(48 * time.Hour)
+	_, err = tdb.Pool().Exec(ctx, `INSERT INTO auctions (id, seller_id, product_id, start_price, bid_increment, start_at, end_at, status, created_at, updated_at) VALUES ($1,$2,$3,100000,10000,$4,$5,'scheduled',NOW(),NOW())`, auctionID, seller, productID, startAt, endAt)
 	require.NoError(t, err)
 	err = appDB.WithTx(ctx, func(tx db.Tx) error {
 		return shippingSvc.SetProductShippingSetups(ctx, tx, shippingApp.SetProductShippingSetupsInput{ProductID: productID, SellerID: seller, ShippingSetupIDs: []uuid.UUID{opt2}})
@@ -384,7 +307,7 @@ func TestAuction_DirectEdit_ActiveRejected(t *testing.T) {
 	auctionProdRepo := productRepo.NewProductRepository()
 	auctionSvc := auctionApp.NewAuctionService(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, zap.NewNop())
 	auctionSvc.SetProductRepo(auctionProdRepo)
-	handler := auctionHttp.NewAuctionHandler(auctionSvc, auctionProdRepo, nil, appDB, zap.NewNop())
+	handler := auctionHttp.NewAuctionHandler(auctionSvc, auctionProdRepo, nil, appDB, zap.NewNop(), nil)
 	body, _ := json.Marshal(map[string]interface{}{"title": "hacked", "start_price": int64(999999)})
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
@@ -400,53 +323,6 @@ func TestAuction_DirectEdit_ActiveRejected(t *testing.T) {
 	var startPrice int64
 	require.NoError(t, tdb.Pool().QueryRow(ctx, `SELECT start_price FROM auctions WHERE id=$1`, auctionID).Scan(&startPrice))
 	require.Equal(t, int64(100000), startPrice)
-}
-
-func TestAuction_DraftFullProduct_Persists(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	tdb, cleanup := testdb.SetupDB(t)
-	defer cleanup()
-	ctx := context.Background()
-	appDB := db.NewFromPool(tdb.Pool())
-	seller := seedLiveUser(t, ctx, tdb)
-	productID := uuid.New()
-	_, err := tdb.Pool().Exec(ctx, `INSERT INTO products (id, seller_id, title, description, media_urls, variety, size_cm, preparation_time, selling_surface, created_at, updated_at) VALUES ($1,$2,'orig','desc','[]','Kohaku',30,'1_3_days','auction',NOW(),NOW())`, productID, seller)
-	require.NoError(t, err)
-	auctionID := uuid.New()
-	startAt := time.Now().Add(48 * time.Hour)
-	endAt := startAt.Add(24 * time.Hour)
-	_, err = tdb.Pool().Exec(ctx, `INSERT INTO auctions (id, seller_id, product_id, start_price, bid_increment, start_at, end_at, status, created_at, updated_at) VALUES ($1,$2,$3,100000,10000,$4,$5,'draft',NOW(),NOW())`, auctionID, seller, productID, startAt, endAt)
-	require.NoError(t, err)
-	auctionProdRepo := productRepo.NewProductRepository()
-	auctionSvc := auctionApp.NewAuctionService(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, zap.NewNop())
-	auctionSvc.SetProductRepo(auctionProdRepo)
-	handler := auctionHttp.NewAuctionHandler(auctionSvc, auctionProdRepo, nil, appDB, zap.NewNop())
-	body, _ := json.Marshal(map[string]interface{}{
-		"title": "New Title", "description": "New Desc", "media_urls": []string{"https://a.jpg", "https://b.mp4"}, "variety": "Showa", "size_cm": 45, "age_months": 12, "gender": "male", "breeder": "Sakai", "bloodline": "Matsu", "certificates": []string{"breeder", "health"}, "preparation_time": "1_3_days", "start_price": int64(150000), "bid_increment": int64(15000), "start_at": startAt.Add(time.Hour).Format(time.RFC3339), "end_at": endAt.Add(time.Hour).Format(time.RFC3339),
-	})
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Request = httptest.NewRequest(http.MethodPut, "/api/v1/auctions/"+auctionID.String(), bytes.NewReader(body))
-	c.Request.Header.Set("Content-Type", "application/json")
-	c.Params = gin.Params{{Key: "id", Value: auctionID.String()}}
-	c.Set("userID", seller)
-	handler.UpdateAuction(c)
-	require.Equal(t, http.StatusOK, w.Code)
-	var title, desc, variety, prep, gender string
-	var mediaRaw []byte
-	var certs []string
-	require.NoError(t, tdb.Pool().QueryRow(ctx, `SELECT title, description, media_urls, variety, preparation_time, gender, certificates FROM products WHERE id=$1`, productID).Scan(&title, &desc, &mediaRaw, &variety, &prep, &gender, &certs))
-	require.Equal(t, "New Title", title)
-	require.Equal(t, "New Desc", desc)
-	require.Contains(t, string(mediaRaw), "a.jpg")
-	require.Equal(t, "Showa", variety)
-	require.Equal(t, "1_3_days", prep)
-	require.Equal(t, "male", gender)
-	require.Contains(t, certs[0], "breeder")
-	var sp, bi int64
-	require.NoError(t, tdb.Pool().QueryRow(ctx, `SELECT start_price, bid_increment FROM auctions WHERE id=$1`, auctionID).Scan(&sp, &bi))
-	require.Equal(t, int64(150000), sp)
-	require.Equal(t, int64(15000), bi)
 }
 
 func TestAuction_ScheduledRejectsPricingAndMedia(t *testing.T) {
@@ -467,7 +343,7 @@ func TestAuction_ScheduledRejectsPricingAndMedia(t *testing.T) {
 	auctionProdRepo := productRepo.NewProductRepository()
 	auctionSvc := auctionApp.NewAuctionService(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, zap.NewNop())
 	auctionSvc.SetProductRepo(auctionProdRepo)
-	handler := auctionHttp.NewAuctionHandler(auctionSvc, auctionProdRepo, nil, appDB, zap.NewNop())
+	handler := auctionHttp.NewAuctionHandler(auctionSvc, auctionProdRepo, nil, appDB, zap.NewNop(), nil)
 	// Try to change pricing + media on scheduled — must be rejected
 	body, _ := json.Marshal(map[string]interface{}{"media_urls": []string{"https://hack.jpg"}, "start_price": int64(999999)})
 	w := httptest.NewRecorder()
@@ -504,7 +380,7 @@ func TestAuction_ActiveFullProductRejected(t *testing.T) {
 	auctionProdRepo := productRepo.NewProductRepository()
 	auctionSvc := auctionApp.NewAuctionService(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, zap.NewNop())
 	auctionSvc.SetProductRepo(auctionProdRepo)
-	handler := auctionHttp.NewAuctionHandler(auctionSvc, auctionProdRepo, nil, appDB, zap.NewNop())
+	handler := auctionHttp.NewAuctionHandler(auctionSvc, auctionProdRepo, nil, appDB, zap.NewNop(), nil)
 	body, _ := json.Marshal(map[string]interface{}{"title": "hacked", "media_urls": []string{"https://hack.jpg"}, "certificates": []string{"breeder"}, "preparation_time": "1_3_days", "start_price": int64(999999)})
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)

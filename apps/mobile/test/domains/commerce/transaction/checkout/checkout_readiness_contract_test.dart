@@ -28,6 +28,9 @@ CheckoutReadinessInputs _inputs({
   bool hasPricingToken = true,
   bool isLoadingPreview = false,
   bool hasPreviewError = false,
+  bool isLoadingPaymentMethods = false,
+  bool hasPaymentMethodsError = false,
+  bool hasSelectedPaymentMethod = true,
 }) {
   return CheckoutReadinessInputs(
     hasProductId: hasProductId,
@@ -40,6 +43,9 @@ CheckoutReadinessInputs _inputs({
     hasPricingToken: hasPricingToken,
     isLoadingPreview: isLoadingPreview,
     hasPreviewError: hasPreviewError,
+    isLoadingPaymentMethods: isLoadingPaymentMethods,
+    hasPaymentMethodsError: hasPaymentMethodsError,
+    hasSelectedPaymentMethod: hasSelectedPaymentMethod,
   );
 }
 
@@ -80,6 +86,24 @@ void main() {
       expect(
         evaluateCheckoutReadiness(_inputs(hasPreview: false)),
         CheckoutReadiness.loading,
+      );
+    });
+
+    test('a current preview without a selected payment method is not ready', () {
+      expect(
+        evaluateCheckoutReadiness(_inputs(hasSelectedPaymentMethod: false)),
+        CheckoutReadiness.missingPaymentMethod,
+      );
+    });
+
+    test('payment-method loading and failure gate readiness', () {
+      expect(
+        evaluateCheckoutReadiness(_inputs(isLoadingPaymentMethods: true)),
+        CheckoutReadiness.loadingPaymentMethods,
+      );
+      expect(
+        evaluateCheckoutReadiness(_inputs(hasPaymentMethodsError: true)),
+        CheckoutReadiness.paymentMethodsError,
       );
     });
   });

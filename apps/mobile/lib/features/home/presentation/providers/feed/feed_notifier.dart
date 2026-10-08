@@ -49,14 +49,32 @@ class FeedNotifier extends _$FeedNotifier {
   HomeRepository get _repository => ref.read(homeRepositoryProvider);
   ILoggerService get _logger => ref.read(loggerServiceProvider);
 
-  /// Load feed items (initial page)
-  Future<void> loadFeed({int limit = 20}) async {
+  /// Load feed items (initial page).
+  ///
+  /// LOADING FOUNDATION CONTRACT:
+  /// - First load (no items yet): [isLoading] drives the full-content
+  ///   [LoadingIndicator]; failure sets [errorMessage] (PageErrorState).
+  /// - Refresh ([isRefresh] with items present): items are NEVER cleared.
+  ///   [isRefreshing] drives the update indicator while last-known-good items
+  ///   stay visible; failure sets [refreshError] and keeps the old items.
+  Future<void> loadFeed({int limit = 20, bool isRefresh = false}) async {
     // Guard against concurrent calls
     if (_isLoadingFeed) return;
 
+    final refreshingWithData = isRefresh && state.items.isNotEmpty;
+    final snapshot = List.of(state.items);
+
     try {
       _isLoadingFeed = true;
-      state = state.copyWith(isLoading: true, errorMessage: null);
+      if (refreshingWithData) {
+        state = state.copyWith(isRefreshing: true, clearRefreshError: true);
+      } else {
+        state = state.copyWith(
+          isLoading: true,
+          errorMessage: null,
+          clearRefreshError: true,
+        );
+      }
 
       final currentUserId = _getCurrentUserId();
 
@@ -71,6 +89,9 @@ class FeedNotifier extends _$FeedNotifier {
       state = state.copyWith(
         items: page.items,
         isLoading: false,
+        isRefreshing: false,
+        errorMessage: null,
+        clearRefreshError: true,
         // Backend has_more is authoritative — do NOT derive from
         // items.length < limit (premature exhaustion if backend ever
         // returns a short page with more available, e.g. evaluator
@@ -78,16 +99,32 @@ class FeedNotifier extends _$FeedNotifier {
         hasReachedMax: !page.hasMore,
       );
     } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        errorMessage: 'Coba lagi beberapa saat.',
-      );
+      if (refreshingWithData) {
+        // Refresh failure: old data stays, failure is surfaced inline.
+        state = state.copyWith(
+          items: snapshot,
+          isLoading: false,
+          isRefreshing: false,
+          refreshError: 'Coba lagi beberapa saat.',
+        );
+      } else {
+        state = state.copyWith(
+          isLoading: false,
+          isRefreshing: false,
+          errorMessage: 'Coba lagi beberapa saat.',
+        );
+      }
     } finally {
       _isLoadingFeed = false;
     }
   }
 
-  /// Refresh feed items
+  /// Refresh feed items.
+  ///
+  /// Never clears [FeedState.items]: a refresh failure keeps last-known-good
+  /// data with [FeedState.refreshError] instead of swapping to full-page
+  /// error. A cursor-reset failure before any fetch follows the same rule —
+  /// old data stays when present, first-load error only when empty.
   Future<void> refresh() async {
     // Guard against concurrent refresh calls
     if (_isRefreshing) return;
@@ -96,12 +133,20 @@ class FeedNotifier extends _$FeedNotifier {
       _isRefreshing = true;
       await _repository.refreshFeedItems();
       _lastSeenCursor = null;
-      // Reset exhaustion + items so a refreshing pass starts clean.
-      // loadFeed() will overwrite items on success; the explicit reset
-      // here guarantees we don't carry stale hasReachedMax / leftover
-      // items into the failure case.
-      state = state.copyWith(items: const [], hasReachedMax: false);
-      await loadFeed();
+      await loadFeed(isRefresh: true);
+    } catch (e) {
+      if (state.items.isNotEmpty) {
+        state = state.copyWith(
+          isRefreshing: false,
+          refreshError: 'Coba lagi beberapa saat.',
+        );
+      } else {
+        state = state.copyWith(
+          isLoading: false,
+          isRefreshing: false,
+          errorMessage: 'Coba lagi beberapa saat.',
+        );
+      }
     } finally {
       _isRefreshing = false;
     }

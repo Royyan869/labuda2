@@ -108,7 +108,6 @@ class ForSaleResponseDto extends Equatable {
   /// parity with auction). Backend emits it ONLY when the viewer is the
   /// owning seller; null for every other viewer.
   final String? sellerStatus;
-  final String? farmAddressId;
   final String? preparationTime;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -124,7 +123,7 @@ class ForSaleResponseDto extends Equatable {
   final String? sellerFarmName;
   final String? sellerAvatarUrl;
 
-  /// Buyer-facing origin summary of the listing's sender address
+  /// Buyer-facing origin summary of the listing's primary address
   /// ("City, Province" — never street/district/phone), emitted on DETAIL
   /// payloads only. Null on discovery payloads.
   final String? publicOriginLine;
@@ -195,7 +194,6 @@ class ForSaleResponseDto extends Equatable {
     // other viewer (anonymous included). Mapper prefers this over
     // [status] so owner workspace logic keeps state-machine precision.
     this.sellerStatus,
-    this.farmAddressId,
     this.preparationTime,
     required this.createdAt,
     required this.updatedAt,
@@ -253,7 +251,6 @@ class ForSaleResponseDto extends Equatable {
       status: json['status'] as String? ?? 'active',
       // Scope 3 — owner-only slot; null for public viewers.
       sellerStatus: json['seller_status'] as String?,
-      farmAddressId: json['farm_address_id'] as String?,
       preparationTime: json['preparation_time'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
@@ -408,7 +405,6 @@ class CreateForSaleRequestDto {
   final String? breeder;
   final String? bloodline;
   final List<String> certificates;
-  final String? farmAddressId;
   // Shipping selection (OWNER CANONICAL: create = publish — mandatory ≥1).
   final List<String> shippingSetupIds;
   final String? preparationTime;
@@ -427,7 +423,6 @@ class CreateForSaleRequestDto {
     this.breeder,
     this.bloodline,
     this.certificates = const [],
-    this.farmAddressId,
     this.shippingSetupIds = const [],
     this.preparationTime,
   });
@@ -446,7 +441,6 @@ class CreateForSaleRequestDto {
     if (breeder != null) 'breeder': breeder,
     if (bloodline != null) 'bloodline': bloodline,
     if (certificates.isNotEmpty) 'certificates': certificates,
-    if (farmAddressId != null) 'farm_address_id': farmAddressId,
     'shipping_setup_ids': shippingSetupIds,
     if (preparationTime != null) 'preparation_time': preparationTime,
   };

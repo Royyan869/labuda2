@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:labuda/core/core.dart' hide NotificationEntity;
-import 'package:labuda/core/utils/notification_navigation_handler.dart';
 import 'package:labuda/domains/system/notification/domain/entities/notification_entity.dart';
 import 'package:labuda/domains/system/notification/services/notification_navigation_service.dart';
 
@@ -156,25 +155,23 @@ void main() {
       expect(find.text('analytics:contract-123'), findsOneWidget);
     });
 
-    testWidgets('handler routes comment targetType=comment to parent content', (
+    testWidgets('service routes comment targetType=comment to parent content', (
       tester,
     ) async {
       await tester.pumpWidget(_routerApp());
       await tester.pumpAndSettle();
 
-      final handled = NotificationNavigationHandler.navigate(
-        context: tester.element(find.text('home')),
-        type: 'comment',
-        data: {
-          'targetType': 'comment',
-          'parent_content_id': 'content-123',
-          'comment_id': 'comment-999',
-        },
-      );
+      await NotificationNavigationService.canonical()
+          .handleNotificationPayload(
+            tester.element(find.text('home')),
+            type: 'comment',
+            data: {
+              'targetType': 'comment',
+              'parent_content_id': 'content-123',
+              'comment_id': 'comment-999',
+            },
+          );
 
-      expect(handled, isTrue);
-
-      await tester.pump(const Duration(milliseconds: 700));
       await tester.pumpAndSettle();
 
       expect(find.text('content:content-123'), findsOneWidget);

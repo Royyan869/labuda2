@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/social/rating/domain/entities/rating_entity.dart';
+import 'package:labuda/domains/system/shared/domain/services/time_format_service.dart';
 
 /// CANONICAL Rating Card Widget
 ///
@@ -31,7 +32,10 @@ class RatingCard extends StatelessWidget {
     final colorScheme = theme.colorScheme;
 
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p8),
+      margin: const EdgeInsets.symmetric(
+        horizontal: AppMetrics.p16,
+        vertical: AppMetrics.p8,
+      ),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(AppShape.r12),
@@ -42,7 +46,7 @@ class RatingCard extends StatelessWidget {
             children: [
               _buildHeader(theme, colorScheme),
               const SizedBox(height: 12),
-              _buildRatingStars(),
+              _buildRatingStars(context),
               if (rating.comment != null && rating.comment!.isNotEmpty) ...[
                 const SizedBox(height: 8),
                 _buildCommentText(theme),
@@ -88,7 +92,7 @@ class RatingCard extends StatelessWidget {
     );
   }
 
-  Widget _buildRatingStars() {
+  Widget _buildRatingStars(BuildContext context) {
     return Row(
       children: [
         ...List.generate(5, (index) {
@@ -101,7 +105,9 @@ class RatingCard extends StatelessWidget {
         const SizedBox(width: 8),
         Text(
           '${rating.ratingValue}/5',
-          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: AppType.s14),
+          style: context.typeRoles.bodyDense.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ],
     );
@@ -119,10 +125,14 @@ class RatingCard extends StatelessWidget {
   Widget _buildFooter(ThemeData theme, ColorScheme colorScheme) {
     return Row(
       children: [
-        Text(
-          _formatDate(rating.createdAt),
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: colorScheme.onSurfaceVariant,
+        Flexible(
+          child: Text(
+            const TimeFormatService().formatTimeAgo(rating.createdAt),
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ),
         const Spacer(),
@@ -132,24 +142,10 @@ class RatingCard extends StatelessWidget {
             Icons.more_vert,
             size: AppIconSize.inlineGlyph,
             color: colorScheme.onSurfaceVariant,
-          ),
+           semanticLabel: 'Opsi',
+           ),
         ),
       ],
     );
-  }
-
-  String _formatDate(DateTime date) {
-    final now = DateTime.now();
-    final difference = now.difference(date);
-
-    if (difference.inDays > 0) {
-      return '${difference.inDays}d ago';
-    } else if (difference.inHours > 0) {
-      return '${difference.inHours}h ago';
-    } else if (difference.inMinutes > 0) {
-      return '${difference.inMinutes}m ago';
-    } else {
-      return 'Just now';
-    }
   }
 }

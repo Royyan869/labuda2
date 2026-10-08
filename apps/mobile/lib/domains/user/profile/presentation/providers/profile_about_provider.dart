@@ -23,12 +23,9 @@ class ProfileAboutData {
   DateTime get joinedAt => profile?.joinedAt ?? user.createdAt;
   DateTime? get lastActiveAt => profile?.lastActiveAt;
 
-  // Section 2: Farm Info (seller only)
+  // Section 2: Farm Info (seller only) — store name + photo only.
   FarmInfo? get farmInfo => profile?.farmInfo;
   String? get farmName => farmInfo?.farmName;
-  String? get farmWebsite => farmInfo?.farmWebsite;
-  List<String>? get specialties => farmInfo?.specialties;
-  DateTime? get establishedDate => farmInfo?.establishedDate;
 
   // Section 3: Verification Badges (REAL data only)
   // REMOVED: Achievements section - NO backend support, deleted in PROFILE PURGE
@@ -41,25 +38,18 @@ class ProfileAboutData {
   ContactInfo? get contactInfo => profile?.contactInfo;
   String? get maskedEmail => contactInfo?.maskedEmail;
   String? get maskedPhone => contactInfo?.maskedPhone;
-  bool get isEmailPublic => contactInfo?.isEmailPublic ?? false;
-  bool get isPhonePublic => contactInfo?.isPhonePublic ?? false;
 
-  // Social Media
+  // Social Media — presence of a handle is the visibility authority.
   String? get instagramHandle => contactInfo?.instagramHandle;
   String? get facebookHandle => contactInfo?.facebookHandle;
   String? get tiktokHandle => contactInfo?.tiktokHandle;
   String? get twitterHandle => contactInfo?.twitterHandle;
-  bool get isSocialMediaPublic => contactInfo?.isSocialMediaPublic ?? true;
 
   // Helper: Check if user is seller
   bool get isSeller => user.hasCreatedSellerProfile;
 
   // Helper: Check if any social media is set
-  bool get hasSocialMedia =>
-      instagramHandle != null ||
-      facebookHandle != null ||
-      tiktokHandle != null ||
-      twitterHandle != null;
+  bool get hasSocialMedia => contactInfo?.hasSocialMedia ?? false;
 }
 
 /// Provider for Profile About tab data
@@ -77,7 +67,7 @@ final profileAboutDataProvider =
       final profile = await ref.watch(profileStreamProvider(userId).future);
 
       // ONE location rule for every profile surface: the backend's public
-      // origin line (city, province of the sender address), falling back to
+      // origin line (city, province of the primary address), falling back to
       // the user's own location field. The client-side composition from raw
       // address records is PURGED — the server owns that rule, so the About
       // tab and the profile header can never disagree.

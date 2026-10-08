@@ -1,4 +1,5 @@
 import { render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { UsersPage } from './UsersPage'
 
@@ -34,6 +35,25 @@ describe('UsersPage (PASS_20F retest)', () => {
     expect(await screen.findByText('No users in the system.')).toBeInTheDocument()
   })
 
+  it('distinguishes a filtered no-result from a genuinely empty dataset and offers reset', async () => {
+    apiGetMock.mockResolvedValue({
+      success: true,
+      data: { users: [] },
+      meta: { page: 1, per_page: 20, total: 0, total_pages: 0 },
+      timestamp: '2026-07-06T00:00:00Z',
+    })
+
+    const user = userEvent.setup()
+    render(<UsersPage />)
+
+    expect(await screen.findByText('No users in the system.')).toBeInTheDocument()
+
+    await user.type(screen.getByPlaceholderText(/Search by name/i), 'nobody')
+
+    expect(await screen.findByText('No users match the current filters.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Clear filters' })).toBeInTheDocument()
+  })
+
   it('renders seeded users once the backend returns them', async () => {
     apiGetMock.mockResolvedValue({
       success: true,
@@ -65,7 +85,9 @@ describe('UsersPage (PASS_20F retest)', () => {
     render(<UsersPage />)
 
     await waitFor(() =>
-      expect(screen.getByText(/Error loading users/)).toBeInTheDocument()
+      expect(screen.getByRole('alert')).toBeInTheDocument()
     )
+    expect(screen.getByText('Failed to load users')).toBeInTheDocument()
+    expect(screen.getByText('HTTP 500: An error occurred')).toBeInTheDocument()
   })
 })

@@ -12,6 +12,9 @@ library;
 import 'package:flutter/material.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/models/wilayah_models.dart';
+import 'package:labuda/shared/utils/money_input_formatter.dart';
+import 'package:labuda/shared/widgets/app_bottom_sheet_base.dart';
+import 'package:labuda/shared/widgets/app_text_field.dart';
 import 'package:labuda/shared/widgets/wilayah/city_dropdown.dart';
 import 'package:labuda/shared/widgets/wilayah/province_dropdown.dart';
 
@@ -35,12 +38,10 @@ class ShippingQuoteFormSheet extends StatefulWidget {
     required BuildContext context,
     required String productTitle,
   }) {
-    return showModalBottomSheet<ShippingQuoteFormResult>(
+    return AppBottomSheetBase.show<ShippingQuoteFormResult>(
       context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (context) =>
-          ShippingQuoteFormSheet(productTitle: productTitle),
+      title: 'Kirim Penawaran Ongkir',
+      content: ShippingQuoteFormSheet(productTitle: productTitle),
     );
   }
 
@@ -64,26 +65,17 @@ class _ShippingQuoteFormSheetState extends State<ShippingQuoteFormSheet> {
   }
 
   void _submit() {
+    // Field-level validation is INLINE (the cost field, ProvinceDropdown and
+    // CityDropdown all carry validators); a failed validate() paints those
+    // errors, so no Snackbar is needed here.
     if (!(_formKey.currentState?.validate() ?? false)) return;
-    final cost = int.tryParse(_costController.text.trim()) ?? -1;
-    if (cost <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Ongkir tidak valid.')),
-      );
-      return;
-    }
+    final cost = MoneyInputFormatter.parseAmount(_costController.text) ?? -1;
+    if (cost <= 0) return;
     // DESTINATION LOCK is mandatory: without a locked kota/kabupaten the
     // quote would be consumable by ANY buyer address (backend rejects it).
     final province = _selectedProvince;
     final city = _selectedCity;
-    if (province == null || city == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Pilih provinsi dan kota/kabupaten tujuan.'),
-        ),
-      );
-      return;
-    }
+    if (province == null || city == null) return;
     final note = _noteController.text.trim();
     Navigator.of(context).pop((
       cost: cost,
@@ -95,26 +87,14 @@ class _ShippingQuoteFormSheetState extends State<ShippingQuoteFormSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(
-        left: AppMetrics.p16,
-        right: AppMetrics.p16,
-        top: AppMetrics.p8,
-        bottom: MediaQuery.of(context).viewInsets.bottom + AppMetrics.p16,
-      ),
-      child: Form(
-        key: _formKey,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              'Kirim Penawaran Ongkir',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              widget.productTitle,
+    return Form(
+      key: _formKey,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            widget.productTitle,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
@@ -122,16 +102,14 @@ class _ShippingQuoteFormSheetState extends State<ShippingQuoteFormSheet> {
               overflow: TextOverflow.ellipsis,
             ),
             const SizedBox(height: AppMetrics.p12),
-            TextFormField(
+            AppTextField(
               controller: _costController,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'Ongkir + Packing (Rp) *',
-                hintText: 'Contoh: 25000',
-                border: OutlineInputBorder(),
-              ),
+              inputFormatters: const [MoneyInputFormatter()],
+              labelText: 'Ongkir + Packing (Rp) *',
+              hintText: 'Contoh: 25000',
               validator: (value) {
-                final parsed = int.tryParse(value?.trim() ?? '');
+                final parsed = MoneyInputFormatter.parseAmount(value ?? '');
                 if (parsed == null || parsed <= 0) {
                   return 'Masukkan nominal ongkir yang valid.';
                 }
@@ -164,14 +142,11 @@ class _ShippingQuoteFormSheetState extends State<ShippingQuoteFormSheet> {
                   value == null ? 'Pilih kota/kabupaten tujuan.' : null,
             ),
             const SizedBox(height: AppMetrics.p12),
-            TextFormField(
+            AppTextField(
               controller: _noteController,
               maxLines: 2,
-              decoration: const InputDecoration(
-                labelText: 'Catatan (opsional)',
-                hintText: 'Contoh: termasuk kantong + oksigen',
-                border: OutlineInputBorder(),
-              ),
+              labelText: 'Catatan (opsional)',
+              hintText: 'Contoh: termasuk kantong + oksigen',
             ),
             const SizedBox(height: AppMetrics.p12),
             // Backend truth surfaced to the seller: the quote lives 24h by
@@ -194,7 +169,6 @@ class _ShippingQuoteFormSheetState extends State<ShippingQuoteFormSheet> {
             ),
           ],
         ),
-      ),
     );
   }
 }

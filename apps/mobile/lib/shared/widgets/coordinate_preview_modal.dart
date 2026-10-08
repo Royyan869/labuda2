@@ -37,11 +37,9 @@ class CoordinatePreviewModal extends StatelessWidget {
     String? address,
     Function(double lat, double lng)? onCoordinatesChanged,
   }) {
-    return showModalBottomSheet(
+    return AppBottomSheetBase.show<void>(
       context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (context) => CoordinatePreviewModal(
+      content: CoordinatePreviewModal(
         latitude: latitude,
         longitude: longitude,
         address: address,
@@ -71,7 +69,7 @@ class CoordinatePreviewModal extends StatelessWidget {
       await launchUrl(url, mode: LaunchMode.externalApplication);
     } else {
       if (context.mounted) {
-        AppSnackBar.showError(context, 'Cannot open Google Maps');
+        AppSnackBar.showError(context, 'Tidak dapat membuka Google Maps');
       }
     }
   }
@@ -98,30 +96,28 @@ class CoordinatePreviewModal extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: scheme.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(AppShape.r20)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Drag handle — ONE authority: `AppDragHandle` beside the bottom-sheet
-          // base (the default spacing is this sheet's `top p12 + bottom p8`).
-          const Center(child: AppDragHandle()),
-
+    // Surface, shape, handle and safe area come from the canonical base.
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
           // Header
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p8),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppMetrics.p16,
+              vertical: AppMetrics.p8,
+            ),
             child: Row(
               children: [
-                Icon(Icons.location_on, color: scheme.primary, size: AppIconSize.header),
+                Icon(
+                  Icons.location_on,
+                  color: scheme.primary,
+                  size: AppIconSize.header,
+                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     'Pinpoint Location',
-                    style: TextStyle(
-                      fontSize: AppType.s20,
+                    style: context.typeRoles.titleSection.copyWith(
                       fontWeight: FontWeight.bold,
                       color: scheme.onSurfaceVariant,
                     ),
@@ -129,10 +125,7 @@ class CoordinatePreviewModal extends StatelessWidget {
                 ),
                 IconButton(
                   onPressed: () => Navigator.pop(context),
-                  icon: Icon(
-                    Icons.close,
-                    color: scheme.onSurfaceVariant,
-                  ),
+                  icon: Icon(Icons.close, color: scheme.onSurfaceVariant, semanticLabel: 'Tutup'),
                   constraints: const BoxConstraints(),
                   padding: EdgeInsets.zero,
                 ),
@@ -155,9 +148,9 @@ class CoordinatePreviewModal extends StatelessWidget {
                     imageUrl: _staticMapUrl,
                     fit: BoxFit.cover,
                     backgroundColor: scheme.surfaceContainerHighest,
-                    errorWidget: _buildMapPlaceholder(scheme),
+                    errorWidget: _buildMapPlaceholder(context, scheme),
                   )
-                : _buildMapPlaceholder(scheme),
+                : _buildMapPlaceholder(context, scheme),
           ),
 
           // Coordinates Display
@@ -172,7 +165,11 @@ class CoordinatePreviewModal extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  Icon(Icons.pin_drop, size: AppIconSize.action, color: scheme.primary),
+                  Icon(
+                    Icons.pin_drop,
+                    size: AppIconSize.action,
+                    color: scheme.primary,
+                  ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Column(
@@ -180,16 +177,14 @@ class CoordinatePreviewModal extends StatelessWidget {
                       children: [
                         Text(
                           'Coordinates',
-                          style: TextStyle(
-                            fontSize: AppType.s12,
+                          style: context.typeRoles.labelMicro.copyWith(
                             color: scheme.onSurfaceVariant,
                           ),
                         ),
                         const SizedBox(height: 2),
                         Text(
                           '${latitude.toStringAsFixed(6)}, ${longitude.toStringAsFixed(6)}',
-                          style: TextStyle(
-                            fontSize: AppType.s14,
+                          style: context.typeRoles.bodyDense.copyWith(
                             fontFamily: 'monospace',
                             fontWeight: FontWeight.w500,
                             color: scheme.onSurfaceVariant,
@@ -207,15 +202,14 @@ class CoordinatePreviewModal extends StatelessWidget {
           if (address != null && address!.isNotEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16),
-              child: Text(
-                address!,
-                style: TextStyle(
-                  fontSize: AppType.s14,
+              child: AddressLocationText(
+                location: address!,
+                mode: AddressLocationMode.detail,
+                maxLines: 2,
+                textAlign: TextAlign.center,
+                style: context.typeRoles.bodyDense.copyWith(
                   color: scheme.onSurfaceVariant,
                 ),
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
               ),
             ),
 
@@ -229,10 +223,15 @@ class CoordinatePreviewModal extends StatelessWidget {
                   Expanded(
                     child: OutlinedButton.icon(
                       onPressed: () => _openMapPicker(context),
-                      icon: const Icon(Icons.edit_location, size: AppIconSize.action),
+                      icon: const Icon(
+                        Icons.edit_location,
+                        size: AppIconSize.action,
+                      ),
                       label: const Text('Edit'),
                       style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: AppMetrics.p12),
+                        padding: const EdgeInsets.symmetric(
+                          vertical: AppMetrics.p12,
+                        ),
                       ),
                     ),
                   ),
@@ -243,10 +242,15 @@ class CoordinatePreviewModal extends StatelessWidget {
                 Expanded(
                   child: ElevatedButton.icon(
                     onPressed: () => _openInGoogleMaps(context),
-                    icon: const Icon(Icons.map_outlined, size: AppIconSize.action),
+                    icon: const Icon(
+                      Icons.map_outlined,
+                      size: AppIconSize.action,
+                    ),
                     label: const Text('View Maps'),
                     style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: AppMetrics.p12),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: AppMetrics.p12,
+                      ),
                     ),
                   ),
                 ),
@@ -254,14 +258,11 @@ class CoordinatePreviewModal extends StatelessWidget {
             ),
           ),
 
-          // Bottom safe area
-          SizedBox(height: MediaQuery.of(context).padding.bottom),
         ],
-      ),
     );
   }
 
-  Widget _buildMapPlaceholder(ColorScheme scheme) {
+  Widget _buildMapPlaceholder(BuildContext context, ColorScheme scheme) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -274,8 +275,7 @@ class CoordinatePreviewModal extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             'Preview not available',
-            style: TextStyle(
-              fontSize: AppType.s12,
+            style: context.typeRoles.labelMicro.copyWith(
               color: scheme.onSurfaceVariant,
             ),
           ),

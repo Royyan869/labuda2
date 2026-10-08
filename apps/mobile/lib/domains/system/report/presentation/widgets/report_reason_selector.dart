@@ -20,14 +20,12 @@ class ReportReasonSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'Why are you reporting this?',
-          style: TextStyle(
-            fontSize: AppType.s16,
+          style: context.typeRoles.titleSection.copyWith(
             fontWeight: FontWeight.w600,
             color: Theme.of(context).colorScheme.onSurface,
           ),
@@ -111,8 +109,7 @@ class _ReasonCard extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8),
               child: Text(
                 reason.displayName,
-                style: TextStyle(
-                  fontSize: AppType.s12,
+                style: context.typeRoles.labelMicro.copyWith(
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                   color: isSelected
                       ? Theme.of(context).colorScheme.secondary

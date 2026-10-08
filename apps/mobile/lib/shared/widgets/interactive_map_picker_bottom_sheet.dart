@@ -5,6 +5,7 @@ import 'package:labuda/shared/entities/post_location.dart';
 import 'package:labuda/shared/services/places_autocomplete_service.dart';
 import 'package:labuda/shared/services/location_service.dart';
 import 'package:labuda/shared/services/logger_service.dart';
+import 'package:labuda/shared/widgets/app_bottom_sheet_base.dart';
 import 'package:labuda/shared/widgets/map_picker/map_picker_widgets.dart';
 import 'package:labuda/shared/widgets/map_picker/map_picker_handlers.dart';
 import 'package:labuda/core/src/theme/app_theme.dart';
@@ -33,10 +34,15 @@ class InteractiveMapPickerBottomSheet extends StatefulWidget {
     PostLocation? initialLocation,
     String? googleApiKey,
   }) async {
+    // GENUINE BESPOKE EXCEPTION — the interactive map needs its own gesture
+    // model (pan/pinch the map), which conflicts with the sheet's drag. It still
+    // obeys the canonical presentation contract: modal, scroll-controlled,
+    // surface/shape/elevation from `bottomSheetTheme`, usable height from the
+    // canonical ceiling (`AppBottomSheetBase.availableHeight`), keyboard lift
+    // owned by `BottomActionBar`, drag disabled, and no local surface/radius.
     return showModalBottomSheet<PostLocation>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
       isDismissible: true,
       enableDrag: false,
       builder: (context) => InteractiveMapPickerBottomSheet(
@@ -185,16 +191,16 @@ class _InteractiveMapPickerBottomSheetState
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final mediaQuery = MediaQuery.of(context);
-    final bottomPadding = mediaQuery.padding.bottom;
-
-    return Container(
-      height: mediaQuery.size.height * 0.9,
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerLow,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(AppShape.r16)),
-      ),
+    // Finite height from the canonical usable-height ceiling
+    // ([AppBottomSheetBase.availableHeight]: window minus the keyboard minus
+    // the system top inset), keeping the 0.9 product factor. A fraction of the
+    // raw screen height would go stale the moment the search field opens the
+    // keyboard, leaving the sheet taller than the space above it. Keyboard
+    // lift inside the body stays owned by `BottomActionBar`; no second
+    // inset math lives here.
+    // Surface + top-r20 shape come from `bottomSheetTheme`.
+    return SizedBox(
+      height: AppBottomSheetBase.availableHeight(context) * 0.9,
       child: Column(
         children: [
           // Header
@@ -271,11 +277,10 @@ class _InteractiveMapPickerBottomSheetState
             ),
           ),
 
-          // Confirm button
+          // Confirm button — chrome owned by BottomActionBar.
           MapConfirmButton(
             canConfirm: _selectedLocation != null && !_isLoadingAddress,
             onConfirm: _onConfirm,
-            bottomPadding: bottomPadding,
           ),
         ],
       ),
@@ -314,7 +319,11 @@ class _InteractiveMapPickerBottomSheetState
       mini: true,
       backgroundColor: scheme.surfaceContainerHigh,
       onPressed: recenterToCurrentLocation,
-      child: Icon(Icons.my_location, color: scheme.primary, size: AppIconSize.action),
+      child: Icon(
+        Icons.my_location,
+        color: scheme.primary,
+        size: AppIconSize.action,
+      ),
     );
   }
 
@@ -410,8 +419,7 @@ class _InitialLoadingIndicator extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             'Mendapatkan lokasi...',
-            style: TextStyle(
-              fontSize: AppType.s14,
+            style: context.typeRoles.bodyDense.copyWith(
               color: scheme.onSurface,
             ),
           ),
@@ -456,16 +464,14 @@ class _DefaultLocationBanner extends StatelessWidget {
               children: [
                 Text(
                   'GPS Tidak Terdeteksi',
-                  style: TextStyle(
-                    fontSize: AppType.s12,
+                  style: context.typeRoles.labelMicro.copyWith(
                     fontWeight: FontWeight.w600,
                     color: scheme.onSurface,
                   ),
                 ),
                 Text(
                   'Menggunakan lokasi default (Jakarta)',
-                  style: TextStyle(
-                    fontSize: AppType.s12,
+                  style: context.typeRoles.labelMicro.copyWith(
                     color: scheme.onSurfaceVariant,
                   ),
                 ),
@@ -475,10 +481,16 @@ class _DefaultLocationBanner extends StatelessWidget {
           TextButton(
             onPressed: onRetry,
             style: TextButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p8),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppMetrics.p12,
+                vertical: AppMetrics.p8,
+              ),
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
-            child: const Text('Coba Lagi', style: TextStyle(fontSize: AppType.s12)),
+            child: Text(
+              'Coba Lagi',
+              style: Theme.of(context).textTheme.labelLarge,
+            ),
           ),
         ],
       ),

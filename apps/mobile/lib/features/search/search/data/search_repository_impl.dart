@@ -163,8 +163,6 @@ class SearchRepositoryImpl implements SearchRepository {
     int limit = 20,
   }) async {
     try {
-      final stopwatch = Stopwatch()..start();
-
       // Execute the canonical domain searches in parallel — the single
       // execution authority for a query. [limit] is the per-domain page
       // size; each domain response keeps its canonical backend ordering.
@@ -176,8 +174,6 @@ class SearchRepositoryImpl implements SearchRepository {
         _fetchAuctionSearchBundle(query: query, pageSize: limit),
         searchContents(query: query, pageSize: limit),
       ]);
-
-      stopwatch.stop();
 
       final usersResult = results[0] as Result<List<UserSearchResult>>;
       final forSalesBundleResult =
@@ -220,7 +216,6 @@ class SearchRepositoryImpl implements SearchRepository {
               auctions.length +
               contents.length,
           query: query,
-          searchDuration: stopwatch.elapsed,
         ),
       );
     } catch (e) {

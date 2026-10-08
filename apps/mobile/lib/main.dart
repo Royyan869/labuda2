@@ -7,11 +7,13 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:timeago/timeago.dart' as timeago;
+import 'package:intl/date_symbol_data_local.dart';
 
 import 'app.dart';
 import 'core/core.dart' hide sl;
 import 'core/messaging/fcm_service_impl.dart';
+import 'core/observability/crash_reporting.dart';
+import 'core/observability/performance_monitor.dart';
 import 'core/providers/core_providers.dart' as core_providers;
 import 'domains/system/analytics/data/repositories/firebase_analytics_repository_impl.dart';
 import 'domains/system/analytics/data/services/firebase_analytics_service.dart';
@@ -27,7 +29,6 @@ import 'features/marketplace/marketplace.dart';
 import 'features/home/home.dart';
 import 'firebase_options.dart';
 import 'shared/services/logger_service.dart' show LoggerService;
-import 'shared/services/validation_service.dart';
 import 'shared/services/local_storage_service.dart';
 
 /// All service instances constructed during bootstrap.
@@ -36,7 +37,6 @@ class _AppBootstrap {
   final ApiClient apiClient;
   final ILoggerService logger;
   final ILocalStorageService localStorage;
-  final IValidationService validation;
   final INavigationRegistry navigationRegistry;
   final WebSocketService webSocketService;
   final FcmService fcmService;
@@ -48,7 +48,6 @@ class _AppBootstrap {
     required this.apiClient,
     required this.logger,
     required this.localStorage,
-    required this.validation,
     required this.navigationRegistry,
     required this.webSocketService,
     required this.fcmService,
@@ -59,11 +58,6 @@ class _AppBootstrap {
 }
 
 void main() {
-  FlutterError.onError = (FlutterErrorDetails details) {
-    FlutterError.presentError(details);
-    debugPrint('FlutterError: ${details.exception}');
-  };
-
   runZonedGuarded(
     () async {
       WidgetsFlutterBinding.ensureInitialized();
@@ -77,9 +71,6 @@ void main() {
             core_providers.loggerServiceProvider.overrideWithValue(b.logger),
             core_providers.localStorageServiceProvider.overrideWithValue(
               b.localStorage,
-            ),
-            core_providers.validationServiceProvider.overrideWithValue(
-              b.validation,
             ),
             core_providers.navigationRegistryProvider.overrideWithValue(
               b.navigationRegistry,
@@ -104,19 +95,37 @@ void main() {
     },
     (error, stack) {
       debugPrint('Uncaught async error: ${_redactSensitiveError(error)}');
-      debugPrint('Stack: $stack');
+      // Uncaught asynchronous errors are genuine crashes.
+      CrashReporting.recordFatal(error, stack);
     },
   );
+}
+
+/// Canonical application-startup date-formatting initialization.
+///
+/// Loads the `id_ID` date symbols required by AppFormatters. This is the ONE
+/// application-level owner of that dependency: every AppFormatters date path
+/// throws LocaleDataException without it, so it runs inside `_initServices()`
+/// before `runApp()`. Named as a bootstrap step (like `initializeRouterModules`)
+/// so the startup contract is directly testable without booting Firebase.
+Future<void> initializeAppDateFormatting() async {
+  await initializeDateFormatting('id_ID');
 }
 
 /// Constructs all service instances directly — no GetIt reads.
 /// Returns a bootstrap record for ProviderScope wiring.
 Future<_AppBootstrap> _initServices() async {
   EnvConfig.init();
-  timeago.setLocaleMessages('id', timeago.IdMessages());
 
   final logger = LoggerService.instance;
   logger.info('[BOOTSTRAP] _initServices() start');
+
+  // Date symbols for AppFormatters (`id_ID`) — canonical owner is
+  // initializeAppDateFormatting() above; no other production site may
+  // initialize date formatting.
+  logger.info('[BOOTSTRAP] initializeAppDateFormatting() start');
+  await initializeAppDateFormatting();
+  logger.info('[BOOTSTRAP] initializeAppDateFormatting() done ✓');
   // REAL DEVICE DEV CONNECTIVITY (PASS 1 — minimal fail-fast):
   // Explicit --dart-define is the canonical authority for LAN. No .env fallback,
   // no chained fallback, no auto-detect of LAN IP. Log the effective authority
@@ -154,8 +163,14 @@ Future<_AppBootstrap> _initServices() async {
     }
   }
 
+  // ── Observability activation ───────────────────────────────────────────────
+  // Crash/error monitoring and performance monitoring are separate concerns
+  // from product analytics; each has its own canonical authority.
+  CrashReporting.initialize();
+  PerformanceMonitoring.initialize();
+  logger.info('[BOOTSTRAP] CrashReporting + PerformanceMonitoring initialized');
+
   // ── Core services ──────────────────────────────────────────────────────────
-  final validation = ValidationService();
   logger.info('[BOOTSTRAP] LocalStorage.initialize() start');
   final localStorage = LocalStorageService();
   await localStorage.initialize();
@@ -192,7 +207,10 @@ Future<_AppBootstrap> _initServices() async {
   );
 
   // ── Analytics ──────────────────────────────────────────────────────────────
+  // Product analytics is a decided capability: collection is enabled
+  // explicitly so the app never ships with analytics silently disabled.
   final analyticsService = FirebaseAnalyticsService(FirebaseAnalytics.instance);
+  await analyticsService.setAnalyticsCollectionEnabled(true);
   final analyticsRepository = FirebaseAnalyticsRepositoryImpl(analyticsService);
 
   // ── WebSocket ────────────────────────────────────────────────────────────────
@@ -211,7 +229,6 @@ Future<_AppBootstrap> _initServices() async {
     apiClient: apiClient,
     logger: logger,
     localStorage: localStorage,
-    validation: validation,
     navigationRegistry: navigationRegistry,
     webSocketService: webSocketService,
     fcmService: fcmService,

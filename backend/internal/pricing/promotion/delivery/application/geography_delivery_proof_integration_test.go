@@ -15,16 +15,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// seedDeliveryGeographies stands on the canonical Geography Master seeded by
+// the test bootstrap (full Indonesian hierarchy); the retired per-test city
+// fixture is gone.
 func seedDeliveryGeographies(t *testing.T, h *deliveryHarness) {
-	_, err := h.tdb.Pool().Exec(context.Background(), `
-		INSERT INTO canonical_geographies (city_id, city_name, province_id, province_name) VALUES
-		    ('3204', 'Kabupaten Bandung', '32', 'Jawa Barat'),
-		    ('3171', 'Kota Jakarta Selatan', '31', 'DKI Jakarta'),
-		    ('5103', 'Kabupaten Gianyar', '51', 'Bali'),
-		    ('3501', 'Kabupaten Pacitan', '35', 'Jawa Timur')
-		ON CONFLICT (city_id) DO NOTHING
-	`)
-	require.NoError(t, err)
+	t.Helper()
+	var n int
+	require.NoError(t, h.tdb.Pool().QueryRow(context.Background(), `SELECT COUNT(*) FROM canonical_geographies`).Scan(&n))
+	require.Greater(t, n, 0, "canonical Geography Master must be seeded by the test bootstrap")
 }
 
 func TestGeography_Delivery_Ticket_GeoGate(t *testing.T) {
@@ -32,14 +30,14 @@ func TestGeography_Delivery_Ticket_GeoGate(t *testing.T) {
 	h.seedConfig(t, 7500, 10_000)
 	seedDeliveryGeographies(t, h)
 	seller := h.newSeller(t, 100_000)
-	c, err := h.contracts.Create(context.Background(), application.CreatePromotionInput{SellerID: seller, Kind: contractentity.KindInternal, BudgetRupiah: 30_000, DurationDays: 3, CityIDs: []string{"3171"}})
+	c, err := h.contracts.Create(context.Background(), application.CreatePromotionInput{SellerID: seller, Kind: contractentity.KindInternal, Targets: []application.PromotionTargetInput{{TargetType: "for_sale", TargetID: uuid.New()}}, BudgetRupiah: 30_000, DurationDays: 3, CityIDs: []string{"3171"}})
 	require.NoError(t, err)
 	target := h.newForSale(t, seller)
 	viewerMismatch := h.newViewer(t)
-	_, err = h.tdb.Pool().Exec(context.Background(), `INSERT INTO addresses (id, user_id, purpose, nickname, recipient_name, phone, province_id, province_name, city_id, city_name, district_id, district_name, village_id, village_name, street_address, postal_code, is_primary, is_available_for_checkout) VALUES ($1,$2,'shipping','Home','Test User','081234567890','32','Prov32','3204','Bandung','dist','Dist','vill','Vill','Jl','12345', true, true)`, uuid.New(), viewerMismatch)
+	_, err = h.tdb.Pool().Exec(context.Background(), `INSERT INTO addresses (id, user_id, nickname, recipient_name, phone, province_id, province_name, city_id, city_name, district_id, district_name, village_id, village_name, street_address, postal_code, is_primary, is_available_for_checkout) VALUES ($1,$2,'Home','Test User','081234567890','32','Prov32','3204','Bandung','dist','Dist','vill','Vill','Jl','12345', true, true)`, uuid.New(), viewerMismatch)
 	require.NoError(t, err)
 	viewerMatch := h.newViewer(t)
-	_, err = h.tdb.Pool().Exec(context.Background(), `INSERT INTO addresses (id, user_id, purpose, nickname, recipient_name, phone, province_id, province_name, city_id, city_name, district_id, district_name, village_id, village_name, street_address, postal_code, is_primary, is_available_for_checkout) VALUES ($1,$2,'shipping','Home','Test User','081234567890','31','Prov31','3171','Jaksel','dist','Dist','vill','Vill','Jl','12345', true, true)`, uuid.New(), viewerMatch)
+	_, err = h.tdb.Pool().Exec(context.Background(), `INSERT INTO addresses (id, user_id, nickname, recipient_name, phone, province_id, province_name, city_id, city_name, district_id, district_name, village_id, village_name, street_address, postal_code, is_primary, is_available_for_checkout) VALUES ($1,$2,'Home','Test User','081234567890','31','Prov31','3171','Jaksel','dist','Dist','vill','Vill','Jl','12345', true, true)`, uuid.New(), viewerMatch)
 	require.NoError(t, err)
 	var cnt int
 	require.NoError(t, h.tdb.Pool().QueryRow(context.Background(), `SELECT COUNT(*) FROM promotion_contract_geographies WHERE contract_id=$1 AND city_id='3171'`, c.ID).Scan(&cnt))
@@ -63,13 +61,13 @@ func TestGeography_Financial_NoMovementOnGeoRejection(t *testing.T) {
 	h.seedConfig(t, 7500, 10_000)
 	seedDeliveryGeographies(t, h)
 	seller := h.newSeller(t, 100_000)
-	c, err := h.contracts.Create(context.Background(), application.CreatePromotionInput{SellerID: seller, Kind: contractentity.KindInternal, BudgetRupiah: 30_000, DurationDays: 3, CityIDs: []string{"3171"}})
+	c, err := h.contracts.Create(context.Background(), application.CreatePromotionInput{SellerID: seller, Kind: contractentity.KindInternal, Targets: []application.PromotionTargetInput{{TargetType: "for_sale", TargetID: uuid.New()}}, BudgetRupiah: 30_000, DurationDays: 3, CityIDs: []string{"3171"}})
 	require.NoError(t, err)
 	allocBefore := h.allocationBalance(t, seller, c.ID)
 	promoteBefore := h.promoteBalance(t, seller)
 	revenueBefore := h.platformRevenue(t)
 	viewerMismatch := h.newViewer(t)
-	_, err = h.tdb.Pool().Exec(context.Background(), `INSERT INTO addresses (id, user_id, purpose, nickname, recipient_name, phone, province_id, province_name, city_id, city_name, district_id, district_name, village_id, village_name, street_address, postal_code, is_primary, is_available_for_checkout) VALUES ($1,$2,'shipping','Home','Test User','081234567890','32','Prov32','3204','Bandung','dist','Dist','vill','Vill','Jl','12345', true, true)`, uuid.New(), viewerMismatch)
+	_, err = h.tdb.Pool().Exec(context.Background(), `INSERT INTO addresses (id, user_id, nickname, recipient_name, phone, province_id, province_name, city_id, city_name, district_id, district_name, village_id, village_name, street_address, postal_code, is_primary, is_available_for_checkout) VALUES ($1,$2,'Home','Test User','081234567890','32','Prov32','3204','Bandung','dist','Dist','vill','Vill','Jl','12345', true, true)`, uuid.New(), viewerMismatch)
 	require.NoError(t, err)
 	target := h.newForSale(t, seller)
 	_ = target

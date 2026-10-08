@@ -3,6 +3,8 @@ import { FileText, Filter, ChevronDown, ChevronUp } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/Table'
+import { Select } from '@/components/ui/Select'
+import { AdminLoadingState, AdminErrorState, AdminEmptyState, AdminPagination, PageHeader } from '@/components/common'
 import { useAuditLogs } from '@/hooks/useAuditLogs'
 import { formatDateTime } from '@/lib/utils'
 import type {
@@ -45,11 +47,14 @@ export function AuditLogsPage() {
   const [targetFilter, setTargetFilter] = useState<AuditTargetType | ''>('')
   const [expandedMetadata, setExpandedMetadata] = useState<Record<string, boolean>>({})
 
-  const { logs, loading, error, count, setPage } = useAuditLogs({
+  const { logs, loading, error, page, setPage, limit, count, refetch } = useAuditLogs({
     action: actionFilter,
     target_type: targetFilter,
     page_size: 50,
   })
+
+  // `count` is the truthful server-side total.
+  const totalPages = limit > 0 ? Math.ceil(count / limit) : 0
 
   const toggleMetadata = (logId: string) => {
     setExpandedMetadata(prev => ({
@@ -58,31 +63,23 @@ export function AuditLogsPage() {
     }))
   }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
-          <p className="mt-4 text-muted-foreground">Loading audit logs...</p>
-        </div>
-      </div>
-    )
+  const hasActiveFilters = actionFilter || targetFilter
+
+  const handleClearFilters = () => {
+    setActionFilter('')
+    setTargetFilter('')
+    setPage(1)
+  }
+
+  if (loading && logs.length === 0) {
+    return <AdminLoadingState />
   }
 
   if (error) {
     return (
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Admin Activity Logs</h1>
-          <p className="text-muted-foreground mt-1">Track all admin actions for accountability</p>
-        </div>
-        <Card>
-          <CardContent className="p-6">
-            <div className="text-center text-destructive">
-              <p>Error loading audit logs: {error.message}</p>
-            </div>
-          </CardContent>
-        </Card>
+        <PageHeader title="Admin Activity Logs" description="Track all admin actions for accountability and compliance" />
+        <AdminErrorState title="Failed to load audit logs" message={error.message} onRetry={refetch} />
       </div>
     )
   }
@@ -116,12 +113,7 @@ export function AuditLogsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Admin Activity Logs</h1>
-          <p className="text-muted-foreground mt-1">Track all admin actions for accountability and compliance</p>
-        </div>
-      </div>
+      <PageHeader title="Admin Activity Logs" description="Track all admin actions for accountability and compliance" />
 
       {/* Stats Card */}
       <Card>
@@ -129,8 +121,8 @@ export function AuditLogsPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-muted-foreground">Total Logged Actions</p>
-              <p className="text-3xl font-bold text-primary mt-1">{count}</p>
-              <p className="text-xs text-muted-foreground mt-1">Read-only audit trail</p>
+              <p className="type-metric-lg text-primary mt-1">{count}</p>
+              <p className="type-caption mt-1">Read-only audit trail</p>
             </div>
             <div className="p-4 rounded-lg bg-info-bg">
               <FileText className="h-8 w-8 text-info" />
@@ -142,45 +134,37 @@ export function AuditLogsPage() {
       {/* Filters */}
       <Card>
         <CardContent className="pt-6">
-          <div className="flex flex-wrap items-center gap-4">
-            <Filter className="h-5 w-5 text-muted-foreground" />
-            <label htmlFor="action-filter" className="text-sm font-medium text-foreground">
-              Action:
-            </label>
-            <select
-              id="action-filter"
+          <div className="flex flex-wrap items-end gap-4">
+            <Filter className="h-5 w-5 text-muted-foreground mb-2" />
+            <Select
+              label="Action:"
               value={actionFilter}
               onChange={(e) => {
                 setActionFilter(e.target.value as AuditActionType | '')
                 setPage(1)
               }}
-              className="px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             >
               {ACTION_FILTERS.map((filter) => (
                 <option key={filter.value} value={filter.value}>
                   {filter.label}
                 </option>
               ))}
-            </select>
+            </Select>
 
-            <label htmlFor="target-filter" className="text-sm font-medium text-foreground ml-4">
-              Target:
-            </label>
-            <select
-              id="target-filter"
+            <Select
+              label="Target:"
               value={targetFilter}
               onChange={(e) => {
                 setTargetFilter(e.target.value as AuditTargetType | '')
                 setPage(1)
               }}
-              className="px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             >
               {TARGET_FILTERS.map((filter) => (
                 <option key={filter.value} value={filter.value}>
                   {filter.label}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
         </CardContent>
       </Card>
@@ -192,13 +176,17 @@ export function AuditLogsPage() {
         </CardHeader>
         <CardContent>
           {logs.length === 0 ? (
-            <div className="text-center py-12">
-              <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-foreground mb-2">No Logs Found</h3>
-              <p className="text-muted-foreground">
-                No audit logs match the current filters.
-              </p>
-            </div>
+            <AdminEmptyState
+              icon={FileText}
+              title="No Logs Found"
+              description={
+                hasActiveFilters
+                  ? 'No audit logs match the current filters.'
+                  : 'No audit logs have been recorded yet.'
+              }
+              filtered={Boolean(hasActiveFilters)}
+              onClearFilters={handleClearFilters}
+            />
           ) : (
             <div className="border border-border rounded-lg overflow-hidden">
               <Table>
@@ -215,7 +203,7 @@ export function AuditLogsPage() {
                 <TableBody>
                   {logs.map((log) => (
                     <TableRow key={log.id}>
-                      <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                      <TableCell className="type-secondary whitespace-nowrap">
                         {formatDateTime(log.created_at)}
                       </TableCell>
                       <TableCell className="font-mono text-sm">
@@ -239,7 +227,7 @@ export function AuditLogsPage() {
                           <div className="max-w-md">
                             <button
                               onClick={() => toggleMetadata(log.id)}
-                              className="flex items-center text-xs text-muted-foreground hover:text-foreground"
+                              className="flex items-center type-caption hover:text-foreground"
                             >
                               {expandedMetadata[log.id] ? (
                                 <ChevronUp className="h-3 w-3 mr-1" />
@@ -262,7 +250,7 @@ export function AuditLogsPage() {
                             )}
                           </div>
                         ) : (
-                          <span className="text-xs text-muted-foreground">No details</span>
+                          <span className="type-caption">No details</span>
                         )}
                       </TableCell>
                     </TableRow>
@@ -273,6 +261,16 @@ export function AuditLogsPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <AdminPagination
+          page={page}
+          totalPages={totalPages}
+          onPageChange={setPage}
+          disabled={loading}
+        />
+      )}
     </div>
   )
 }

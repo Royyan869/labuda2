@@ -128,15 +128,16 @@ func NewPricingTokenService(
 // - If ShippingSetupID is set, shipping cost comes from forSale shipping options
 // - Providing both or neither is a validation error
 type GenerateForForSaleRequest struct {
-	UserID           uuid.UUID
-	ProductID        uuid.UUID
-	SourceType       string
-	SourceID         uuid.UUID
-	Quantity         int
+	UserID          uuid.UUID
+	ProductID       uuid.UUID
+	SourceType      string
+	SourceID        uuid.UUID
+	Quantity        int
 	ShippingSetupID *uuid.UUID // Optional: Pointer to allow nil when using ShippingQuote
-	ShippingQuoteID  *uuid.UUID // Optional: When set, uses manual shipping quote
-	AddressID        uuid.UUID
-	DiscountCode     *string
+	ShippingQuoteID *uuid.UUID // Optional: When set, uses manual shipping quote
+	ChatID          *uuid.UUID // Required when ShippingQuoteID is set: the conversation that produced the quote
+	AddressID       uuid.UUID
+	DiscountCode    *string
 }
 
 // GenerateForForSaleResponse contains the generated pricing token and its snapshot.
@@ -271,6 +272,12 @@ func (s *PricingTokenService) GenerateForForSale(
 	}
 	if !hasShippingQuote && !hasShippingSetup {
 		return nil, fmt.Errorf("invalid shipping source: either shipping_quote_id or shipping_option_id must be provided")
+	}
+	// A manual shipping quote is conversation-scoped: the token MUST carry the
+	// originating chat so order creation can enforce that the quote is used only
+	// in the conversation that produced it.
+	if hasShippingQuote && req.ChatID == nil {
+		return nil, fmt.Errorf("chat_id is required when using shipping_quote_id")
 	}
 
 	// Validate quantity
@@ -454,11 +461,14 @@ func (s *PricingTokenService) GenerateForForSale(
 		discountType,
 		discountValue,
 		discountAmount,
-		req.ShippingQuoteID, // Optional: Pass shipping quote ID
-		coinsUsed,           // Coins applied (0 for new tokens)
-		postDiscount.MaxCoinsAllowed,     // Max coins allowed based on canonical 20% of PD
-		postDiscount.OrderValueForCoins,  // Pre-calculated for coins service: discounted product value (PD)
+		req.ShippingQuoteID,             // Optional: Pass shipping quote ID
+		coinsUsed,                       // Coins applied (0 for new tokens)
+		postDiscount.MaxCoinsAllowed,    // Max coins allowed based on canonical 20% of PD
+		postDiscount.OrderValueForCoins, // Pre-calculated for coins service: discounted product value (PD)
 	)
+	// Canonical conversation binding (quote checkouts): carried so order creation
+	// can enforce the quote is used only in the conversation that produced it.
+	token.ChatID = req.ChatID
 
 	// Store token
 	if err := s.tokenRepo.CreateTx(ctx, tx, token); err != nil {
@@ -648,27 +658,29 @@ func calculateCommission(subtotal money.Money, percent decimal.Decimal) money.Mo
 // single canonical money-flow calculation after discount is applied.
 //
 // Input:
-//   P    = final product transaction price (subtotal before discount)
-//   D    = discount amount (from DiscountService)
-//   S    = shipping cost
-//   C%   = commission percent (rate varies by selling surface)
+//
+//	P    = final product transaction price (subtotal before discount)
+//	D    = discount amount (from DiscountService)
+//	S    = shipping cost
+//	C%   = commission percent (rate varies by selling surface)
 //
 // Output:
-//   PD             = P - D (discounted product value)
-//   Commission     = f(PD, C%)
-//   CommissionSafe = PD + S >= Commission (rejection if false)
-//   Escrow         = PD + S
-//   CoinCap        = 20% × PD
-//   OrderValueForCoins = PD
+//
+//	PD             = P - D (discounted product value)
+//	Commission     = f(PD, C%)
+//	CommissionSafe = PD + S >= Commission (rejection if false)
+//	Escrow         = PD + S
+//	CoinCap        = 20% × PD
+//	OrderValueForCoins = PD
 //
 // This function is the SINGLE authority for post-discount money calculations.
 // No path-specific money logic may exist outside this function.
 type PostDiscountMoneyFlow struct {
-	DiscountedProduct int64
-	CommissionAmount  money.Money
-	EscrowAmount      money.Money
+	DiscountedProduct  int64
+	CommissionAmount   money.Money
+	EscrowAmount       money.Money
 	TotalPayableAmount money.Money
-	MaxCoinsAllowed   int64
+	MaxCoinsAllowed    int64
 	OrderValueForCoins int64
 }
 
@@ -787,15 +799,15 @@ func (s *PricingTokenService) getShippingCostAndETA(
 // - If ShippingQuoteID is set, shipping comes from manual quote
 // - If ShippingSetupID is set, shipping comes from forSale options
 type ValidateForOrderRequest struct {
-	Token            uuid.UUID
-	RequesterID      uuid.UUID
-	ProductID        uuid.UUID
-	SourceType       string
-	SourceID         uuid.UUID
-	Quantity         int
-	AddressID        uuid.UUID
+	Token           uuid.UUID
+	RequesterID     uuid.UUID
+	ProductID       uuid.UUID
+	SourceType      string
+	SourceID        uuid.UUID
+	Quantity        int
+	AddressID       uuid.UUID
 	ShippingSetupID *uuid.UUID // Optional: Pointer to allow nil when using ShippingQuote
-	ShippingQuoteID  *uuid.UUID // Optional: When set, uses manual shipping quote
+	ShippingQuoteID *uuid.UUID // Optional: When set, uses manual shipping quote
 }
 
 // ValidateForOrder validates a pricing token without consuming it.
@@ -855,6 +867,7 @@ type GenerateForNegotiationRequest struct {
 	AddressID       uuid.UUID
 	ShippingSetupID *uuid.UUID // Optional: nil when using ShippingQuoteID (N3 XOR)
 	ShippingQuoteID *uuid.UUID // Optional: nil when using ShippingSetupID (N3 XOR)
+	ChatID          *uuid.UUID // Required when ShippingQuoteID is set: the conversation that produced the quote
 	DiscountCode    *string
 }
 
@@ -965,6 +978,12 @@ func (s *PricingTokenService) GenerateForNegotiation(
 	}
 	if !hasShippingQuote && !hasShippingSetup {
 		return nil, fmt.Errorf("invalid shipping source: either shipping_quote_id or shipping_option_id must be provided")
+	}
+	// A manual shipping quote is conversation-scoped: the token MUST carry the
+	// originating chat so order creation can enforce that the quote is used only
+	// in the conversation that produced it.
+	if hasShippingQuote && req.ChatID == nil {
+		return nil, fmt.Errorf("chat_id is required when using shipping_quote_id")
 	}
 
 	var shippingTotal money.Money
@@ -1105,11 +1124,14 @@ func (s *PricingTokenService) GenerateForNegotiation(
 		discountType,
 		discountValue,
 		discountAmount,
-		coinsUsed,          // Coins applied (0 for new tokens)
+		coinsUsed,                       // Coins applied (0 for new tokens)
 		postDiscount.MaxCoinsAllowed,    // Max coins allowed
 		postDiscount.OrderValueForCoins, // Pre-calculated for coins service: discounted product value (PD)
-		req.ShippingQuoteID, // N3: quote authority (nil for option)
+		req.ShippingQuoteID,             // N3: quote authority (nil for option)
 	)
+	// Canonical conversation binding (quote checkouts): carried so order creation
+	// can enforce the quote is used only in the conversation that produced it.
+	token.ChatID = req.ChatID
 
 	if err := s.tokenRepo.CreateTx(ctx, tx, token); err != nil {
 		return nil, fmt.Errorf("failed to create pricing token: %w", err)
@@ -1159,11 +1181,13 @@ func (s *PricingTokenService) GenerateForNegotiation(
 
 // GenerateForAuctionRequest contains parameters for generating a pricing token from an auction.
 type GenerateForAuctionRequest struct {
-	UserID           uuid.UUID
-	AuctionID        uuid.UUID
-	AddressID        uuid.UUID
-	ShippingSetupID uuid.UUID
-	DiscountCode     *string
+	UserID          uuid.UUID
+	AuctionID       uuid.UUID
+	AddressID       uuid.UUID
+	ShippingSetupID uuid.UUID  // Normal shipping option; uuid.Nil when using a manual shipping quote
+	ShippingQuoteID *uuid.UUID // Optional: manual shipping quote (mutually exclusive with ShippingSetupID)
+	ChatID          *uuid.UUID // Required when ShippingQuoteID is set: the conversation that produced the quote
+	DiscountCode    *string
 }
 
 // GenerateForAuctionResponse contains the generated pricing token and its snapshot.
@@ -1267,23 +1291,70 @@ func (s *PricingTokenService) GenerateForAuction(
 	}
 
 	// ============================================================
-	// STEP 5: VALIDATE SHIPPING OPTION AND GET PROVINCE-BASED PRICING
+	// STEP 5: RESOLVE SHIPPING SOURCE (exactly one: option or manual quote)
 	// ============================================================
-	shippingSetup, err := s.shippingRepo.GetByID(ctx, tx, req.ShippingSetupID)
-	if err != nil {
-		return nil, fmt.Errorf("shipping option not found: %w", err)
+	// A manual shipping quote is a Commerce promise made by the seller in the
+	// buyer/seller conversation; it replaces the normal shipping option. It is
+	// conversation-scoped, so chat_id is required.
+	hasShippingQuote := req.ShippingQuoteID != nil && *req.ShippingQuoteID != uuid.Nil
+	hasShippingSetup := req.ShippingSetupID != uuid.Nil
+	if hasShippingQuote == hasShippingSetup {
+		return nil, fmt.Errorf("invalid shipping source: exactly one of shipping_option_id or shipping_quote_id must be provided")
 	}
 
-	// Get buyer province for shipping coverage lookup
-	provinceCode, _, err := s.getAddressWithProvince(ctx, tx, req.AddressID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get buyer province: %w", err)
-	}
+	var shippingTotal money.Money
+	var shippingSetupID uuid.UUID
+	var shippingSetupName string
+	var shippingTransportType string
 
-	// Get province-based shipping cost from ShippingCoverage
-	shippingTotal, err := s.getShippingCostAndETA(ctx, tx, req.ShippingSetupID, provinceCode)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get shipping cost for province %s: %w", provinceCode, err)
+	if hasShippingQuote {
+		if req.ChatID == nil {
+			return nil, fmt.Errorf("chat_id is required when using shipping_quote_id")
+		}
+		quote, err := s.shippingQuoteRepo.GetByID(ctx, tx, *req.ShippingQuoteID)
+		if err != nil {
+			return nil, fmt.Errorf("shipping quote not found: %w", err)
+		}
+		if quote == nil {
+			return nil, fmt.Errorf("shipping quote not found: %s", *req.ShippingQuoteID)
+		}
+		if quote.ProductID != auction.ProductID {
+			return nil, fmt.Errorf("shipping quote product mismatch: quote_product=%s, auction_product=%s", quote.ProductID, auction.ProductID)
+		}
+		if quote.SourceType == nil || quote.SourceID == nil || *quote.SourceType != "auction" || *quote.SourceID != auction.ID {
+			return nil, fmt.Errorf("shipping quote auction mismatch: quote_source=%v:%v, auction=%s", quote.SourceType, quote.SourceID, auction.ID)
+		}
+		if quote.SellerID != auction.SellerID {
+			return nil, fmt.Errorf("shipping quote seller mismatch: quote_seller=%s, auction_seller=%s", quote.SellerID, auction.SellerID)
+		}
+		if quote.BuyerID != req.UserID {
+			return nil, fmt.Errorf("shipping quote buyer mismatch: quote_buyer=%s, requester=%s", quote.BuyerID, req.UserID)
+		}
+		shippingTotal = quote.Cost
+		shippingSetupID = uuid.Nil
+		shippingSetupName = "Ongkir Manual"
+		shippingTransportType = "manual"
+	} else {
+		shippingSetup, err := s.shippingRepo.GetByID(ctx, tx, req.ShippingSetupID)
+		if err != nil {
+			return nil, fmt.Errorf("shipping option not found: %w", err)
+		}
+
+		// Get buyer province for shipping coverage lookup
+		provinceCode, _, err := s.getAddressWithProvince(ctx, tx, req.AddressID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get buyer province: %w", err)
+		}
+
+		// Get province-based shipping cost from ShippingCoverage
+		total, err := s.getShippingCostAndETA(ctx, tx, req.ShippingSetupID, provinceCode)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get shipping cost for province %s: %w", provinceCode, err)
+		}
+		shippingTotal = total
+		shippingSetupID = shippingSetup.ID
+		shippingSetupName = shippingSetup.Name
+		shippingTransportType = string(shippingSetup.TransportType)
 	}
 
 	// ============================================================
@@ -1355,9 +1426,9 @@ func (s *PricingTokenService) GenerateForAuction(
 		postDiscount.CommissionAmount,
 		postDiscount.EscrowAmount,
 		money.Zero(),
-		req.ShippingSetupID,
-		shippingSetup.Name,
-		string(shippingSetup.TransportType),
+		shippingSetupID,
+		shippingSetupName,
+		shippingTransportType,
 		req.AddressID,
 		addressSnapshot,
 		discountID, // Added for atomic discount usage recording
@@ -1365,10 +1436,14 @@ func (s *PricingTokenService) GenerateForAuction(
 		discountType,
 		discountValue,
 		discountAmount,
-		coinsUsed,          // Coins applied (0 for new tokens)
+		coinsUsed,                       // Coins applied (0 for new tokens)
 		postDiscount.MaxCoinsAllowed,    // Max coins allowed based on canonical 20% of PD
 		postDiscount.OrderValueForCoins, // Pre-calculated for coins service: discounted product value (PD)
 	)
+	// Manual shipping quote (auction): carry the quote + originating
+	// conversation so the order path consumes it through the ONE authority.
+	token.ShippingQuoteID = req.ShippingQuoteID
+	token.ChatID = req.ChatID
 
 	if err := s.tokenRepo.CreateTx(ctx, tx, token); err != nil {
 		return nil, fmt.Errorf("failed to create pricing token: %w", err)
@@ -1399,6 +1474,11 @@ func (s *PricingTokenService) GenerateForAuction(
 		}
 	}
 
+	shippingMode := "standard"
+	if hasShippingQuote {
+		shippingMode = "quote"
+	}
+
 	return &GenerateForAuctionResponse{
 		Token:     token.Token,
 		ExpiresAt: token.ExpiresAt.Format("2006-01-02T15:04:05Z07:00"),
@@ -1416,7 +1496,7 @@ func (s *PricingTokenService) GenerateForAuction(
 			DiscountType:       discountTypeStr,
 			DiscountValue:      discountValue,
 			EscrowAmount:       postDiscount.EscrowAmount,
-			ShippingMode:       "standard", // Auctions use standard shipping options
+			ShippingMode:       shippingMode,
 			CoinsPreview:       coinsPreview,
 		},
 		AuctionSettlementType: settlementTypeStr,

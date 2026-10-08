@@ -141,8 +141,7 @@ class MainAppBar extends ConsumerWidget implements PreferredSizeWidget {
             Expanded(
               child: Text(
                 'Search...',
-                style: TextStyle(
-                  fontSize: AppType.s14,
+                style: context.typeRoles.bodyDense.copyWith(
                   color: scheme.onSurfaceVariant,
                 ),
               ),

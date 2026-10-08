@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 import 'package:chewie/chewie.dart';
 import 'package:labuda/core/src/theme/app_theme.dart';
+import 'package:labuda/shared/widgets/app_bottom_sheet_actions.dart';
 import 'package:labuda/shared/widgets/app_image.dart';
 
 /// Fullscreen Video Player Widget untuk Media Viewer
@@ -101,14 +102,12 @@ class _MediaViewerVideoPlayerState extends State<MediaViewerVideoPlayer> {
             materialProgressColors: ChewieProgressColors(
               playedColor: Theme.of(context).colorScheme.primary,
               handleColor: Theme.of(context).colorScheme.primary,
-              backgroundColor: Theme.of(context)
-                  .colorScheme
-                  .onSurfaceVariant
-                  .withValues(alpha: 0.3),
-              bufferedColor: Theme.of(context)
-                  .colorScheme
-                  .onSurfaceVariant
-                  .withValues(alpha: 0.5),
+              backgroundColor: Theme.of(
+                context,
+              ).colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
+              bufferedColor: Theme.of(
+                context,
+              ).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
             ),
             placeholder: _buildLoadingMat(),
             autoInitialize: true,
@@ -231,9 +230,7 @@ class _MediaViewerVideoPlayerState extends State<MediaViewerVideoPlayer> {
               width: 200,
               child: LinearProgressIndicator(
                 backgroundColor: scheme.onPrimary.withValues(alpha: 0.24),
-                valueColor: AlwaysStoppedAnimation<Color>(
-                  scheme.primary,
-                ),
+                valueColor: AlwaysStoppedAnimation<Color>(scheme.primary),
               ),
             ),
           ],
@@ -260,18 +257,16 @@ class _MediaViewerVideoPlayerState extends State<MediaViewerVideoPlayer> {
             const SizedBox(height: 16),
             Text(
               'Video Failed to Load',
-              style: TextStyle(
+              style: context.typeRoles.titleProminent.copyWith(
                 color: scheme.onPrimary,
-                fontSize: AppType.s20,
                 fontWeight: FontWeight.w500,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               'Unable to play this video',
-              style: TextStyle(
+              style: context.typeRoles.bodyDense.copyWith(
                 color: scheme.onPrimary.withValues(alpha: 0.7),
-                fontSize: AppType.s14,
               ),
             ),
             const SizedBox(height: 24),
@@ -382,16 +377,15 @@ class _CustomMaterialControlsState extends State<_CustomMaterialControls> {
           duration: AppMotion.settled,
           child: Container(
             decoration: BoxDecoration(
-              color: Theme.of(
-                context,
-              ).colorScheme.scrim.withValues(alpha: 0.5),
+              color: Theme.of(context).colorScheme.scrim.withValues(alpha: 0.5),
               shape: BoxShape.circle,
             ),
             child: IconButton(
-              iconSize: 48,
+              iconSize: AppIconSize.display,
               icon: Icon(
                 _controller!.value.isPlaying ? Icons.pause : Icons.play_arrow,
                 color: Theme.of(context).colorScheme.onPrimary,
+                semanticLabel: _controller!.value.isPlaying ? 'Jeda' : 'Putar',
               ),
               onPressed: _togglePlayPause,
             ),
@@ -415,16 +409,17 @@ class _CustomMaterialControlsState extends State<_CustomMaterialControls> {
           allowScrubbing: true,
           colors: VideoProgressColors(
             playedColor: Theme.of(context).colorScheme.primary,
-            bufferedColor: Theme.of(context)
-                .colorScheme
-                .onSurfaceVariant
-                .withValues(alpha: 0.5),
-            backgroundColor: Theme.of(context)
-                .colorScheme
-                .onSurfaceVariant
-                .withValues(alpha: 0.3),
+            bufferedColor: Theme.of(
+              context,
+            ).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+            backgroundColor: Theme.of(
+              context,
+            ).colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
           ),
-          padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8, vertical: AppMetrics.p8),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppMetrics.p8,
+            vertical: AppMetrics.p8,
+          ),
         );
       },
     );
@@ -440,15 +435,17 @@ class _CustomMaterialControlsState extends State<_CustomMaterialControls> {
         final position = _controller!.value.position;
 
         return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8, vertical: AppMetrics.p8),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppMetrics.p8,
+            vertical: AppMetrics.p8,
+          ),
           child: Row(
             children: [
               // Time display
               Text(
                 '${_formatDuration(position)} / ${_formatDuration(duration)}',
-                style: TextStyle(
+                style: context.typeRoles.labelMicro.copyWith(
                   color: Theme.of(context).colorScheme.onPrimary,
-                  fontSize: AppType.s12,
                 ),
               ),
               const Spacer(),
@@ -461,6 +458,9 @@ class _CustomMaterialControlsState extends State<_CustomMaterialControls> {
                       : Icons.volume_off,
                   color: Theme.of(context).colorScheme.onPrimary,
                   size: AppIconSize.action,
+                  semanticLabel: _controller!.value.volume > 0
+                      ? 'Bisukan'
+                      : 'Nyalakan suara',
                 ),
                 onPressed: () {
                   setState(() {
@@ -481,7 +481,8 @@ class _CustomMaterialControlsState extends State<_CustomMaterialControls> {
                   Icons.speed,
                   color: Theme.of(context).colorScheme.onPrimary,
                   size: AppIconSize.action,
-                ),
+                 semanticLabel: 'Kecepatan putar',
+                 ),
                 onPressed: _showPlaybackSpeedMenu,
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
@@ -496,7 +497,8 @@ class _CustomMaterialControlsState extends State<_CustomMaterialControls> {
                     Icons.fullscreen,
                     color: Theme.of(context).colorScheme.onPrimary,
                     size: AppIconSize.action,
-                  ),
+                   semanticLabel: 'Layar penuh',
+                   ),
                   onPressed: widget.onFullscreenTap,
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
@@ -511,68 +513,24 @@ class _CustomMaterialControlsState extends State<_CustomMaterialControls> {
   void _showPlaybackSpeedMenu() {
     if (_controller == null) return;
 
-    showModalBottomSheet(
+    // Canonical action sheet — no bespoke sheet, no local surface/shape.
+    final current = _controller!.value.playbackSpeed;
+    AppBottomSheetActions.showActions<double>(
       context: context,
-      backgroundColor: Theme.of(context).colorScheme.scrim,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppShape.r16)),
-      ),
-      builder: (context) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(AppMetrics.p16),
-                child: Text(
-                  'Playback Speed',
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.onPrimary,
-                    fontSize: AppType.s16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              Divider(
-                color: Theme.of(context).colorScheme.outlineVariant,
-                height: 1,
-              ),
-              ...[0.5, 0.75, 1.0, 1.25, 1.5, 2.0].map((speed) {
-                final isSelected = _controller!.value.playbackSpeed == speed;
-                return ListTile(
-                  leading: Icon(
-                    isSelected ? Icons.check_circle : Icons.circle_outlined,
-                    color: isSelected
-                        ? Theme.of(context).colorScheme.primary
-                        : Theme.of(context).colorScheme.onPrimary.withValues(
-                            alpha: 0.7,
-                          ),
-                    size: AppIconSize.action,
-                  ),
-                  title: Text(
-                    '${speed}x',
-                    style: TextStyle(
-                      color: isSelected
-                          ? Theme.of(context).colorScheme.primary
-                          : Theme.of(context).colorScheme.onPrimary,
-                      fontWeight: isSelected
-                          ? FontWeight.bold
-                          : FontWeight.normal,
-                    ),
-                  ),
-                  onTap: () {
-                    setState(() {
-                      _controller!.setPlaybackSpeed(speed);
-                    });
-                    Navigator.pop(context);
-                  },
-                );
-              }),
-              const SizedBox(height: 8),
-            ],
-          ),
-        );
-      },
+      title: 'Playback Speed',
+      showCancel: false,
+      actions: const [0.5, 0.75, 1.0, 1.25, 1.5, 2.0]
+          .map(
+            (speed) => BottomSheetAction<double>(
+              title: '${speed}x',
+              selected: current == speed,
+              onPressed: () {
+                setState(() => _controller!.setPlaybackSpeed(speed));
+                Navigator.pop(context);
+              },
+            ),
+          )
+          .toList(),
     );
   }
 

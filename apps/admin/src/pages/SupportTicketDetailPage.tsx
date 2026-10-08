@@ -4,10 +4,13 @@ import { ArrowLeft, LifeBuoy, CheckCircle, XCircle, Send, User, Clock, AlertCirc
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
+import { Input } from '@/components/ui/Input'
+import { Select } from '@/components/ui/Select'
 import { Textarea } from '@/components/ui/Textarea'
 import { Modal } from '@/components/ui/Modal'
 import { useSupportTicketDetail, useSupportMessages, useSupportTicketActions } from '@/hooks/useSupport'
 import { formatDateTime } from '@/lib/utils'
+import { AdminLoadingState, AdminErrorState, AdminEmptyState, PageHeader } from '@/components/common'
 import type {
   EscalateToDisputeRequest,
   SupportPriority,
@@ -212,32 +215,26 @@ export function SupportTicketDetailPage() {
     !ticket.order_info.has_dispute
 
   if (ticketLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
-          <p className="mt-4 text-muted-foreground">Loading ticket details...</p>
-        </div>
-      </div>
-    )
+    return <AdminLoadingState />
   }
 
   if (ticketError || !ticket) {
     return (
       <div className="space-y-6">
-        <div className="flex items-center gap-4">
-          <Button variant="secondary" onClick={() => navigate('/support/tickets')}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Tickets
-          </Button>
-        </div>
-        <Card>
-          <CardContent className="p-6">
-            <div className="text-center text-destructive">
-              <p>Error loading ticket: {ticketError?.message || 'Ticket not found'}</p>
-            </div>
-          </CardContent>
-        </Card>
+        <PageHeader
+          title="Support Ticket"
+          leading={
+            <Button variant="secondary" onClick={() => navigate('/support/tickets')}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Tickets
+            </Button>
+          }
+        />
+        <AdminErrorState
+          title="Failed to load ticket"
+          message={ticketError?.message || 'Ticket not found'}
+          onRetry={refetchTicket}
+        />
       </div>
     )
   }
@@ -276,79 +273,79 @@ export function SupportTicketDetailPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <PageHeader
+        title={`Ticket #${ticket.id.slice(0, 8)}`}
+        description={ticket.subject}
+        leading={
           <Button variant="secondary" onClick={() => navigate('/support/tickets')}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back
           </Button>
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">Ticket #{ticket.id.slice(0, 8)}</h1>
-            <p className="text-muted-foreground mt-1">{ticket.subject}</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          {canClaim && (
-            <Button
-              variant="primary"
-              onClick={handleClaim}
-              disabled={submitting}
-              className="gap-2"
-            >
-              <UserCheck className="h-4 w-4" />
-              Claim
-            </Button>
-          )}
-          {canSetWaiting && (
-            <Button
-              variant="secondary"
-              onClick={handleSetWaiting}
-              disabled={submitting}
-              className="gap-2"
-            >
-              <Pause className="h-4 w-4" />
-              Waiting for User
-            </Button>
-          )}
-          {canResolve && (
-            <Button
-              variant="secondary"
-              onClick={handleResolve}
-              disabled={submitting}
-              className="gap-2"
-            >
-              <CheckCircle className="h-4 w-4" />
-              Resolve
-            </Button>
-          )}
-          {canReopen && (
-            <Button
-              variant="secondary"
-              onClick={handleReopen}
-              disabled={submitting}
-              className="gap-2"
-            >
-              <RotateCcw className="h-4 w-4" />
-              Reopen
-            </Button>
-          )}
-          {canClose && (
-            <Button
-              variant="secondary"
-              onClick={handleClose}
-              disabled={submitting}
-              className="gap-2"
-            >
-              <XCircle className="h-4 w-4" />
-              Close
-            </Button>
-          )}
-        </div>
-      </div>
+        }
+        actions={
+          <>
+            {canClaim && (
+              <Button
+                variant="primary"
+                onClick={handleClaim}
+                disabled={submitting}
+                className="gap-2"
+              >
+                <UserCheck className="h-4 w-4" />
+                Claim
+              </Button>
+            )}
+            {canSetWaiting && (
+              <Button
+                variant="secondary"
+                onClick={handleSetWaiting}
+                disabled={submitting}
+                className="gap-2"
+              >
+                <Pause className="h-4 w-4" />
+                Waiting for User
+              </Button>
+            )}
+            {canResolve && (
+              <Button
+                variant="secondary"
+                onClick={handleResolve}
+                disabled={submitting}
+                className="gap-2"
+              >
+                <CheckCircle className="h-4 w-4" />
+                Resolve
+              </Button>
+            )}
+            {canReopen && (
+              <Button
+                variant="secondary"
+                onClick={handleReopen}
+                disabled={submitting}
+                className="gap-2"
+              >
+                <RotateCcw className="h-4 w-4" />
+                Reopen
+              </Button>
+            )}
+            {canClose && (
+              <Button
+                variant="secondary"
+                onClick={handleClose}
+                disabled={submitting}
+                className="gap-2"
+              >
+                <XCircle className="h-4 w-4" />
+                Close
+              </Button>
+            )}
+          </>
+        }
+      />
 
       {/* STEP 7: Status hint */}
       {statusHint && (
-        <div className={`bg-${statusHint.variant === 'info' ? 'blue' : 'yellow'}-50 border border-${statusHint.variant === 'info' ? 'blue' : 'yellow'}-200 text-${statusHint.variant === 'info' ? 'blue' : 'yellow'}-700 px-4 py-3 rounded-lg flex items-center gap-2`}>
+        <div className={`${statusHint.variant === 'info' ? 'bg-info-bg border-info text-info' : 'bg-warning-bg border-warning text-warning'} px-4 py-3 rounded-lg flex items-center gap-2`}>
           <AlertCircle className="h-4 w-4" />
           <span className="text-sm font-medium">{statusHint.text}</span>
         </div>
@@ -401,7 +398,7 @@ export function SupportTicketDetailPage() {
                         {ticket.username ? `@${ticket.username}` : ticket.user_id.slice(0, 8)}
                       </div>
                       {ticket.username && ticket.seller_farm_name ? (
-                        <div className="text-xs text-muted-foreground truncate max-w-[220px]">
+                        <div className="type-caption truncate max-w-[220px]">
                           {ticket.seller_farm_name}
                         </div>
                       ) : null}
@@ -414,7 +411,7 @@ export function SupportTicketDetailPage() {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Category</p>
-                  <p className="text-sm text-foreground mt-1">
+                  <p className="type-body mt-1">
                     {supportCategoryLabels[ticket.category] || ticket.category}
                   </p>
                 </div>
@@ -438,14 +435,14 @@ export function SupportTicketDetailPage() {
                 )}
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Created At</p>
-                  <p className="text-sm text-foreground mt-1 flex items-center gap-1">
+                  <p className="type-body mt-1 flex items-center gap-1">
                     <Clock className="h-3 w-3" />
                     {formatDateTime(ticket.created_at)}
                   </p>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Last Updated</p>
-                  <p className="text-sm text-foreground mt-1 flex items-center gap-1">
+                  <p className="type-body mt-1 flex items-center gap-1">
                     <Clock className="h-3 w-3" />
                     {formatDateTime(ticket.updated_at)}
                   </p>
@@ -455,7 +452,7 @@ export function SupportTicketDetailPage() {
               {/* Description */}
               <div className="pt-4 border-t">
                 <p className="text-sm font-medium text-muted-foreground mb-2">Description</p>
-                <p className="text-sm text-foreground bg-surface-muted p-3 rounded-lg">
+                <p className="type-body bg-surface-muted p-3 rounded-lg">
                   {ticket.description || 'No description provided'}
                 </p>
               </div>
@@ -464,7 +461,7 @@ export function SupportTicketDetailPage() {
               {ticket.admin_name && (
                 <div className="pt-4 border-t">
                   <p className="text-sm font-medium text-muted-foreground mb-2">Assigned To</p>
-                  <p className="text-sm text-foreground">{ticket.admin_name}</p>
+                  <p className="type-body">{ticket.admin_name}</p>
                 </div>
               )}
             </CardContent>
@@ -493,7 +490,7 @@ export function SupportTicketDetailPage() {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Escrow Status</p>
-                    <p className="text-sm text-foreground mt-1">{ticket.order_info.escrow_status}</p>
+                    <p className="type-body mt-1">{ticket.order_info.escrow_status}</p>
                   </div>
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Has Dispute</p>
@@ -529,7 +526,7 @@ export function SupportTicketDetailPage() {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Opened At</p>
-                    <p className="text-sm text-foreground mt-1 flex items-center gap-1">
+                    <p className="type-body mt-1 flex items-center gap-1">
                       <Clock className="h-3 w-3" />
                       {formatDateTime(ticket.dispute_info.opened_at)}
                     </p>
@@ -537,7 +534,7 @@ export function SupportTicketDetailPage() {
                   {ticket.dispute_info.resolved_at && (
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">Resolved At</p>
-                      <p className="text-sm text-foreground mt-1 flex items-center gap-1">
+                      <p className="type-body mt-1 flex items-center gap-1">
                         <Clock className="h-3 w-3" />
                         {formatDateTime(ticket.dispute_info.resolved_at)}
                       </p>
@@ -555,15 +552,9 @@ export function SupportTicketDetailPage() {
             </CardHeader>
             <CardContent>
               {messagesLoading ? (
-                <div className="text-center py-8">
-                  <div className="inline-block h-6 w-6 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
-                  <p className="mt-2 text-sm text-muted-foreground">Loading messages...</p>
-                </div>
+                <AdminLoadingState embedded label="Loading messages" />
               ) : messages.length === 0 ? (
-                <div className="text-center py-8">
-                  <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-                  <p className="text-sm text-muted-foreground">No messages yet</p>
-                </div>
+                <AdminEmptyState icon={AlertCircle} title="No messages yet" />
               ) : (
                 <div className="space-y-4">
                   {messages.map((message, index) => (
@@ -644,33 +635,33 @@ export function SupportTicketDetailPage() {
                 <div className="w-2 h-2 rounded-full bg-primary mt-2"></div>
                 <div>
                   <p className="text-sm font-medium">Created</p>
-                  <p className="text-xs text-muted-foreground">{formatDateTime(ticket.created_at)}</p>
+                  <p className="type-caption">{formatDateTime(ticket.created_at)}</p>
                 </div>
               </div>
               {ticket.claimed_at && (
                 <div className="flex items-start gap-3">
-                  <div className="w-2 h-2 rounded-full bg-info-bg0 mt-2"></div>
+                  <div className="w-2 h-2 rounded-full bg-info-bg mt-2"></div>
                   <div>
                     <p className="text-sm font-medium">Claimed</p>
-                    <p className="text-xs text-muted-foreground">{formatDateTime(ticket.claimed_at)}</p>
+                    <p className="type-caption">{formatDateTime(ticket.claimed_at)}</p>
                   </div>
                 </div>
               )}
               {ticket.resolved_at && (
                 <div className="flex items-start gap-3">
-                  <div className="w-2 h-2 rounded-full bg-success-bg0 mt-2"></div>
+                  <div className="w-2 h-2 rounded-full bg-success-bg mt-2"></div>
                   <div>
                     <p className="text-sm font-medium">Resolved</p>
-                    <p className="text-xs text-muted-foreground">{formatDateTime(ticket.resolved_at)}</p>
+                    <p className="type-caption">{formatDateTime(ticket.resolved_at)}</p>
                   </div>
                 </div>
               )}
               {ticket.closed_at && (
                 <div className="flex items-start gap-3">
-                  <div className="w-2 h-2 rounded-full bg-destructive-bg0 mt-2"></div>
+                  <div className="w-2 h-2 rounded-full bg-destructive-bg mt-2"></div>
                   <div>
                     <p className="text-sm font-medium">Closed</p>
-                    <p className="text-xs text-muted-foreground">{formatDateTime(ticket.closed_at)}</p>
+                    <p className="type-caption">{formatDateTime(ticket.closed_at)}</p>
                   </div>
                 </div>
               )}
@@ -755,35 +746,31 @@ export function SupportTicketDetailPage() {
                 <CardTitle className="text-sm">Ticket Settings</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1">Priority</label>
-                  <select
-                    value={ticket.priority}
-                    onChange={(e) => handleUpdatePriority(e.target.value as SupportPriority)}
-                    disabled={submitting}
-                    className="w-full rounded-lg border border-border px-3 py-1.5 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                  >
-                    <option value="low">{supportPriorityLabels.low}</option>
-                    <option value="medium">{supportPriorityLabels.medium}</option>
-                    <option value="high">{supportPriorityLabels.high}</option>
-                    <option value="urgent">{supportPriorityLabels.urgent}</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1">Category</label>
-                  <select
-                    value={ticket.category}
-                    onChange={(e) => handleUpdateCategory(e.target.value as SupportCategory)}
-                    disabled={submitting}
-                    className="w-full rounded-lg border border-border px-3 py-1.5 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                  >
-                    {(Object.keys(supportCategoryLabels) as SupportCategory[]).map((category) => (
-                      <option key={category} value={category}>
-                        {supportCategoryLabels[category]}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <Select
+                  label="Priority"
+                  size="compact"
+                  value={ticket.priority}
+                  onChange={(e) => handleUpdatePriority(e.target.value as SupportPriority)}
+                  disabled={submitting}
+                >
+                  <option value="low">{supportPriorityLabels.low}</option>
+                  <option value="medium">{supportPriorityLabels.medium}</option>
+                  <option value="high">{supportPriorityLabels.high}</option>
+                  <option value="urgent">{supportPriorityLabels.urgent}</option>
+                </Select>
+                <Select
+                  label="Category"
+                  size="compact"
+                  value={ticket.category}
+                  onChange={(e) => handleUpdateCategory(e.target.value as SupportCategory)}
+                  disabled={submitting}
+                >
+                  {(Object.keys(supportCategoryLabels) as SupportCategory[]).map((category) => (
+                    <option key={category} value={category}>
+                      {supportCategoryLabels[category]}
+                    </option>
+                  ))}
+                </Select>
               </CardContent>
             </Card>
           )}
@@ -807,46 +794,34 @@ export function SupportTicketDetailPage() {
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                Reason *
-              </label>
-              <input
-                type="text"
-                value={escalationReason}
-                onChange={(e) => setEscalationReason(e.target.value)}
-                className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                placeholder="e.g., Product not received, Item damaged"
-                disabled={submitting}
-              />
-            </div>
+            <Input
+              type="text"
+              label="Reason"
+              required
+              value={escalationReason}
+              onChange={(e) => setEscalationReason(e.target.value)}
+              placeholder="e.g., Product not received, Item damaged"
+              disabled={submitting}
+            />
 
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                Reason Code *
-              </label>
-              <input
-                type="text"
-                value={escalationReasonCode}
-                onChange={(e) => setEscalationReasonCode(e.target.value)}
-                className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                placeholder="e.g., PRODUCT_NOT_RECEIVED"
-                disabled={submitting}
-              />
-            </div>
+            <Input
+              type="text"
+              label="Reason Code"
+              required
+              value={escalationReasonCode}
+              onChange={(e) => setEscalationReasonCode(e.target.value)}
+              placeholder="e.g., PRODUCT_NOT_RECEIVED"
+              disabled={submitting}
+            />
 
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                Description
-              </label>
-              <Textarea
-                value={escalationDescription}
-                onChange={(e) => setEscalationDescription(e.target.value)}
-                rows={4}
-                placeholder="Additional details about the escalation..."
-                disabled={submitting}
-              />
-            </div>
+            <Textarea
+              label="Description"
+              value={escalationDescription}
+              onChange={(e) => setEscalationDescription(e.target.value)}
+              rows={4}
+              placeholder="Additional details about the escalation..."
+              disabled={submitting}
+            />
 
             <div className="flex justify-end gap-2 pt-4 border-t">
               <Button

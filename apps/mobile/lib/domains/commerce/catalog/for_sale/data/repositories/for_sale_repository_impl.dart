@@ -100,6 +100,7 @@ class ForSaleRepositoryImpl implements ForSaleRepository {
     String sellerId, {
     int page = 1,
     int pageSize = 20,
+    bool includeWithdrawn = false,
   }) async {
     try {
       _logger.info(
@@ -111,6 +112,7 @@ class ForSaleRepositoryImpl implements ForSaleRepository {
         sellerId,
         page: page,
         limit: pageSize,
+        includeWithdrawn: includeWithdrawn,
       );
 
       return result.fold((error) => Result.error(error), (response) {
@@ -162,7 +164,6 @@ class ForSaleRepositoryImpl implements ForSaleRepository {
         breeder: request.breeder,
         bloodline: request.bloodline,
         certificates: request.certificates,
-        farmAddressId: request.farmAddressId,
         shippingSetupIds: request.shippingSetupIds,
         preparationTime: request.preparationTime?.toJson(),
       );
@@ -285,55 +286,4 @@ class ForSaleRepositoryImpl implements ForSaleRepository {
     }
   }
 
-  @override
-  Future<Result<ForSale>> updateForSaleStatus(
-    String forSaleId,
-    ForSaleStatus status,
-  ) async {
-    try {
-      _logger.info(
-        'Updating fixed-price sale status via backend API',
-        extra: {'id': forSaleId, 'status': status.name},
-      );
-
-      // Convert status to string for backend
-      final statusStr = switch (status) {
-        ForSaleStatus.draft => 'draft',
-        ForSaleStatus.active => 'active',
-        ForSaleStatus.withdrawn => 'withdrawn',
-        ForSaleStatus.sold => 'sold',
-      };
-
-      final dto = UpdateForSaleRequestDto(status: statusStr);
-
-      final result = await _datasource.updateForSale(forSaleId, dto);
-
-      if (result.isError) {
-        // Preserve the machine-readable code (e.g. SHIPPING_NOT_CONFIGURED)
-        // so the publish call site can branch via Result.errorCode instead of
-        // matching error message substrings.
-        return Result.error(
-          result.error ?? 'Failed to update forSale status',
-          code: result.errorCode,
-          statusCode: result.statusCode,
-        );
-      }
-      final forSale = ForSaleDtoMapper.toEntity(result.data!);
-      _logger.info(
-        'Successfully updated fixed-price sale status',
-        extra: {'id': forSale.forSaleId, 'status': status.name},
-      );
-      return Result.success(forSale);
-    } catch (e, stackTrace) {
-      _logger.error(
-        'Failed to update fixed-price sale status',
-        extra: {
-          'id': forSaleId,
-          'error': e.toString(),
-          'stackTrace': stackTrace.toString(),
-        },
-      );
-      return Result.error('Failed to update forSale status: ${e.toString()}');
-    }
-  }
 }

@@ -12,6 +12,9 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:labuda/core/core.dart';
+import 'package:labuda/domains/system/shared/domain/services/time_format_service.dart';
 import 'package:labuda/domains/social/comment/domain/entities/comment.dart';
 import 'package:labuda/domains/social/content/domain/entities/content.dart';
 import 'package:labuda/features/home/presentation/widgets/feed_media_mosaic.dart';
@@ -23,7 +26,7 @@ import 'package:labuda/domains/social/comment/presentation/utils/comment_like_ha
 import 'package:labuda/shared/governance/content_lifecycle.dart';
 import 'package:labuda/shared/shared.dart';
 import 'package:labuda/domains/system/report/domain/entities/entities.dart';
-import 'package:labuda/domains/system/report/presentation/dialogs/report_submission_dialog.dart';
+import 'package:labuda/core/navigation/navigation_provider.dart';
 import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Comment Card Widget
@@ -97,7 +100,10 @@ class CommentCard extends ConsumerWidget {
         : null;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p12),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppMetrics.p16,
+        vertical: AppMetrics.p12,
+      ),
       decoration: isSellerResponse
           ? BoxDecoration(
               color: scheme.primary.withValues(alpha: 0.06),
@@ -113,7 +119,7 @@ class CommentCard extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Header: User info + timestamp + seller response badge
-          _buildHeader(context),
+          _buildHeader(context, ref),
           const SizedBox(height: 8),
           // Body text
           if (comment.body != null && comment.body!.isNotEmpty)
@@ -231,11 +237,17 @@ class CommentCard extends ConsumerWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.reply, size: AppIconSize.inlineGlyph, color: scheme.onSurfaceVariant),
+            Icon(
+              Icons.reply,
+              size: AppIconSize.inlineGlyph,
+              color: scheme.onSurfaceVariant,
+            ),
             const SizedBox(width: 4),
             Text(
               'Balas',
-              style: TextStyle(fontSize: AppType.s14, color: scheme.onSurfaceVariant),
+              style: Theme.of(
+                context,
+              ).textTheme.labelLarge?.copyWith(color: scheme.onSurfaceVariant),
             ),
           ],
         ),
@@ -243,7 +255,7 @@ class CommentCard extends ConsumerWidget {
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeader(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
     final isSellerResponse = comment.isCommerceReference;
 
@@ -281,9 +293,8 @@ class CommentCard extends ConsumerWidget {
                   Flexible(
                     child: Text(
                       displayName,
-                      style: TextStyle(
+                      style: context.typeRoles.bodyDense.copyWith(
                         fontWeight: FontWeight.w600,
-                        fontSize: AppType.s14,
                         fontStyle: authorRedacted
                             ? FontStyle.italic
                             : FontStyle.normal,
@@ -311,8 +322,7 @@ class CommentCard extends ConsumerWidget {
                       ),
                       child: Text(
                         'Respons Penjual',
-                        style: TextStyle(
-                          fontSize: AppType.s12,
+                        style: context.typeRoles.labelMicro.copyWith(
                           fontWeight: FontWeight.w600,
                           color: scheme.primary,
                         ),
@@ -330,16 +340,17 @@ class CommentCard extends ConsumerWidget {
                   userUsername != userName)
                 Text(
                   '@${userUsername!}',
-                  style: TextStyle(
-                    fontSize: AppType.s12,
+                  style: context.typeRoles.labelMicro.copyWith(
                     color: scheme.onSurfaceVariant,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
               Text(
-                _formatTimestamp(comment.createdAt),
-                style: TextStyle(fontSize: AppType.s12, color: scheme.onSurfaceVariant),
+                const TimeFormatService().formatTimeAgo(comment.createdAt),
+                style: context.typeRoles.labelMicro.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
               ),
             ],
           ),
@@ -348,7 +359,11 @@ class CommentCard extends ConsumerWidget {
         if (userId != null && currentUserId != null)
           if (userId == currentUserId)
             PopupMenuButton<String>(
-              icon: Icon(Icons.more_horiz, size: AppIconSize.inlineGlyph, color: scheme.onSurfaceVariant),
+              icon: Icon(
+                Icons.more_horiz,
+                size: AppIconSize.inlineGlyph,
+                color: scheme.onSurfaceVariant,
+              ),
               onSelected: (value) {
                 if (value == 'edit' && onEdit != null) onEdit!.call();
                 if (value == 'delete' && onDelete != null) onDelete!.call();
@@ -363,8 +378,8 @@ class CommentCard extends ConsumerWidget {
               contentType: PopupMoreOptionsContentType.content,
               isCreator: false,
               isDeleting: false,
-              iconSize: 16,
-              onReport: () => _handleReportComment(context),
+              iconSize: AppIconSize.inlineGlyph,
+              onReport: () => _handleReportComment(context, ref),
             ),
       ],
     );
@@ -387,10 +402,13 @@ class CommentCard extends ConsumerWidget {
   String _authorRedactionLabel(ContentLifecycle authorLifecycle) =>
       authorLifecycle.publicRedactionLabel;
 
-  Future<void> _handleReportComment(BuildContext context) async {
+  Future<void> _handleReportComment(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
     if (currentUserId == null || currentUserId!.isEmpty) {
       if (context.mounted) {
-        AppSnackBar.showError(context, 'Please login to report comments');
+        ref.read(navigationHandlerProvider).navigateToSignIn();
       }
       return;
     }
@@ -398,17 +416,18 @@ class CommentCard extends ConsumerWidget {
     // Check if user is trying to report their own comment
     if (userId == currentUserId) {
       if (context.mounted) {
-        AppSnackBar.showError(context, 'Cannot report your own comment');
+        AppSnackBar.showError(context, 'Tidak dapat melaporkan komentar Anda sendiri');
       }
       return;
     }
 
-    // Show report submission dialog (comment reporting is ENABLED)
-    await ReportSubmissionDialog.show(
-      context,
-      targetId: comment.id,
-      targetType: ReportTargetType.comment,
-      targetTitle: comment.body?.substring(0, 100) ?? 'Comment',
+    // Open the canonical report destination (comment reporting is ENABLED)
+    await context.push<bool>(
+      RoutePaths.reportLocation(
+        targetType: ReportTargetType.comment.name,
+        targetId: comment.id,
+        targetTitle: comment.body?.substring(0, 100) ?? 'Comment',
+      ),
     );
   }
 
@@ -416,29 +435,11 @@ class CommentCard extends ConsumerWidget {
     final scheme = Theme.of(context).colorScheme;
     return Text(
       comment.body ?? '',
-      style: TextStyle(
-        fontSize: AppType.s14,
+      style: context.typeRoles.bodyDense.copyWith(
         color: scheme.onSurface,
         height: 1.4,
       ),
     );
-  }
-
-  String _formatTimestamp(DateTime timestamp) {
-    final now = DateTime.now();
-    final difference = now.difference(timestamp);
-
-    if (difference.inMinutes < 1) {
-      return 'Baru saja';
-    } else if (difference.inMinutes < 60) {
-      return '${difference.inMinutes}m lalu';
-    } else if (difference.inHours < 24) {
-      return '${difference.inHours}j lalu';
-    } else if (difference.inDays < 7) {
-      return '${difference.inDays} hari lalu';
-    } else {
-      return '${timestamp.day}/${timestamp.month}/${timestamp.year}';
-    }
   }
 }
 
@@ -474,7 +475,9 @@ class _LikeButton extends StatelessWidget {
               const SizedBox(width: 4),
               Text(
                 likeCount! > 0 ? '$likeCount' : '',
-                style: TextStyle(fontSize: AppType.s14, color: scheme.onSurfaceVariant),
+                style: context.typeRoles.labelMicro.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
               ),
             ],
           ],

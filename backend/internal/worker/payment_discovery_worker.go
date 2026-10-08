@@ -33,6 +33,12 @@ type SubscriptionPaymentProcessor interface {
 	ProcessSuccessfulPayment(ctx context.Context, paymentID uuid.UUID, userID uuid.UUID, providerEventID string) error
 }
 
+// BillingPaymentProcessor abstracts the canonical billing settlement service.
+// Implemented by *billingapp.BillingService.
+type BillingPaymentProcessor interface {
+	MarkPaidWithPayment(ctx context.Context, tx db.Tx, billingID uuid.UUID, paymentID *uuid.UUID, paymentMethodCode *string, serviceFeeAmount int64) (bool, error)
+}
+
 const (
 	// DefaultDiscoveryPollInterval is how often the worker scans for stale pending payments.
 	DefaultDiscoveryPollInterval = 1 * time.Minute
@@ -128,6 +134,7 @@ type PaymentDiscoveryWorker struct {
 	midtransClient        GatewayTransactionStatuser
 	canonicalFinal        OrderPaymentFinalizer
 	subscriptionPaySvc    SubscriptionPaymentProcessor
+	billingPaySvc         BillingPaymentProcessor
 	rec6RefundCreator     Rec6RefundIntentCreator
 	log                   *zap.Logger
 	pollInterval          time.Duration
@@ -191,6 +198,14 @@ func NewPaymentDiscoveryWorker(
 // there is deliberately no evidence-only fallback.
 func (w *PaymentDiscoveryWorker) SetRec6RefundCreator(creator Rec6RefundIntentCreator) {
 	w.rec6RefundCreator = creator
+}
+
+// SetBillingPaymentProcessor wires the canonical billing settlement service so
+// the discovery scan can recover a billing/promotion payment whose webhook was
+// lost. MANDATORY in production; a billing reference with no processor fails
+// closed instead of silently falling through.
+func (w *PaymentDiscoveryWorker) SetBillingPaymentProcessor(svc BillingPaymentProcessor) {
+	w.billingPaySvc = svc
 }
 
 // Start begins the periodic discovery scan.
@@ -590,6 +605,8 @@ func (w *PaymentDiscoveryWorker) handleProviderSettled(
 		return w.finalizeOrderPayment(ctx, paymentID, gatewayStatus)
 	case paymentRepo.ReferenceTypeSubscription:
 		return w.finalizeSubscriptionPayment(ctx, paymentID, gatewayStatus)
+	case paymentRepo.ReferenceTypeBilling:
+		return w.finalizeBillingPayment(ctx, paymentID, gatewayStatus)
 	default:
 		w.log.Warn("payment_discovery_unknown_reference_type",
 			zap.String("payment_id", paymentID.String()),
@@ -739,6 +756,70 @@ func (w *PaymentDiscoveryWorker) finalizeSubscriptionPayment(
 	return w.subscriptionPaySvc.ProcessSuccessfulPayment(
 		ctx, paymentID, userID, gatewayStatus.TransactionID,
 	)
+}
+
+// finalizeBillingPayment routes Promote Balance / billing payments to the
+// canonical billing settlement. The payment row is settled FIRST (payment
+// truth), then the billing domain is finalized (billing truth). Requires the
+// billing processor to be wired; otherwise it fails closed rather than
+// silently falling through.
+func (w *PaymentDiscoveryWorker) finalizeBillingPayment(
+	ctx context.Context,
+	paymentID uuid.UUID,
+	gatewayStatus *midtrans.NotificationPayload,
+) error {
+	if w.billingPaySvc == nil {
+		return fmt.Errorf("CRITICAL: BillingService not wired")
+	}
+
+	var billingID uuid.UUID
+	var paymentMethodCode *string
+	var serviceFeeAmount int64
+	var settled bool
+
+	err := w.db.WithTx(ctx, func(tx db.Tx) error {
+		payment, err := w.paymentRepo.GetByID(ctx, tx, paymentID)
+		if err != nil {
+			return fmt.Errorf("load billing payment: %w", err)
+		}
+		if payment == nil {
+			return nil
+		}
+		if payment.ReferenceID == nil || *payment.ReferenceID == uuid.Nil {
+			return fmt.Errorf("billing payment %s has no reference_id", paymentID)
+		}
+		billingID = *payment.ReferenceID
+		paymentMethodCode = payment.PaymentMethodCode
+		serviceFeeAmount = payment.ServiceFeeAmount.Int64()
+
+		if payment.Status != paymentRepo.PaymentStatusPending {
+			// Already processed (settled or failed by webhook/other path).
+			settled = payment.IsSettled()
+			return nil
+		}
+
+		settlementSvc := paymentRepo.NewPaymentSettlementService()
+		if err := settlementSvc.SettlePaymentByID(ctx, tx, paymentID, gatewayStatus.TransactionID, gatewayStatus.PaymentType); err != nil {
+			return fmt.Errorf("settle billing payment: %w", err)
+		}
+		settled = true
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	if !settled {
+		return nil // Not settled (failed/terminal) — never credit an unsettled payment.
+	}
+
+	return w.db.WithTx(ctx, func(tx db.Tx) error {
+		if _, err := w.billingPaySvc.MarkPaidWithPayment(
+			ctx, tx, billingID, &paymentID, paymentMethodCode, serviceFeeAmount,
+		); err != nil {
+			return fmt.Errorf("mark billing paid: %w", err)
+		}
+		return nil
+	})
 }
 
 // handleGatewayFailure processes gateway deny/cancel/expire.

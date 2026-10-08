@@ -324,3 +324,94 @@ class PaymentMethodOptionsDto {
     );
   }
 }
+
+/// A single pre-order payment method option from
+/// `GET /payments/pre-order-methods`.
+///
+/// WIRE AUTHORITY: CorePaymentHandler.ListPreOrderPaymentMethods emits exactly
+/// `method_code`, `display_name`, `buyer_payment_fee_amount`,
+/// `final_payable_amount`. The final amount is post-fee and backend-computed.
+class PreOrderPaymentMethodOptionDto {
+  final String methodCode;
+  final String displayName;
+  final int buyerPaymentFeeAmount;
+  final int finalPayableAmount;
+
+  const PreOrderPaymentMethodOptionDto({
+    required this.methodCode,
+    required this.displayName,
+    required this.buyerPaymentFeeAmount,
+    required this.finalPayableAmount,
+  });
+
+  factory PreOrderPaymentMethodOptionDto.fromJson(Map<String, dynamic> json) {
+    return PreOrderPaymentMethodOptionDto(
+      methodCode: json['method_code'] as String,
+      displayName: json['display_name'] as String,
+      buyerPaymentFeeAmount:
+          (json['buyer_payment_fee_amount'] as num?)?.toInt() ?? 0,
+      finalPayableAmount: (json['final_payable_amount'] as num).toInt(),
+    );
+  }
+
+  PreOrderPaymentMethodOption toEntity() => PreOrderPaymentMethodOption(
+    methodCode: methodCode,
+    displayName: displayName,
+    buyerPaymentFeeAmount: buyerPaymentFeeAmount,
+    finalPayableAmount: finalPayableAmount,
+  );
+}
+
+/// Response wrapper for `GET /payments/pre-order-methods`.
+///
+/// WIRE AUTHORITY: `pricing_token`, `expires_at`, `escrow_amount`,
+/// `coins_to_use`, `cash_amount`, `currency`, `methods[]`.
+class PreOrderPaymentPricingDto {
+  final String pricingToken;
+  final DateTime? expiresAt;
+  final int escrowAmount;
+  final int coinsToUse;
+  final int cashAmount;
+  final String currency;
+  final List<PreOrderPaymentMethodOptionDto> methods;
+
+  const PreOrderPaymentPricingDto({
+    required this.pricingToken,
+    required this.expiresAt,
+    required this.escrowAmount,
+    required this.coinsToUse,
+    required this.cashAmount,
+    required this.currency,
+    required this.methods,
+  });
+
+  factory PreOrderPaymentPricingDto.fromJson(Map<String, dynamic> json) {
+    return PreOrderPaymentPricingDto(
+      pricingToken: json['pricing_token'] as String,
+      expiresAt: json['expires_at'] != null
+          ? DateTime.tryParse(json['expires_at'] as String)
+          : null,
+      escrowAmount: (json['escrow_amount'] as num?)?.toInt() ?? 0,
+      coinsToUse: (json['coins_to_use'] as num?)?.toInt() ?? 0,
+      cashAmount: (json['cash_amount'] as num?)?.toInt() ?? 0,
+      currency: json['currency'] as String? ?? 'IDR',
+      methods: (json['methods'] as List<dynamic>? ?? [])
+          .map(
+            (e) => PreOrderPaymentMethodOptionDto.fromJson(
+              e as Map<String, dynamic>,
+            ),
+          )
+          .toList(),
+    );
+  }
+
+  PreOrderPaymentPricing toEntity() => PreOrderPaymentPricing(
+    pricingToken: pricingToken,
+    expiresAt: expiresAt,
+    escrowAmount: escrowAmount,
+    coinsToUse: coinsToUse,
+    cashAmount: cashAmount,
+    currency: currency,
+    methods: methods.map((m) => m.toEntity()).toList(),
+  );
+}

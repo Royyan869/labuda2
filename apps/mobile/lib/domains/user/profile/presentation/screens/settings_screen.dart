@@ -3,14 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/shared.dart';
-import 'package:labuda/domains/system/support/support.dart';
 import 'package:labuda/generated/app_localizations.dart';
 import 'unified_edit_profile_screen.dart';
-import 'security_screen.dart';
-import 'address_list_screen.dart';
-import 'terms_of_service_screen.dart';
-import 'privacy_policy_screen.dart';
-import 'blocked_users_screen.dart';
 import 'package:labuda/domains/user/preference/seller/seller.dart';
 import 'package:labuda/domains/user/profile/presentation/widgets/settings_profile_identity_section.dart';
 import 'package:labuda/domains/user/profile/presentation/widgets/settings_security_privacy_section.dart';
@@ -18,8 +12,6 @@ import 'package:labuda/domains/user/profile/presentation/widgets/settings_app_pr
 import 'package:labuda/domains/user/profile/presentation/widgets/settings_support_section.dart';
 import 'package:labuda/domains/user/profile/presentation/widgets/settings_account_management_section.dart';
 import 'package:labuda/domains/user/profile/presentation/widgets/settings_marketing_section.dart';
-import 'package:labuda/domains/commerce/pricing/discount/discount.dart';
-import 'package:labuda/domains/system/report/presentation/screens/my_reports_screen.dart';
 
 /// Unified Settings Screen (Personal + Business Management)
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -43,7 +35,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       appBar: AppBarCustom(title: l10n.settings),
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.only(top: AppMetrics.p8, bottom: AppMetrics.p8),
+          padding: const EdgeInsets.only(
+            top: AppMetrics.p8,
+            bottom: AppMetrics.p8,
+          ),
           children: [
             // ========================================
             // ROLE-BASED CARDS
@@ -69,12 +64,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             // 👤 Profile & Identity Section
             SettingsProfileIdentitySection(onNavigate: _handleNavigation),
 
+            // 🪙 Labuda Coins (loyalty) — canonical entry point
+            _buildCoinsTile(context),
+
             // 📢 Marketing & Promotion Section — seller capability only (hasMarketAuthority)
             if (currentUser != null &&
                 sellerCapabilityStatus == SellerCapabilityStatus.active)
-              SettingsMarketingSection(
-                onNavigate: _handleNavigation,
-              ),
+              SettingsMarketingSection(onNavigate: _handleNavigation),
 
             // 🔒 Security & Privacy Section
             SettingsSecurityPrivacySection(onNavigate: _handleNavigation),
@@ -175,17 +171,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   void _navigateToDiscountManagement(BuildContext context) {
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => const SellerDiscountListScreen()));
+    context.push(RoutePaths.sellerDiscounts);
   }
 
   Future<void> _navigateToUpgradeSeller(BuildContext context) async {
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => const SellerUpgradeWizardScreen(),
-      ),
-    );
+    await context.push(RoutePaths.sellerUpgrade);
 
     // Refresh auth state when returning from upgrade screen
     // This ensures upgrade card visibility is correctly updated (even on cancel)
@@ -195,15 +185,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   void _navigateToSecurity(BuildContext context) {
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (context) => const SecurityScreen()));
+    context.push(RoutePaths.security);
   }
 
   void _navigateToAddress(BuildContext context) {
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (context) => const AddressListScreen()));
+    context.push(RoutePaths.addresses);
   }
 
   void _navigateToNotificationSettings(BuildContext context) {
@@ -217,66 +203,49 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   void _navigateToTermsOfService(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (context) => const TermsOfServiceScreen()),
-    );
+    context.push(RoutePaths.termsOfService);
   }
 
   void _navigateToPrivacyPolicy(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (context) => const PrivacyPolicyScreen()),
-    );
+    context.push(RoutePaths.privacyPolicy);
   }
 
   void _navigateToBlockedUsers(BuildContext context) {
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (context) => const BlockedUsersScreen()));
+    context.push(RoutePaths.blockedUsers);
   }
 
   void _navigateToMyReports(BuildContext context) {
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (context) => const MyReportsScreen()));
+    context.push(RoutePaths.myReports);
   }
 
   void _showContactSupport(BuildContext context) {
-    // Navigate to Help Center first (self-help layer)
-    // Use centralized provider (TANGGUNG_JAWAB_MODUL compliance)
+    // Navigate to Help Center first (self-help layer). The route resolves the
+    // reader identity from the session, so no user data is passed here — only
+    // the auth gate below remains local to this affordance.
     final currentUser = ref.read(authenticatedUserProvider);
 
     if (currentUser == null) {
-      AppSnackBar.showError(
-        context,
-        'Please login to access support',
-        duration: const Duration(seconds: 4),
-      );
+      ref.read(navigationHandlerProvider).navigateToSignIn();
       return;
     }
 
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => HelpCenterScreen(
-          userId: currentUser.id,
-          userName: '@${currentUser.username}',
-          userAvatar: currentUser.avatarUrl,
-        ),
-      ),
-    );
+    context.push(RoutePaths.helpCenter);
   }
 
   Widget _buildSellerDashboardCard(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      margin: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p8, AppMetrics.p16, AppMetrics.p16),
+      margin: const EdgeInsets.fromLTRB(
+        AppMetrics.p16,
+        AppMetrics.p8,
+        AppMetrics.p16,
+        AppMetrics.p16,
+      ),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            context.statusColors.success,
-            context.statusColors.success,
-          ],
+          colors: [context.statusColors.success, context.statusColors.success],
         ),
         borderRadius: BorderRadius.circular(AppShape.r16),
         boxShadow: [
@@ -315,18 +284,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     children: [
                       Text(
                         'Seller Dashboard',
-                        style: TextStyle(
+                        style: context.typeRoles.titleSection.copyWith(
                           color: scheme.onPrimary,
-                          fontSize: AppType.s20,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         'Manage your store and sales',
-                        style: TextStyle(
+                        style: context.typeRoles.bodyDense.copyWith(
                           color: scheme.onPrimary,
-                          fontSize: AppType.s14,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -350,7 +317,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Widget _buildSellerShippingTile(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      margin: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p0, AppMetrics.p16, AppMetrics.p12),
+      margin: const EdgeInsets.fromLTRB(
+        AppMetrics.p16,
+        AppMetrics.p0,
+        AppMetrics.p16,
+        AppMetrics.p12,
+      ),
       decoration: BoxDecoration(
         color: scheme.surface,
         borderRadius: BorderRadius.circular(AppShape.r12),
@@ -384,8 +356,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     children: [
                       Text(
                         'Shipping',
-                        style: TextStyle(
-                          fontSize: AppType.s16,
+                        style: context.typeRoles.titleCompact.copyWith(
                           fontWeight: FontWeight.w600,
                           color: scheme.onSurface,
                         ),
@@ -393,8 +364,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       const SizedBox(height: 2),
                       Text(
                         'Manage shipping options & rates for your products',
-                        style: TextStyle(
-                          fontSize: AppType.s12,
+                        style: context.typeRoles.labelMicro.copyWith(
                           color: scheme.onSurfaceVariant,
                         ),
                       ),
@@ -411,6 +381,28 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  /// Labuda Coins (loyalty points) — canonical entry point to the `/coins`
+  /// surface. Coins are loyalty points, not wallet/payment.
+  Widget _buildCoinsTile(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return ListTile(
+      leading: Icon(Icons.toll_outlined, color: scheme.onSurfaceVariant),
+      title: Text('Labuda Coins', style: TextStyle(color: scheme.onSurface)),
+      subtitle: Text(
+        'Lihat saldo dan riwayat koin',
+        style: context.typeRoles.bodyDense.copyWith(
+          color: scheme.onSurfaceVariant,
+        ),
+      ),
+      trailing: Icon(
+        Icons.arrow_forward_ios,
+        size: AppIconSize.inlineGlyph,
+        color: scheme.onSurfaceVariant,
+      ),
+      onTap: () => context.push(RoutePaths.coins),
     );
   }
 
@@ -431,7 +423,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             const SizedBox(height: 8),
             Text(l10n.copyrightLabudaTeam(currentYear)),
             const SizedBox(height: 16),
-            Text(l10n.labudaDescription, style: const TextStyle(fontSize: AppType.s14)),
+            Text(l10n.labudaDescription, style: context.typeRoles.bodyDense),
           ],
         ),
         actions: [
@@ -516,7 +508,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     // Show error message
                     AppSnackBar.showError(
                       context,
-                      'Failed to sign out. Please try again.',
+                      'Gagal keluar. Coba lagi.',
                       duration: const Duration(seconds: 4),
                     );
                   }
@@ -525,9 +517,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             },
             child: Text(
               l10n.signOut,
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.primary,
-              ),
+              style: TextStyle(color: Theme.of(context).colorScheme.primary),
             ),
           ),
         ],

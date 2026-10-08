@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Clock, ChevronDown, ChevronRight, User, Calendar, RefreshCw, AlertTriangle, CheckCircle, Globe } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
+import { AdminLoadingState, AdminEmptyState } from '@/components/common'
 import type { TimelineEvent } from '@/types'
 import { formatRupiah } from '@/lib/utils'
 
@@ -192,7 +193,7 @@ function TimelineItem({ event, isLast }: TimelineItemProps) {
       {/* Timeline connector */}
       <div className="flex flex-col items-center">
         {renderEventIcon(event.event, iconColor)}
-        {!isLast && <div className="w-0.5 flex-1 bg-muted min-h-[48px]" />}
+        {!isLast && <div className="w-0.5 flex-1 bg-surface-muted min-h-[48px]" />}
       </div>
 
       {/* Timeline content */}
@@ -206,10 +207,10 @@ function TimelineItem({ event, isLast }: TimelineItemProps) {
             </p>
 
             {/* Event type code (secondary, smaller) */}
-            <p className="text-xs text-muted-foreground mt-0.5 font-mono">{event.event}</p>
+            <p className="type-caption mt-0.5 font-mono">{event.event}</p>
 
             {/* Timestamp */}
-            <p className="text-xs text-muted-foreground mt-0.5">
+            <p className="type-caption mt-0.5">
               {new Date(event.timestamp).toLocaleString('id-ID')}
             </p>
 
@@ -217,7 +218,7 @@ function TimelineItem({ event, isLast }: TimelineItemProps) {
             {event.actor_name && (
               <div className="flex items-center gap-1 mt-1">
                 <User className="h-3 w-3 text-muted-foreground" />
-                <p className="text-xs text-muted-foreground">{event.actor_name}</p>
+                <p className="type-caption">{event.actor_name}</p>
               </div>
             )}
 
@@ -235,7 +236,7 @@ function TimelineItem({ event, isLast }: TimelineItemProps) {
             {isWebhookEvent && event.metadata && (
               <div className="mt-2 space-y-1">
                 {!!event.metadata.http_status && (
-                  <div className="text-xs text-muted-foreground">
+                  <div className="type-caption">
                     HTTP Status: <span className="font-mono">{event.metadata.http_status as string}</span>
                   </div>
                 )}
@@ -257,7 +258,7 @@ function TimelineItem({ event, isLast }: TimelineItemProps) {
           {hasMetadata && (
             <button
               onClick={() => setIsExpanded(!isExpanded)}
-              className="p-1 hover:bg-muted rounded transition-colors"
+              className="p-1 hover:bg-surface-muted rounded transition-colors"
               aria-label={isExpanded ? 'Collapse payload' : 'Expand payload'}
             >
               {isExpanded ? (
@@ -271,7 +272,7 @@ function TimelineItem({ event, isLast }: TimelineItemProps) {
 
         {/* Expandable metadata payload (secondary, collapsible) */}
         {hasMetadata && isExpanded && (
-          <div className="mt-3 p-3 bg-muted rounded-lg border border-border">
+          <div className="mt-3 p-3 bg-surface-muted rounded-lg border border-border">
             <p className="text-xs font-medium text-muted-foreground mb-2">Raw Payload</p>
             <pre className="text-xs font-mono text-muted-foreground overflow-x-auto whitespace-pre-wrap">
               {JSON.stringify(event.metadata, null, 2)}
@@ -294,9 +295,7 @@ export function TimelinePanel({ events, loading }: TimelinePanelProps) {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-center py-8">
-            <div className="inline-block h-6 w-6 animate-spin rounded-full border-3 border-solid border-primary border-r-transparent" />
-          </div>
+          <AdminLoadingState embedded label="Loading timeline" />
         </CardContent>
       </Card>
     )
@@ -312,7 +311,7 @@ export function TimelinePanel({ events, loading }: TimelinePanelProps) {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground">No timeline events available</p>
+          <AdminEmptyState title="No timeline events available" />
         </CardContent>
       </Card>
     )

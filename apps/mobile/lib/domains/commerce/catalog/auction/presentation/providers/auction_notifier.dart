@@ -9,6 +9,7 @@ import 'package:labuda/shared/domain/entities/resource_projection.dart';
 import 'package:labuda/domains/commerce/catalog/auction/data/auction_providers.dart'
     show auctionRepositoryProvider;
 import 'auction_state.dart';
+import 'seller_auctions_pager.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/domain.dart';
 
 /// Auction Notifier
@@ -20,6 +21,7 @@ import 'package:labuda/domains/commerce/catalog/auction/domain/domain.dart';
 /// - CreateAuctionUseCase → createAuction
 /// - UpdateAuctionUseCase → updateAuction
 /// - CancelAuctionUseCase → cancelAuction
+/// - RelistAuction → relistAuction
 ///
 /// Uses Riverpod Notifier for state management
 class AuctionNotifier extends Notifier<AuctionNotifierState> {
@@ -258,7 +260,9 @@ class AuctionNotifier extends Notifier<AuctionNotifierState> {
   Future<String?> claimAuction({
     required String auctionId,
     required String addressId,
-    required String shippingSetupId,
+    String? shippingSetupId,
+    String? shippingQuoteId,
+    String? chatId,
     String? discountCode,
     bool useCoins = false,
   }) async {
@@ -274,6 +278,8 @@ class AuctionNotifier extends Notifier<AuctionNotifierState> {
         auctionId: auctionId,
         addressId: addressId,
         shippingSetupId: shippingSetupId,
+        shippingQuoteId: shippingQuoteId,
+        chatId: chatId,
         discountCode: discountCode,
         useCoins: useCoins,
       );
@@ -327,7 +333,6 @@ class AuctionNotifier extends Notifier<AuctionNotifierState> {
     required String startMode,
     DateTime? scheduledStartAt,
     required int durationHours,
-    String? farmAddressId,
     required PreparationTime preparationTime,
     required List<String> shippingSetupIds,
   }) async {
@@ -349,7 +354,6 @@ class AuctionNotifier extends Notifier<AuctionNotifierState> {
       startMode: startMode,
       scheduledStartAt: scheduledStartAt,
       durationHours: durationHours,
-      farmAddressId: farmAddressId,
       preparationTime: preparationTime,
       shippingSetupIds: shippingSetupIds,
     );
@@ -374,8 +378,9 @@ class AuctionNotifier extends Notifier<AuctionNotifierState> {
     try {
       ref.invalidate(marketplaceAuctionsProvider);
       ref.invalidate(sellerAuctionsProvider(sellerId));
-      // ignore: unused_result
-      ref.invalidate(myAuctionsProvider((sellerId: sellerId, status: null)));
+      // My Auctions surface — the canonical owner-inventory pager — must
+      // reflect the new auction while it is alive.
+      ref.invalidate(sellerAuctionsPagerProvider);
     } catch (_) {}
     return true;
   }
@@ -438,6 +443,53 @@ class AuctionNotifier extends Notifier<AuctionNotifierState> {
     );
   }
 
+  /// Relist (republish) an auction that ended with no bids, or one that
+  /// lapsed before activation.
+  ///
+  /// The backend decides whether the auction is relistable; this only reports
+  /// the outcome so the caller can refresh the inventory or surface failure.
+  Future<bool> relistAuction({
+    required String auctionId,
+    required String title,
+    required String description,
+    required int openingBid,
+    required int bidIncrement,
+    int? buyNowPrice,
+    required String startMode,
+    DateTime? scheduledStartAt,
+    required int durationHours,
+  }) async {
+    state = state.copyWith(isLoading: true, clearError: true);
+
+    final result = await _auctionRepository.relistAuction(
+      auctionId: auctionId,
+      title: title,
+      description: description,
+      openingBid: openingBid,
+      bidIncrement: bidIncrement,
+      buyNowPrice: buyNowPrice,
+      startMode: startMode,
+      scheduledStartAt: scheduledStartAt,
+      durationHours: durationHours,
+    );
+
+    return result.fold(
+      (error) {
+        state = state.copyWith(isLoading: false, error: error);
+        return false;
+      },
+      (_) {
+        state = state.copyWith(
+          isLoading: false,
+          error: null,
+          successMessage: 'Lelang dijadwalkan ulang',
+        );
+        loadAuctionDetails(auctionId);
+        return true;
+      },
+    );
+  }
+
   // ========== Utility Methods ==========
 
   /// Clear error
@@ -488,19 +540,6 @@ final sellerAuctionsProvider =
     FutureProvider.autoDispose.family<List<Auction>, String>((ref, sellerId) async {
   final repository = ref.watch(auctionRepositoryProvider);
   final result = await repository.getUserAuctions(sellerId: sellerId, limit: 50);
-  return result.fold((e) => throw Exception(e), (a) => a);
-});
-
-/// Seller auctions with status filter (dashboard) — Future, not Stream.
-final myAuctionsProvider = FutureProvider.autoDispose
-    .family<List<Auction>, ({String sellerId, AuctionStatus? status})>(
-        (ref, params) async {
-  final repository = ref.watch(auctionRepositoryProvider);
-  final result = await repository.getUserAuctions(
-    sellerId: params.sellerId,
-    status: params.status,
-    limit: 50,
-  );
   return result.fold((e) => throw Exception(e), (a) => a);
 });
 

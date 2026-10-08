@@ -133,7 +133,6 @@ class AuctionMapper {
       // wire fields — never parsed from a wire field.
       createdAt: dto.createdAt,
       updatedAt: dto.updatedAt,
-      farmAddressId: dto.farmAddressId,
       productId: dto.productId,
     );
   }
@@ -142,8 +141,7 @@ class AuctionMapper {
   ///
   /// Owner Truth: bidder identity arrives nested as `dto.bidder` (a
   /// `UserBriefDto` carrying username + avatar + coarsened lifecycle).
-  /// No fullName fallback (KYC field), no phantom winner flags — buyer
-  /// bid-position authority lives in GET /api/v1/bidding, not on the bid wire.
+  /// No fullName fallback (KYC field), no phantom winner flags.
   static AuctionBid toBidEntity(BidDto dto) {
     final card = dto.bidder;
     return AuctionBid(
@@ -186,7 +184,6 @@ class AuctionMapper {
       breeder: koi.breeder,
       bloodline: koi.bloodline,
       certificates: koi.certificates.isEmpty ? null : koi.certificates,
-      farmAddressId: params.farmAddressId,
       preparationTime: params.preparationTime.toJson(),
       shippingSetupIds: params.shippingSetupIds,
       startPrice: params.openingBid,

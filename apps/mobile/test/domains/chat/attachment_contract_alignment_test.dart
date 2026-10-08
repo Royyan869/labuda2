@@ -2,7 +2,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:labuda/domains/chat/chat/data/mappers/chat_mapper.dart';
 import 'package:labuda/domains/chat/chat/data/dto/attachment_dto.dart';
 import 'package:labuda/domains/chat/chat/data/dto/message_dto.dart';
-import 'package:labuda/domains/chat/chat/domain/entities/chat_entities.dart';
 import 'package:labuda/domains/chat/chat/presentation/screens/chat_detail_screen.dart';
 import 'package:labuda/shared/attachment/entities/attachment.dart';
 import 'package:labuda/shared/attachment/entities/share_reference.dart';
@@ -50,17 +49,6 @@ void main() {
       expect(dto.targetType, ShareTargetType.profile);
       expect(dto.wireTargetType, 'profile');
       expect(dto.toJson()['data']['target_type'], 'profile');
-    });
-
-    test('canonical content share references stay canonical', () {
-      final reference = ShareReference.content(
-        contentId: 'content-1',
-        title: 'Content title',
-      );
-
-      expect(reference.chatWireTargetType, 'content');
-      expect(reference.asChatReference(), isNotNull);
-      expect(reference.asChatReference()!.wireTargetType, 'content');
     });
 
     test('reference DTO rejects legacy post/request wire types', () {
@@ -314,8 +302,8 @@ void main() {
         );
 
         // Auction path: chat forwards the auctionId surface only; the physical
-        // product id is resolved by the commerce intent (openAuctionCheckout),
-        // and fixedPriceSaleId must be null.
+        // product id is resolved by the Commerce winner CLAIM authority
+        // (POST /auctions/:id/claim), and fixedPriceSaleId must be null.
         expect(auctionTarget?.auctionId, 'auction-1');
         expect(auctionTarget?.forSaleId, isNull);
       },
@@ -357,72 +345,6 @@ void main() {
 
       expect(dto.attachmentSellerTrustLifecycle, 'active');
     });
-
-    test(
-      'chat mapper serializes canonical chat targets and normalized content shares',
-      () {
-        final canonicalCases = <Map<String, Object>>[
-          {
-            'reference': ShareReference.forSale(
-              forSaleId: 'forSale-1',
-              title: 'ForSale title',
-            ),
-            'wireType': 'for_sale',
-          },
-          {
-            'reference': ShareReference.auction(
-              auctionId: 'auction-1',
-              title: 'Auction title',
-            ),
-            'wireType': 'auction',
-          },
-          {
-            'reference': ShareReference.profile(
-              profileId: 'profile-1',
-              name: 'Profile title',
-            ),
-            'wireType': 'profile',
-          },
-        ];
-
-        for (final testCase in canonicalCases) {
-          final reference = testCase['reference'] as ShareReference;
-          final expectedWireType = testCase['wireType'] as String;
-          final message = Message(
-            id: 'm-$expectedWireType',
-            chatId: 'c1',
-            senderId: 'u1',
-            senderName: 'Sender',
-            content: 'hello',
-            objectReference: reference,
-            createdAt: DateTime.parse('2026-06-01T00:00:00.000Z'),
-          );
-
-          final attachment =
-              ChatMapper.domainAttachmentToDto(message)
-                  as ShareReferenceAttachmentDto;
-          expect(attachment.toJson()['data']['target_type'], expectedWireType);
-        }
-
-        final genericMessage = Message(
-          id: 'm-content',
-          chatId: 'c1',
-          senderId: 'u1',
-          senderName: 'Sender',
-          content: 'hello',
-          objectReference: ShareReference.content(
-            contentId: 'content-2',
-            title: 'Generic content',
-          ),
-          createdAt: DateTime.parse('2026-06-01T00:00:00.000Z'),
-        );
-
-        final attachment =
-            ChatMapper.domainAttachmentToDto(genericMessage)
-                as ShareReferenceAttachmentDto;
-        expect(attachment.toJson()['data']['target_type'], 'content');
-      },
-    );
   });
 }
 

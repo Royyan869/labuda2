@@ -179,19 +179,27 @@ class _ProfileReviewsTabState extends ConsumerState<ProfileReviewsTab>
                 : summary.totalRatings > 0)
               SliverToBoxAdapter(child: _buildFilterSection(context)),
 
-            // Loading indicator
+            // Loading indicator. Non-scrollable state → the canonical
+            // bounded-tab-cell rule: hasScrollBody:false lets the sliver grow
+            // to max(remaining, intrinsic) so a short viewport scrolls rather
+            // than clamping (and overflowing) the state.
             if (isLoadingRatings)
               const SliverFillRemaining(
+                hasScrollBody: false,
                 child: Center(child: CircularProgressIndicator()),
               )
-            // Empty state
+            // Empty state (non-scrollable) → same canonical rule.
             else if ((!widget.isSeller || _currentSubTab == 0)
                 ? summary.totalRatings == 0
                 : ratings.isEmpty)
-              const SliverFillRemaining(child: ReviewsEmptyState())
-            // Empty filtered results
+              const SliverFillRemaining(
+                hasScrollBody: false,
+                child: ReviewsEmptyState(),
+              )
+            // Empty filtered results (non-scrollable) → same canonical rule.
             else if (filteredRatings.isEmpty)
               SliverFillRemaining(
+                hasScrollBody: false,
                 child: Center(
                   child: Padding(
                     padding: const EdgeInsets.all(AppMetrics.p24),
@@ -207,8 +215,7 @@ class _ProfileReviewsTabState extends ConsumerState<ProfileReviewsTab>
                         Text(
                           'No ratings with filter "$_selectedFilter"',
                           textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: AppType.s16,
+                          style: context.typeRoles.titleCompact.copyWith(
                             color: scheme.onSurfaceVariant,
                           ),
                         ),
@@ -250,7 +257,10 @@ class _ProfileReviewsTabState extends ConsumerState<ProfileReviewsTab>
   Widget _buildFilterSection(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p8),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppMetrics.p16,
+        vertical: AppMetrics.p8,
+      ),
       color: scheme.surface,
       child: Wrap(
         spacing: 8,
@@ -329,8 +339,11 @@ class _ProfileReviewsTabState extends ConsumerState<ProfileReviewsTab>
 
     return Card(
       margin: const EdgeInsets.only(bottom: AppMetrics.p16),
-      elevation: AppElevation.card,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppShape.r12)),
+      // Canonical card direction is flat — no depth for a review row.
+      elevation: AppElevation.none,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppShape.r12),
+      ),
       color: scheme.surface,
       child: Padding(
         padding: const EdgeInsets.all(AppMetrics.p16),
@@ -352,8 +365,7 @@ class _ProfileReviewsTabState extends ConsumerState<ProfileReviewsTab>
                     children: [
                       Text(
                         '@${author?.username ?? 'User'}',
-                        style: TextStyle(
-                          fontSize: AppType.s14,
+                        style: context.typeRoles.bodyDense.copyWith(
                           fontWeight: FontWeight.w600,
                           color: scheme.onSurface,
                         ),
@@ -361,8 +373,7 @@ class _ProfileReviewsTabState extends ConsumerState<ProfileReviewsTab>
                       if (!isReceived) ...[
                         Text(
                           'Rated this seller',
-                          style: TextStyle(
-                            fontSize: AppType.s12,
+                          style: context.typeRoles.labelMicro.copyWith(
                             color: scheme.onSurfaceVariant,
                           ),
                         ),
@@ -379,7 +390,7 @@ class _ProfileReviewsTabState extends ConsumerState<ProfileReviewsTab>
                     TimeAgoWidget.compact(
                       dateTime: rating.createdAt,
                       color: scheme.onSurfaceVariant,
-                      fontSize: AppType.s12,
+                      fontSize: context.typeRoles.labelMicro.fontSize,
                     ),
                   ],
                 ),
@@ -389,8 +400,7 @@ class _ProfileReviewsTabState extends ConsumerState<ProfileReviewsTab>
               const SizedBox(height: 12),
               Text(
                 rating.comment!,
-                style: TextStyle(
-                  fontSize: AppType.s14,
+                style: context.typeRoles.bodyDense.copyWith(
                   height: 1.4,
                   color: scheme.onSurface,
                 ),
@@ -399,8 +409,7 @@ class _ProfileReviewsTabState extends ConsumerState<ProfileReviewsTab>
             const SizedBox(height: 8),
             Text(
               'Verified Purchase',
-              style: TextStyle(
-                fontSize: AppType.s12,
+              style: context.typeRoles.labelMicro.copyWith(
                 color: context.statusColors.success,
                 fontWeight: FontWeight.w500,
               ),

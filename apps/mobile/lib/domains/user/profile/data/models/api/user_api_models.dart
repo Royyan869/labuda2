@@ -223,27 +223,16 @@ class UpdateProfileApiRequest {
   final String? location;
   final String? preferredLang;
 
-  // Social media handles
+  // Optional social media handles. Empty string clears the handle; presence of
+  // a value is the visibility authority (no separate toggle).
   final String? instagramHandle;
   final String? facebookHandle;
   final String? twitterHandle;
   final String? tiktokHandle;
-  final String? youtubeHandle;
-  final String? websiteUrl;
 
   /// Canonical cover photo reference. Persisted as a STORAGE KEY
   /// (images/profile-covers/{userId}.jpg); an empty string clears the cover.
   final String? coverPhotoUrl;
-
-  // Privacy settings
-  final String? visibility;
-  final bool? showPhoneNumber;
-  final bool? showEmail;
-  final bool? showLocation;
-  final String? allowMessagesFrom;
-  final bool? allowTagging;
-  final bool? showActivityStatus;
-  final bool? showTransactionCount;
 
   const UpdateProfileApiRequest({
     this.bio,
@@ -257,16 +246,6 @@ class UpdateProfileApiRequest {
     this.facebookHandle,
     this.twitterHandle,
     this.tiktokHandle,
-    this.youtubeHandle,
-    this.websiteUrl,
-    this.visibility,
-    this.showPhoneNumber,
-    this.showEmail,
-    this.showLocation,
-    this.allowMessagesFrom,
-    this.allowTagging,
-    this.showActivityStatus,
-    this.showTransactionCount,
   });
 
   Map<String, dynamic> toJson() {
@@ -306,37 +285,6 @@ class UpdateProfileApiRequest {
     }
     if (tiktokHandle != null) {
       map['tiktok_handle'] = tiktokHandle;
-    }
-    if (youtubeHandle != null) {
-      map['youtube_handle'] = youtubeHandle;
-    }
-    if (websiteUrl != null) {
-      map['website_url'] = websiteUrl;
-    }
-
-    if (visibility != null) {
-      map['visibility'] = visibility;
-    }
-    if (showPhoneNumber != null) {
-      map['show_phone_number'] = showPhoneNumber;
-    }
-    if (showEmail != null) {
-      map['show_email'] = showEmail;
-    }
-    if (showLocation != null) {
-      map['show_location'] = showLocation;
-    }
-    if (allowMessagesFrom != null) {
-      map['allow_messages_from'] = allowMessagesFrom;
-    }
-    if (allowTagging != null) {
-      map['allow_tagging'] = allowTagging;
-    }
-    if (showActivityStatus != null) {
-      map['show_activity_status'] = showActivityStatus;
-    }
-    if (showTransactionCount != null) {
-      map['show_transaction_count'] = showTransactionCount;
     }
 
     return map;
@@ -389,10 +337,17 @@ class UserApiResponse extends Equatable {
   final String? storeImageUrl;
   final DateTime? storeImageUpdatedAt;
 
-  // Buyer-facing origin of the target's sender address ("City, Province") —
-  // public profile projection. Null when no sender address exists; the wire
+  // Buyer-facing origin of the target's primary address ("City, Province") —
+  // public profile projection. Null when no primary address exists; the wire
   // never carries street/district/phone.
   final String? publicOriginLine;
+
+  // Resolved cover photo read URL. Public profile (GET /users/{id}) emits it at
+  // the top level; the self envelope (GET /users/me) nests it under `profile`.
+  // `UserApiResponse` intentionally models both contracts (see location), so
+  // this carries the public projection while `profile.coverPhotoUrl` carries
+  // the self projection.
+  final String? coverPhotoUrl;
 
   const UserApiResponse({
     required this.id,
@@ -423,6 +378,7 @@ class UserApiResponse extends Equatable {
     this.storeImageUrl,
     this.storeImageUpdatedAt,
     this.publicOriginLine,
+    this.coverPhotoUrl,
   });
 
   factory UserApiResponse.fromJson(Map<String, dynamic> json) {
@@ -568,6 +524,12 @@ class UserApiResponse extends Equatable {
         final s = v.toString().trim();
         return s.isEmpty ? null : s;
       })(),
+      coverPhotoUrl: (() {
+        final v = json['cover_photo_url'];
+        if (v == null) return null;
+        final s = v.toString().trim();
+        return s.isEmpty ? null : s;
+      })(),
     );
 
     // 🔍 DEBUG: Log parsed values
@@ -619,7 +581,6 @@ class UserProfileApiResponse extends Equatable {
   final String preferredLang;
   final DateTime? lastActiveAt;
   final SocialMediaApiResponse? socialMedia;
-  final PrivacySettingsApiResponse? privacy;
 
   const UserProfileApiResponse({
     required this.id,
@@ -635,7 +596,6 @@ class UserProfileApiResponse extends Equatable {
     required this.preferredLang,
     this.lastActiveAt,
     this.socialMedia,
-    this.privacy,
   });
 
   factory UserProfileApiResponse.fromJson(Map<String, dynamic> json) {
@@ -667,9 +627,6 @@ class UserProfileApiResponse extends Equatable {
       socialMedia: json['social_media'] != null
           ? SocialMediaApiResponse.fromJson(json['social_media'])
           : null,
-      privacy: json['privacy'] != null
-          ? PrivacySettingsApiResponse.fromJson(json['privacy'])
-          : null,
     );
   }
 
@@ -677,22 +634,19 @@ class UserProfileApiResponse extends Equatable {
   List<Object?> get props => [id, username, followersCount, followingCount];
 }
 
-/// Social media handles response
+/// Social media handles response. Presence of a value is the visibility
+/// authority; absent handles are omitted from the wire.
 class SocialMediaApiResponse extends Equatable {
   final String? instagramHandle;
   final String? facebookHandle;
   final String? twitterHandle;
   final String? tiktokHandle;
-  final String? youtubeHandle;
-  final String? websiteUrl;
 
   const SocialMediaApiResponse({
     this.instagramHandle,
     this.facebookHandle,
     this.twitterHandle,
     this.tiktokHandle,
-    this.youtubeHandle,
-    this.websiteUrl,
   });
 
   factory SocialMediaApiResponse.fromJson(Map<String, dynamic> json) {
@@ -701,50 +655,14 @@ class SocialMediaApiResponse extends Equatable {
       facebookHandle: json['facebook_handle'] as String?,
       twitterHandle: json['twitter_handle'] as String?,
       tiktokHandle: json['tiktok_handle'] as String?,
-      youtubeHandle: json['youtube_handle'] as String?,
-      websiteUrl: json['website_url'] as String?,
     );
   }
 
   @override
-  List<Object?> get props => [instagramHandle, facebookHandle, twitterHandle];
-}
-
-/// Privacy settings response
-class PrivacySettingsApiResponse extends Equatable {
-  final String visibility;
-  final bool showPhoneNumber;
-  final bool showEmail;
-  final bool showLocation;
-  final String allowMessagesFrom;
-  final bool allowTagging;
-  final bool showActivityStatus;
-  final bool showTransactionCount;
-
-  const PrivacySettingsApiResponse({
-    required this.visibility,
-    required this.showPhoneNumber,
-    required this.showEmail,
-    required this.showLocation,
-    required this.allowMessagesFrom,
-    required this.allowTagging,
-    required this.showActivityStatus,
-    required this.showTransactionCount,
-  });
-
-  factory PrivacySettingsApiResponse.fromJson(Map<String, dynamic> json) {
-    return PrivacySettingsApiResponse(
-      visibility: json['visibility'] as String? ?? 'public',
-      showPhoneNumber: json['show_phone_number'] as bool? ?? false,
-      showEmail: json['show_email'] as bool? ?? false,
-      showLocation: json['show_location'] as bool? ?? true,
-      allowMessagesFrom: json['allow_messages_from'] as String? ?? 'everyone',
-      allowTagging: json['allow_tagging'] as bool? ?? true,
-      showActivityStatus: json['show_activity_status'] as bool? ?? true,
-      showTransactionCount: json['show_transaction_count'] as bool? ?? true,
-    );
-  }
-
-  @override
-  List<Object?> get props => [visibility, showPhoneNumber, showEmail];
+  List<Object?> get props => [
+    instagramHandle,
+    facebookHandle,
+    twitterHandle,
+    tiktokHandle,
+  ];
 }

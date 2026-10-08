@@ -170,7 +170,7 @@ void main() {
     required String sellerId,
     required String buyerId,
     required NegotiationStatus status,
-    String lastOfferBy = 'buyer',
+    bool viewerCanAct = false,
     double? agreedPrice,
     DateTime? expiresAt,
   }) {
@@ -186,7 +186,7 @@ void main() {
       sellerId: sellerId,
       status: status,
       currentOfferPrice: 25000,
-      lastOfferBy: lastOfferBy,
+      viewerCanAct: viewerCanAct,
       agreedPrice: agreedPrice,
       expiresAt: expiresAt,
       createdAt: now,
@@ -219,7 +219,6 @@ void main() {
             sellerId: _currentUserId,
             buyerId: _otherUserId,
             status: NegotiationStatus.active,
-            lastOfferBy: 'buyer',
           ),
         ),
       );
@@ -245,7 +244,6 @@ void main() {
           sellerId: _otherUserId,
           buyerId: _currentUserId,
           status: NegotiationStatus.accepted,
-          lastOfferBy: 'buyer',
           agreedPrice: 25000,
           expiresAt: DateTime.now().add(const Duration(hours: 25)),
         ),

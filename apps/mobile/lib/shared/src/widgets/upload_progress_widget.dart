@@ -63,16 +63,14 @@ class UploadProgressWidget extends ConsumerWidget {
                   children: [
                     Text(
                       UploadTaskUtils.getTaskTitle(task.type),
-                      style: const TextStyle(
+                      style: context.typeRoles.bodyDense.copyWith(
                         fontWeight: FontWeight.w600,
-                        fontSize: AppType.s14,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       task.description,
-                      style: TextStyle(
-                        fontSize: AppType.s12,
+                      style: context.typeRoles.labelMicro.copyWith(
                         color: scheme.onSurfaceVariant,
                       ),
                       maxLines: 1,
@@ -96,6 +94,7 @@ class UploadProgressWidget extends ConsumerWidget {
                     Icons.close,
                     color: scheme.error,
                     size: AppIconSize.action,
+                    semanticLabel: 'Hapus unggahan',
                   ),
                 ),
             ],
@@ -121,8 +120,7 @@ class UploadProgressWidget extends ConsumerWidget {
                 const SizedBox(width: 8),
                 Text(
                   '${(task.progress * 100).toInt()}%',
-                  style: TextStyle(
-                    fontSize: AppType.s12,
+                  style: context.typeRoles.labelMicro.copyWith(
                     fontWeight: FontWeight.w500,
                     color: scheme.onSurface,
                   ),
@@ -135,8 +133,7 @@ class UploadProgressWidget extends ConsumerWidget {
             if (task.totalSteps > 0)
               Text(
                 'Langkah ${task.currentStep} dari ${task.totalSteps}',
-                style: TextStyle(
-                  fontSize: AppType.s12,
+                style: context.typeRoles.labelMicro.copyWith(
                   color: scheme.onSurfaceVariant,
                 ),
               ),
@@ -148,8 +145,7 @@ class UploadProgressWidget extends ConsumerWidget {
             const SizedBox(height: 4),
             Text(
               task.errorMessage!,
-              style: TextStyle(
-                fontSize: AppType.s12,
+              style: context.typeRoles.labelMicro.copyWith(
                 color: scheme.error,
               ),
               maxLines: 2,

@@ -52,6 +52,7 @@ class ForSaleRemoteDatasource extends BaseApiRepository {
     int? priceMin,
     int? priceMax,
     String? sortBy,
+    bool includeWithdrawn = false,
   }) async {
     // Build query parameters
     final queryParams = <String, dynamic>{
@@ -62,6 +63,9 @@ class ForSaleRemoteDatasource extends BaseApiRepository {
       if (priceMin != null) 'price_min': priceMin,
       if (priceMax != null) 'price_max': priceMax,
       if (sortBy != null) 'sort': sortBy,
+      // Owner inventory opt-in: the backend excludes withdrawn by default and
+      // only the owning seller may request them (owner branch + seller_status).
+      if (includeWithdrawn) 'include_withdrawn': true,
     };
 
     return executeRequest(
@@ -119,8 +123,14 @@ class ForSaleRemoteDatasource extends BaseApiRepository {
     String sellerId, {
     int page = 1,
     int limit = 20,
+    bool includeWithdrawn = false,
   }) async {
-    return listForSales(page: page, limit: limit, sellerId: sellerId);
+    return listForSales(
+      page: page,
+      limit: limit,
+      sellerId: sellerId,
+      includeWithdrawn: includeWithdrawn,
+    );
   }
 
   // ========================================

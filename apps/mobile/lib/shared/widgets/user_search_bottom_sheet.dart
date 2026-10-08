@@ -26,11 +26,11 @@ class UserSearchBottomSheet extends ConsumerStatefulWidget {
     List<String> alreadyTaggedUserIds = const [],
     int maxSelections = 50,
   }) async {
-    return showModalBottomSheet<List<String>>(
+    return AppBottomSheetBase.show<List<String>>(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => UserSearchBottomSheet(
+      title: 'Tag People',
+      padding: EdgeInsets.zero,
+      content: UserSearchBottomSheet(
         alreadyTaggedUserIds: alreadyTaggedUserIds,
         maxSelections: maxSelections,
       ),
@@ -50,6 +50,11 @@ class _UserSearchBottomSheetState extends ConsumerState<UserSearchBottomSheet> {
   List<UserSearch> _searchResults = [];
   bool _isSearching = false;
   String _searchQuery = '';
+
+  /// Share of the sheet's available height this body asks for: a tall sheet
+  /// that still leaves room for the sheet's own chrome (handle + title) and
+  /// never exceeds the sheet's ceiling.
+  static const double _bodyShare = 0.75;
 
   @override
   void initState() {
@@ -145,37 +150,36 @@ class _UserSearchBottomSheetState extends ConsumerState<UserSearchBottomSheet> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final mediaQuery = MediaQuery.of(context);
-    final keyboardHeight = mediaQuery.viewInsets.bottom;
 
-    // Calculate height: when keyboard is visible, use more space
-    final modalHeight = keyboardHeight > 0
-        ? mediaQuery.size.height *
-              0.9 // 90% when keyboard active
-        : mediaQuery.size.height * 0.75; // 75% when keyboard collapsed
+    // Body height — a share of the space the sheet ACTUALLY has, asked of the
+    // sheet authority itself ([AppBottomSheetBase.availableHeight]: window
+    // minus the keyboard minus the system top inset). A fraction of the raw
+    // SCREEN height went stale the moment the keyboard opened — 90% of the
+    // screen plus the keyboard lift was taller than the sheet's own ceiling,
+    // so this body outgrew its slot instead of adapting to the live inset.
+    final modalHeight =
+        AppBottomSheetBase.availableHeight(context) * _bodyShare;
 
-    return Container(
+    // Surface, shape, handle and scroll come from the base.
+    return SizedBox(
       height: modalHeight,
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerLow,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(AppShape.r16)),
-      ),
       child: Column(
         children: [
-          // Header
-          _buildHeader(context),
-
           // Search bar
           _buildSearchBar(context),
+          Align(
+            alignment: Alignment.centerRight,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8),
+              child: _buildDoneAction(context),
+            ),
+          ),
 
           // Selected count
           if (_selectedUserIds.isNotEmpty) _buildSelectedCount(context),
 
           // Divider
-          Divider(
-            height: 1,
-            color: scheme.outlineVariant,
-          ),
+          Divider(height: 1, color: scheme.outlineVariant),
 
           // Results
           Expanded(child: _buildResults(context)),
@@ -184,36 +188,14 @@ class _UserSearchBottomSheetState extends ConsumerState<UserSearchBottomSheet> {
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.all(AppMetrics.p16),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              'Tag People',
-              style: TextStyle(
-                fontSize: AppType.s20,
-                fontWeight: FontWeight.w600,
-                color: scheme.onSurface,
-              ),
-            ),
-          ),
-          TextButton(
-            onPressed: _selectedUserIds.isEmpty ? null : _done,
-            child: Text(
-              'Done',
-              style: TextStyle(
-                fontSize: AppType.s16,
-                fontWeight: FontWeight.w600,
-                color: _selectedUserIds.isEmpty
-                    ? scheme.onSurfaceVariant
-                    : scheme.secondary,
-              ),
-            ),
-          ),
-        ],
+  Widget _buildDoneAction(BuildContext context) {
+    return TextButton(
+      onPressed: _selectedUserIds.isEmpty ? null : _done,
+      child: Text(
+        'Done',
+        style: Theme.of(
+          context,
+        ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
       ),
     );
   }
@@ -225,33 +207,23 @@ class _UserSearchBottomSheetState extends ConsumerState<UserSearchBottomSheet> {
       child: TextField(
         controller: _searchController,
         autofocus: true,
-        decoration: InputDecoration(
+        decoration: AppTheme.searchDecoration(
+          scheme,
           hintText: 'Search username...',
-          prefixIcon: Icon(
-            Icons.search,
-            color: scheme.onSurfaceVariant,
-          ),
+        ).copyWith(
+          prefixIcon: Icon(Icons.search, color: scheme.onSurfaceVariant),
           suffixIcon: _searchController.text.isNotEmpty
               ? IconButton(
                   icon: Icon(
                     Icons.clear,
                     color: scheme.onSurfaceVariant,
+                    semanticLabel: 'Bersihkan',
                   ),
                   onPressed: () {
                     _searchController.clear();
                   },
                 )
               : null,
-          filled: true,
-          fillColor: scheme.surfaceContainerHigh,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(AppShape.r8),
-            borderSide: BorderSide.none,
-          ),
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: AppMetrics.p16,
-            vertical: AppMetrics.p12,
-          ),
         ),
       ),
     );
@@ -260,11 +232,13 @@ class _UserSearchBottomSheetState extends ConsumerState<UserSearchBottomSheet> {
   Widget _buildSelectedCount(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p8),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppMetrics.p16,
+        vertical: AppMetrics.p8,
+      ),
       child: Text(
         '${_selectedUserIds.length} / ${widget.maxSelections} selected',
-        style: TextStyle(
-          fontSize: AppType.s12,
+        style: context.typeRoles.labelMicro.copyWith(
           color: scheme.onSurfaceVariant,
         ),
       ),
@@ -287,8 +261,7 @@ class _UserSearchBottomSheetState extends ConsumerState<UserSearchBottomSheet> {
             const SizedBox(height: 16),
             Text(
               'Search for users to tag',
-              style: TextStyle(
-                fontSize: AppType.s16,
+              style: context.typeRoles.titleProminent.copyWith(
                 color: scheme.onSurfaceVariant,
               ),
             ),
@@ -316,8 +289,7 @@ class _UserSearchBottomSheetState extends ConsumerState<UserSearchBottomSheet> {
             const SizedBox(height: 16),
             Text(
               'No users found',
-              style: TextStyle(
-                fontSize: AppType.s16,
+              style: context.typeRoles.titleProminent.copyWith(
                 color: scheme.onSurfaceVariant,
               ),
             ),
@@ -338,7 +310,11 @@ class _UserSearchBottomSheetState extends ConsumerState<UserSearchBottomSheet> {
     );
   }
 
-  Widget _buildUserTile(BuildContext context, UserSearch user, bool isSelected) {
+  Widget _buildUserTile(
+    BuildContext context,
+    UserSearch user,
+    bool isSelected,
+  ) {
     final scheme = Theme.of(context).colorScheme;
     return ListTile(
       leading: ProfileAvatar(
@@ -348,24 +324,16 @@ class _UserSearchBottomSheetState extends ConsumerState<UserSearchBottomSheet> {
       ),
       title: Text(
         user.username,
-        style: TextStyle(
-          fontWeight: FontWeight.w600,
-          color: scheme.onSurface,
-        ),
+        style: TextStyle(fontWeight: FontWeight.w600, color: scheme.onSurface),
         overflow: TextOverflow.ellipsis,
       ),
       subtitle: Text(
         '@${user.username}',
-        style: TextStyle(
-          color: scheme.onSurfaceVariant,
-        ),
+        style: TextStyle(color: scheme.onSurfaceVariant),
       ),
       trailing: isSelected
           ? Icon(Icons.check_circle, color: scheme.secondary)
-          : Icon(
-              Icons.circle_outlined,
-              color: scheme.outlineVariant,
-            ),
+          : Icon(Icons.circle_outlined, color: scheme.outlineVariant),
       onTap: () => _toggleUser(user),
     );
   }

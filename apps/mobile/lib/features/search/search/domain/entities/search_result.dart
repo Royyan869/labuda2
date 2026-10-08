@@ -109,7 +109,6 @@ class UnifiedSearchResults extends Equatable {
   final List<SearchResult> contents;
   final int totalCount;
   final String query;
-  final Duration searchDuration;
 
   const UnifiedSearchResults({
     this.users = const [],
@@ -118,7 +117,6 @@ class UnifiedSearchResults extends Equatable {
     this.contents = const [],
     required this.totalCount,
     required this.query,
-    this.searchDuration = Duration.zero,
   });
 
   @override
@@ -129,7 +127,6 @@ class UnifiedSearchResults extends Equatable {
     contents,
     totalCount,
     query,
-    searchDuration,
   ];
 
   /// Check if there are no results in any domain

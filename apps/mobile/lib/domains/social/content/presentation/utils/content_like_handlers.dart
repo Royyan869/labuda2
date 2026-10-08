@@ -1,12 +1,15 @@
 /// Content Like Handlers
 ///
-/// Utility class for handling content like actions
+/// THE canonical like behavior for a content row, shared by every surface that
+/// renders content engagement (home feed card, content detail). The handler is
+/// parameterised by the target identity rather than a `Content` instance so the
+/// feed (`FeedItem`) and the detail (`Content`) bind to the SAME authoritative
+/// optimistic-like + reconcile + rollback behavior.
 library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/shared/widgets/app_snackbar.dart';
-import 'package:labuda/domains/social/content/domain/entities/content.dart';
 import 'package:labuda/domains/social/like/domain/entities/like.dart';
 import 'package:labuda/domains/social/like/presentation/providers/like_notifier.dart';
 
@@ -14,12 +17,14 @@ import 'package:labuda/domains/social/like/presentation/providers/like_notifier.
 class ContentLikeHandlers {
   final WidgetRef ref;
   final BuildContext context;
-  final Content content;
+  final String targetId;
+  final String targetOwnerId;
 
   ContentLikeHandlers({
     required this.ref,
     required this.context,
-    required this.content,
+    required this.targetId,
+    required this.targetOwnerId,
   });
 
   /// Handle like content (post or request).
@@ -31,7 +36,7 @@ class ContentLikeHandlers {
   /// surfaces the canonical gate below (defense-in-depth handler).
   Future<void> handleLike(String currentUserId, String currentUserName) async {
     final params = LikeStatsParams(
-      targetId: content.id,
+      targetId: targetId,
       targetType: LikeTargetType.content,
       currentUserId: currentUserId,
     );
@@ -45,16 +50,16 @@ class ContentLikeHandlers {
 
     final notifier = ref.read(likeNotifierProvider.notifier);
     final result = await notifier.toggleLike(
-      targetId: content.id,
+      targetId: targetId,
       targetType: LikeTargetType.content,
       userId: currentUserId,
       likerName: currentUserName,
-      targetOwnerId: content.authorId,
+      targetOwnerId: targetOwnerId,
     );
 
     if (result.isSuccess) {
       await repository.refreshLikeStats(
-        targetId: content.id,
+        targetId: targetId,
         targetType: LikeTargetType.content,
         currentUserId: currentUserId,
       );
@@ -73,8 +78,6 @@ class ContentLikeHandlers {
       );
       return;
     }
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Gagal menyukai konten')));
+    AppSnackBar.showError(context, 'Gagal menyukai konten');
   }
 }

@@ -77,8 +77,7 @@ class SearchSuggestionsList extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 title,
-                style: TextStyle(
-                  fontSize: AppType.s16,
+                style: context.typeRoles.titleSection.copyWith(
                   fontWeight: FontWeight.w600,
                   color: scheme.onSurface,
                 ),
@@ -110,9 +109,8 @@ class SearchSuggestionsList extends StatelessWidget {
       onSelected: (_) => onSuggestionTap(suggestion),
       backgroundColor: scheme.surfaceContainerHigh,
       selectedColor: scheme.primary.withValues(alpha: 0.2),
-      labelStyle: TextStyle(
+      labelStyle: Theme.of(context).textTheme.labelLarge?.copyWith(
         color: scheme.onSurfaceVariant,
-        fontSize: AppType.s14,
       ),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppShape.r20),

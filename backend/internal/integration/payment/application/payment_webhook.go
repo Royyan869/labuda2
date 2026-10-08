@@ -650,6 +650,33 @@ func (s *PaymentWebhookService) handleWebhookInTransaction(
 		if payment.ReferenceType == "billing" && payment.ReferenceID != nil && *payment.ReferenceID != uuid.Nil {
 			billingID := *payment.ReferenceID
 
+			// CANONICAL PAYMENT TRUTH: settle the payment row in the same
+			// transaction as the billing finalization. Without this the payment
+			// stayed 'pending' after the buyer's money was accepted, so payment
+			// truth and billing truth disagreed and the expiry worker could later
+			// expire a successfully funded top-up.
+			if strings.EqualFold(notification.TransactionStatus, string(midtrans.StatusCapture)) {
+				if err := s.paymentRepo.MarkAsCapture(ctx, tx, payment.ID, notification.TransactionID, notification.PaymentType); err != nil {
+					s.log.Error("CRITICAL: Failed to mark billing payment as capture",
+						zap.String("payment_id", payment.ID.String()),
+						zap.Error(err),
+					)
+					errMsg := fmt.Sprintf("CRITICAL: failed to mark billing payment as capture: %v", err)
+					_ = s.updateWebhookEventStatus(ctx, tx, notificationKey, "failed", &payment.ID, strPtr(errMsg))
+					return fmt.Errorf("CRITICAL: failed to mark billing payment as capture: %w", err)
+				}
+			} else {
+				if err := s.settlementService.SettlePaymentByID(ctx, tx, payment.ID, notification.TransactionID, notification.PaymentType); err != nil {
+					s.log.Error("CRITICAL: Failed to settle billing payment",
+						zap.String("payment_id", payment.ID.String()),
+						zap.Error(err),
+					)
+					errMsg := fmt.Sprintf("CRITICAL: failed to settle billing payment: %v", err)
+					_ = s.updateWebhookEventStatus(ctx, tx, notificationKey, "failed", &payment.ID, strPtr(errMsg))
+					return fmt.Errorf("CRITICAL: failed to settle billing payment: %w", err)
+				}
+			}
+
 			// Get billing details to check type and target ID
 			billing, err := s.billingRepo.GetByID(ctx, tx, billingID)
 			if err != nil {

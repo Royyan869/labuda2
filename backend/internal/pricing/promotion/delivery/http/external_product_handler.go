@@ -622,16 +622,22 @@ func (h *PromotionHandler) ListAdminExternalProducts(c *gin.Context) {
 	}
 
 	var (
-		items []*entity.ExternalProduct
-		resp  AdminExternalProductListResponse
+		items    []*entity.ExternalProduct
+		total    int
+		resp     AdminExternalProductListResponse
 	)
 	err = h.db.WithTx(ctx, func(tx db.Tx) error {
-		var txErr error
-		items, txErr = h.promotionService.ListExternalProductsForReview(ctx, tx, repository.ExternalProductAdminListFilters{
+		filters := repository.ExternalProductAdminListFilters{
 			ReviewStatuses: statusFilters,
 			Limit:          limit,
 			Offset:         offset,
-		})
+		}
+		var txErr error
+		items, txErr = h.promotionService.ListExternalProductsForReview(ctx, tx, filters)
+		if txErr != nil {
+			return txErr
+		}
+		total, txErr = h.promotionService.CountExternalProductsForReview(ctx, tx, filters)
 		if txErr != nil {
 			return txErr
 		}
@@ -643,7 +649,7 @@ func (h *PromotionHandler) ListAdminExternalProducts(c *gin.Context) {
 			}
 			resp.Items = append(resp.Items, itemResp)
 		}
-		resp.Count = len(resp.Items)
+		resp.Count = total
 		resp.Page = page
 		resp.Limit = limit
 		return nil

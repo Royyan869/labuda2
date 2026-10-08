@@ -2,34 +2,6 @@
 /// All payment-related enums should use these types
 library;
 
-/// Payment method type - High-level payment categories
-enum PaymentMethodType {
-  /// Bank transfer (VA, manual transfer)
-  bankTransfer,
-
-  /// Credit card
-  creditCard,
-
-  /// Debit card
-  debitCard,
-
-  /// E-Wallet (GoPay, ShopeePay, DANA, OVO)
-  eWallet,
-
-  /// QRIS (Quick Response Code Indonesian Standard)
-  qris,
-
-  /// Cash on Delivery
-  cod,
-
-  /// Manual bank transfer (not VA)
-  manualTransfer,
-
-  /// Coins (loyalty points - NOT real money)
-  /// Used for order flow to indicate coin usage for discounts
-  coins,
-}
-
 /// Payment status for orders
 ///
 /// PHASE 1F: Unified PaymentStatus across entire codebase.
@@ -67,31 +39,6 @@ enum PaymentStatus {
       if (status.name == normalized) return status;
     }
     throw FormatException('Unknown payment status from wire: "$value"');
-  }
-}
-
-/// Extension methods for PaymentMethodType
-extension PaymentMethodTypeExtension on PaymentMethodType {
-  /// Get display name for UI
-  String get displayName {
-    switch (this) {
-      case PaymentMethodType.bankTransfer:
-        return 'Transfer Bank';
-      case PaymentMethodType.creditCard:
-        return 'Kartu Kredit';
-      case PaymentMethodType.debitCard:
-        return 'Kartu Debit';
-      case PaymentMethodType.eWallet:
-        return 'E-Wallet';
-      case PaymentMethodType.qris:
-        return 'QRIS';
-      case PaymentMethodType.cod:
-        return 'Bayar di Tempat';
-      case PaymentMethodType.manualTransfer:
-        return 'Transfer Manual';
-      case PaymentMethodType.coins:
-        return 'Koin Loyalti';
-    }
   }
 }
 

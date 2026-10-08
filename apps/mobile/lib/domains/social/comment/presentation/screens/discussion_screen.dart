@@ -18,6 +18,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:labuda/core/core.dart';
+import 'package:labuda/domains/system/shared/domain/services/time_format_service.dart';
+import 'package:labuda/shared/widgets/app_dialog.dart';
 import 'package:labuda/shared/widgets/app_snackbar.dart';
 import 'package:labuda/domains/social/comment/domain/entities/comment.dart';
 import 'package:labuda/domains/social/comment/presentation/comment_widgets.dart';
@@ -165,13 +167,13 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
     return AppBar(
       title: Text(_getAppBarTitle()),
       leading: IconButton(
-        icon: const Icon(Icons.arrow_back),
+        icon: const Icon(Icons.arrow_back, semanticLabel: 'Kembali'),
         onPressed: () => context.pop(),
       ),
       actions: [
         // Refresh button
         IconButton(
-          icon: const Icon(Icons.refresh),
+          icon: const Icon(Icons.refresh, semanticLabel: 'Muat ulang'),
           onPressed: () {
             ref
                 .read(commentProvider.notifier)
@@ -331,12 +333,7 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
           );
       if (!mounted) return commerceResult.isSuccess;
       if (commerceResult.isSuccess) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Respons Penjual berhasil dikirim'),
-            duration: Duration(seconds: 2),
-          ),
-        );
+        AppSnackBar.showSuccess(context, 'Respons Penjual berhasil dikirim');
         return true;
       }
       _showCommentError(commerceResult);
@@ -357,13 +354,9 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
 
     if (result.isSuccess) {
       if (isReplying) _cancelReply();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            isReplying ? 'Balasan berhasil dikirim' : 'Komentar berhasil dikirim',
-          ),
-          duration: const Duration(seconds: 2),
-        ),
+      AppSnackBar.showSuccess(
+        context,
+        isReplying ? 'Balasan berhasil dikirim' : 'Komentar berhasil dikirim',
       );
       return true;
     }
@@ -402,8 +395,7 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
           const SizedBox(height: 16),
           Text(
             'Belum ada komentar',
-            style: TextStyle(
-              fontSize: AppType.s20,
+            style: context.typeRoles.titleProminent.copyWith(
               fontWeight: FontWeight.w500,
               color: scheme.onSurface,
             ),
@@ -411,7 +403,9 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
           const SizedBox(height: 8),
           Text(
             'Jadilah yang pertama berkomentar!',
-            style: TextStyle(fontSize: AppType.s14, color: scheme.onSurfaceVariant),
+            style: context.typeRoles.bodyDense.copyWith(
+              color: scheme.onSurfaceVariant,
+            ),
           ),
         ],
       ),
@@ -424,12 +418,15 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.error_outline, size: AppIconSize.display, color: scheme.error),
+          Icon(
+            Icons.error_outline,
+            size: AppIconSize.display,
+            color: scheme.error,
+          ),
           const SizedBox(height: 16),
           Text(
             'Gagal memuat komentar',
-            style: TextStyle(
-              fontSize: AppType.s20,
+            style: context.typeRoles.titleProminent.copyWith(
               fontWeight: FontWeight.w500,
               color: scheme.onSurface,
             ),
@@ -437,7 +434,9 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
           const SizedBox(height: 8),
           Text(
             error,
-            style: TextStyle(fontSize: AppType.s14, color: scheme.onSurfaceVariant),
+            style: context.typeRoles.bodyDense.copyWith(
+              color: scheme.onSurfaceVariant,
+            ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 16),
@@ -457,7 +456,8 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
     );
   }
 
-  Widget _buildCommentComposer(BuildContext context) {    final authState = ref.watch(authControllerProvider);
+  Widget _buildCommentComposer(BuildContext context) {
+    final authState = ref.watch(authControllerProvider);
 
     // Check if user is a seller - use PermissionHelper
     final isSeller =
@@ -479,7 +479,10 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
             builder: (context) {
               final scheme = Theme.of(context).colorScheme;
               return Container(
-                padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppMetrics.p16,
+                  vertical: AppMetrics.p8,
+                ),
                 decoration: BoxDecoration(
                   color: scheme.primary.withValues(alpha: 0.1),
                   border: Border(
@@ -488,13 +491,16 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.reply, size: AppIconSize.inlineGlyph, color: scheme.primary),
+                    Icon(
+                      Icons.reply,
+                      size: AppIconSize.inlineGlyph,
+                      color: scheme.primary,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'Membalas @${_replyingToComment!.authorUsername}',
-                        style: TextStyle(
-                          fontSize: AppType.s14,
+                        style: context.typeRoles.bodyDense.copyWith(
                           color: scheme.primary,
                           fontWeight: FontWeight.w500,
                         ),
@@ -503,7 +509,7 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.close, size: AppIconSize.action),
+                      icon: const Icon(Icons.close, size: AppIconSize.action, semanticLabel: 'Tutup'),
                       onPressed: _cancelReply,
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
@@ -593,8 +599,7 @@ class _CommentsBatchWidget extends ConsumerWidget {
           Expanded(
             child: Text(
               row.content,
-              style: TextStyle(
-                fontSize: AppType.s14,
+              style: context.typeRoles.bodyDense.copyWith(
                 color: scheme.onSurface.withValues(alpha: 0.6),
               ),
             ),
@@ -714,31 +719,31 @@ class _CommentsBatchWidget extends ConsumerWidget {
             onPressed: () => Navigator.pop(ctx),
             child: const Text('Batal'),
           ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, controller.text.trim()),
-            child: const Text('Simpan'),
+          // Inline validation: an empty comment cannot be saved, so the
+          // action stays disabled instead of failing into a Snackbar.
+          ValueListenableBuilder<TextEditingValue>(
+            valueListenable: controller,
+            builder: (context, value, _) => FilledButton(
+              onPressed: value.text.trim().isEmpty
+                  ? null
+                  : () => Navigator.pop(ctx, controller.text.trim()),
+              child: const Text('Simpan'),
+            ),
           ),
         ],
       ),
     );
     controller.dispose();
     if (result == null || result == comment.body) return;
-    if (result.isEmpty) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Komentar tidak boleh kosong')),
-        );
-      }
-      return;
-    }
     final res = await ref
         .read(commentProvider.notifier)
         .updateComment(commentId: comment.id, body: result);
-    if (!context.mounted) return;      if (res.isSuccess) {
-        AppSnackBar.showSuccess(context, 'Komentar diperbarui');
-      } else {
-        AppSnackBar.showError(context, res.error ?? 'Gagal mengedit');
-      }
+    if (!context.mounted) return;
+    if (res.isSuccess) {
+      AppSnackBar.showSuccess(context, 'Komentar diperbarui');
+    } else {
+      AppSnackBar.showError(context, res.error ?? 'Gagal mengedit');
+    }
   }
 
   Future<void> _showDeleteConfirm(
@@ -746,33 +751,24 @@ class _CommentsBatchWidget extends ConsumerWidget {
     WidgetRef ref,
     Comment comment,
   ) async {
-    final confirm = await showDialog<bool>(
+    final confirm = await AppDialog.confirm(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Hapus Komentar'),
-        content: const Text('Yakin ingin menghapus komentar ini?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Batal'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(backgroundColor: context.statusColors.error),
-            child: const Text('Hapus'),
-          ),
-        ],
-      ),
+      title: 'Hapus Komentar',
+      message: 'Yakin ingin menghapus komentar ini?',
+      confirmLabel: 'Hapus',
+      cancelLabel: 'Batal',
+      intent: AppDialogIntent.destructive,
     );
-    if (confirm != true) return;
+    if (!confirm) return;
     final res = await ref
         .read(commentProvider.notifier)
         .deleteComment(comment.id);
-    if (!context.mounted) return;      if (res.isSuccess) {
-        AppSnackBar.showSuccess(context, 'Komentar dihapus');
-      } else {
-        AppSnackBar.showError(context, res.error ?? 'Gagal menghapus');
-      }
+    if (!context.mounted) return;
+    if (res.isSuccess) {
+      AppSnackBar.showSuccess(context, 'Komentar dihapus');
+    } else {
+      AppSnackBar.showError(context, res.error ?? 'Gagal menghapus');
+    }
   }
 
   Widget _buildReplyItem(
@@ -806,7 +802,10 @@ class _CommentsBatchWidget extends ConsumerWidget {
         : null;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p12),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppMetrics.p16,
+        vertical: AppMetrics.p12,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -818,31 +817,46 @@ class _CommentsBatchWidget extends ConsumerWidget {
                 color: scheme.onSurfaceVariant,
               ),
               const SizedBox(width: 8),
-              Text(
-                authorLabel,
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: AppType.s14,
-                  fontStyle: authorRedacted
-                      ? FontStyle.italic
-                      : FontStyle.normal,
-                  color: authorRedacted ? scheme.onSurfaceVariant : scheme.onSurface,
+              // Identity + secondary timestamp are both dynamic horizontal
+              // text siblings. Each is flex-bounded with an explicit
+              // single-line ellipsis strategy so neither can push the reply
+              // header out of the Row (compact secondary-metadata contract).
+              Flexible(
+                child: Text(
+                  authorLabel,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: context.typeRoles.bodyDense.copyWith(
+                    fontWeight: FontWeight.w600,
+                    fontStyle: authorRedacted
+                        ? FontStyle.italic
+                        : FontStyle.normal,
+                    color: authorRedacted
+                        ? scheme.onSurfaceVariant
+                        : scheme.onSurface,
+                  ),
                 ),
               ),
               const SizedBox(width: 8),
-              Text(
-                _formatDate(comment.createdAt),
-                style: TextStyle(
-                  fontSize: AppType.s12,
-                  color: scheme.onSurfaceVariant,
+              Flexible(
+                child: Text(
+                  const TimeFormatService().formatTimeAgo(comment.createdAt),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: context.typeRoles.labelMicro.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
                 ),
               ),
             ],
           ),
           if (comment.body != null && comment.body!.isNotEmpty)
             Padding(
-              padding: const EdgeInsets.only(left: AppMetrics.p24, top: AppMetrics.p8),
-              child: Text(comment.body!, style: const TextStyle(fontSize: AppType.s14)),
+              padding: const EdgeInsets.only(
+                left: AppMetrics.p24,
+                top: AppMetrics.p8,
+              ),
+              child: Text(comment.body!, style: context.typeRoles.bodyDense),
             ),
           // Like button for replies — same canonical Comment Like system
           if (currentUserId != null && currentUserId.isNotEmpty)
@@ -901,22 +915,6 @@ class _CommentsBatchWidget extends ConsumerWidget {
         const SizedBox.shrink();
   }
 
-  String _formatDate(DateTime dateTime) {
-    final now = DateTime.now();
-    final diff = now.difference(dateTime);
-
-    if (diff.inMinutes < 1) {
-      return 'Baru saja';
-    } else if (diff.inHours < 1) {
-      return '${diff.inMinutes}m yang lalu';
-    } else if (diff.inDays < 1) {
-      return '${diff.inHours}j yang lalu';
-    } else if (diff.inDays < 7) {
-      return '${diff.inDays}h yang lalu';
-    } else {
-      return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
-    }
-  }
 }
 
 /// Like button widget for reply comments
@@ -941,7 +939,10 @@ class _ReplyLikeButton extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(AppShape.r4),
       child: Padding(
-        padding: const EdgeInsets.only(left: AppMetrics.p24, top: AppMetrics.p4),
+        padding: const EdgeInsets.only(
+          left: AppMetrics.p24,
+          top: AppMetrics.p4,
+        ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -954,8 +955,7 @@ class _ReplyLikeButton extends StatelessWidget {
               const SizedBox(width: 4),
               Text(
                 likeCount! > 0 ? '$likeCount' : '',
-                style: TextStyle(
-                  fontSize: AppType.s12,
+                style: context.typeRoles.labelMicro.copyWith(
                   color: scheme.onSurfaceVariant,
                 ),
               ),

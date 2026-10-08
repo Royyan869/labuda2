@@ -64,7 +64,7 @@ Order _order({
     sellerId: 'seller-1',
     items: const [],
     status: status,
-    paymentMethod: PaymentMethodType.bankTransfer,
+    paymentMethodCode: 'bank_transfer',
     paymentStatus: paymentStatus,
     shippingInfo: const ShippingInfo(
       recipientName: 'Buyer',

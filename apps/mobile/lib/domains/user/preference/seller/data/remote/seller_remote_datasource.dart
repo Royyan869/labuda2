@@ -3,15 +3,11 @@
 /// API-based datasource for seller data - isolated from domain.
 library;
 
-import 'dart:async';
-
 import 'package:dio/dio.dart';
 import 'package:labuda/core/core.dart';
-import 'package:labuda/core/utils/polling_monitor.dart';
 import 'package:labuda/domains/user/preference/seller/data/datasources/seller_api_datasource.dart';
 import 'package:labuda/domains/user/preference/seller/data/models/api/seller_api_models.dart';
 
-import '../../domain/entities/seller_activity.dart';
 import '../dto/seller_dto.dart';
 
 /// Seller Remote Datasource
@@ -20,59 +16,29 @@ import '../dto/seller_dto.dart';
 class SellerRemoteDatasource {
   final ApiClient _apiClient;
   final SellerApiDatasource _sellerApiDatasource;
-  final ILoggerService? _logger;
-
-  // Polling monitors for tracking subscription status
-  final Map<String, PollingMonitor> _subscriptionMonitors = {};
 
   SellerRemoteDatasource({required ApiClient apiClient, ILoggerService? logger})
     : _apiClient = apiClient,
       _sellerApiDatasource = SellerApiDatasource(
         apiClient: apiClient,
         logger: logger,
-      ),
-      _logger = logger;
-
-  // ============================================
-  // DASHBOARD STATS
-  // ============================================
-
-  /// Get dashboard stats from API
-  Future<DashboardStatsDto> getDashboardStats(String sellerId) async {
-    try {
-      final response = await _apiClient.get('/seller/dashboard');
-
-      final data = response.data['data'] as Map<String, dynamic>?;
-
-      if (data == null) {
-        throw Exception('No data in response');
-      }
-
-      return DashboardStatsDto.fromJson(data);
-    } on ApiException catch (e) {
-      throw Exception('API error: ${e.message}');
-    } catch (e) {
-      throw Exception('Failed to get dashboard stats: $e');
-    }
-  }
+      );
 
   // ============================================
   // ANALYTICS
   // ============================================
 
-  /// Get analytics from existing API datasource
-  Future<SellerAnalyticsApiModel> getAnalytics() async {
-    return await _sellerApiDatasource.getAnalytics();
-  }
-
-  /// Get sales trend data
-  Future<List<Map<String, dynamic>>> getSalesTrendData({
-    required String sellerId,
-    int days = 30,
-  }) async {
-    throw UnsupportedError(
-      'GET /seller/analytics/sales-trend is not available in canonical backend routes.',
-    );
+  /// Get seller analytics (30-day read projection).
+  /// GET /seller/analytics
+  Future<Map<String, dynamic>> getAnalytics() async {
+    try {
+      final response = await _apiClient.get('/seller/analytics');
+      return response.data['data'] as Map<String, dynamic>;
+    } on ApiException catch (e) {
+      throw Exception('API error: ${e.message}');
+    } catch (e) {
+      throw Exception('Failed to get analytics: $e');
+    }
   }
 
   /// Get performance metrics
@@ -110,31 +76,6 @@ class SellerRemoteDatasource {
   }
 
   // ============================================
-  // ACTIVITY
-  // ============================================
-
-  /// Get recent activity
-  Future<List<ActivityItemDto>> getRecentActivity(
-    String sellerId, {
-    int limit = 10,
-  }) async {
-    throw UnsupportedError(
-      'GET /seller/activity is not available in canonical backend routes.',
-    );
-  }
-
-  /// Get activity history with filter
-  Future<List<ActivityItemDto>> getActivityHistory(
-    String sellerId, {
-    ActivityType? filterType,
-    int limit = 100,
-  }) async {
-    throw UnsupportedError(
-      'GET /seller/activity/history is not available in canonical backend routes.',
-    );
-  }
-
-  // ============================================
   // SUBSCRIPTION
   // ============================================
 
@@ -148,80 +89,6 @@ class SellerRemoteDatasource {
     } catch (e) {
       throw Exception('Failed to get subscription: $e');
     }
-  }
-
-  /// Stream subscription status via polling
-  ///
-  /// SOURCE OF TRUTH: PostgreSQL (Backend API /users/{id}/subscription)
-  /// Uses polling with 30s interval ± jitter to avoid server thundering herd.
-  /// Includes backoff on error: 15s -> 30s -> 90s max.
-  Stream<Map<String, dynamic>> watchSubscription(String sellerId) {
-    // Create monitor for this seller if not exists
-    if (!_subscriptionMonitors.containsKey(sellerId) && _logger != null) {
-      _subscriptionMonitors[sellerId] = PollingMonitor(
-        logger: _logger,
-        domain: PollingDomain.subscription,
-        operationId: sellerId,
-        config: PollingBackoffConfig.subscription,
-      );
-    }
-
-    final monitor = _subscriptionMonitors[sellerId];
-
-    // Create a controller that supports dynamic interval adjustment
-    final controller = StreamController<Map<String, dynamic>>.broadcast();
-
-    // Polling function with monitoring and backoff
-    Future<void> poll() async {
-      if (controller.isClosed) return;
-
-      try {
-        if (monitor != null) {
-          await monitor.monitor(() async {
-            final data = await getSubscription(sellerId);
-            if (!controller.isClosed) {
-              controller.add(data);
-            }
-          });
-        } else {
-          // Fallback without monitoring if logger not provided
-          final data = await getSubscription(sellerId);
-          if (!controller.isClosed) {
-            controller.add(data);
-          }
-        }
-      } catch (e) {
-        // Return error map - let repository handle error state
-        if (!controller.isClosed) {
-          controller.add({'error': true, 'message': e.toString()});
-        }
-      }
-
-      // Schedule next poll with current interval
-      if (!controller.isClosed) {
-        final interval =
-            monitor?.getCurrentInterval() ?? const Duration(seconds: 30);
-        Timer(interval, poll);
-      }
-    }
-
-    // Start polling on listen
-    controller.onListen = () {
-      poll();
-    };
-
-    // Clean up on cancel
-    controller.onCancel = () {
-      _subscriptionMonitors.remove(sellerId);
-    };
-
-    return controller.stream;
-  }
-
-  /// Get polling status for a subscription (for UI/debugging)
-  Map<String, dynamic>? getSubscriptionPollingStatus(String sellerId) {
-    final monitor = _subscriptionMonitors[sellerId];
-    return monitor?.getStatusSummary();
   }
 
   // ============================================

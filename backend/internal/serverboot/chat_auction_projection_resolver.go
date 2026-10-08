@@ -262,15 +262,18 @@ func (r *auctionProjectionBatchResolver) ResolveAuctions(
 				SellerTrustActive: viewercontext.CoarsenSellerTrust(sellerRow.subscriptionStatus) == viewercontext.PublicLifecycleStateActive,
 				BuyNowPrice:       row.buyNowPrice,
 			})
-			commerceActions := buildAuctionCommerceActions(auctionCaps)
 			viewerCaps := chatApp.ProjectionViewerCapabilities{
 				CanView:            true,
-				CanInteract:        commerceActions.CanBid || commerceActions.CanBuy,
+				CanInteract:        auctionCaps.CanBid || auctionCaps.CanBuyNow,
+				CanManage:          auctionCaps.CanManage,
 				BlockedByTombstone: false,
 			}
 			sellerCard := buildAuctionLiveSellerCard(row.sellerID, sellerRow)
 			thumbnail := firstResolvedAuctionURLFromJSONStrings(row.productMediaURLs)
-			lifecycle := auctionEntity.Status(row.status).PublicLifecycle()
+			// Canonical public PHASE (Commerce authority): scheduled | active |
+			// waiting_settlement | ended | cancelled (lapsed coarsens to cancelled).
+			lifecycle := auctionEntity.Status(row.status).PublicPhase()
+			hasWinner := row.currentWinnerID != nil
 
 			proj, projErr := commerceshared.NewLiveResourceProjection(
 				commerceshared.ProjectionResourceTypeAuction,
@@ -283,10 +286,10 @@ func (r *auctionProjectionBatchResolver) ResolveAuctions(
 					BuyNowPrice:  row.buyNowPrice,
 					EndAt:        row.endAt.Format(time.RFC3339),
 					Lifecycle:    lifecycle,
+					HasWinner:    &hasWinner,
 					Seller:       *sellerCard,
 				},
 				viewerCaps,
-				&commerceActions,
 			)
 			if projErr != nil {
 				return projErr
@@ -430,17 +433,6 @@ func loadAuctionProjectionSellerRows(
 	}
 
 	return out, nil
-}
-
-func buildAuctionCommerceActions(caps commerceshared.ViewerCapabilities) chatApp.CommerceActionCapabilities {
-	return chatApp.CommerceActionCapabilities{
-		Role:         caps.Role,
-		CanChat:      caps.CanChat,
-		CanNegotiate: false,
-		CanBuy:       caps.CanBuyNow,
-		CanBid:       caps.CanBid,
-		CanManage:    caps.CanManage,
-	}
 }
 
 func resolveReadableAuctionMediaReference(value string) string {

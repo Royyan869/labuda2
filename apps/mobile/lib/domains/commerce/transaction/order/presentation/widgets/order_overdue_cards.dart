@@ -69,7 +69,10 @@ class OrderOverdueIndicator extends StatelessWidget {
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: core.AppMetrics.p8, vertical: core.AppMetrics.p4),
+      padding: const EdgeInsets.symmetric(
+        horizontal: core.AppMetrics.p8,
+        vertical: core.AppMetrics.p4,
+      ),
       decoration: BoxDecoration(
         color: getBadgeColor().withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(core.AppShape.r4),
@@ -81,12 +84,15 @@ class OrderOverdueIndicator extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.warning_amber_rounded, size: AppIconSize.inlineGlyph, color: getBadgeColor()),
+          Icon(
+            Icons.warning_amber_rounded,
+            size: AppIconSize.inlineGlyph,
+            color: getBadgeColor(),
+          ),
           const SizedBox(width: 4),
           Text(
             getBadgeLabel(),
-            style: TextStyle(
-              fontSize: core.AppType.s12,
+            style: context.typeRoles.labelMicro.copyWith(
               fontWeight: FontWeight.w600,
               color: getBadgeColor(),
             ),
@@ -95,8 +101,7 @@ class OrderOverdueIndicator extends StatelessWidget {
             const SizedBox(width: 4),
             Text(
               '($daysOverdue hari)',
-              style: TextStyle(
-                fontSize: core.AppType.s12,
+              style: context.typeRoles.labelMicro.copyWith(
                 color: getBadgeColor().withValues(alpha: 0.8),
               ),
             ),
@@ -155,16 +160,10 @@ class OrderOverdueInfoCard extends StatelessWidget {
       }
     }
 
-    return Container(
+    return OrderSectionCard(
       margin: const EdgeInsets.only(bottom: core.AppMetrics.p16),
-      padding: const EdgeInsets.all(core.AppMetrics.p16),
-      decoration: BoxDecoration(
-        color: context.statusColors.error.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(core.AppShape.r12),
-        border: Border.all(
-          color: context.statusColors.error.withValues(alpha: 0.3),
-        ),
-      ),
+      backgroundColor: context.statusColors.error.withValues(alpha: 0.06),
+      borderColor: context.statusColors.error.withValues(alpha: 0.3),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -190,16 +189,14 @@ class OrderOverdueInfoCard extends StatelessWidget {
                   children: [
                     Text(
                       'Pesanan Lewat Waktu',
-                      style: TextStyle(
-                        fontSize: core.AppType.s14,
+                      style: context.typeRoles.titleCompact.copyWith(
                         fontWeight: FontWeight.w600,
                         color: colorScheme.onSurface,
                       ),
                     ),
                     Text(
                       getBadgeLabel(),
-                      style: TextStyle(
-                        fontSize: core.AppType.s12,
+                      style: context.typeRoles.labelMicro.copyWith(
                         color: getBadgeColor(),
                         fontWeight: FontWeight.w500,
                       ),
@@ -222,13 +219,16 @@ class OrderOverdueInfoCard extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.info_outline, size: AppIconSize.inlineGlyph, color: getBadgeColor()),
+                Icon(
+                  Icons.info_outline,
+                  size: AppIconSize.inlineGlyph,
+                  color: getBadgeColor(),
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     getWarningMessage(),
-                    style: TextStyle(
-                      fontSize: core.AppType.s12,
+                    style: context.typeRoles.bodyDense.copyWith(
                       color: colorScheme.onSurfaceVariant,
                     ),
                   ),
@@ -249,9 +249,8 @@ class OrderOverdueInfoCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 6),
                 Text(
-                  'Target siap kirim: ${_formatDate(order.readyToShipBy!)}',
-                  style: TextStyle(
-                    fontSize: core.AppType.s12,
+                  'Target siap kirim: ${AppFormatters.formatShortDate(order.readyToShipBy!)}',
+                  style: context.typeRoles.labelMicro.copyWith(
                     color: colorScheme.onSurfaceVariant,
                   ),
                 ),
@@ -259,8 +258,7 @@ class OrderOverdueInfoCard extends StatelessWidget {
                   const Spacer(),
                   Text(
                     'Telat $daysOverdue hari',
-                    style: TextStyle(
-                      fontSize: core.AppType.s12,
+                    style: context.typeRoles.labelMicro.copyWith(
                       fontWeight: FontWeight.w600,
                       color: getBadgeColor(),
                     ),
@@ -272,9 +270,5 @@ class OrderOverdueInfoCard extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year}';
   }
 }

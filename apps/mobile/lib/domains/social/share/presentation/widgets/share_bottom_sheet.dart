@@ -30,63 +30,33 @@ class ShareBottomSheet extends ConsumerWidget {
     required ShareTarget target,
     bool canSharePost = false,
   }) {
-    return showModalBottomSheet(
+    return AppBottomSheetBase.show<void>(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) =>
-          ShareBottomSheet(target: target, canSharePost: canSharePost),
+      content: ShareBottomSheet(target: target, canSharePost: canSharePost),
     );
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final scheme = Theme.of(context).colorScheme;
-    final backgroundColor = scheme.surfaceContainerLow;
+    // Surface, shape, handle, scroll and safe area come from the base.
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Preview card - more compact
+        SharePreviewCard(target: target),
 
-    return Container(
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.9,
-      ),
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(AppShape.r20)),
-      ),
-      child: SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Drag handle — ONE authority: `AppDragHandle` beside the bottom-sheet
-            // base (this sheet keeps its `top p12`).
-            const AppDragHandle(padding: EdgeInsets.only(top: AppMetrics.p12)),
+        const SizedBox(height: 8),
 
-            // Scrollable content
-            Flexible(
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Preview card - more compact
-                    SharePreviewCard(target: target),
-
-                    const SizedBox(height: 8),
-
-                    // All share options in grid
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: AppMetrics.p24),
-                      child: ShareButtonGrid(
-                        destinations: _getShareDestinations(),
-                        onTap: (destination) =>
-                            _handleDestinationTap(context, ref, destination),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
+        // All share options in grid
+        Padding(
+          padding: const EdgeInsets.only(bottom: AppMetrics.p24),
+          child: ShareButtonGrid(
+            destinations: _getShareDestinations(),
+            onTap: (destination) =>
+                _handleDestinationTap(context, ref, destination),
+          ),
         ),
-      ),
+      ],
     );
   }
 
@@ -204,7 +174,7 @@ class ShareBottomSheet extends ConsumerWidget {
       if (shareState is ShareSuccess) {
         AppSnackBar.showSuccess(
           context,
-          'Successfully shared to ${destination.label}',
+          'Berhasil dibagikan ke ${destination.label}',
           duration: const Duration(seconds: 3),
         );
       } else if (shareState is ShareError) {
@@ -216,7 +186,7 @@ class ShareBottomSheet extends ConsumerWidget {
       } else {
         AppSnackBar.showError(
           context,
-          'Failed to share content',
+          'Gagal membagikan konten',
           duration: const Duration(seconds: 4),
         );
       }

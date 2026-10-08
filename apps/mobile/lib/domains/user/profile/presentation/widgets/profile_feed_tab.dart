@@ -24,8 +24,6 @@ class ProfileFeedTab extends ConsumerStatefulWidget {
 }
 
 class _ProfileFeedTabState extends ConsumerState<ProfileFeedTab> {
-  String _selectedFilter = 'All';
-  final List<String> _filterOptions = ['All'];
   bool _isLoading = false;
   bool _isLoadingMore = false;
   String? _loadErrorMessage;
@@ -47,10 +45,9 @@ class _ProfileFeedTabState extends ConsumerState<ProfileFeedTab> {
   @override
   void didUpdateWidget(ProfileFeedTab oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // LOOP CLOSURE PASS V1: Reset filter when navigating to different profile
+    // LOOP CLOSURE PASS V1: Reset list state when navigating to different profile
     if (oldWidget.userId != widget.userId) {
       setState(() {
-        _selectedFilter = 'All';
         _allFeedItems = [];
         _nextCursor = null;
         _hasMore = false;
@@ -183,8 +180,10 @@ class _ProfileFeedTabState extends ConsumerState<ProfileFeedTab> {
       if (!mounted) return;
 
       result.fold(
-        (error) =>
-            AppSnackBar.showError(context, 'Failed to load more: $error'),
+        (error) => AppSnackBar.showError(
+          context,
+          'Gagal memuat lebih banyak. Coba lagi.',
+        ),
         (page) {
           final newItems = page.items.map(_contentToFeedItem).toList();
           setState(() {
@@ -195,105 +194,50 @@ class _ProfileFeedTabState extends ConsumerState<ProfileFeedTab> {
         },
       );
     } catch (e) {
+      debugPrint('ProfileFeedTab: load-more failed - $e');
       if (mounted) {
-        AppSnackBar.showError(context, 'Failed to load more: ${e.toString()}');
+        AppSnackBar.showError(context, 'Gagal memuat lebih banyak. Coba lagi.');
       }
     } finally {
       if (mounted) setState(() => _isLoadingMore = false);
     }
   }
 
-  List<FeedItem> get _filteredContent {
-    return _allFeedItems;
-  }
-
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-
     // Use CustomScrollView for NestedScrollView compatibility
     return CustomScrollView(
       controller: _scrollController,
       slivers: [
-        // Filter section (content-only)
-        SliverToBoxAdapter(
-          child: Container(
-            padding: const EdgeInsets.all(AppMetrics.p16),
-            decoration: BoxDecoration(
-              color: scheme.surface,
-              border: Border(
-                bottom: BorderSide(color: scheme.outlineVariant),
-              ),
-            ),
-            child: Row(
-              children: [
-                Text(
-                  'Content (${_filteredContent.length})',
-                  style: TextStyle(
-                    fontSize: AppType.s16,
-                    fontWeight: FontWeight.w600,
-                    color: scheme.onSurface,
-                  ),
-                ),
-                const Spacer(),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppMetrics.p12,
-                    vertical: AppMetrics.p8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: scheme.surfaceContainer,
-                    borderRadius: BorderRadius.circular(AppShape.r20),
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: _selectedFilter,
-                      isDense: true,
-                      style: TextStyle(
-                        fontSize: AppType.s14,
-                        color: scheme.onSurface,
-                      ),
-                      dropdownColor: scheme.surfaceContainerHigh,
-                      items: _filterOptions.map((String filter) {
-                        return DropdownMenuItem<String>(
-                          value: filter,
-                          child: Text(filter),
-                        );
-                      }).toList(),
-                      onChanged: (String? value) {
-                        if (value != null) {
-                          setState(() {
-                            _selectedFilter = value;
-                          });
-                        }
-                      },
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-
-        // Content list
+        // Content list. Loading / error / empty are non-scrollable semantic
+        // states inside this tab-cell CustomScrollView, so they use the
+        // canonical bounded-tab-cell rule: hasScrollBody:false → the sliver
+        // grows to max(remaining, intrinsic) and the scroll view scrolls,
+        // instead of clamping the state to the leftover viewport.
         if (_isLoading)
-          const SliverFillRemaining(child: Center(child: LoadingIndicator()))
+          const SliverFillRemaining(
+            hasScrollBody: false,
+            child: Center(child: LoadingIndicator()),
+          )
         else if (_loadErrorMessage != null)
-          SliverFillRemaining(child: _buildErrorState(_loadErrorMessage!))
-        else if (_filteredContent.isEmpty)
-          SliverFillRemaining(child: _buildEmptyState(context))
+          SliverFillRemaining(hasScrollBody: false, child: _buildErrorState())
+        else if (_allFeedItems.isEmpty)
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: _buildEmptyState(context),
+          )
         else
           SliverPadding(
             padding: const EdgeInsets.symmetric(vertical: AppMetrics.p8),
             sliver: SliverList(
               delegate: SliverChildBuilderDelegate((context, index) {
-                final feedItem = _filteredContent[index];
+                final feedItem = _allFeedItems[index];
                 return Consumer(
                   builder: (context, ref, _) {
                     return FeedCard(item: feedItem);
                   },
                 );
-              }, childCount: _filteredContent.length),
+              }, childCount: _allFeedItems.length),
             ),
           ),
         // Load-more footer: spinner while fetching next page.
@@ -310,12 +254,11 @@ class _ProfileFeedTabState extends ConsumerState<ProfileFeedTab> {
 
   // Content feed now stays on the universal card renderer only.
 
-  Widget _buildErrorState(String message) {
-    return EmptyState.error(
-      title: 'Failed to load content',
-      subtitle: message,
-      onRetry: () => _loadUserContent(),
-    );
+  /// CANONICAL page-level load error (PageErrorState): safe localized copy
+  /// only. `_loadErrorMessage` stays the branch signal — the text itself
+  /// never reaches the screen.
+  Widget _buildErrorState() {
+    return PageErrorState(onRetry: () => _loadUserContent());
   }
 
   String _toUserFacingError(String error) {
@@ -344,44 +287,13 @@ class _ProfileFeedTabState extends ConsumerState<ProfileFeedTab> {
   }
 
   Widget _buildEmptyState(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.photo_library_outlined,
-            size: AppIconSize.display,
-            color: scheme.onSurfaceVariant,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            _getEmptyStateTitle(),
-            style: TextStyle(
-              fontSize: AppType.s20,
-              fontWeight: FontWeight.w600,
-              color: scheme.onSurface,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            _getEmptyStateSubtitle(),
-            style: TextStyle(
-              fontSize: AppType.s14,
-              color: scheme.onSurfaceVariant,
-            ),
-          ),
-        ],
-      ),
+    // CANONICAL collection empty: the profile published nothing yet — no
+    // meaningful next action for a viewer, so no CTA.
+    return EmptyState(
+      icon: Icons.photo_library_outlined,
+      title: context.l10n.emptyProfileContentTitle,
+      subtitle: context.l10n.emptyProfileContentMessage,
     );
-  }
-
-  String _getEmptyStateTitle() {
-    return 'No Content Yet';
-  }
-
-  String _getEmptyStateSubtitle() {
-    return 'User hasn\'t shared any content';
   }
 
   // OLD _viewContent removed - navigation handled by FeedCardBuilders

@@ -12,10 +12,10 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/labuda/backend/internal/commerce/governance/commercegov"
 	"github.com/labuda/backend/internal/commerce/order/entity"
 	orderRepoImpl "github.com/labuda/backend/internal/commerce/order/infrastructure/repository"
 	orderrepository "github.com/labuda/backend/internal/commerce/order/repository"
-	"github.com/labuda/backend/internal/commerce/governance/commercegov"
 	shippingApp "github.com/labuda/backend/internal/commerce/shipping/application"
 	shippingRepoImpl "github.com/labuda/backend/internal/commerce/shipping/infrastructure/repository"
 	escrowApp "github.com/labuda/backend/internal/core/escrow/application"
@@ -107,6 +107,14 @@ func (s *OrderService) SetCommerceGovRepository(repo commercegov.Repository) {
 // This allows the service to be wired up after OrderService creation to avoid circular dependencies.
 func (s *OrderService) SetShippingQuoteService(shippingQuoteService ShippingQuoteService) {
 	s.completionService.shippingQuoteService = shippingQuoteService
+}
+
+// SetShippingQuoteCheckoutAuthority wires the SINGLE shipping-quote checkout
+// authority into the order-creation path. Wired after construction (same reason
+// as SetShippingQuoteService) because the Shipping Quote service is built after
+// the order services.
+func (s *OrderService) SetShippingQuoteCheckoutAuthority(a ShippingQuoteCheckoutAuthority) {
+	s.creationService.SetShippingQuoteCheckoutAuthority(a)
 }
 
 // SetCommerceViolationRepo wires the canonical commerce violation/restriction

@@ -177,26 +177,6 @@ class LoggerService implements ILoggerService {
     }
   }
 
-  @override
-  Future<Result<void>> logUserAction(
-    String action, {
-    String? userId,
-    Map<String, dynamic>? parameters,
-  }) async {
-    try {
-      final enrichedParameters = {
-        'action': action,
-        'user_id': userId,
-        'timestamp': DateTime.now().toIso8601String(),
-        if (parameters != null) ...parameters,
-      };
-
-      return await info('User Action: $action', extra: enrichedParameters);
-    } catch (e) {
-      return Result.error('Failed to log user action: ${e.toString()}');
-    }
-  }
-
   Future<void> logError(String message, dynamic error) async {
     await this.error(message, extra: {'error': error.toString()});
   }
@@ -207,97 +187,6 @@ class LoggerService implements ILoggerService {
 
   Future<void> logWarning(String message) async {
     await warning(message);
-  }
-
-  @override
-  Future<Result<void>> logPerformance(
-    String operation, {
-    required Duration duration,
-    Map<String, dynamic>? metrics,
-  }) async {
-    try {
-      final performanceData = {
-        'operation': operation,
-        'duration_ms': duration.inMilliseconds,
-        'timestamp': DateTime.now().toIso8601String(),
-        if (metrics != null) ...metrics,
-      };
-
-      return await info(
-        'Performance: $operation (${duration.inMilliseconds}ms)',
-        extra: performanceData,
-      );
-    } catch (e) {
-      return Result.error('Failed to log performance: ${e.toString()}');
-    }
-  }
-
-  @override
-  Future<Result<void>> logSecurityEvent(
-    String event, {
-    String? userId,
-    String? severity,
-    Map<String, dynamic>? details,
-  }) async {
-    try {
-      final securityData = {
-        'event': event,
-        'user_id': userId,
-        'severity': severity ?? 'medium',
-        'timestamp': DateTime.now().toIso8601String(),
-        if (details != null) ...details,
-      };
-
-      final logLevel = _getLogLevelFromSeverity(severity);
-
-      switch (logLevel) {
-        case LogLevel.warning:
-          return await warning('Security Event: $event', extra: securityData);
-        case LogLevel.error:
-          return await error('Security Event: $event', extra: securityData);
-        case LogLevel.fatal:
-          return await fatal('Security Event: $event', extra: securityData);
-        default:
-          return await info('Security Event: $event', extra: securityData);
-      }
-    } catch (e) {
-      return Result.error('Failed to log security event: ${e.toString()}');
-    }
-  }
-
-  @override
-  Future<Result<void>> logApiCall(
-    String endpoint, {
-    required String method,
-    required int statusCode,
-    required Duration duration,
-    Map<String, dynamic>? requestData,
-    Map<String, dynamic>? responseData,
-  }) async {
-    try {
-      final apiCallData = {
-        'endpoint': endpoint,
-        'method': method,
-        'status_code': statusCode,
-        'duration_ms': duration.inMilliseconds,
-        'timestamp': DateTime.now().toIso8601String(),
-        if (requestData != null) 'request': _sanitizeData(requestData),
-        if (responseData != null) 'response': _sanitizeData(responseData),
-      };
-
-      final logLevel = statusCode >= 400 ? LogLevel.error : LogLevel.info;
-      final message =
-          'API Call: $method $endpoint ($statusCode) - ${duration.inMilliseconds}ms';
-
-      switch (logLevel) {
-        case LogLevel.error:
-          return await error(message, extra: apiCallData);
-        default:
-          return await info(message, extra: apiCallData);
-      }
-    } catch (e) {
-      return Result.error('Failed to log API call: ${e.toString()}');
-    }
   }
 
   @override
@@ -477,41 +366,6 @@ class LoggerService implements ILoggerService {
     } catch (e) {
       return 'Unknown';
     }
-  }
-
-  LogLevel _getLogLevelFromSeverity(String? severity) {
-    switch (severity?.toLowerCase()) {
-      case 'low':
-        return LogLevel.info;
-      case 'medium':
-        return LogLevel.warning;
-      case 'high':
-        return LogLevel.error;
-      case 'critical':
-        return LogLevel.fatal;
-      default:
-        return LogLevel.info;
-    }
-  }
-
-  Map<String, dynamic> _sanitizeData(Map<String, dynamic> data) {
-    // Remove sensitive information from logs
-    final sensitiveKeys = [
-      'password',
-      'token',
-      'secret',
-      'key',
-      'authorization',
-    ];
-    final sanitized = Map<String, dynamic>.from(data);
-
-    for (final key in sensitiveKeys) {
-      if (sanitized.containsKey(key)) {
-        sanitized[key] = '[REDACTED]';
-      }
-    }
-
-    return sanitized;
   }
 
   @override

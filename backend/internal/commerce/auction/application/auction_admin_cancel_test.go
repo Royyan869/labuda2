@@ -49,7 +49,6 @@ func TestApplyAdminCancel_SafeStates_Succeed(t *testing.T) {
 		name   string
 		status entity.Status
 	}{
-		{"draft", entity.StatusDraft},
 		{"scheduled", entity.StatusScheduled},
 		{"active_no_bids", entity.StatusActive},
 		{"waiting_settlement", entity.StatusWaitingSettlement},

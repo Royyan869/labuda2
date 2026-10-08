@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:labuda/shared/services/places_autocomplete_service.dart';
+import 'package:labuda/shared/widgets/address_location_view.dart';
+import 'package:labuda/shared/widgets/bottom_action_bar.dart';
 import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Header untuk Map Picker
@@ -14,29 +16,21 @@ class MapPickerHeader extends StatelessWidget {
       padding: const EdgeInsets.all(AppMetrics.p16),
       decoration: BoxDecoration(
         color: scheme.surface,
-        border: Border(
-          bottom: BorderSide(
-            color: scheme.outlineVariant,
-          ),
-        ),
+        border: Border(bottom: BorderSide(color: scheme.outlineVariant)),
       ),
       child: Row(
         children: [
           Expanded(
             child: Text(
               'Pilih Lokasi',
-              style: TextStyle(
-                fontSize: AppType.s20,
+              style: context.typeRoles.titleSection.copyWith(
                 fontWeight: FontWeight.w600,
                 color: scheme.onSurface,
               ),
             ),
           ),
           IconButton(
-            icon: Icon(
-              Icons.close,
-              color: scheme.onSurfaceVariant,
-            ),
+            icon: Icon(Icons.close, color: scheme.onSurfaceVariant, semanticLabel: 'Tutup'),
             onPressed: () => Navigator.pop(context),
           ),
         ],
@@ -68,7 +62,11 @@ class MapCenterPin extends StatelessWidget {
               ),
             ],
           ),
-          child: Icon(Icons.place, color: scheme.onPrimary, size: AppIconSize.emphasis),
+          child: Icon(
+            Icons.place,
+            color: scheme.onPrimary,
+            size: AppIconSize.emphasis,
+          ),
         ),
         const SizedBox(height: 4),
         // Shadow untuk depth effect
@@ -126,16 +124,11 @@ class MapSearchBar extends StatelessWidget {
             controller: controller,
             decoration: InputDecoration(
               hintText: 'Cari lokasi...',
-              hintStyle: TextStyle(
-                color: scheme.onSurfaceVariant,
-              ),
-              prefixIcon: Icon(
-                Icons.search,
-                color: scheme.onSurfaceVariant,
-              ),
+              hintStyle: TextStyle(color: scheme.onSurfaceVariant),
+              prefixIcon: Icon(Icons.search, color: scheme.onSurfaceVariant),
               suffixIcon: controller.text.isNotEmpty
                   ? IconButton(
-                      icon: const Icon(Icons.clear),
+                      icon: const Icon(Icons.clear, semanticLabel: 'Bersihkan'),
                       onPressed: onClear,
                     )
                   : isSearching
@@ -154,10 +147,9 @@ class MapSearchBar extends StatelessWidget {
                 vertical: AppMetrics.p16,
               ),
             ),
-            style: TextStyle(
-              fontSize: AppType.s14,
-              color: scheme.onSurface,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyLarge?.copyWith(color: scheme.onSurface),
           ),
         ),
 
@@ -186,10 +178,8 @@ class MapSearchBar extends StatelessWidget {
                   padding: EdgeInsets.zero,
                   physics: const ClampingScrollPhysics(),
                   itemCount: searchResults.length,
-                  separatorBuilder: (context, index) => Divider(
-                    height: 1,
-                    color: scheme.outlineVariant,
-                  ),
+                  separatorBuilder: (context, index) =>
+                      Divider(height: 1, color: scheme.outlineVariant),
                   itemBuilder: (context, index) {
                     final prediction = searchResults[index];
                     return _SearchResultItem(
@@ -212,10 +202,7 @@ class _SearchResultItem extends StatelessWidget {
   final PlacePrediction prediction;
   final VoidCallback onTap;
 
-  const _SearchResultItem({
-    required this.prediction,
-    required this.onTap,
-  });
+  const _SearchResultItem({required this.prediction, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -225,10 +212,17 @@ class _SearchResultItem extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p12),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppMetrics.p16,
+            vertical: AppMetrics.p12,
+          ),
           child: Row(
             children: [
-              Icon(Icons.location_on, color: scheme.primary, size: AppIconSize.action),
+              Icon(
+                Icons.location_on,
+                color: scheme.primary,
+                size: AppIconSize.action,
+              ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -236,8 +230,7 @@ class _SearchResultItem extends StatelessWidget {
                   children: [
                     Text(
                       prediction.mainText ?? prediction.description,
-                      style: TextStyle(
-                        fontSize: AppType.s14,
+                      style: context.typeRoles.bodyDense.copyWith(
                         fontWeight: FontWeight.w500,
                         color: scheme.onSurface,
                       ),
@@ -246,8 +239,7 @@ class _SearchResultItem extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(
                         prediction.secondaryText!,
-                        style: TextStyle(
-                          fontSize: AppType.s12,
+                        style: context.typeRoles.labelMicro.copyWith(
                           color: scheme.onSurfaceVariant,
                         ),
                       ),
@@ -303,13 +295,16 @@ class MapLocationInfoCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(Icons.place, color: scheme.primary, size: AppIconSize.action),
+              Icon(
+                Icons.place,
+                color: scheme.primary,
+                size: AppIconSize.action,
+              ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   'Lokasi yang Dipilih',
-                  style: TextStyle(
-                    fontSize: AppType.s12,
+                  style: context.typeRoles.labelMicro.copyWith(
                     fontWeight: FontWeight.w600,
                     color: scheme.onSurfaceVariant,
                   ),
@@ -337,8 +332,7 @@ class MapLocationInfoCard extends StatelessWidget {
                       const SizedBox(width: 4),
                       Text(
                         'Default Location',
-                        style: TextStyle(
-                          fontSize: AppType.s12,
+                        style: context.typeRoles.labelMicro.copyWith(
                           fontWeight: FontWeight.w500,
                           color: scheme.primary,
                         ),
@@ -363,8 +357,7 @@ class MapLocationInfoCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 Text(
                   'Mendapatkan alamat...',
-                  style: TextStyle(
-                    fontSize: AppType.s14,
+                  style: context.typeRoles.bodyDense.copyWith(
                     color: scheme.onSurfaceVariant,
                   ),
                 ),
@@ -374,24 +367,22 @@ class MapLocationInfoCard extends StatelessWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  address ?? 'Pilih lokasi di peta',
-                  style: TextStyle(
-                    fontSize: AppType.s16,
+                AddressLocationText(
+                  location: address ?? 'Pilih lokasi di peta',
+                  mode: AddressLocationMode.detail,
+                  maxLines: 4,
+                  style: context.typeRoles.titleCompact.copyWith(
                     fontWeight: FontWeight.w500,
                     height: 1.4,
                     color: scheme.onSurface,
                   ),
-                  maxLines: 4,
-                  overflow: TextOverflow.ellipsis,
                 ),
                 if (latitude != null && longitude != null)
                   Padding(
                     padding: const EdgeInsets.only(top: AppMetrics.p8),
                     child: Text(
                       '$latitude, $longitude',
-                      style: TextStyle(
-                        fontSize: AppType.s12,
+                      style: context.typeRoles.labelMicro.copyWith(
                         fontFamily: 'monospace',
                         color: scheme.onSurfaceVariant,
                       ),
@@ -405,50 +396,25 @@ class MapLocationInfoCard extends StatelessWidget {
   }
 }
 
-/// Confirm Button untuk Map Picker
+/// Confirm Button untuk Map Picker — content only; chrome (surface,
+/// separator, Safe Area, keyboard inset, button height, disabled language) is
+/// owned by [BottomActionBar].
 class MapConfirmButton extends StatelessWidget {
   final bool canConfirm;
   final VoidCallback onConfirm;
-  final double bottomPadding;
 
   const MapConfirmButton({
     super.key,
     required this.canConfirm,
     required this.onConfirm,
-    required this.bottomPadding,
   });
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-
-    return Container(
-      padding: EdgeInsets.fromLTRB(
-        AppMetrics.p16,
-        AppMetrics.p12,
-        AppMetrics.p16,
-        AppMetrics.p12 + bottomPadding,
-      ),
-      decoration: BoxDecoration(
-        color: scheme.surface,
-        border: Border(
-          top: BorderSide(
-            color: scheme.outlineVariant,
-          ),
-        ),
-      ),
-      child: SizedBox(
-        width: double.infinity,
-        child: FilledButton(
-          onPressed: canConfirm ? onConfirm : null,
-          style: FilledButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: AppMetrics.p16),
-          ),
-          child: const Text(
-            'Pilih Lokasi Ini',
-            style: TextStyle(fontSize: AppType.s16, fontWeight: FontWeight.w600),
-          ),
-        ),
+    return BottomActionBar(
+      primary: BottomBarAction(
+        label: 'Pilih Lokasi Ini',
+        onPressed: canConfirm ? onConfirm : null,
       ),
     );
   }

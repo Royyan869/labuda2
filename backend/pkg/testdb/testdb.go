@@ -33,6 +33,7 @@ import (
 	"github.com/joho/godotenv"
 
 	"github.com/labuda/backend/internal/config"
+	"github.com/labuda/backend/internal/platform/geography"
 	"github.com/labuda/backend/pkg/db"
 	"github.com/labuda/backend/pkg/migration"
 )
@@ -320,12 +321,15 @@ func (tdb *TestDB) TruncateAll(ctx context.Context) error {
 
 	pool := cleanupDB.Pool()
 
-	// Collect all user table names (excluding schema_migrations)
+	// Collect all user table names. schema_migrations is the ledger, and
+	// canonical_geographies is the ONE Geography Master — both are reference
+	// data that must survive per-test truncation (the master is seeded once
+	// per test binary, not per test).
 	rows, err := pool.Query(ctx, `
 		SELECT tablename
 		FROM pg_tables
 		WHERE schemaname = 'public'
-		  AND tablename <> 'schema_migrations'
+		  AND tablename NOT IN ('schema_migrations', 'canonical_geographies')
 		ORDER BY tablename;
 	`)
 	if err != nil {
@@ -581,6 +585,12 @@ func runMigrationsRaw(cfg *config.Config, logf func(string, ...any)) error {
 		return fmt.Errorf("run migrations: %w", err)
 	}
 
+	// Seed the ONE canonical Geography Master so every testdb-backed test
+	// runs against the real reference data. Idempotent.
+	if err := geography.Seed(migrateCtx, runPool); err != nil {
+		return fmt.Errorf("seed canonical geography: %w", err)
+	}
+
 	if logf != nil {
 		logf("Test database migrations completed using canonical runner")
 	}
@@ -595,10 +605,11 @@ const connectionTimeout = 10 * time.Second
 // a hang, not as a failure.
 //
 // The bound must cover the FULL canonical chain on cold hardware: the chain
-// has grown past 100 migrations and a full run measured ~106s (Windows dev
-// box, 2026-09). The old 60s budget aborted mid-chain on every bootstrap,
-// which skipped every testdb-backed integration test.
-const migrationTimeout = 180 * time.Second
+// has grown past 130 migrations (including the full Geography Master) and a
+// full run measured ~220s on a Windows dev box (2026-10). The old 60s/180s
+// budgets aborted mid-chain on every bootstrap, which skipped every
+// testdb-backed integration test.
+const migrationTimeout = 420 * time.Second
 
 // redactPassword removes password from DSN for safe logging
 func redactPassword(dsn string) string {

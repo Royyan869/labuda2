@@ -1715,7 +1715,7 @@
     "description": "Article: How to pay"
   },
 
-  "articleHowToPayContent": "To pay for your order:\n\n1. Go to your order from the Orders screen\n2. Tap the 'Pay Now' button\n3. Select your payment method (GoPay, Bank Transfer, etc.)\n4. Follow the instructions to complete payment\n5. Your payment will be confirmed within 24 hours\n\nIf payment fails, you can retry from the order screen.",
+  "articleHowToPayContent": "To pay for your order:\n\n1. Go to your order from the Orders screen\n2. Tap the 'Pay Now' button\n3. Select your payment method (GoPay, Bank Transfer, etc.)\n4. Follow the instructions to complete payment\n\nComplete the payment before the deadline shown on the order screen. If the deadline passes, the order is cancelled automatically.\n\nYour order status updates as soon as the payment is confirmed. If payment fails, you can retry from the order screen.",
   "@articleHowToPayContent": {
     "description": "Article: How to pay content"
   },
@@ -1725,7 +1725,7 @@
     "description": "Article: Track order"
   },
 
-  "articleTrackOrderContent": "To track your order:\n\n1. Go to 'My Orders' from the profile menu\n2. Tap on the order you want to track\n3. You'll see the current status and tracking information\n\nOrder statuses:\n- Pending: Waiting for payment\n- Processing: Seller is preparing your order\n- Shipped: Order is on the way\n- Delivered: Order has arrived\n- Completed: Order is finished",
+  "articleTrackOrderContent": "To track your order:\n\n1. Go to 'My Orders' from the profile menu\n2. Tap on the order you want to track\n3. You'll see the current status, shipping info, and tracking number\n\nOrder statuses:\n- Waiting for Payment: Your order has been created, please complete your payment\n- Being Prepared: Payment received, the seller is preparing your order\n- In Delivery: The order has been shipped\n- Completed: The order is finished\n\nIf the seller does not ship within the preparation time shown on the order, the order can be cancelled.",
   "@articleTrackOrderContent": {
     "description": "Article: Track order content"
   },
@@ -1745,7 +1745,7 @@
     "description": "Article: Become seller"
   },
 
-  "articleBecomeSellerContent": "To become a seller on LABUDA:\n\n1. Go to Settings → Upgrade to Seller\n2. Choose your plan (Basic or Pro)\n3. Fill in your business information\n4. Complete payment for the subscription\n5. Wait for verification approval\n\nOnce approved, you can start creating For Sale for your koi for sale!",
+  "articleBecomeSellerContent": "To become a seller on LABUDA:\n\n1. Go to Settings → Upgrade to Seller\n2. Choose your plan (Basic or Pro)\n3. Fill in your business information\n4. Complete payment for the subscription\n5. Wait for verification approval\n\nOnce approved, you can start creating For Sale for your koi!",
   "@articleBecomeSellerContent": {
     "description": "Article: Become seller content"
   },
@@ -1755,7 +1755,7 @@
     "description": "Article: Cancel order"
   },
 
-  "articleCancelOrderContent": "Order cancellation depends on the status:\n\n- Pending payment: Auto-cancelled if not paid within 24 hours\n- Processing: Contact seller to cancel\n- Shipped: Cannot cancel, use refund process instead\n\nTo request cancellation, tap the order and select 'Contact Seller' to discuss.",
+  "articleCancelOrderContent": "Order cancellation depends on the status:\n\n- Waiting for Payment: Cancel from the order details, or let it expire automatically if the payment deadline passes\n- Being Prepared or In Delivery: The order can't be cancelled directly, use the refund process instead\n- Seller overdue to ship: You can cancel the order from the order details\n- Completed: Use the refund process if there is a problem\n\nTo discuss cancellation, open the order and select 'Chat Seller'.",
   "@articleCancelOrderContent": {
     "description": "Article: Cancel order content"
   },
@@ -1765,7 +1765,7 @@
     "description": "Article: Complete order"
   },
 
-  "articleConfirmDeliveryContent": "To complete your order after receiving items:\n\n1. Open the order details\n2. Tap 'Terima Barang' button\n3. Confirm that items match your order\n\nIf you don't confirm within 5 days of shipment, the order will auto-complete.",
+  "articleConfirmDeliveryContent": "To complete your order after receiving the items:\n\n1. Open the order details\n2. Tap the 'Confirm Receipt' button\n3. Confirm that the items match your order\n\nYou have 5 days from the moment the seller marks the order as shipped to confirm receipt or open a dispute. If you don't confirm in time, the order completes automatically.\n\nIf your order hasn't arrived yet and the 5 days are almost over, you can use 'Extend Confirmation' once to extend the deadline by 3 days.",
   "@articleConfirmDeliveryContent": {
     "description": "Article: Complete order content"
   },
@@ -1785,19 +1785,19 @@
     "description": "Article: Refund time"
   },
 
-  "articleRefundTimeContent": "Refund processing time:\n\n1. Seller review: 1-3 days\n2. If approved: 3-7 business days for funds to return\n\nThe exact time depends on your payment method. GoPay refunds are usually faster than bank transfers.",
+  "articleRefundTimeContent": "Refund processing depends on the case:\n\n1. Submit the refund request with the required evidence\n2. The seller reviews the request. If it is rejected, you can escalate to admin for the final decision\n3. If the refund is approved, the funds are returned to your original payment method\n\nThe review time and the time for the funds to arrive depend on the case and your payment provider. You can follow the status from the order details.",
   "@articleRefundTimeContent": {
     "description": "Article: Refund time content"
   },
 
   "articleCreateForSale": "How to create a For Sale?",
   "@articleCreateForSale": {
-    "description": "Article: Create listing"
+    "description": "Article: Create For Sale"
   },
 
   "articleCreateForSaleContent": "To create a new For Sale:\n\n1. Tap the + button on the home screen\n2. Select 'For Sale'\n3. Add photos of your koi (multiple angles recommended)\n4. Fill in details (variety, size, price, location)\n5. Write a description\n6. Publish your For Sale\n\nYour For Sale will be visible to buyers immediately!",
   "@articleCreateForSaleContent": {
-    "description": "Article: Create listing content"
+    "description": "Article: Create For Sale content"
   },
 
   "articleShippingSetup": "How to set up shipping?",
@@ -1805,7 +1805,7 @@
     "description": "Article: Shipping setup"
   },
 
-  "articleShippingSetupContent": "To set up shipping:\n\n1. Go to Seller Dashboard\n2. Select a shipping partner (available options)\n3. Set your shipping zones and rates\n4. Add packaging instructions\n\nAlways use proper packaging with oxygen for live koi shipping!",
+  "articleShippingSetupContent": "To set up shipping:\n\n1. Go to Settings → Pengiriman, or Seller Dashboard → Atur Pengiriman\n2. Add a shipping option (train, bus, travel, plane, or custom)\n3. Set the province coverage with the rate you charge for each province\n4. Toggle the option active to make it available for your For Sales\n5. When creating a For Sale, choose which of your options apply to that For Sale\n\nShipping is seller-managed: you decide the options, rates, and courier. For irregular cases (large fish, special handling), send a shipping quote to the buyer in chat as a fallback.\n\nAlways use proper packaging with oxygen for live koi shipping!",
   "@articleShippingSetupContent": {
     "description": "Article: Shipping setup content"
   },
@@ -1835,7 +1835,7 @@
     "description": "Article: Seller verification"
   },
 
-  "articleSellerVerificationContent": "Seller verification requires:\n\n1. Valid KTP (Indonesian ID card)\n2. Clear photo of KTP\n3. KTP number (16 digits)\n4. Name matching KTP\n5. Business address\n6. Active phone number\n\nVerification usually takes 1-3 business days.",
+  "articleSellerVerificationContent": "Seller verification requires:\n\n1. Valid KTP (Indonesian ID card)\n2. Clear photo of KTP\n3. KTP number (16 digits)\n4. Name matching KTP\n5. Business address\n6. Active phone number\n\nVerification usually takes 1-2 business days.",
   "@articleSellerVerificationContent": {
     "description": "Article: Seller verification content"
   },
@@ -1845,19 +1845,69 @@
     "description": "Article: App not working"
   },
 
-  "articleAppNotWorkingContent": "If the app is not working:\n\n1. Check your internet connection\n2. Close and reopen the app\n3. Clear app cache (Settings → Clear Cache)\n4. Update to the latest app version\n5. Restart your phone\n\nIf issues persist, contact support with details of what's not working.",
+  "articleAppNotWorkingContent": "If the app is not working properly:\n\n1. Check your internet connection\n2. Close and reopen the app\n3. Make sure you are using the latest app version\n4. Restart your phone\n\nIf the problem continues, contact support with details of what's not working.",
   "@articleAppNotWorkingContent": {
     "description": "Article: App not working content"
   },
 
-  "articleClearCache": "How to clear app cache?",
-  "@articleClearCache": {
-    "description": "Article: Clear cache"
+  "articleAppSlowOrNotLoading": "App is slow or not loading?",
+  "@articleAppSlowOrNotLoading": {
+    "description": "Article: App slow or not loading"
   },
 
-  "articleClearCacheContent": "To clear app cache:\n\n1. Go to Settings\n2. Scroll to 'App Preferences'\n3. Tap 'Clear Cache'\n4. Confirm when prompted\n\nThis will free up storage but won't delete your data. You'll need to log in again.",
-  "@articleClearCacheContent": {
-    "description": "Article: Clear cache content"
+  "articleAppSlowOrNotLoadingContent": "If the app feels slow or a screen is not loading:\n\n1. Check your internet connection — try Wi-Fi or mobile data\n2. Close the app completely and open it again\n3. Make sure you are using the latest app version\n4. Restart your phone\n\nIf the problem continues, contact support and mention which screen is affected.",
+  "@articleAppSlowOrNotLoadingContent": {
+    "description": "Article: App slow or not loading content"
+  },
+
+  "articleWithdrawalFailed": "Withdrawal failed, what to do?",
+  "@articleWithdrawalFailed": {
+    "description": "Article: Withdrawal failed"
+  },
+
+  "articleWithdrawalFailedContent": "If your withdrawal fails:\n\n1. Check that your bank account details are correct\n2. Make sure your seller verification (KTP) is complete\n3. Check that the amount meets the minimum withdrawal shown on the Earnings screen\n\nWithdrawals are reviewed by admin first. Once approved, the funds are transferred to your registered bank account within 1-3 business days.\n\nNext steps:\n• Open the Earnings screen and check the withdrawal status\n• If the withdrawal failed, check your bank details and submit a new request\n• Contact support if the funds were deducted from your balance but not received",
+  "@articleWithdrawalFailedContent": {
+    "description": "Article: Withdrawal failed content"
+  },
+
+  "articleForSaleNotVisible": "Why is my For Sale not visible?",
+  "@articleForSaleNotVisible": {
+    "description": "Article: For Sale not visible"
+  },
+
+  "articleForSaleNotVisibleContent": "Your For Sale may not be visible to buyers because:\n\n1. It is sold — the stock has been sold out, so it is no longer offered\n2. It is withdrawn — the For Sale has been removed from sale\n3. Its details are incomplete — make sure the photos, price, and shipping options are filled in\n\nA new For Sale is shown to buyers as soon as you publish it — there is no approval stage to wait for.\n\nNext steps:\n• Go to My For Sales and check the status\n• Complete any missing details and save again\n\nIf the For Sale is still active but not showing to buyers, contact support.",
+  "@articleForSaleNotVisibleContent": {
+    "description": "Article: For Sale not visible content"
+  },
+
+  "articleSellerPaymentPending": "Payment from order not received?",
+  "@articleSellerPaymentPending": {
+    "description": "Article: Seller payment pending"
+  },
+
+  "articleSellerPaymentPendingContent": "Order payments reach the seller in these stages:\n\n1. Payment completed → the funds are held in escrow while the order is running\n2. Order shipped → the funds stay in escrow until the buyer confirms receipt\n3. Order completed → the funds are released to your income and can be withdrawn immediately\n\nCheck these screens:\n• Order status in the Seller Dashboard\n• Earnings screen for your available balance\n\nOnce the buyer taps 'Confirm Receipt' (or the order completes automatically), the order amount enters your income and there is no waiting period before you can withdraw it.\n\nIf a completed order is not showing in your earnings, contact support with the order number.",
+  "@articleSellerPaymentPendingContent": {
+    "description": "Article: Seller payment pending content"
+  },
+
+  "articleOrderShipmentHelp": "Track shipment and delivery issues",
+  "@articleOrderShipmentHelp": {
+    "description": "Article: Shipment and delivery issues"
+  },
+
+  "articleOrderShipmentHelpContent": "For shipment issues:\n\n1. Open the order details\n2. Check the tracking number in the shipping info\n3. Track the package with the courier's website or app\n\nCommon issues:\n• Tracking not updating — it can take some time before the courier records the first scan\n• Delivery delayed — contact the seller through the order chat for an update\n• Wrong address — message the seller immediately\n\nIf the package has not arrived:\n• Check the order status and delivery confirmation\n• Contact the seller through the order chat\n• If the delivery window has passed, open a dispute from the order\n\nStill having issues? Contact support with your order number.",
+  "@articleOrderShipmentHelpContent": {
+    "description": "Article: Shipment and delivery content"
+  },
+
+  "articleItemNotReceived": "Item paid but not received?",
+  "@articleItemNotReceived": {
+    "description": "Article: Item not received"
+  },
+
+  "articleItemNotReceivedContent": "If you paid but haven't received your item:\n\nStep 1: Check the order status\n• Being Prepared: the seller is preparing your order\n• In Delivery: check the tracking number on the order\n\nStep 2: Contact the seller\n• Use the 'Chat Seller' button on the order\n• Ask for a shipping update or the tracking number\n\nStep 3: Use the protection window\n• You have 5 days from the moment the seller ships to confirm receipt or open a dispute\n• If you need more time, use 'Extend Confirmation' once to add 3 days\n• If the seller does not ship in time, the order can be cancelled\n\nNext actions:\n1. Chat with the seller first (fastest resolution)\n2. If there is no response, contact support with your order details",
+  "@articleItemNotReceivedContent": {
+    "description": "Article: Item not received content"
   },
 
   "sellerTierPro": "Pro Seller",
@@ -1893,5 +1943,458 @@
   "accountRestrictedSupport": "If you believe this is a mistake, please contact our support team via email.",
   "@accountRestrictedSupport": {
     "description": "Support message for restricted accounts"
+  },
+
+  "pageErrorTitle": "Something Went Wrong",
+  "@pageErrorTitle": {
+    "description": "Title of the canonical page-level load error state"
+  },
+
+  "pageErrorMessage": "We couldn't load the data. Please try again.",
+  "@pageErrorMessage": {
+    "description": "Safe user-facing message of the canonical page-level load error state; never contains technical error detail"
+  },
+
+  "retryAction": "Try Again",
+  "@retryAction": {
+    "description": "Retry action label used by the canonical page-level error state"
+  },
+
+  "emptyCollectionTitle": "No Data Yet",
+  "@emptyCollectionTitle": {
+    "description": "Generic collection-empty title: the request succeeded and the collection has zero items"
+  },
+
+  "emptyCollectionMessage": "There are no items to show.",
+  "@emptyCollectionMessage": {
+    "description": "Generic collection-empty supporting message"
+  },
+
+  "emptySearchTitle": "No Results Found",
+  "@emptySearchTitle": {
+    "description": "Search/filter-empty title: the collection exists but the active query or filter matched nothing"
+  },
+
+  "emptySearchMessage": "Try different keywords or filters.",
+  "@emptySearchMessage": {
+    "description": "Search/filter-empty supporting message"
+  },
+
+  "resetFilterAction": "Reset",
+  "@resetFilterAction": {
+    "description": "Primary action that clears the active search query or filter on an empty state"
+  },
+
+  "exploreMarketplaceAction": "Explore Marketplace",
+  "@exploreMarketplaceAction": {
+    "description": "Reusable first-use action that takes the user to the marketplace"
+  },
+
+  "createForSaleAction": "Create Listing",
+  "@createForSaleAction": {
+    "description": "First-use action that starts creating a For Sale listing"
+  },
+
+  "startChatAction": "Start Chat",
+  "@startChatAction": {
+    "description": "First-use action that starts a new chat"
+  },
+
+  "createTicketAction": "Create Ticket",
+  "@createTicketAction": {
+    "description": "First-use action that creates a support ticket"
+  },
+
+  "addAddressAction": "Add Address",
+  "@addAddressAction": {
+    "description": "First-use action that adds a shipping address"
+  },
+
+  "emptyForSaleTitle": "No listings yet",
+  "@emptyForSaleTitle": {
+    "description": "Collection-empty title for public For Sale surfaces"
+  },
+
+  "emptyAuctionTitle": "No auctions yet",
+  "@emptyAuctionTitle": {
+    "description": "Collection-empty title for auction surfaces"
+  },
+
+  "emptyCheckBackMessage": "Check back later!",
+  "@emptyCheckBackMessage": {
+    "description": "Collection-empty message for public marketplace tabs"
+  },
+
+  "emptySellerForSaleMessage": "This seller has no active listings.",
+  "@emptySellerForSaleMessage": {
+    "description": "Collection-empty message on a seller's public store tab"
+  },
+
+  "emptySellerAuctionMessage": "This seller has no active auctions.",
+  "@emptySellerAuctionMessage": {
+    "description": "Collection-empty message on a seller's public auction tab"
+  },
+
+  "myForSalesTitle": "No Listings Yet",
+  "@myForSalesTitle": {
+    "description": "Collection-empty title on the seller's own For Sale management screen"
+  },
+
+  "firstUseForSaleMessage": "Create your first listing to start selling.",
+  "@firstUseForSaleMessage": {
+    "description": "First-use message on the seller's own For Sale screen"
+  },
+
+  "emptySavedTitle": "No saved items yet",
+  "@emptySavedTitle": {
+    "description": "Collection-empty title on the saved items screen"
+  },
+
+  "emptySavedMessage": "For Sale and auction items you save will appear here.",
+  "@emptySavedMessage": {
+    "description": "Collection-empty message on the saved items screen"
+  },
+
+  "emptyOrdersTitle": "No Orders Yet",
+  "@emptyOrdersTitle": {
+    "description": "Collection-empty title for the buyer order list"
+  },
+
+  "emptyOrdersMessage": "Start shopping from the best Koi collection",
+  "@emptyOrdersMessage": {
+    "description": "Collection-empty message for the buyer order list"
+  },
+
+  "emptyIncomingOrdersTitle": "No Incoming Orders",
+  "@emptyIncomingOrdersTitle": {
+    "description": "Collection-empty title for the seller incoming-orders list"
+  },
+
+  "emptyIncomingOrdersMessage": "Orders from buyers will appear here",
+  "@emptyIncomingOrdersMessage": {
+    "description": "Collection-empty message for the seller incoming-orders list"
+  },
+
+  "emptyChatsTitle": "No Chats Yet",
+  "@emptyChatsTitle": {
+    "description": "Collection-empty title on the chat list"
+  },
+
+  "emptyChatsMessage": "Contact sellers to ask about products",
+  "@emptyChatsMessage": {
+    "description": "Collection-empty message on the chat list"
+  },
+
+  "emptyChatSearchTitle": "No Chats Found",
+  "@emptyChatSearchTitle": {
+    "description": "Search-empty title on the chat list when the active search matched nothing"
+  },
+
+  "emptyFollowersTitle": "No followers yet",
+  "@emptyFollowersTitle": {
+    "description": "Collection-empty title on the followers list"
+  },
+
+  "emptyFollowingTitle": "Not following anyone yet",
+  "@emptyFollowingTitle": {
+    "description": "Collection-empty title on the following list"
+  },
+
+  "emptyReportsTitle": "No reports yet",
+  "@emptyReportsTitle": {
+    "description": "Collection-empty title on the my-reports screen"
+  },
+
+  "emptyReportsMessage": "You haven't submitted any reports yet. Use the report action on content to report it.",
+  "@emptyReportsMessage": {
+    "description": "Collection-empty message on the my-reports screen"
+  },
+
+  "emptySupportTicketsTitle": "No support tickets yet",
+  "@emptySupportTicketsTitle": {
+    "description": "Collection-empty title on the support tickets screen"
+  },
+
+  "emptySupportTicketsMessage": "Create a ticket to get help from our support team",
+  "@emptySupportTicketsMessage": {
+    "description": "Collection-empty message on the support tickets screen"
+  },
+
+  "supportCategoryOrderIssue": "Order Problems",
+  "@supportCategoryOrderIssue": {
+    "description": "Support ticket category label (category identity: order_issue)"
+  },
+
+  "supportCategoryPaymentIssue": "Payment Issues",
+  "@supportCategoryPaymentIssue": {
+    "description": "Support ticket category label (category identity: payment_issue)"
+  },
+
+  "supportCategoryAccountIssue": "Account Help",
+  "@supportCategoryAccountIssue": {
+    "description": "Support ticket category label (category identity: account_issue)"
+  },
+
+  "supportCategoryListingIssue": "Listing Problems",
+  "@supportCategoryListingIssue": {
+    "description": "Support ticket category label (category identity: listing_issue)"
+  },
+
+  "supportCategoryShippingIssue": "Shipping Issues",
+  "@supportCategoryShippingIssue": {
+    "description": "Support ticket category label (category identity: shipping_issue)"
+  },
+
+  "supportCategoryRefundRequest": "Refund Request",
+  "@supportCategoryRefundRequest": {
+    "description": "Support ticket category label (category identity: refund_request)"
+  },
+
+  "supportCategoryDispute": "Dispute",
+  "@supportCategoryDispute": {
+    "description": "Support ticket category label (category identity: dispute)"
+  },
+
+  "supportCategoryTechnicalIssue": "Technical Help",
+  "@supportCategoryTechnicalIssue": {
+    "description": "Support ticket category label (category identity: technical_issue)"
+  },
+
+  "supportCategoryOther": "Other",
+  "@supportCategoryOther": {
+    "description": "Support ticket category label (category identity: other)"
+  },
+
+  "supportStatusOpen": "Open",
+  "@supportStatusOpen": {
+    "description": "Support ticket status label (status identity: open)"
+  },
+
+  "supportStatusInProgress": "In Progress",
+  "@supportStatusInProgress": {
+    "description": "Support ticket status label (status identity: in_progress)"
+  },
+
+  "supportStatusWaitingUser": "Waiting User",
+  "@supportStatusWaitingUser": {
+    "description": "Support ticket status label (status identity: waiting_user)"
+  },
+
+  "supportStatusResolved": "Resolved",
+  "@supportStatusResolved": {
+    "description": "Support ticket status label (status identity: resolved)"
+  },
+
+  "supportStatusClosed": "Closed",
+  "@supportStatusClosed": {
+    "description": "Support ticket status label (status identity: closed)"
+  },
+
+  "supportPriorityLow": "Low",
+  "@supportPriorityLow": {
+    "description": "Support ticket priority label (priority identity: low)"
+  },
+
+  "supportPriorityMedium": "Medium",
+  "@supportPriorityMedium": {
+    "description": "Support ticket priority label (priority identity: medium)"
+  },
+
+  "supportPriorityHigh": "High",
+  "@supportPriorityHigh": {
+    "description": "Support ticket priority label (priority identity: high)"
+  },
+
+  "supportPriorityUrgent": "Urgent",
+  "@supportPriorityUrgent": {
+    "description": "Support ticket priority label (priority identity: urgent)"
+  },
+
+  "supportEventTicketCreated": "Ticket Created",
+  "@supportEventTicketCreated": {
+    "description": "Support ticket activity label (event identity: ticket_created)"
+  },
+
+  "supportEventTicketClaimed": "Ticket Claimed",
+  "@supportEventTicketClaimed": {
+    "description": "Support ticket activity label (event identity: ticket_claimed)"
+  },
+
+  "supportEventTicketWaitingUser": "Waiting for Your Reply",
+  "@supportEventTicketWaitingUser": {
+    "description": "Support ticket activity label (event identity: ticket_waiting_user)"
+  },
+
+  "supportEventStatusChanged": "Status Changed",
+  "@supportEventStatusChanged": {
+    "description": "Support ticket activity label (event identity: status_changed)"
+  },
+
+  "supportEventPriorityChanged": "Priority Changed",
+  "@supportEventPriorityChanged": {
+    "description": "Support ticket activity label (event identity: priority_changed)"
+  },
+
+  "supportEventCategoryChanged": "Category Changed",
+  "@supportEventCategoryChanged": {
+    "description": "Support ticket activity label (event identity: category_changed)"
+  },
+
+  "supportEventTicketResolved": "Ticket Resolved",
+  "@supportEventTicketResolved": {
+    "description": "Support ticket activity label (event identity: ticket_resolved)"
+  },
+
+  "supportEventTicketClosed": "Ticket Closed",
+  "@supportEventTicketClosed": {
+    "description": "Support ticket activity label (event identity: ticket_closed)"
+  },
+
+  "supportEventTicketReopened": "Ticket Reopened",
+  "@supportEventTicketReopened": {
+    "description": "Support ticket activity label (event identity: ticket_reopened)"
+  },
+
+  "supportEventAdminAssigned": "Support Agent Assigned",
+  "@supportEventAdminAssigned": {
+    "description": "Support ticket activity label (event identity: admin_assigned)"
+  },
+
+  "supportEventAdminUnassigned": "Support Agent Unassigned",
+  "@supportEventAdminUnassigned": {
+    "description": "Support ticket activity label (event identity: admin_unassigned)"
+  },
+
+  "supportEventTicketEscalated": "Escalated to Dispute",
+  "@supportEventTicketEscalated": {
+    "description": "Support ticket activity label (event identity: ticket_escalated)"
+  },
+
+  "supportEventUnknown": "Ticket Activity",
+  "@supportEventUnknown": {
+    "description": "Support ticket activity label for an unrecognised event type"
+  },
+
+  "supportEventTransition": "From {from} to {to}",
+  "@supportEventTransition": {
+    "description": "Support ticket activity detail: a localized state transition between two canonical labelled values",
+    "placeholders": {
+      "from": {
+        "type": "String"
+      },
+      "to": {
+        "type": "String"
+      }
+    }
+  },
+
+  "supportTimelineTitle": "Activity Timeline",
+  "@supportTimelineTitle": {
+    "description": "Section title for the read-only Support ticket activity timeline"
+  },
+
+  "supportTimelineEmpty": "No activity recorded yet",
+  "@supportTimelineEmpty": {
+    "description": "Section empty state for the Support ticket activity timeline"
+  },
+
+  "emptyAddressTitle": "No address yet",
+  "@emptyAddressTitle": {
+    "description": "Collection-empty title on the address book"
+  },
+
+  "emptyAddressMessage": "Add an address to shop and to ship from",
+  "@emptyAddressMessage": {
+    "description": "Collection-empty message on the address book"
+  },
+
+  "emptyProfileContentTitle": "No content yet",
+  "@emptyProfileContentTitle": {
+    "description": "Collection-empty title on another user's profile content tab"
+  },
+
+  "emptyProfileContentMessage": "This user hasn't shared any content",
+  "@emptyProfileContentMessage": {
+    "description": "Collection-empty message on another user's profile content tab"
+  },
+
+  "orderActionMarkShipped": "Ship Order",
+  "@orderActionMarkShipped": {
+    "description": "Order action CTA for backend label_key action.mark_shipped"
+  },
+
+  "orderActionConfirmReceipt": "Confirm Receipt",
+  "@orderActionConfirmReceipt": {
+    "description": "Order action CTA for backend label_key action.confirm_receipt"
+  },
+
+  "orderActionProvideEvidence": "Provide Evidence",
+  "@orderActionProvideEvidence": {
+    "description": "Order action CTA for backend label_key action.provide_evidence"
+  },
+
+  "orderActionCancelOrderOverdue": "Cancel Order",
+  "@orderActionCancelOrderOverdue": {
+    "description": "Order action CTA for backend label_key action.cancel_order_overdue"
+  },
+
+  "orderActionPayNow": "Pay Now",
+  "@orderActionPayNow": {
+    "description": "Order action CTA for backend label_key action.pay_now"
+  },
+
+  "orderActionPaymentContinue": "Continue Payment",
+  "@orderActionPaymentContinue": {
+    "description": "Order action CTA for backend label_key action.payment_continue"
+  },
+
+  "orderActionPaymentCheckStatus": "Check Payment Status",
+  "@orderActionPaymentCheckStatus": {
+    "description": "Order action CTA for backend label_key action.payment_check_status"
+  },
+
+  "orderActionPayAgain": "Retry Payment",
+  "@orderActionPayAgain": {
+    "description": "Order action CTA for backend label_key action.pay_again"
+  },
+
+  "orderActionCancelOrder": "Cancel",
+  "@orderActionCancelOrder": {
+    "description": "Order action CTA for backend label_key action.cancel_order"
+  },
+
+  "orderActionExtendConfirmation": "Extend Confirmation",
+  "@orderActionExtendConfirmation": {
+    "description": "Order action CTA for backend label_key action.extend_confirmation"
+  },
+
+  "orderActionRequestRefund": "Request Refund",
+  "@orderActionRequestRefund": {
+    "description": "Order action CTA for backend label_key action.request_refund"
+  },
+
+  "orderActionOpenDispute": "Open Dispute",
+  "@orderActionOpenDispute": {
+    "description": "Order action CTA for backend label_key action.open_dispute"
+  },
+
+  "orderActionUpdateTracking": "Update Tracking",
+  "@orderActionUpdateTracking": {
+    "description": "Order action CTA for backend label_key action.update_tracking"
+  },
+
+  "orderActionChatSeller": "Chat Seller",
+  "@orderActionChatSeller": {
+    "description": "Order action CTA for backend label_key action.chat_seller"
+  },
+
+  "orderActionContactSupport": "Contact Support",
+  "@orderActionContactSupport": {
+    "description": "Order action CTA for backend label_key action.contact_support"
+  },
+
+  "homeFirstUseTitle": "🎯 Kamu ingin apa hari ini?",
+  "@homeFirstUseTitle": {
+    "description": "First-use empty title on the home feed"
   }
 }

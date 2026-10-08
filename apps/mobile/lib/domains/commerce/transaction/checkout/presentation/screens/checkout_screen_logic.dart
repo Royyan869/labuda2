@@ -136,7 +136,6 @@ Future<void> _checkoutFetchPreview(
     state._updateState(() {
       state._previewResult = previewResult;
       state._previewSignature = requestSignature;
-      state._previewTokenCreatedAt = DateTime.now();
       // Reset auto-refresh flag since we have a fresh token
       state._hasAutoRefreshed = false;
       // **STOCK WARNING UX FIX 2:** Mark stock warning as shown after first successful preview
@@ -146,7 +145,11 @@ Future<void> _checkoutFetchPreview(
     // Start countdown timer
     state._startExpiryCountdown();
 
-    if (isManualRefresh) {
+    // Canonical pre-order payment pricing for the fresh token: the buyer must
+    // be able to choose a method and see the final total BEFORE "Buat Pesanan".
+    await _checkoutLoadPreOrderPaymentMethods(state);
+
+    if (isManualRefresh && state.mounted) {
       AppSnackBar.showSuccess(state.context, 'Harga berhasil diperbarui');
     }
   } catch (e) {
@@ -181,6 +184,81 @@ Future<void> _checkoutFetchPreview(
       // the request with the latest inputs. The latest result wins.
       await _checkoutFetchPreview(state);
     }
+  }
+}
+
+/// Loads the canonical PRE-ORDER payment pricing for the currently applied
+/// pricing token. Backend is the sole fee authority; the client only stores the
+/// options and the buyer's selection.
+///
+/// INVARIANT: this only runs for a CURRENT preview (matching inputs, unexpired
+/// token). Any input change clears it, so a stale token's method list can never
+/// be shown or submitted.
+Future<void> _checkoutLoadPreOrderPaymentMethods(
+  _CheckoutScreenState state,
+) async {
+  final token = state._previewResult?.pricingToken;
+
+  if (token == null || token.isEmpty || !state._hasFreshPreview) {
+    if (state.mounted) {
+      state._updateState(() {
+        state._preOrderPricing = null;
+        state._selectedPaymentMethodCode = null;
+        state._paymentMethodsError = null;
+        state._isLoadingPaymentMethods = false;
+      });
+    }
+    return;
+  }
+
+  state._updateState(() {
+    state._isLoadingPaymentMethods = true;
+    state._paymentMethodsError = null;
+  });
+
+  try {
+    final repo = state.ref.read(paymentRepositoryProvider);
+    final result = await repo.getPreOrderPaymentPricing(
+      token,
+      useCoins: state._useCoins,
+    );
+    if (!state.mounted) return;
+
+    result.fold(
+      (error) {
+        state._updateState(() {
+          state._isLoadingPaymentMethods = false;
+          state._preOrderPricing = null;
+          state._selectedPaymentMethodCode = null;
+          state._paymentMethodsError = error;
+        });
+      },
+      (pricing) {
+        // Keep the buyer's selection when the method is still offered;
+        // otherwise default to the first method so a final total is always
+        // visible once methods are available.
+        final stillValid = pricing.methods.any(
+          (m) => m.methodCode == state._selectedPaymentMethodCode,
+        );
+        final selected = stillValid
+            ? state._selectedPaymentMethodCode
+            : (pricing.methods.isNotEmpty
+                  ? pricing.methods.first.methodCode
+                  : null);
+        state._updateState(() {
+          state._isLoadingPaymentMethods = false;
+          state._paymentMethodsError = null;
+          state._preOrderPricing = pricing;
+          state._selectedPaymentMethodCode = selected;
+        });
+      },
+    );
+  } catch (e) {
+    if (!state.mounted) return;
+    state._updateState(() {
+      state._isLoadingPaymentMethods = false;
+      state._paymentMethodsError = e.toString();
+    });
   }
 }
 
@@ -285,26 +363,50 @@ Future<void> _checkoutHandleCreateOrder(_CheckoutScreenState state) async {
         return;
       case CheckoutReadiness.error:
       case CheckoutReadiness.stale:
+      case CheckoutReadiness.paymentMethodsError:
         state._showOrderError(readiness.title, suggestion: readiness.message);
         return;
       case CheckoutReadiness.expired:
         state._showTokenExpiredDialog();
         return;
+      case CheckoutReadiness.loadingPaymentMethods:
+        AppSnackBar.showError(
+          state.context,
+          'Metode pembayaran masih dimuat. Mohon tunggu sebentar.',
+        );
+        return;
+      case CheckoutReadiness.missingPaymentMethod:
+        AppSnackBar.showError(
+          state.context,
+          'Pilih metode pembayaran terlebih dahulu',
+        );
+        return;
     }
 
     final notifier = state.ref.read(checkoutNotifierProvider.notifier);
+
+    // SUBMISSION SNAPSHOT: readiness above guarantees a method is selected.
+    // Capture the buyer's financial intent ONCE, before the order is built. The
+    // selected method is BOUND to the order by the backend; Order Detail later
+    // pays with that same bound method. Reading the live controls after an await
+    // could otherwise drift.
+    final submittedUseCoins = state._useCoins;
+    final submittedPaymentMethodCode = state._selectedPaymentMethodCode!;
 
     final request = CheckoutRequest(
       productId: productId,
       forSaleId: state.widget.forSaleId,
       quantity: 1,
-      useCoins: state._useCoins ? true : null,
+      useCoins: submittedUseCoins ? true : null,
       notes: state._notesController.text.trim().isEmpty
           ? null
           : state._notesController.text.trim(),
       addressId: state._selectedAddressId!,
       // Guaranteed by readiness == ready (current + unexpired + usable token).
       pricingToken: state._previewResult!.pricingToken!,
+      // Guaranteed by readiness == ready: a method is selected and its final
+      // amount is known. The backend binds this method to the order.
+      paymentMethodCode: submittedPaymentMethodCode,
       // Pass commerce context through to order creation
       auctionId: state.widget.auctionId,
       negotiationId: state.widget.negotiationId,
@@ -315,92 +417,23 @@ Future<void> _checkoutHandleCreateOrder(_CheckoutScreenState state) async {
     );
 
     // -----------------------------------------------------------
-    // STEP 1: CREATE ORDER (POST /orders ? returns Order entity)
+    // CREATE ORDER (POST /orders → returns the created Order)
     // -----------------------------------------------------------
     final orderResponse = await notifier.createOrder(request);
 
     if (orderResponse == null || !state.mounted) return;
 
-    // -----------------------------------------------------------
-    // STEP 1B: SELECT PAYMENT METHOD (PASS_18V)
-    // -----------------------------------------------------------
-    // Backend calculates the buyer payment fee per method; the buyer must
-    // choose one before a payment can be created.
-    final paymentRepo = state.ref.read(paymentRepositoryProvider);
-    final methodsResult = await paymentRepo.getPaymentMethodOptions(
-      orderResponse.orderId,
+    // ORDER CREATED. Order creation and payment initiation are SEPARATE
+    // lifecycles: Checkout owns ONLY the order and NEVER auto-initiates a
+    // payment. The created order is handed to the canonical Order Detail
+    // surface, which shows the order status and owns the "Bayar Sekarang"
+    // action (the backend decision action) plus its own recovery.
+    //
+    // `pushReplacement` swaps Checkout for Order Detail so Back returns to the
+    // origin (forSale / chat), never to a spent Checkout.
+    state.context.pushReplacement(
+      RoutePaths.orderDetailPath(orderResponse.orderId),
     );
-    if (!state.mounted) return;
-    final methods = methodsResult.fold<List<PaymentMethodOption>>(
-      (_) => const [],
-      (options) => options,
-    );
-    if (methods.isEmpty) {
-      AppSnackBar.showError(
-        state.context,
-        'Tidak ada metode pembayaran tersedia. Silakan coba lagi dari halaman pesanan.',
-      );
-      final paymentResultUri =
-          state.widget.returnToChat != null &&
-              state.widget.returnToChat!.isNotEmpty
-          ? '/payment-result/${orderResponse.orderId}?return_to_chat=${state.widget.returnToChat}'
-          : '/payment-result/${orderResponse.orderId}';
-      state.context.push(paymentResultUri, extra: orderResponse.orderNumber);
-      return;
-    }
-    final selectedMethodCode = await PaymentMethodPickerSheet.show(
-      state.context,
-      methods: methods,
-    );
-    if (!state.mounted || selectedMethodCode == null) return;
-
-    // -----------------------------------------------------------
-    // STEP 2: CREATE PAYMENT (POST /payments ? returns payment_url)
-    // -----------------------------------------------------------
-    // Reuse the existing PaymentInitiationNotifier (same flow as
-    // order detail "Pay Now" retry).
-    final paymentNotifier = state.ref.read(paymentInitiationProvider.notifier);
-    paymentNotifier.reset(); // Clear any stale state
-
-    final paymentRequest = InitiatePaymentRequest(
-      orderId: orderResponse.orderId,
-      paymentMethodCode: selectedMethodCode,
-    );
-
-    final paymentIntent = await paymentNotifier.initiatePayment(paymentRequest);
-
-    if (!state.mounted) return;
-
-    if (paymentIntent == null) {
-      // Payment initiation failed — order exists but payment not created.
-      // Navigate to payment result screen so user can retry via "Pay Now".
-      final paymentResultUri =
-          state.widget.returnToChat != null &&
-              state.widget.returnToChat!.isNotEmpty
-          ? '/payment-result/${orderResponse.orderId}?return_to_chat=${state.widget.returnToChat}'
-          : '/payment-result/${orderResponse.orderId}';
-      state.context.push(paymentResultUri, extra: orderResponse.orderNumber);
-      return;
-    }
-
-    // Payment URLs are presented exclusively inside Labuda's internal WebView.
-    // External-browser payment navigation is obsolete and must not be reintroduced.
-    final paymentUrl = paymentIntent.paymentUrl;
-    if (paymentUrl != null && paymentUrl.isNotEmpty && state.mounted) {
-      await state.context.push(
-        '/payment-webview?url=${Uri.encodeComponent(paymentUrl)}&orderId=${Uri.encodeComponent(orderResponse.orderId)}',
-      );
-    }
-
-    // Navigate to payment result screen to poll for status (backend-authoritative)
-    if (state.mounted) {
-      final paymentResultUri =
-          state.widget.returnToChat != null &&
-              state.widget.returnToChat!.isNotEmpty
-          ? '/payment-result/${orderResponse.orderId}?return_to_chat=${state.widget.returnToChat}'
-          : '/payment-result/${orderResponse.orderId}';
-      state.context.push(paymentResultUri, extra: orderResponse.orderNumber);
-    }
   } finally {
     // Always reset submit lock, even on error
     if (state.mounted) {

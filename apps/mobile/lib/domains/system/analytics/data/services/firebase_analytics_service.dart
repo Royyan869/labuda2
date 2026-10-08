@@ -1,35 +1,27 @@
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:labuda/core/common/result.dart';
 
-/// Service untuk wrap Firebase Analytics SDK.
+/// Wrapper for the Firebase Analytics SDK.
 ///
 /// **Tanggung jawab:**
-/// - Wrapper untuk Firebase Analytics SDK
-/// - Convert Firebase exceptions ke `Result<T>`
-/// - Stateless, no business logic
-///
-/// **GUIDELINES compliance:**
-/// - Firebase SDK must be wrapped in service ✅
-/// - Service is stateless ✅
-/// - No business rules in Firebase layer ✅
+/// - Wrap the Firebase Analytics SDK behind `Result<T>`.
+/// - Sanitize event names to Firebase's naming restrictions.
+/// - Stateless, no business logic.
 class FirebaseAnalyticsService {
   final FirebaseAnalytics _analytics;
 
   FirebaseAnalyticsService(this._analytics);
 
-  /// Log custom event ke Firebase Analytics.
+  /// Log a custom event to Firebase Analytics.
   ///
   /// **Parameters:**
-  /// - [eventName]: Nama event (max 40 characters, alphanumeric + underscore)
-  /// - [parameters]: Event parameters (max 25 parameters, max 100 chars per value)
+  /// - [eventName]: event name (max 40 chars, alphanumeric + underscore).
+  /// - [parameters]: event parameters (max 25 params).
   Future<Result<void>> logEvent({
     required String eventName,
     Map<String, dynamic>? parameters,
   }) async {
     try {
-      // Firebase Analytics event name restrictions:
-      // - Max 40 characters
-      // - Alphanumeric and underscore only
       final sanitizedName = _sanitizeEventName(eventName);
 
       await _analytics.logEvent(
@@ -43,7 +35,7 @@ class FirebaseAnalyticsService {
     }
   }
 
-  /// Set user ID untuk Firebase Analytics.
+  /// Set the SDK user id for Firebase Analytics.
   Future<Result<void>> setUserId(String? userId) async {
     try {
       await _analytics.setUserId(id: userId);
@@ -53,34 +45,27 @@ class FirebaseAnalyticsService {
     }
   }
 
-  /// Set user property untuk segmentation.
+  /// Explicitly enable or disable analytics collection.
   ///
-  /// **Parameters:**
-  /// - [name]: Property name (max 24 characters)
-  /// - [value]: Property value (max 36 characters)
-  Future<Result<void>> setUserProperty({
-    required String name,
-    required String? value,
-  }) async {
+  /// Product analytics is a decided capability: collection is enabled
+  /// explicitly at startup so the app never ships silently disabled.
+  Future<Result<void>> setAnalyticsCollectionEnabled(bool enabled) async {
     try {
-      final sanitizedName = _sanitizePropertyName(name);
-      final sanitizedValue = value != null
-          ? _sanitizePropertyValue(value)
-          : null;
-
-      await _analytics.setUserProperty(
-        name: sanitizedName,
-        value: sanitizedValue,
-      );
-
+      await _analytics.setAnalyticsCollectionEnabled(enabled);
       return Result.success(null);
     } catch (e) {
-      return Result.error('Failed to set user property $name: ${e.toString()}');
+      return Result.error(
+        'Failed to set analytics collection enabled: ${e.toString()}',
+      );
     }
   }
 
-  /// Set current screen name untuk screen tracking.
-  Future<Result<void>> setCurrentScreen({
+  /// Log a canonical screen view through the Firebase screen API.
+  ///
+  /// This is the canonical screen-tracking mechanism (reserved `screen_view`
+  /// event with `firebase_screen`). Do NOT emit a custom event named
+  /// `screen_view`.
+  Future<Result<void>> logScreenView({
     required String screenName,
     String? screenClassOverride,
   }) async {
@@ -93,79 +78,33 @@ class FirebaseAnalyticsService {
       return Result.success(null);
     } catch (e) {
       return Result.error(
-        'Failed to set current screen $screenName: ${e.toString()}',
+        'Failed to log screen view $screenName: ${e.toString()}',
       );
     }
   }
 
-  /// Reset analytics data (untuk testing atau logout).
-  Future<Result<void>> resetAnalyticsData() async {
-    try {
-      await _analytics.resetAnalyticsData();
-      return Result.success(null);
-    } catch (e) {
-      return Result.error('Failed to reset analytics data: ${e.toString()}');
-    }
-  }
-
-  // Helper methods untuk sanitization
-
-  /// Sanitize event name untuk Firebase restrictions.
+  /// Sanitize an event name for Firebase restrictions.
   ///
   /// Rules:
-  /// - Max 40 characters
-  /// - Only alphanumeric and underscore
-  /// - Must not start with number
+  /// - Max 40 characters.
+  /// - Only alphanumeric and underscore.
+  /// - Must not start with a number.
   String _sanitizeEventName(String name) {
-    // Replace spaces and special chars with underscore
     var sanitized = name
         .toLowerCase()
         .replaceAll(RegExp(r'[^a-z0-9_]'), '_')
         .replaceAll(RegExp(r'_+'), '_');
 
-    // Remove leading/trailing underscores
     sanitized = sanitized.replaceAll(RegExp(r'^_+|_+$'), '');
 
-    // Ensure doesn't start with number
     if (sanitized.isNotEmpty && RegExp(r'^\d').hasMatch(sanitized)) {
       sanitized = 'event_$sanitized';
     }
 
-    // Truncate to 40 characters
     if (sanitized.length > 40) {
       sanitized = sanitized.substring(0, 40);
     }
 
     return sanitized.isNotEmpty ? sanitized : 'unknown_event';
-  }
-
-  /// Sanitize property name untuk Firebase restrictions.
-  ///
-  /// Rules:
-  /// - Max 24 characters
-  /// - Only alphanumeric and underscore
-  String _sanitizePropertyName(String name) {
-    var sanitized = name
-        .toLowerCase()
-        .replaceAll(RegExp(r'[^a-z0-9_]'), '_')
-        .replaceAll(RegExp(r'_+'), '_')
-        .replaceAll(RegExp(r'^_+|_+$'), '');
-
-    if (sanitized.length > 24) {
-      sanitized = sanitized.substring(0, 24);
-    }
-
-    return sanitized.isNotEmpty ? sanitized : 'unknown';
-  }
-
-  /// Sanitize property value untuk Firebase restrictions.
-  ///
-  /// Rules:
-  /// - Max 36 characters
-  String _sanitizePropertyValue(String value) {
-    if (value.length > 36) {
-      return value.substring(0, 36);
-    }
-    return value;
   }
 }

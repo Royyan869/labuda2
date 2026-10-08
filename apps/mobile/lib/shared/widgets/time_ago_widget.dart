@@ -3,13 +3,9 @@ import 'package:labuda/domains/system/shared/domain/services/time_format_service
 
 /// Shared Time Ago Widget untuk menampilkan relative time dengan konsisten
 ///
-/// Features:
-/// - Instagram-style time formatting (1m, 1h, 1d, etc.)
-/// - Responsive text styling dengan theme integration
-/// - Support untuk different time formats
-/// - Consistent styling across app
-/// - Auto-refresh capability (optional)
-///
+/// Delegates to the canonical [TimeFormatService] (Indonesian relative
+/// progression). Styling presets only — NOT a mandatory timestamp widget;
+/// callers choose presentation per context.
 /// REFACTORED: Widget is now pure UI - delegates to domain service
 class TimeAgoWidget extends StatelessWidget {
   final DateTime dateTime;
@@ -17,8 +13,12 @@ class TimeAgoWidget extends StatelessWidget {
   final Color? color;
   final double? fontSize;
   final FontWeight? fontWeight;
-  final TimeFormat format;
   final bool showFullDate;
+
+  /// Optional single-line bound for compact compositions. Null preserves
+  /// the legacy unbounded behavior for existing callers.
+  final int? maxLines;
+  final TextOverflow? overflow;
 
   static const _timeService = TimeFormatService();
 
@@ -29,11 +29,12 @@ class TimeAgoWidget extends StatelessWidget {
     this.color,
     this.fontSize,
     this.fontWeight,
-    this.format = TimeFormat.short,
     this.showFullDate = false,
+    this.maxLines,
+    this.overflow,
   });
 
-  /// Instagram-style time ago (12m, 2h, 3d)
+  /// Compact time ago for inline content (12sp default).
   const TimeAgoWidget.instagram({
     super.key,
     required this.dateTime,
@@ -41,10 +42,11 @@ class TimeAgoWidget extends StatelessWidget {
     this.color,
     this.fontSize = 12,
     this.fontWeight,
-  }) : format = TimeFormat.short,
-       showFullDate = false;
+    this.maxLines,
+    this.overflow,
+  }) : showFullDate = false;
 
-  /// Facebook-style time ago (12 minutes ago, 2 hours ago)
+  /// Larger time ago for detail surfaces (13sp default).
   const TimeAgoWidget.facebook({
     super.key,
     required this.dateTime,
@@ -52,8 +54,9 @@ class TimeAgoWidget extends StatelessWidget {
     this.color,
     this.fontSize = 13,
     this.fontWeight,
-  }) : format = TimeFormat.long,
-       showFullDate = false;
+    this.maxLines,
+    this.overflow,
+  }) : showFullDate = false;
 
   /// Compact format untuk card headers
   const TimeAgoWidget.compact({
@@ -63,8 +66,9 @@ class TimeAgoWidget extends StatelessWidget {
     this.color,
     this.fontSize = 12,
     this.fontWeight = FontWeight.w400,
-  }) : format = TimeFormat.short,
-       showFullDate = false;
+    this.maxLines,
+    this.overflow,
+  }) : showFullDate = false;
 
   @override
   Widget build(BuildContext context) {
@@ -85,10 +89,14 @@ class TimeAgoWidget extends StatelessWidget {
     // Delegate to domain service
     final formattedText = _timeService.formatTimeAgo(
       dateTime,
-      format: format,
       showFullDate: showFullDate,
     );
 
-    return Text(formattedText, style: textStyle);
+    return Text(
+      formattedText,
+      style: textStyle,
+      maxLines: maxLines,
+      overflow: overflow,
+    );
   }
 }

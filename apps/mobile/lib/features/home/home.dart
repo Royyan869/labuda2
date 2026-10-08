@@ -20,8 +20,6 @@ export 'domain/domain.dart';
 // ============================================================================
 export 'presentation/providers/feed/feed_state.dart';
 export 'presentation/providers/feed/feed_notifier.dart';
-export 'presentation/providers/tab/tab_switch_state.dart';
-export 'presentation/providers/tab/tab_switch_notifier.dart';
 export 'presentation/providers/home_providers.dart';
 export 'presentation/screens/home_screen.dart';
 export 'presentation/screens/main_screen.dart';

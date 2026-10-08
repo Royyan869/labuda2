@@ -8,14 +8,9 @@ import (
 	"github.com/labuda/backend/pkg/db"
 )
 
-// AddressCount holds per-tag address counts.
-//
-// Total counts DISTINCT addresses; ShippingCount/SenderCount count addresses
-// carrying that tag, so a dual-tagged address contributes to both.
+// AddressCount holds the address count for an account.
 type AddressCount struct {
-	Total         int64
-	ShippingCount int64
-	SenderCount   int64
+	Total int64
 }
 
 // AddressRepository defines the interface for address persistence.
@@ -48,19 +43,9 @@ type AddressRepository interface {
 	// public origin line must not vanish because a checkout flag flipped.
 	GetByUserIDForDisplay(ctx context.Context, tx db.Tx, userID uuid.UUID) ([]*entity.Address, error)
 
-	// GetByUserIDFiltered retrieves addresses for a user carrying the given tag.
-	// If tag is empty, returns all addresses.
-	GetByUserIDFiltered(ctx context.Context, tx db.Tx, userID uuid.UUID, tag string) ([]*entity.Address, error)
-
 	// GetPrimaryByUserID retrieves the primary address for a user (read-only).
 	// Returns nil if no primary address is set.
 	GetPrimaryByUserID(ctx context.Context, tx db.Tx, userID uuid.UUID) (*entity.Address, error)
-
-	// GetPrimaryByTag retrieves the account's primary address, restricted to
-	// addresses carrying the given tag. The primary flag itself is a single
-	// account-wide resource — this read only narrows WHICH primary you see.
-	// Returns nil when the primary does not carry the tag (or none is set).
-	GetPrimaryByTag(ctx context.Context, tx db.Tx, userID uuid.UUID, tag string) (*entity.Address, error)
 
 	// SetPrimary sets an address as primary and unsets all other primary addresses for the user.
 	// This must be executed within a transaction to ensure consistency.
@@ -70,7 +55,7 @@ type AddressRepository interface {
 	// Used internally when setting a new primary address.
 	UnsetAllPrimary(ctx context.Context, tx db.Tx, userID uuid.UUID) error
 
-	// CountByUserID returns address counts grouped by tag.
+	// CountByUserID returns the account's active address count.
 	CountByUserID(ctx context.Context, tx db.Tx, userID uuid.UUID) (*AddressCount, error)
 }
 

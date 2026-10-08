@@ -15,14 +15,29 @@ class AddressState {
   final AsyncValue<AddressEntity?> primaryAddress;
   final bool isSaving;
   final bool isDeleting;
+
+  /// True while a refresh is in flight with last-known-good addresses still
+  /// present. Drives the inline update indicator, never a full-page swap.
+  final bool isRefreshing;
+
+  /// Mutation failure message (add/edit/delete/set-primary). Consumed by the
+  /// screen as a controlled SnackBar — raw backend text is never rendered.
   final String? errorMessage;
+
+  /// Load/refresh failure while [addresses] still holds the last-known-good
+  /// collection. Drives the inline refresh-error banner. Distinct from
+  /// [errorMessage] so a refresh failure is never confused with a mutation
+  /// failure (and vice versa).
+  final String? refreshError;
 
   const AddressState({
     this.addresses = const AsyncValue.data([]),
     this.primaryAddress = const AsyncValue.data(null),
     this.isSaving = false,
     this.isDeleting = false,
+    this.isRefreshing = false,
     this.errorMessage,
+    this.refreshError,
   });
 
   /// Initial state
@@ -39,14 +54,18 @@ class AddressState {
     AsyncValue<AddressEntity?>? primaryAddress,
     bool? isSaving,
     bool? isDeleting,
+    bool? isRefreshing,
     String? errorMessage,
+    String? refreshError,
   }) {
     return AddressState(
       addresses: addresses ?? this.addresses,
       primaryAddress: primaryAddress ?? this.primaryAddress,
       isSaving: isSaving ?? this.isSaving,
       isDeleting: isDeleting ?? this.isDeleting,
+      isRefreshing: isRefreshing ?? this.isRefreshing,
       errorMessage: errorMessage,
+      refreshError: refreshError,
     );
   }
 
@@ -64,7 +83,9 @@ class AddressState {
           primaryAddress == other.primaryAddress &&
           isSaving == other.isSaving &&
           isDeleting == other.isDeleting &&
-          errorMessage == other.errorMessage;
+          isRefreshing == other.isRefreshing &&
+          errorMessage == other.errorMessage &&
+          refreshError == other.refreshError;
 
   @override
   int get hashCode => Object.hash(
@@ -72,6 +93,8 @@ class AddressState {
     primaryAddress,
     isSaving,
     isDeleting,
+    isRefreshing,
     errorMessage,
+    refreshError,
   );
 }

@@ -122,6 +122,23 @@ class AuctionRemoteDatasource extends BaseApiRepository {
     return result.fold((error) => throw Exception(error), (data) => data);
   }
 
+  /// Relist an auction that ended with no bids.
+  ///
+  /// RELIST = REPUBLISH: the backend requires the full create-form payload
+  /// (fresh timing/pricing) — there is no body-less relist call and no draft
+  /// detour. The backend is the authority: it rejects any auction carrying a
+  /// bid, winner or bound order, so this call must surface that failure.
+  Future<void> relistAuction(
+    String auctionId,
+    Map<String, dynamic> payload,
+  ) async {
+    final result = await executeVoidRequest(
+      () => apiClient.post('/auctions/$auctionId/relist', data: payload),
+    );
+
+    return result.fold((error) => throw Exception(error), (data) => data);
+  }
+
   // ========== Bidding Operations ==========
 
   /// Place bid on auction
@@ -182,7 +199,9 @@ class AuctionRemoteDatasource extends BaseApiRepository {
   Future<String> claimAuction(
     String auctionId, {
     required String addressId,
-    required String shippingSetupId,
+    String? shippingSetupId,
+    String? shippingQuoteId,
+    String? chatId,
     String? discountCode,
     bool useCoins = false,
   }) async {
@@ -191,7 +210,13 @@ class AuctionRemoteDatasource extends BaseApiRepository {
         '/auctions/$auctionId/claim',
         data: {
           'address_id': addressId,
-          'shipping_option_id': shippingSetupId,
+          // Exactly one shipping source: a normal option OR a conversation-scoped
+          // manual shipping quote (which also carries the originating chat).
+          if (shippingQuoteId != null) ...{
+            'shipping_quote_id': shippingQuoteId,
+            if (chatId != null) 'chat_id': chatId,
+          } else if (shippingSetupId != null)
+            'shipping_option_id': shippingSetupId,
           if (discountCode != null) 'discount_code': discountCode,
           if (useCoins) 'use_coins': true,
         },

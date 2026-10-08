@@ -15,6 +15,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/domain/entities/for_sale.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/presentation/providers/for_sale_providers.dart';
@@ -24,11 +25,16 @@ import 'package:labuda/domains/commerce/transaction/order/presentation/providers
 import 'package:labuda/domains/commerce/transaction/shipping/domain/entities/shipping.dart';
 import 'package:labuda/domains/commerce/transaction/shipping/domain/repositories/shipping_repository.dart';
 import 'package:labuda/domains/commerce/transaction/shipping/presentation/providers/providers.dart';
+import 'package:labuda/domains/finance/transaction/payment/domain/entities/payment.dart';
+import 'package:labuda/domains/finance/transaction/payment/domain/entities/payment_intent.dart';
+import 'package:labuda/domains/finance/transaction/payment/domain/repositories/payment_repository.dart';
+import 'package:labuda/domains/finance/transaction/payment/presentation/providers/payment_providers.dart';
 import 'package:labuda/domains/finance/wallet/coins/coins.dart';
 import 'package:labuda/domains/user/profile/domain/entities/address_entity.dart';
 import 'package:labuda/domains/user/profile/presentation/providers/notifiers/address_notifier.dart';
 import 'package:labuda/domains/user/profile/presentation/providers/state/address_state.dart';
 import 'package:labuda/shared/models/wilayah_models.dart';
+import 'package:labuda/shared/services/logger_service.dart';
 
 // ===========================================================================
 // FAKES
@@ -57,6 +63,56 @@ class _RecordingCheckoutRepository implements CheckoutRepository {
       createdAt: DateTime.utc(2026, 9, 18),
     );
   }
+}
+
+/// Fake canonical pre-order payment pricing: one method per token, with the
+/// final payable equal to that preview's subtotal + shipping. The token encodes
+/// the shipping-option key (`token-<key>`), so the fake can mirror the same
+/// money the preview engine produced.
+class _FakePreOrderPaymentRepository implements PaymentRepository {
+  /// Any payment initiation from checkout is a contract violation: order
+  /// creation and payment initiation are separate lifecycles.
+  int createPaymentCalls = 0;
+
+  @override
+  Future<Result<PaymentIntent>> createPayment(
+    CreatePaymentRequest request,
+  ) async {
+    createPaymentCalls++;
+    throw StateError('checkout must never initiate a payment');
+  }
+
+  @override
+  Future<Result<PreOrderPaymentPricing>> getPreOrderPaymentPricing(
+    String pricingToken, {
+    bool useCoins = false,
+  }) async {
+    final key = pricingToken.replaceFirst('token-', '');
+    final total =
+        (_PreviewEngine.subtotals[key] ?? 0.0) +
+        (_PreviewEngine.shipping[key] ?? 0.0);
+    return Result.success(
+      PreOrderPaymentPricing(
+        pricingToken: pricingToken,
+        expiresAt: DateTime.now().add(const Duration(minutes: 10)),
+        escrowAmount: total.toInt(),
+        coinsToUse: 0,
+        cashAmount: total.toInt(),
+        currency: 'IDR',
+        methods: [
+          PreOrderPaymentMethodOption(
+            methodCode: 'bank_transfer',
+            displayName: 'Transfer Bank',
+            buyerPaymentFeeAmount: 0,
+            finalPayableAmount: total.toInt(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => null;
 }
 
 /// Drives the canonical preview boundary: every request is recorded, and the
@@ -106,6 +162,7 @@ class _PreviewEngine {
       pricingToken: 'token-$key',
       sellerId: 'seller-1',
       shippingMode: 'standard',
+      expiresAt: DateTime.now().add(const Duration(minutes: 10)),
     );
   }
 
@@ -140,8 +197,7 @@ class _FakeCoinNotifier extends CoinNotifier {
 
 class _FakeAuthController extends AuthController {
   @override
-  AuthState build() =>
-      AuthState.authenticated(_buyer(), emailVerified: true);
+  AuthState build() => AuthState.authenticated(_buyer(), emailVerified: true);
 }
 
 class _FakeAddressNotifier extends AddressNotifier {
@@ -156,10 +212,7 @@ class _FakeAddressNotifier extends AddressNotifier {
   );
 
   @override
-  Future<void> loadAddressesByTag(
-    String userId,
-    AddressTag tag,
-  ) async {}
+  Future<void> loadAddresses(String userId) async {}
 }
 
 AuthUser _buyer() => AuthUser(
@@ -176,7 +229,6 @@ AuthUser _buyer() => AuthUser(
 AddressEntity _shippingAddress() => AddressEntity(
   id: 'address-1',
   userId: 'buyer-1',
-  tags: const [AddressTag.shipping],
   recipientName: 'Buyer',
   phone: '08123456789',
   province: const Province(id: '31', name: 'DKI Jakarta'),
@@ -233,18 +285,21 @@ final _shipA = _option('ship-A', 'Kurir A', 2222);
 final _shipB = _option('ship-B', 'Kurir B', 3333);
 
 class _Harness {
-  _Harness(this.engine, this.repository);
+  _Harness(this.engine, this.repository, this.paymentRepository);
 
   final _PreviewEngine engine;
   final _RecordingCheckoutRepository repository;
+  final _FakePreOrderPaymentRepository paymentRepository;
 }
 
 Future<_Harness> _pumpCheckout(
   WidgetTester tester, {
   required _PreviewEngine engine,
   required List<DeliveryOption> options,
+  GoRouter? router,
 }) async {
   final repository = _RecordingCheckoutRepository();
+  final paymentRepository = _FakePreOrderPaymentRepository();
 
   tester.view.physicalSize = const Size(600, 1800);
   tester.view.devicePixelRatio = 1.0;
@@ -256,12 +311,15 @@ Future<_Harness> _pumpCheckout(
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
+        loggerServiceProvider.overrideWithValue(LoggerService.instance),
         authControllerProvider.overrideWith(_FakeAuthController.new),
         coinProvider.overrideWith(_FakeCoinNotifier.new),
         addressProvider.overrideWith(
           () => _FakeAddressNotifier([_shippingAddress()]),
         ),
-        forSaleDetailProvider.overrideWith((ref, forSaleId) async => _listing()),
+        forSaleDetailProvider.overrideWith(
+          (ref, forSaleId) async => _listing(),
+        ),
         shippingRepositoryProvider.overrideWithValue(
           _FakeShippingRepository(options),
         ),
@@ -269,15 +327,18 @@ Future<_Harness> _pumpCheckout(
           (ref, params) => engine.request(params),
         ),
         checkoutRepositoryProvider.overrideWithValue(repository),
+        paymentRepositoryProvider.overrideWithValue(paymentRepository),
       ],
-      child: const MaterialApp(
-        home: CheckoutScreen(productId: 'product-1', forSaleId: 'sale-1'),
-      ),
+      child: router == null
+          ? const MaterialApp(
+              home: CheckoutScreen(productId: 'product-1', forSaleId: 'sale-1'),
+            )
+          : MaterialApp.router(routerConfig: router),
     ),
   );
 
   await _settle(tester);
-  return _Harness(engine, repository);
+  return _Harness(engine, repository, paymentRepository);
 }
 
 /// Bounded pumps only: the pricing indicator renders a spinner while it is
@@ -360,8 +421,10 @@ void main() {
 
         // No option selected yet: the honest state is a prerequisite, and no
         // order can be created.
-        expect(find.text('Pilih opsi pengiriman untuk memuat harga dari server.'),
-            findsWidgets);
+        expect(
+          find.text('Pilih opsi pengiriman untuk memuat harga dari server.'),
+          findsWidgets,
+        );
         expect(_submitButton(tester)!.onPressed, isNull);
 
         // Select A → request A is in flight.
@@ -488,23 +551,69 @@ void main() {
       },
     );
 
-    testWidgets(
-      'a not-ready checkout cannot create an order',
-      (tester) async {
-        final engine = _PreviewEngine();
-        final harness = await _pumpCheckout(
-          tester,
-          engine: engine,
-          options: [_shipA, _shipB],
-        );
+    testWidgets('a not-ready checkout cannot create an order', (tester) async {
+      final engine = _PreviewEngine();
+      final harness = await _pumpCheckout(
+        tester,
+        engine: engine,
+        options: [_shipA, _shipB],
+      );
 
-        expect(engine.started, isEmpty);
-        expect(_submitButton(tester)!.onPressed, isNull);
+      expect(engine.started, isEmpty);
+      expect(_submitButton(tester)!.onPressed, isNull);
 
-        await tester.tap(find.textContaining('Buat Pesanan'));
-        await _settle(tester);
-        expect(harness.repository.createOrderCalls, 0);
-      },
-    );
+      await tester.tap(find.textContaining('Buat Pesanan'));
+      await _settle(tester);
+      expect(harness.repository.createOrderCalls, 0);
+    });
   });
+
+  group(
+    'canonical handoff — order creation → Order Detail (no auto-payment)',
+    () {
+      testWidgets(
+        'tapping "Buat Pesanan" creates the order, lands on Order Detail, and never initiates payment',
+        (tester) async {
+          final engine = _PreviewEngine();
+          final router = GoRouter(
+            initialLocation: '/checkout/sale-1',
+            routes: [
+              GoRoute(
+                path: '/checkout/:forSaleId',
+                builder: (context, state) => const CheckoutScreen(
+                  productId: 'product-1',
+                  forSaleId: 'sale-1',
+                ),
+              ),
+              GoRoute(
+                path: '/orders/:orderId',
+                builder: (context, state) => Scaffold(
+                  body: Text('ORDER_DETAIL:${state.pathParameters['orderId']}'),
+                ),
+              ),
+            ],
+          );
+
+          final harness = await _pumpCheckout(
+            tester,
+            engine: engine,
+            options: [_shipA], // single option → auto-selected → checkout ready
+            router: router,
+          );
+
+          expect(_submitButton(tester)!.onPressed, isNotNull);
+
+          await _tap(tester, find.textContaining('Buat Pesanan'));
+          await _settle(tester);
+
+          // Order created exactly once…
+          expect(harness.repository.createOrderCalls, 1);
+          // …and handed off to the canonical Order Detail surface.
+          expect(find.textContaining('ORDER_DETAIL:order-1'), findsOneWidget);
+          // Order creation NEVER auto-initiates a payment.
+          expect(harness.paymentRepository.createPaymentCalls, 0);
+        },
+      );
+    },
+  );
 }

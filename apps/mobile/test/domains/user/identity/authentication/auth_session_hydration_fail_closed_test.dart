@@ -352,38 +352,6 @@ class _NoopLoggerService extends Fake implements ILoggerService {
   }) async => _okVoid();
 
   @override
-  Future<Result<void>> logUserAction(
-    String action, {
-    String? userId,
-    Map<String, dynamic>? parameters,
-  }) async => _okVoid();
-
-  @override
-  Future<Result<void>> logPerformance(
-    String operation, {
-    required Duration duration,
-    Map<String, dynamic>? metrics,
-  }) async => _okVoid();
-
-  @override
-  Future<Result<void>> logSecurityEvent(
-    String event, {
-    String? userId,
-    String? severity,
-    Map<String, dynamic>? details,
-  }) async => _okVoid();
-
-  @override
-  Future<Result<void>> logApiCall(
-    String endpoint, {
-    required String method,
-    required int statusCode,
-    required Duration duration,
-    Map<String, dynamic>? requestData,
-    Map<String, dynamic>? responseData,
-  }) async => _okVoid();
-
-  @override
   Future<Result<void>> setLogLevel(LogLevel level) async => _okVoid();
 
   @override
@@ -451,53 +419,10 @@ class _NoopAnalyticsRepository extends Fake implements IAnalyticsRepository {
   }) async => _okVoid();
 
   @override
-  Future<Result<void>> logUserAction(
-    String action,
-    String userId, {
-    Map<String, dynamic>? extra,
+  Future<Result<void>> logScreenView({
+    required String screenName,
+    String? screenClass,
   }) async => _okVoid();
-
-  @override
-  Future<Result<void>> logCircumventionAttempt(
-    String content,
-    String userId, {
-    Map<String, dynamic>? extra,
-  }) async => _okVoid();
-
-  @override
-  Future<Result<void>> setUserProperties(
-    Map<String, dynamic> properties,
-  ) async => _okVoid();
-
-  @override
-  Future<Result<void>> trackEngagement({
-    required String userId,
-    required String contentId,
-    required String contentType,
-    required String engagementType,
-    int? duration,
-  }) async => _okVoid();
-
-  @override
-  Future<Result<AnalyticsCircumventionStats>> getCircumventionStats({
-    required DateTime startDate,
-    required DateTime endDate,
-    String? userId,
-    String? violationType,
-  }) async => Result.success(
-    const AnalyticsCircumventionStats(
-      totalAttempts: 0,
-      uniqueUsers: 0,
-      violationTypes: <String, int>{},
-      dailyAttempts: <String, int>{},
-      averageConfidence: 0,
-      blockedAttempts: 0,
-      filteredAttempts: 0,
-    ),
-  );
-
-  @override
-  Future<Result<void>> flush() async => _okVoid();
 }
 
 class _MockUserApiDatasource extends UserApiDatasource {
@@ -683,6 +608,11 @@ class _FailingAuthRepository extends Fake implements IAuthRepository {
     String? username,
     String? bio,
     String? location,
+    String? coverPhotoUrl,
+    String? instagramHandle,
+    String? facebookHandle,
+    String? tiktokHandle,
+    String? twitterHandle,
     DateTime? dateOfBirth,
   }) async => Result.error('not used');
 

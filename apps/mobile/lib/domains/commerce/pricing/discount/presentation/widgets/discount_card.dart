@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/domain/entities/resource_projection.dart';
 import 'package:labuda/domains/commerce/pricing/discount/domain/entities/discount_entity.dart';
-import 'package:intl/intl.dart';
+import 'package:labuda/shared/utils/app_formatters.dart';
 
 /// Widget card untuk display discount info
 class DiscountCard extends StatelessWidget {
@@ -42,8 +42,7 @@ class DiscountCard extends StatelessWidget {
                   Expanded(
                     child: Text(
                       discount.code,
-                      style: const TextStyle(
-                        fontSize: AppType.s20,
+                      style: context.typeRoles.titleCompact.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -58,9 +57,8 @@ class DiscountCard extends StatelessWidget {
               // Description
               Text(
                 discount.description,
-                style: TextStyle(
+                style: context.typeRoles.bodyDense.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  fontSize: AppType.s14,
                 ),
               ),
               const SizedBox(height: 12),
@@ -68,8 +66,7 @@ class DiscountCard extends StatelessWidget {
               // Discount value
               Text(
                 _getDiscountValueText(),
-                style: TextStyle(
-                  fontSize: AppType.s16,
+                style: context.typeRoles.titleCompact.copyWith(
                   fontWeight: FontWeight.w600,
                   color: context.statusColors.success,
                 ),
@@ -78,9 +75,8 @@ class DiscountCard extends StatelessWidget {
 
               // Expiry
               Text(
-                'Expires: ${_formatDate(discount.validUntil)}',
-                style: TextStyle(
-                  fontSize: AppType.s12,
+                'Expires: ${AppFormatters.formatDate(discount.validUntil)}',
+                style: context.typeRoles.labelMicro.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
@@ -90,8 +86,7 @@ class DiscountCard extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text(
                   'Used: ${discount.currentUsageCount}/${discount.totalUsageLimit}',
-                  style: TextStyle(
-                    fontSize: AppType.s12,
+                  style: context.typeRoles.labelMicro.copyWith(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
@@ -123,7 +118,10 @@ class DiscountCard extends StatelessWidget {
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p4),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppMetrics.p12,
+        vertical: AppMetrics.p4,
+      ),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(AppShape.r12),
@@ -131,9 +129,8 @@ class DiscountCard extends StatelessWidget {
       ),
       child: Text(
         text,
-        style: TextStyle(
+        style: context.typeRoles.labelMicro.copyWith(
           color: color,
-          fontSize: AppType.s12,
           fontWeight: FontWeight.w600,
         ),
       ),
@@ -147,10 +144,6 @@ class DiscountCard extends StatelessWidget {
       case DiscountType.flatAmount:
         return 'Rp ${formatGroupedAmount(discount.value.round())} OFF';
     }
-  }
-
-  String _formatDate(DateTime date) {
-    return DateFormat('dd MMM yyyy', 'id_ID').format(date);
   }
 
   Widget _buildMoreButton(BuildContext context) {
@@ -205,7 +198,10 @@ class DiscountCard extends StatelessWidget {
                   color: context.statusColors.error,
                 ),
                 const SizedBox(width: 12),
-                Text('Hapus', style: TextStyle(color: context.statusColors.error)),
+                Text(
+                  'Hapus',
+                  style: TextStyle(color: context.statusColors.error),
+                ),
               ],
             ),
           )

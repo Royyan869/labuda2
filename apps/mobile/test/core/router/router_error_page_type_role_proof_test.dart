@@ -7,8 +7,8 @@ import 'package:labuda/core/src/theme/app_theme.dart';
 // ============================================================================
 // TYPOGRAPHY MIGRATION — IRISAN 3 RESOLVER PROOF (plan Tahap 2).
 //
-// The router error page stated four sizes (`AppType.s24/s16/s12`). It now
-// reads roles from the theme: `headlineSmall` for the headline, `bodyLarge`
+// The router error page once stated four raw sizes. It now reads roles from the
+// theme: `headlineSmall` for the headline, `bodyLarge`
 // for the error detail, `bodySmall` for the debug line, and `labelLarge` for
 // BOTH button labels (canonical button text — this page alone was inflating
 // it to 16). Weights and colours remain the call site's decisions.
@@ -56,14 +56,16 @@ void main() {
     expect(title.letterSpacing, headline.letterSpacing);
     expect(title.fontWeight, FontWeight.bold, reason: "call site's weight");
 
-    final detailStyle =
-        tester.widget<Text>(find.textContaining('could not be found')).style!;
+    final detailStyle = tester
+        .widget<Text>(find.textContaining('could not be found'))
+        .style!;
     expect(detailStyle.fontSize, detail.fontSize);
     expect(detailStyle.height, detail.height);
     expect(detailStyle.letterSpacing, detail.letterSpacing);
 
-    final denseStyle =
-        tester.widget<Text>(find.textContaining('Full URI:')).style!;
+    final denseStyle = tester
+        .widget<Text>(find.textContaining('Full URI:'))
+        .style!;
     expect(denseStyle.fontSize, dense.fontSize);
     expect(denseStyle.height, dense.height);
 

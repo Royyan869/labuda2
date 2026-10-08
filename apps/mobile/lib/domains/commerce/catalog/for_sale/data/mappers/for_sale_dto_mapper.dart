@@ -113,7 +113,6 @@ class ForSaleDtoMapper {
       status: _mapStatus(dto.sellerStatus ?? dto.status),
       visibility: _mapVisibility(dto.visibility),
       isNegotiable: dto.negotiationEnabled,
-      viewCount: 0,
       preparationTime: _mapPreparationTime(dto.preparationTime),
       createdAt: dto.createdAt,
       updatedAt: dto.updatedAt,
@@ -140,13 +139,13 @@ class ForSaleDtoMapper {
   /// ═══════════════════════════════════════════════════════════════════════════════
   /// BACKEND TRUTH ALIGNMENT (Go backend):
   /// ═══════════════════════════════════════════════════════════════════════════════
-  /// Backend statuses: draft, active, sold, withdrawn
-  /// Lifecycle flow: draft -> active -> sold/withdrawn
+  /// Backend statuses: active, sold, withdrawn (create = publish)
+  /// Lifecycle flow: active -> sold/withdrawn
   ///
   /// ═══════════════════════════════════════════════════════════════════════════════
   /// SAFETY FIRST - UNKNOWN STATUS HANDLING:
   /// ═══════════════════════════════════════════════════════════════════════════════
-  /// Unknown statuses are mapped to 'draft' (NOT 'active') for safety.
+  /// Unknown statuses are mapped to 'withdrawn' (NOT 'active') for safety.
   /// This prevents showing unknown/new forSales as purchasable.
   ///
   /// IF THIS BEHAVIOR CAUSES ISSUES: Fix the source (backend), don't change the default.
@@ -154,7 +153,9 @@ class ForSaleDtoMapper {
   static ForSaleStatus _mapStatus(String status) {
     switch (status.toLowerCase()) {
       case 'draft':
-        return ForSaleStatus.draft;
+        // Legacy internal state: draft no longer exists — a never-published
+        // row resolves to the conservative not-buyable state.
+        return ForSaleStatus.withdrawn;
       case 'active':
         return ForSaleStatus.active;
       case 'withdrawn':
@@ -164,16 +165,14 @@ class ForSaleDtoMapper {
         return ForSaleStatus.sold;
       case 'unavailable':
         // Scope 3 — coarsened public lifecycle vocabulary
-        // (Status.PublicLifecycle(): draft/sold/withdrawn all coarsen
-        // here). Public viewers only need "not buyable"; the exact
-        // internal state arrives via the owner-only `seller_status` slot
-        // and is parsed above. Maps to draft = conservative not-buyable.
-        return ForSaleStatus.draft;
+        // (Status.PublicLifecycle(): sold/withdrawn coarsen here). Public
+        // viewers only need "not buyable"; the exact internal state arrives
+        // via the owner-only `seller_status` slot and is parsed above.
+        return ForSaleStatus.withdrawn;
       default:
-        // SAFETY: Unknown status defaults to draft (not active) to avoid false availability
-        // This prevents showing unknown forSales as purchasable
-        // DO NOT change this to 'active' - fix the backend instead
-        return ForSaleStatus.draft;
+        // SAFETY: Unknown status maps to the conservative not-buyable state
+        // (never 'active') to avoid false availability.
+        return ForSaleStatus.withdrawn;
     }
   }
 

@@ -23,7 +23,7 @@ import 'package:labuda/shared/shared.dart';
 ///     wire always carries them); `userDataProvider` is consulted ONLY when
 ///     the entity has no handle — never `user.fullName`.
 ///   - a buyer must be able to see WHERE the goods ship from: the listing's
-///     buyer-facing origin (city, province of the sender address) is emitted
+///     buyer-facing origin (city, province of the primary address) is emitted
 ///     by the backend detail projection and rendered on this card. The card
 ///     never derives an origin from an address id, and never renders a street
 ///     address.
@@ -217,8 +217,7 @@ class CommerceDetailSellerCard extends ConsumerWidget {
             children: [
               Text(
                 displayName,
-                style: TextStyle(
-                  fontSize: AppType.s16,
+                style: context.typeRoles.titleCompact.copyWith(
                   fontWeight: FontWeight.bold,
                   fontStyle: italic ? FontStyle.italic : FontStyle.normal,
                   color: italic ? scheme.onSurfaceVariant : scheme.onSurface,
@@ -229,8 +228,7 @@ class CommerceDetailSellerCard extends ConsumerWidget {
               if (usernameLine != null)
                 Text(
                   usernameLine,
-                  style: TextStyle(
-                    fontSize: AppType.s12,
+                  style: context.typeRoles.labelMicro.copyWith(
                     color: scheme.onSurfaceVariant,
                   ),
                   maxLines: 1,
@@ -241,26 +239,15 @@ class CommerceDetailSellerCard extends ConsumerWidget {
               if (originLine != null)
                 Padding(
                   padding: const EdgeInsets.only(top: AppMetrics.p4),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.location_on_outlined,
-                        size: AppType.s12,
-                        color: scheme.onSurfaceVariant,
-                      ),
-                      const SizedBox(width: 4),
-                      Expanded(
-                        child: Text(
-                          originLine,
-                          style: TextStyle(
-                            fontSize: AppType.s12,
-                            color: scheme.onSurfaceVariant,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
+                  child: AddressLocationView(
+                    location: originLine,
+                    mode: AddressLocationMode.compact,
+                    icon: Icons.location_on_outlined,
+                    iconSize: AppIconSize.inlineGlyph,
+                    spacing: 4,
+                    style: context.typeRoles.labelMicro.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
                   ),
                 ),
             ],

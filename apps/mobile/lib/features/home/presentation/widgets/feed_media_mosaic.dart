@@ -114,9 +114,8 @@ class FeedMediaMosaic extends StatelessWidget {
             ),
             child: Text(
               '${media.length} media',
-              style: TextStyle(
+              style: context.typeRoles.labelMicro.copyWith(
                 color: scheme.onPrimary,
-                fontSize: AppType.s12,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -178,9 +177,8 @@ class FeedMediaMosaic extends StatelessWidget {
           alignment: Alignment.center,
           child: Text(
             '+$overflow',
-            style: TextStyle(
+            style: context.typeRoles.titleProminent.copyWith(
               color: scheme.onPrimary,
-              fontSize: AppType.s24,
               fontWeight: FontWeight.w800,
             ),
           ),

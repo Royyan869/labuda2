@@ -110,11 +110,11 @@ void main() {
     ).readAsStringSync();
     expect(renderer.contains('labelMicro'), isTrue);
     expect(
-      renderer.contains('AppType.s'),
+      renderer.contains('fontSize:'),
       isFalse,
       reason:
-          'the one renderer reads a ROLE; a size token here is a second type '
-          'authority growing back',
+          'the one renderer reads a ROLE; a raw size literal here is a second '
+          'type authority growing back',
     );
   });
 }

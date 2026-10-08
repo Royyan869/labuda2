@@ -85,14 +85,6 @@ Map<String, dynamic> _fixedPriceSaleProjection({
       'can_interact': true,
       'blocked_by_tombstone': false,
     },
-    'commerce_actions': <String, dynamic>{
-      'role': 'buyer',
-      'can_chat': true,
-      'can_negotiate': true,
-      'can_buy': true,
-      'can_bid': false,
-      'can_manage': false,
-    },
     'for_sale': <String, dynamic>{
       'title': title,
       'media': <Map<String, dynamic>>[

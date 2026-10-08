@@ -143,7 +143,8 @@ class _ExternalProductManagementScreenState
 
     final title = _titleController.text.trim();
     final url = _urlController.text.trim();
-    if (title.isEmpty || url.isEmpty) {        AppSnackBar.showError(context, 'Title and URL are required');
+    if (title.isEmpty || url.isEmpty) {
+      AppSnackBar.showError(context, 'Title and URL are required');
       return;
     }
 
@@ -159,11 +160,10 @@ class _ExternalProductManagementScreenState
 
     if (result.isSuccess) {
       ref.invalidate(myExternalProductsProvider);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('External product created')));
+      AppSnackBar.showSuccess(context, 'Produk eksternal dibuat');
       _navigateToDetail(result.data!.id);
-    } else {        AppSnackBar.showError(context, 'Gagal membuat produk. Coba lagi.');
+    } else {
+      AppSnackBar.showError(context, 'Gagal membuat produk. Coba lagi.');
     }
   }
 }
@@ -195,9 +195,8 @@ class _ExternalProductCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     product.title,
-                    style: const TextStyle(
+                    style: context.typeRoles.titleCompact.copyWith(
                       fontWeight: FontWeight.w700,
-                      fontSize: AppType.s16,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -209,8 +208,7 @@ class _ExternalProductCard extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               product.externalUrl,
-              style: TextStyle(
-                fontSize: AppType.s14,
+              style: context.typeRoles.bodyDense.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
               maxLines: 1,
@@ -220,8 +218,7 @@ class _ExternalProductCard extends StatelessWidget {
               const SizedBox(height: 6),
               Text(
                 product.rejectionReason!,
-                style: TextStyle(
-                  fontSize: AppType.s12,
+                style: context.typeRoles.labelMicro.copyWith(
                   color: Theme.of(context).colorScheme.primary,
                 ),
                 maxLines: 2,
@@ -240,8 +237,7 @@ class _ExternalProductCard extends StatelessWidget {
                   const SizedBox(width: 4),
                   Text(
                     'Publicly visible',
-                    style: TextStyle(
-                      fontSize: AppType.s12,
+                    style: context.typeRoles.labelMicro.copyWith(
                       color: context.statusColors.success,
                     ),
                   ),
@@ -290,15 +286,17 @@ class _ReviewStatusBadge extends StatelessWidget {
     };
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8, vertical: AppMetrics.p4),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppMetrics.p8,
+        vertical: AppMetrics.p4,
+      ),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(AppShape.r12),
         color: color.withValues(alpha: 0.1),
       ),
       child: Text(
         label,
-        style: TextStyle(
-          fontSize: AppType.s12,
+        style: context.typeRoles.labelMicro.copyWith(
           color: color,
           fontWeight: FontWeight.w600,
         ),

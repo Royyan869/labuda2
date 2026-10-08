@@ -33,6 +33,7 @@ Map<String, dynamic> _profileLiveJson({
     'viewer_capabilities': {
       'can_view': true,
       'can_interact': canInteract,
+      'can_manage': false,
       'blocked_by_tombstone': false,
     },
     'profile': profile,
@@ -50,6 +51,7 @@ Map<String, dynamic> _profileTombstoneJson({
     'viewer_capabilities': {
       'can_view': false,
       'can_interact': false,
+      'can_manage': false,
       'blocked_by_tombstone': true,
     },
   };
@@ -82,6 +84,7 @@ Map<String, dynamic> _contentLiveJson({Map<String, dynamic>? nestedResource}) {
     'viewer_capabilities': {
       'can_view': true,
       'can_interact': false,
+      'can_manage': false,
       'blocked_by_tombstone': false,
     },
     'content': content,
@@ -96,6 +99,7 @@ Map<String, dynamic> _contentTombstoneJson() {
     'viewer_capabilities': {
       'can_view': false,
       'can_interact': false,
+      'can_manage': false,
       'blocked_by_tombstone': true,
     },
   };
@@ -103,11 +107,8 @@ Map<String, dynamic> _contentTombstoneJson() {
 
 Map<String, dynamic> _fpsLiveJson({
   String resourceId = 'fps-resource-1',
-  required bool canBuy,
-  bool canChat = true,
-  bool canNegotiate = false,
-  bool canManage = true,
-  String status = 'available',
+  bool negotiationEnabled = false,
+  String status = 'active',
   int quantityAvailable = 4,
 }) {
   return {
@@ -117,16 +118,9 @@ Map<String, dynamic> _fpsLiveJson({
     'canonical_url': '/for-sale/$resourceId',
     'viewer_capabilities': {
       'can_view': true,
-      'can_interact': canBuy || canNegotiate,
+      'can_interact': false,
+      'can_manage': false,
       'blocked_by_tombstone': false,
-    },
-    'commerce_actions': {
-      'role': 'buyer',
-      'can_chat': canChat,
-      'can_negotiate': canNegotiate,
-      'can_buy': canBuy,
-      'can_bid': false,
-      'can_manage': canManage,
     },
     'for_sale': {
       'title': 'Koi Premium',
@@ -135,6 +129,8 @@ Map<String, dynamic> _fpsLiveJson({
       ],
       'price': {'amount': 1250000, 'currency': 'IDR'},
       'status': status,
+      'quantity_available': quantityAvailable,
+      'negotiation_enabled': negotiationEnabled,
       'seller': {
         'user': {
           'id': 'seller-1',
@@ -146,7 +142,6 @@ Map<String, dynamic> _fpsLiveJson({
         'avatar_url': 'https://cdn.example.test/seller.png',
         'lifecycle': 'active',
       },
-      'quantity_available': quantityAvailable,
     },
   };
 }
@@ -161,6 +156,7 @@ Map<String, dynamic> _fpsTombstoneJson({
     'viewer_capabilities': {
       'can_view': false,
       'can_interact': false,
+      'can_manage': false,
       'blocked_by_tombstone': true,
     },
   };
@@ -168,10 +164,6 @@ Map<String, dynamic> _fpsTombstoneJson({
 
 Map<String, dynamic> _auctionLiveJson({
   String resourceId = 'auction-resource-1',
-  required bool canBid,
-  bool canBuy = false,
-  bool canChat = true,
-  bool canManage = true,
   String endAt = '2026-08-10T12:34:56Z',
 }) {
   return {
@@ -181,16 +173,9 @@ Map<String, dynamic> _auctionLiveJson({
     'canonical_url': '/auction/$resourceId',
     'viewer_capabilities': {
       'can_view': true,
-      'can_interact': canBid || canBuy,
+      'can_interact': false,
+      'can_manage': false,
       'blocked_by_tombstone': false,
-    },
-    'commerce_actions': {
-      'role': 'buyer',
-      'can_chat': canChat,
-      'can_negotiate': false,
-      'can_buy': canBuy,
-      'can_bid': canBid,
-      'can_manage': canManage,
     },
     'auction': {
       'title': 'Auction Premium',
@@ -224,6 +209,7 @@ Map<String, dynamic> _auctionTombstoneJson() {
     'viewer_capabilities': {
       'can_view': false,
       'can_interact': false,
+      'can_manage': false,
       'blocked_by_tombstone': true,
     },
   };
@@ -285,26 +271,6 @@ void main() {
       );
     });
 
-    test('FPS LIVE missing commerce_actions is rejected', () {
-      expect(
-        () => _parseProjection({
-          ..._fpsLiveJson(canBuy: true),
-          'commerce_actions': null,
-        }),
-        throwsFormatException,
-      );
-    });
-
-    test('Auction LIVE missing commerce_actions is rejected', () {
-      expect(
-        () => _parseProjection({
-          ..._auctionLiveJson(canBid: true),
-          'commerce_actions': null,
-        }),
-        throwsFormatException,
-      );
-    });
-
     test('multiple LIVE payloads present is rejected', () {
       expect(
         () => _parseProjection({
@@ -330,23 +296,6 @@ void main() {
         () => _parseProjection({
           ..._profileTombstoneJson(),
           'profile': _profileLiveJson()['profile'],
-        }),
-        throwsFormatException,
-      );
-    });
-
-    test('TOMBSTONE containing commerce_actions is rejected', () {
-      expect(
-        () => _parseProjection({
-          ..._profileTombstoneJson(),
-          'commerce_actions': {
-            'role': 'buyer',
-            'can_chat': true,
-            'can_negotiate': false,
-            'can_buy': false,
-            'can_bid': false,
-            'can_manage': false,
-          },
         }),
         throwsFormatException,
       );
@@ -428,7 +377,7 @@ void main() {
     });
 
     test('fixed price sale LIVE round trips canonically', () {
-      final json = _fpsLiveJson(canBuy: true, canNegotiate: false);
+      final json = _fpsLiveJson(negotiationEnabled: true);
       final projection = _parseProjection(json);
 
       expect(projection.toJson(), json);
@@ -440,7 +389,7 @@ void main() {
     });
 
     test('auction LIVE round trips canonically', () {
-      final json = _auctionLiveJson(canBid: true, canBuy: false);
+      final json = _auctionLiveJson();
       final projection = _parseProjection(json);
 
       expect(projection.toJson(), json);
@@ -539,19 +488,26 @@ void main() {
       expect(find.text('Tidak dapat ditampilkan'), findsOneWidget);
     });
 
-    testWidgets('FPS backend capability flags drive the UI', (tester) async {
+    testWidgets('FPS capability flags never render a Commerce CTA', (
+      tester,
+    ) async {
       final projection = _parseProjection(
-        _fpsLiveJson(canBuy: true, canNegotiate: false, canChat: true),
+        _fpsLiveJson(negotiationEnabled: true),
       );
       await tester.pumpWidget(_projectionCard(projection));
 
-      // CTA contract: the buy capability renders as a navigation button, not
-      // as a passive capability chip.
-      expect(find.text('Beli Sekarang'), findsOneWidget);
+      // The generic card is display/reference only: no capability flag can
+      // turn it into a Commerce action surface (no Beli / Ongkir CTA).
+      expect(find.text('Beli Sekarang'), findsNothing);
+      expect(find.text('Kirim Ongkir'), findsNothing);
+      expect(find.byType(FilledButton), findsNothing);
+
+      // Only the "Nego" product attribute remains; viewer capability badges
+      // (Chat, Kelola) are purged.
       expect(find.text('Beli'), findsNothing);
-      expect(find.text('Chat'), findsOneWidget);
-      expect(find.text('Nego'), findsNothing);
-      expect(find.text('Kelola'), findsOneWidget);
+      expect(find.text('Chat'), findsNothing);
+      expect(find.text('Nego'), findsOneWidget);
+      expect(find.text('Kelola'), findsNothing);
       expect(find.text('LIVE'), findsWidgets);
 
       // Every surface renders the canonical money (owner decision) and keeps
@@ -570,16 +526,22 @@ void main() {
       expect(shell.onTap, isNull);
     });
 
-    testWidgets('Auction backend capability flags drive the UI', (
+    testWidgets('Auction capability flags never render a Bid / Buy CTA', (
       tester,
     ) async {
-      final projection = _parseProjection(
-        _auctionLiveJson(canBid: true, canBuy: false, canChat: true),
-      );
+      final projection = _parseProjection(_auctionLiveJson());
       await tester.pumpWidget(_projectionCard(projection));
 
-      expect(find.text('Bid'), findsOneWidget);
-      expect(find.text('Chat'), findsOneWidget);
+      // Bid and buy-now stay on the canonical auction detail, never here.
+      expect(find.text('Bid'), findsNothing);
+      expect(find.text('Beli Sekarang'), findsNothing);
+      expect(find.byType(FilledButton), findsNothing);
+
+      // Viewer capability badges (Chat, Kelola) are purged; auction carries
+      // no negotiation product attribute.
+      expect(find.text('Chat'), findsNothing);
+      expect(find.text('Kelola'), findsNothing);
+      expect(find.text('Nego'), findsNothing);
       expect(find.text('Beli'), findsNothing);
       expect(find.text('LIVE'), findsWidgets);
     });

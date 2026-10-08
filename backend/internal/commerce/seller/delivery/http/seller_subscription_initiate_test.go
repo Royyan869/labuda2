@@ -24,9 +24,9 @@ import (
 	subscriptionRepo "github.com/labuda/backend/internal/commerce/subscription/repository"
 	addressEntity "github.com/labuda/backend/internal/identity/address/entity"
 	userEntity "github.com/labuda/backend/internal/identity/user/domain/entity"
+	paymentApp "github.com/labuda/backend/internal/integration/payment/application"
 	paymentRepository "github.com/labuda/backend/internal/integration/payment/infrastructure/repository"
 	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/midtrans"
 	"github.com/labuda/backend/pkg/money"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -54,10 +54,12 @@ type testSubscriptionPaymentRepo struct {
 	findPendingFn func(context.Context, db.Tx, uuid.UUID) (*paymentRepository.Payment, error)
 	createFn      func(context.Context, db.Tx, paymentRepository.CreatePaymentInput) (*paymentRepository.Payment, error)
 	updateFn      func(context.Context, db.Tx, uuid.UUID, string) error
+	markFailedFn  func(context.Context, db.Tx, uuid.UUID, string) error
 
-	findCalls   int
-	createCalls int
-	updateCalls int
+	findCalls       int
+	createCalls     int
+	updateCalls     int
+	markFailedCalls int
 }
 
 func (r *testSubscriptionPaymentRepo) FindPendingSubscriptionPayment(ctx context.Context, tx db.Tx, userID uuid.UUID) (*paymentRepository.Payment, error) {
@@ -94,23 +96,31 @@ func (r *testSubscriptionPaymentRepo) UpdatePaymentURL(ctx context.Context, tx d
 	return nil
 }
 
+func (r *testSubscriptionPaymentRepo) MarkAsFailed(ctx context.Context, tx db.Tx, paymentID uuid.UUID, status string) error {
+	r.markFailedCalls++
+	if r.markFailedFn != nil {
+		return r.markFailedFn(ctx, tx, paymentID, status)
+	}
+	return nil
+}
+
 type testSnapClient struct {
 	calls int
-	req   *midtrans.SnapRequest
-	resp  *midtrans.SnapResponse
+	in    paymentApp.SnapSessionInput
+	url   string
 	err   error
 }
 
-func (c *testSnapClient) CreateSnapTransaction(req *midtrans.SnapRequest) (*midtrans.SnapResponse, error) {
+func (c *testSnapClient) CreateSession(in paymentApp.SnapSessionInput) (string, error) {
 	c.calls++
-	c.req = req
+	c.in = in
 	if c.err != nil {
-		return nil, c.err
+		return "", c.err
 	}
-	if c.resp != nil {
-		return c.resp, nil
+	if c.url != "" {
+		return c.url, nil
 	}
-	return &midtrans.SnapResponse{RedirectURL: "https://midtrans.example/redirect"}, nil
+	return "https://midtrans.example/redirect", nil
 }
 
 type testSubscriptionRepo struct {
@@ -192,11 +202,11 @@ func (r *testOnboardingSellerRepo) GetByUserID(context.Context, db.Tx, uuid.UUID
 }
 
 type testOnboardingAddressRepo struct {
-	addresses []*addressEntity.Address
+	primary *addressEntity.Address
 }
 
-func (r *testOnboardingAddressRepo) GetByUserIDFiltered(context.Context, db.Tx, uuid.UUID, string) ([]*addressEntity.Address, error) {
-	return r.addresses, nil
+func (r *testOnboardingAddressRepo) GetPrimaryByUserID(context.Context, db.Tx, uuid.UUID) (*addressEntity.Address, error) {
+	return r.primary, nil
 }
 
 // testPaymentMethodRepo is a minimal mock for payment method lookups.
@@ -226,7 +236,7 @@ func (r *testPaymentMethodRepo) ListEnabled(ctx context.Context, tx db.Tx) ([]pa
 	return []paymentmethodentity.Method{*r.method}, nil
 }
 
-func newTestSubscriptionInitiateHandler(t *testing.T, paymentRepo subscriptionPaymentRepository, snapClient snapTransactionClient, subRepo subscriptionRepo.SellerSubscriptionRepository) *SellerHandler {
+func newTestSubscriptionInitiateHandler(t *testing.T, paymentRepo subscriptionPaymentRepository, snapClient subscriptionSnapService, subRepo subscriptionRepo.SellerSubscriptionRepository) *SellerHandler {
 	t.Helper()
 
 	userID := uuid.New()
@@ -256,14 +266,12 @@ func newTestSubscriptionInitiateHandler(t *testing.T, paymentRepo subscriptionPa
 			},
 		},
 		&testOnboardingAddressRepo{
-			addresses: []*addressEntity.Address{
-				{
-					ID:            uuid.New(),
-					UserID:        userID,
-					Tags:          []addressEntity.AddressTag{addressEntity.TagSender},
-					RecipientName: "Royyan",
-					Phone:         phone,
-				},
+			primary: &addressEntity.Address{
+				ID:            uuid.New(),
+				UserID:        userID,
+				IsPrimary:     true,
+				RecipientName: "Royyan",
+				Phone:         phone,
 			},
 		},
 	)
@@ -281,9 +289,8 @@ func newTestSubscriptionInitiateHandler(t *testing.T, paymentRepo subscriptionPa
 				MidtransChannels: []string{"bca_va"},
 			},
 		},
-		midtransClient: snapClient,
-		subRepo:        subRepo,
-		frontendURL:    "https://frontend.example",
+		snapService: snapClient,
+		subRepo:     subRepo,
 	}
 }
 
@@ -329,15 +336,17 @@ func TestInitiateSubscriptionPaymentTx_ReturnsLookupError(t *testing.T) {
 func TestInitiateSubscriptionPaymentTx_ReturnsExistingPendingPaymentWhenURLExists(t *testing.T) {
 	userID := uuid.New()
 	paymentURL := "https://midtrans.example/existing"
+	methodCode := "bca_va"
 	existingPayment := &paymentRepository.Payment{
-		ID:              uuid.New(),
-		UserID:          userID,
-		PaymentNumber:   "PAY-SUB-1",
-		MidtransOrderID: "LAB-SUB-1",
-		GrossAmount:     money.New(150000),
-		Status:          paymentRepository.PaymentStatusPending,
-		ReferenceType:   paymentRepository.ReferenceTypeSubscription,
-		ExpiredAt:       time.Now().Add(24 * time.Hour),
+		ID:                uuid.New(),
+		UserID:            userID,
+		PaymentNumber:     "PAY-SUB-1",
+		MidtransOrderID:   "LAB-SUB-1",
+		GrossAmount:       money.New(150000),
+		Status:            paymentRepository.PaymentStatusPending,
+		ReferenceType:     paymentRepository.ReferenceTypeSubscription,
+		ExpiredAt:         time.Now().Add(24 * time.Hour),
+		PaymentMethodCode: &methodCode,
 	}
 	existingPayment.PaymentURL = &paymentURL
 
@@ -373,15 +382,17 @@ func TestInitiateSubscriptionPaymentTx_ReturnsExistingPendingPaymentWhenURLExist
 
 func TestInitiateSubscriptionPaymentTx_ReusesExistingPendingPaymentWithoutURL(t *testing.T) {
 	userID := uuid.New()
+	methodCode := "bca_va"
 	existingPayment := &paymentRepository.Payment{
-		ID:              uuid.New(),
-		UserID:          userID,
-		PaymentNumber:   "PAY-SUB-2",
-		MidtransOrderID: "LAB-SUB-2",
-		GrossAmount:     money.New(150000),
-		Status:          paymentRepository.PaymentStatusPending,
-		ReferenceType:   paymentRepository.ReferenceTypeSubscription,
-		ExpiredAt:       time.Now().Add(24 * time.Hour),
+		ID:                uuid.New(),
+		UserID:            userID,
+		PaymentNumber:     "PAY-SUB-2",
+		MidtransOrderID:   "LAB-SUB-2",
+		GrossAmount:       money.New(150000),
+		Status:            paymentRepository.PaymentStatusPending,
+		ReferenceType:     paymentRepository.ReferenceTypeSubscription,
+		ExpiredAt:         time.Now().Add(24 * time.Hour),
+		PaymentMethodCode: &methodCode,
 	}
 
 	paymentRepo := &testSubscriptionPaymentRepo{
@@ -390,9 +401,7 @@ func TestInitiateSubscriptionPaymentTx_ReusesExistingPendingPaymentWithoutURL(t 
 		},
 	}
 	snapClient := &testSnapClient{
-		resp: &midtrans.SnapResponse{
-			RedirectURL: "https://midtrans.example/reused",
-		},
+		url: "https://midtrans.example/reused",
 	}
 	subRepo := &testSubscriptionRepo{
 		config: &subscriptionEntity.SellerSubscriptionConfig{
@@ -416,11 +425,11 @@ func TestInitiateSubscriptionPaymentTx_ReusesExistingPendingPaymentWithoutURL(t 
 	assert.Zero(t, paymentRepo.createCalls)
 	assert.Equal(t, 1, paymentRepo.updateCalls)
 	assert.Equal(t, 1, snapClient.calls)
-	require.NotNil(t, snapClient.req)
-	assert.Equal(t, existingPayment.MidtransOrderID, snapClient.req.TransactionDetails.OrderID)
+	require.NotEmpty(t, snapClient.in.MidtransOrderID)
+	assert.Equal(t, existingPayment.MidtransOrderID, snapClient.in.MidtransOrderID)
 	// PASS_18N: yearly_fee_rupiah is a Rupiah integer — the Snap gross amount must
 	// equal GrossAmount exactly, with NO /100 scaling in either direction.
-	assert.InDelta(t, float64(existingPayment.GrossAmount.Int64()), snapClient.req.TransactionDetails.GrossAmount, 0.0001)
+	assert.InDelta(t, float64(existingPayment.GrossAmount.Int64()), snapClient.in.GrossAmount, 0.0001)
 }
 
 // TestInitiateSubscriptionPaymentTx_CreatesPaymentWithFeeSnapshot verifies PMF-02:
@@ -467,7 +476,7 @@ func TestInitiateSubscriptionPaymentTx_CreatesPaymentWithFeeSnapshot(t *testing.
 	require.NoError(t, err)
 	require.NotNil(t, resp)
 	assert.Equal(t, 1, paymentRepo.createCalls)
-	require.NotNil(t, snapClient.req)
+	require.NotEmpty(t, snapClient.in.MidtransOrderID)
 
 	// Payment snapshot: gross = principal + fee, fee = calculated fee.
 	assert.Equal(t, expectedGross, capturedInput.GrossAmount.Int64())
@@ -477,8 +486,8 @@ func TestInitiateSubscriptionPaymentTx_CreatesPaymentWithFeeSnapshot(t *testing.
 	assert.Equal(t, expectedGross, resp.GrossAmount)
 
 	// Gateway must receive payment.GrossAmount — NOT config directly.
-	assert.InDelta(t, float64(expectedGross), snapClient.req.TransactionDetails.GrossAmount, 0.0001)
-	assert.InDelta(t, float64(expectedGross), snapClient.req.ItemDetails[0].Price, 0.0001)
+	assert.InDelta(t, float64(expectedGross), snapClient.in.GrossAmount, 0.0001)
+	assert.InDelta(t, float64(expectedGross), snapClient.in.GrossAmount, 0.0001)
 }
 
 // TestSellerHandler_SubscriptionAmountsNoCentsDivision is a structural
@@ -667,34 +676,38 @@ func TestInitiateSubscriptionPaymentTx_DisabledMethodPreservesSentinel(t *testin
 	assert.ErrorIs(t, err, paymentmethodentity.ErrMethodDisabled)
 }
 
-// TestInitiateSubscriptionPaymentTx_PendingPaymentReusedAcrossMethodSwitch
-// locks the Owner decision for PMF-02: when a pending subscription payment
-// already exists, selecting a DIFFERENT method does not supersede it. The
-// existing immutable M1/F1 snapshot is validated and reused, never replaced.
-func TestInitiateSubscriptionPaymentTx_PendingPaymentReusedAcrossMethodSwitch(t *testing.T) {
+// TestInitiateSubscriptionPaymentTx_SupersedesStalePendingPaymentOnMethodSwitch
+// locks the Owner decision: when a pending subscription payment uses a
+// DIFFERENT method than the newly selected one, the stale pending payment is
+// terminalized and a fresh canonical payment is created — never silently reused.
+func TestInitiateSubscriptionPaymentTx_SupersedesStalePendingPaymentOnMethodSwitch(t *testing.T) {
 	userID := uuid.New()
-	const principal = int64(150000)
-	const existingFee = int64(3750)
+	staleMethod := "gopay"
 	existingPayment := &paymentRepository.Payment{
-		ID:              uuid.New(),
-		UserID:          userID,
-		PaymentNumber:   "PAY-SUB-SWITCH",
-		MidtransOrderID: "LAB-SUB-SWITCH",
-		GrossAmount:     money.New(principal + existingFee),
-		ServiceFeeAmount: money.New(existingFee),
-		Status:          paymentRepository.PaymentStatusPending,
-		ReferenceType:   paymentRepository.ReferenceTypeSubscription,
-		ExpiredAt:       time.Now().Add(24 * time.Hour),
+		ID:                uuid.New(),
+		UserID:            userID,
+		PaymentNumber:     "PAY-SUB-SWITCH",
+		MidtransOrderID:   "LAB-SUB-SWITCH",
+		GrossAmount:       money.New(153750),
+		ServiceFeeAmount:  money.New(3750),
+		Status:            paymentRepository.PaymentStatusPending,
+		ReferenceType:     paymentRepository.ReferenceTypeSubscription,
+		ExpiredAt:         time.Now().Add(24 * time.Hour),
+		PaymentMethodCode: &staleMethod,
 	}
 
+	var markFailedStatus string
 	paymentRepo := &testSubscriptionPaymentRepo{
 		findPendingFn: func(context.Context, db.Tx, uuid.UUID) (*paymentRepository.Payment, error) {
 			return existingPayment, nil
 		},
+		markFailedFn: func(_ context.Context, _ db.Tx, paymentID uuid.UUID, status string) error {
+			assert.Equal(t, existingPayment.ID, paymentID)
+			markFailedStatus = status
+			return nil
+		},
 	}
-	snapClient := &testSnapClient{
-		resp: &midtrans.SnapResponse{RedirectURL: "https://midtrans.example/snapshot"},
-	}
+	snapClient := &testSnapClient{url: "https://midtrans.example/snapshot"}
 	handler := newTestSubscriptionInitiateHandler(
 		t,
 		paymentRepo,
@@ -702,21 +715,18 @@ func TestInitiateSubscriptionPaymentTx_PendingPaymentReusedAcrossMethodSwitch(t 
 		&testSubscriptionRepo{config: newTestSubscriptionConfig()},
 	)
 
-	// Request a method different from the pending payment's snapshot method.
+	// The handler's method repo returns code "bca_va" (different from "gopay").
 	resp, err := handler.initiateSubscriptionPaymentTx(
-		newTestGinContext(), context.Background(), &testTx{}, userID, "gopay",
+		newTestGinContext(), context.Background(), &testTx{}, userID, "bca_va",
 	)
 
 	require.NoError(t, err)
 	require.NotNil(t, resp)
-	assert.Zero(t, paymentRepo.createCalls, "pending payment must be reused, not superseded")
-	assert.Equal(t, existingPayment.ID, resp.PaymentID)
-	assert.Equal(t, existingPayment.GrossAmount.Int64(), resp.GrossAmount)
-	assert.InDelta(t,
-		float64(existingPayment.GrossAmount.Int64()),
-		snapClient.req.TransactionDetails.GrossAmount,
-		0.0001,
-	)
+	assert.Equal(t, 1, paymentRepo.markFailedCalls, "stale pending payment must be terminalized")
+	assert.Equal(t, paymentRepository.PaymentStatusCancel, markFailedStatus)
+	assert.Equal(t, 1, paymentRepo.createCalls, "a fresh payment must be created")
+	assert.NotEqual(t, existingPayment.ID, resp.PaymentID,
+		"the stale payment identity must not be reused")
 }
 
 func newTestSubscriptionConfig() *subscriptionEntity.SellerSubscriptionConfig {
@@ -822,8 +832,8 @@ func TestInitiateSubscriptionPaymentTx_FreshSnapCarriesMethodMidtransChannels(t 
 	)
 
 	require.NoError(t, err)
-	require.NotNil(t, snapClient.req)
-	assert.Equal(t, []string{"bca_va"}, snapClient.req.EnabledPayments)
+	require.NotEmpty(t, snapClient.in.MidtransOrderID)
+	assert.Equal(t, []string{"bca_va"}, snapClient.in.EnabledPayments)
 }
 
 // TestInitiateSubscriptionPaymentTx_ReuseSnapCarriesMethodMidtransChannels
@@ -831,15 +841,17 @@ func TestInitiateSubscriptionPaymentTx_FreshSnapCarriesMethodMidtransChannels(t 
 // Snap called again) carries the same canonical restriction.
 func TestInitiateSubscriptionPaymentTx_ReuseSnapCarriesMethodMidtransChannels(t *testing.T) {
 	userID := uuid.New()
+	methodCode := "bca_va"
 	existingPayment := &paymentRepository.Payment{
-		ID:              uuid.New(),
-		UserID:          userID,
-		PaymentNumber:   "PAY-SUB-REUSE",
-		MidtransOrderID: "LAB-SUB-REUSE",
-		GrossAmount:     money.New(153750),
-		Status:          paymentRepository.PaymentStatusPending,
-		ReferenceType:   paymentRepository.ReferenceTypeSubscription,
-		ExpiredAt:       time.Now().Add(24 * time.Hour),
+		ID:                uuid.New(),
+		UserID:            userID,
+		PaymentNumber:     "PAY-SUB-REUSE",
+		MidtransOrderID:   "LAB-SUB-REUSE",
+		GrossAmount:       money.New(153750),
+		Status:            paymentRepository.PaymentStatusPending,
+		ReferenceType:     paymentRepository.ReferenceTypeSubscription,
+		ExpiredAt:         time.Now().Add(24 * time.Hour),
+		PaymentMethodCode: &methodCode,
 	}
 	paymentRepo := &testSubscriptionPaymentRepo{
 		findPendingFn: func(context.Context, db.Tx, uuid.UUID) (*paymentRepository.Payment, error) {
@@ -847,7 +859,7 @@ func TestInitiateSubscriptionPaymentTx_ReuseSnapCarriesMethodMidtransChannels(t 
 		},
 	}
 	snapClient := &testSnapClient{
-		resp: &midtrans.SnapResponse{RedirectURL: "https://midtrans.example/reuse"},
+		url: "https://midtrans.example/reuse",
 	}
 	handler := newTestSubscriptionInitiateHandler(
 		t,
@@ -863,8 +875,8 @@ func TestInitiateSubscriptionPaymentTx_ReuseSnapCarriesMethodMidtransChannels(t 
 	require.NoError(t, err)
 	assert.Equal(t, 1, snapClient.calls, "reuse branch must call Snap")
 	assert.Zero(t, paymentRepo.createCalls)
-	require.NotNil(t, snapClient.req)
-	assert.Equal(t, []string{"bca_va"}, snapClient.req.EnabledPayments)
+	require.NotEmpty(t, snapClient.in.MidtransOrderID)
+	assert.Equal(t, []string{"bca_va"}, snapClient.in.EnabledPayments)
 }
 
 // TestInitiateSubscriptionPaymentTx_SnapChannelsFollowCanonicalMethodRow
@@ -895,61 +907,36 @@ func TestInitiateSubscriptionPaymentTx_SnapChannelsFollowCanonicalMethodRow(t *t
 	)
 
 	require.NoError(t, err)
-	require.NotNil(t, snapClient.req)
-	assert.Equal(t, []string{"gopay", "other_qris"}, snapClient.req.EnabledPayments)
+	require.NotEmpty(t, snapClient.in.MidtransOrderID)
+	assert.Equal(t, []string{"gopay", "other_qris"}, snapClient.in.EnabledPayments)
 }
 
-// TestSellerHandler_SubscriptionSnapBranchesCarryMethodChannels is a source
-// proof: inside initiateSubscriptionPaymentTx there must be exactly the two
-// canonical EnabledPayments assignments (fresh + reuse branch), both sourced
-// from method.MidtransChannels, and no nil/empty/hardcoded alternative.
-func TestSellerHandler_SubscriptionSnapBranchesCarryMethodChannels(t *testing.T) {
-	f, err := os.Open("seller_handler.go")
+// TestSellerHandler_SubscriptionUsesCanonicalSnapService is a source proof:
+// subscription initiation must NOT construct a midtrans.SnapRequest or call the
+// Midtrans client directly. It must delegate to the ONE canonical Snap
+// creation service (h.snapService.CreateSession) through its helper.
+func TestSellerHandler_SubscriptionUsesCanonicalSnapService(t *testing.T) {
+	src, err := os.ReadFile("seller_handler.go")
 	if err != nil {
-		t.Fatalf("failed to open seller_handler.go: %v", err)
+		t.Fatalf("failed to read seller_handler.go: %v", err)
 	}
-	defer f.Close()
+	code := string(src)
 
-	scanner := bufio.NewScanner(f)
-	inFunc := false
-	foundFunc := false
-	braceDepth := 0
-	canonical := 0
-	lineNum := 0
-	for scanner.Scan() {
-		lineNum++
-		line := scanner.Text()
-
-		if !inFunc {
-			if strings.Contains(line, "func (h *SellerHandler) initiateSubscriptionPaymentTx") {
-				inFunc = true
-				foundFunc = true
-				braceDepth = strings.Count(line, "{") - strings.Count(line, "}")
-			}
-			continue
-		}
-
-		braceDepth += strings.Count(line, "{") - strings.Count(line, "}")
-
-		if strings.Contains(line, "EnabledPayments:") {
-			if strings.Contains(line, "EnabledPayments: method.MidtransChannels,") {
-				canonical++
-			} else {
-				t.Fatalf("seller_handler.go:%d: non-canonical EnabledPayments assignment inside initiateSubscriptionPaymentTx: %q", lineNum, line)
-			}
-		}
-
-		if braceDepth <= 0 {
-			break
-		}
+	if strings.Contains(code, "midtrans.SnapRequest") {
+		t.Fatal("seller_handler.go must not construct midtrans.SnapRequest — Snap creation is canonical")
 	}
-	if err := scanner.Err(); err != nil {
-		t.Fatalf("failed to scan seller_handler.go: %v", err)
+	if strings.Contains(code, "CreateSnapTransaction") {
+		t.Fatal("seller_handler.go must not call CreateSnapTransaction directly — use the canonical SnapService")
 	}
-	if !foundFunc {
+
+	fnStart := strings.Index(code, "func (h *SellerHandler) initiateSubscriptionPaymentTx")
+	if fnStart < 0 {
 		t.Fatal("initiateSubscriptionPaymentTx function not found — subscription payment logic may have moved")
 	}
-	if canonical != 2 {
-		t.Fatalf("want exactly 2 canonical EnabledPayments assignments (fresh + reuse branch) in initiateSubscriptionPaymentTx, got %d", canonical)
+	if !strings.Contains(code[fnStart:], "h.createSubscriptionSnapSession(") {
+		t.Fatal("initiateSubscriptionPaymentTx must create the Snap session through the canonical helper")
+	}
+	if !strings.Contains(code, "h.snapService.CreateSession(") {
+		t.Fatal("the canonical helper must call h.snapService.CreateSession")
 	}
 }

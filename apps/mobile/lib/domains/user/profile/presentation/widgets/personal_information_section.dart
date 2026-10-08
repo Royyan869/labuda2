@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/generated/app_localizations.dart';
+import 'package:labuda/shared/utils/app_formatters.dart';
 
 /// Personal Information Section (Contact Info Only)
 /// KYC/KTP is now managed separately via KYC Status Card
@@ -49,9 +50,8 @@ class PersonalInformationSection extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 AppLocalizations.of(context)!.contactIdentityInformation,
-                style: TextStyle(
+                style: context.typeRoles.titleCompact.copyWith(
                   color: scheme.onSurface,
-                  fontSize: AppType.s16,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -74,9 +74,8 @@ class PersonalInformationSection extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 'Contact Information',
-                style: TextStyle(
+                style: context.typeRoles.titleCompact.copyWith(
                   color: scheme.onSurface,
-                  fontSize: AppType.s16,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -119,8 +118,7 @@ class PersonalInformationSection extends StatelessWidget {
                   const SizedBox(width: 8),
                   Text(
                     'Phone Number',
-                    style: TextStyle(
-                      fontSize: AppType.s12,
+                    style: context.typeRoles.labelMicro.copyWith(
                       color: scheme.onSurfaceVariant,
                     ),
                   ),
@@ -137,8 +135,12 @@ class PersonalInformationSection extends StatelessWidget {
                       borderRadius: BorderRadius.circular(AppShape.r6),
                       border: Border.all(
                         color: phoneVerified
-                            ? context.statusColors.success.withValues(alpha: 0.3)
-                            : context.statusColors.warning.withValues(alpha: 0.3),
+                            ? context.statusColors.success.withValues(
+                                alpha: 0.3,
+                              )
+                            : context.statusColors.warning.withValues(
+                                alpha: 0.3,
+                              ),
                       ),
                     ),
                     child: Row(
@@ -154,11 +156,10 @@ class PersonalInformationSection extends StatelessWidget {
                         const SizedBox(width: 4),
                         Text(
                           phoneVerified ? 'Verified' : 'Unverified',
-                          style: TextStyle(
+                          style: context.typeRoles.labelMicro.copyWith(
                             color: phoneVerified
                                 ? context.statusColors.success
                                 : context.statusColors.warning,
-                            fontSize: AppType.s12,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -171,8 +172,7 @@ class PersonalInformationSection extends StatelessWidget {
               TextField(
                 controller: phoneController,
                 keyboardType: TextInputType.phone,
-                style: TextStyle(
-                  fontSize: AppType.s14,
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                   fontWeight: FontWeight.w500,
                   color: scheme.onSurface,
                 ),
@@ -191,9 +191,8 @@ class PersonalInformationSection extends StatelessWidget {
               if (phoneVerified && phoneVerifiedAt != null) ...[
                 const SizedBox(height: 8),
                 Text(
-                  'Verified on ${phoneVerifiedAt!.day}/${phoneVerifiedAt!.month}/${phoneVerifiedAt!.year}',
-                  style: TextStyle(
-                    fontSize: AppType.s12,
+                  'Verified on ${AppFormatters.formatShortDate(phoneVerifiedAt!)}',
+                  style: context.typeRoles.labelMicro.copyWith(
                     color: scheme.onSurfaceVariant,
                   ),
                 ),
@@ -214,13 +213,16 @@ class PersonalInformationSection extends StatelessWidget {
             ),
             child: Row(
               children: [
-                Icon(Icons.info_outline, color: context.statusColors.warning, size: AppIconSize.inlineGlyph),
+                Icon(
+                  Icons.info_outline,
+                  color: context.statusColors.warning,
+                  size: AppIconSize.inlineGlyph,
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     'Please verify your phone number',
-                    style: TextStyle(
-                      fontSize: AppType.s12,
+                    style: context.typeRoles.labelMicro.copyWith(
                       color: scheme.onSurfaceVariant,
                     ),
                   ),
@@ -263,8 +265,7 @@ class PersonalInformationSection extends StatelessWidget {
                 children: [
                   Text(
                     'Date of Birth (Optional)',
-                    style: TextStyle(
-                      fontSize: AppType.s12,
+                    style: context.typeRoles.labelMicro.copyWith(
                       color: scheme.onSurfaceVariant,
                     ),
                   ),
@@ -272,9 +273,8 @@ class PersonalInformationSection extends StatelessWidget {
                   Text(
                     dateOfBirth == null
                         ? 'Select your date of birth'
-                        : '${dateOfBirth!.day}/${dateOfBirth!.month}/${dateOfBirth!.year}',
-                    style: TextStyle(
-                      fontSize: AppType.s14,
+                        : AppFormatters.formatShortDate(dateOfBirth!),
+                    style: context.typeRoles.bodyDense.copyWith(
                       fontWeight: dateOfBirth == null
                           ? FontWeight.normal
                           : FontWeight.w500,
@@ -322,16 +322,14 @@ class PersonalInformationSection extends StatelessWidget {
                   children: [
                     Text(
                       'Login Email',
-                      style: TextStyle(
-                        fontSize: AppType.s12,
+                      style: context.typeRoles.labelMicro.copyWith(
                         color: scheme.onSurfaceVariant,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       email,
-                      style: TextStyle(
-                        fontSize: AppType.s14,
+                      style: context.typeRoles.bodyDense.copyWith(
                         fontWeight: FontWeight.w500,
                         color: scheme.onSurface,
                       ),
@@ -339,8 +337,7 @@ class PersonalInformationSection extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       'Used for login and cannot be changed',
-                      style: TextStyle(
-                        fontSize: AppType.s12,
+                      style: context.typeRoles.labelMicro.copyWith(
                         color: scheme.onSurfaceVariant,
                       ),
                     ),
@@ -348,7 +345,10 @@ class PersonalInformationSection extends StatelessWidget {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8, vertical: AppMetrics.p4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppMetrics.p8,
+                  vertical: AppMetrics.p4,
+                ),
                 decoration: BoxDecoration(
                   color: emailVerified
                       ? context.statusColors.success.withValues(alpha: 0.1)
@@ -373,11 +373,10 @@ class PersonalInformationSection extends StatelessWidget {
                     const SizedBox(width: 4),
                     Text(
                       emailVerified ? 'Verified' : 'Unverified',
-                      style: TextStyle(
+                      style: context.typeRoles.labelMicro.copyWith(
                         color: emailVerified
                             ? context.statusColors.success
                             : context.statusColors.warning,
-                        fontSize: AppType.s12,
                         fontWeight: FontWeight.w600,
                       ),
                     ),

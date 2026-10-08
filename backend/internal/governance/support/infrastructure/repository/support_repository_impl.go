@@ -147,12 +147,9 @@ func (r *SupportRepositoryImpl) GetTicketByChatRoomID(ctx context.Context, tx in
 	return &ticket, nil
 }
 
-// ListTickets lists all tickets with optional filters.
-//
-// PRIORITY SORTING: Orders by priority DESC, then created_at ASC
-// - Urgent tickets first
-// - Then high, medium, low
-// - Within same priority: oldest first (created_at ASC)
+// ListTickets lists tickets with optional filters using the user-facing
+// cursor contract. Deterministic base order: priority DESC, created_at ASC,
+// id DESC. A limit <= 0 returns every matching row.
 func (r *SupportRepositoryImpl) ListTickets(
 	ctx context.Context,
 	tx interface{},
@@ -248,10 +245,14 @@ func (r *SupportRepositoryImpl) ListTickets(
 		argIdx += 3
 	}
 
-	// PRIORITY SORTING: Order by priority DESC, then created_at ASC, then id DESC
-	// This ensures urgent tickets are first, and within same priority, oldest tickets are first
-	baseQuery += fmt.Sprintf(" ORDER BY st.priority DESC, st.created_at ASC, st.id DESC LIMIT $%d", argIdx)
-	args = append(args, limit)
+	// Deterministic base order. The admin queue ordering itself is computed in
+	// the service over the full filtered set (SLA urgency is a Go-domain
+	// calculation); this order is only a stable base and for the cursor path.
+	baseQuery += " ORDER BY st.priority DESC, st.created_at ASC, st.id DESC"
+	if limit > 0 {
+		baseQuery += fmt.Sprintf(" LIMIT $%d", argIdx)
+		args = append(args, limit)
+	}
 
 	rows, err := toTx(tx).Query(ctx, baseQuery, args...)
 	if err != nil {
@@ -287,6 +288,17 @@ func (r *SupportRepositoryImpl) ListTickets(
 	}
 
 	return tickets, nil
+}
+
+// ListTicketsForOrdering returns the FULL filtered ticket set (no limit) in a
+// deterministic base order. The admin service computes the canonical global
+// SLA-urgency order on top of this set before slicing a page.
+func (r *SupportRepositoryImpl) ListTicketsForOrdering(
+	ctx context.Context,
+	tx interface{},
+	filter *supportRepo.TicketFilter,
+) ([]*entity.Ticket, error) {
+	return r.ListTickets(ctx, tx, filter, nil, nil, 0)
 }
 
 // CountTickets returns the count of tickets matching the filter.

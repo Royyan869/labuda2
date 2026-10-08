@@ -158,6 +158,7 @@ func TestFundingIntent_SufficientBalance(t *testing.T) {
 	result, err := h.svc.CreateFundingIntent(context.Background(), application.CreatePromotionInput{
 		SellerID:     seller,
 		Kind:         entity.KindInternal,
+		Targets:      []application.PromotionTargetInput{{TargetType: "for_sale", TargetID: uuid.New()}},
 		BudgetRupiah: 30_000,
 		DurationDays: 3,
 	})
@@ -170,6 +171,11 @@ func TestFundingIntent_SufficientBalance(t *testing.T) {
 	assert.Equal(t, int64(50_000), result.AvailableFunding)
 	assert.Empty(t, result.IntentID, "no intent when no shortage")
 	assert.Empty(t, result.BillingID, "no billing when no shortage")
+
+	// SCOPE 1: estimate is present pre-payment, from the canonical calculator.
+	wantEst, estErr := finance.PromotionEstimatedImpressions(30_000, 7500)
+	require.NoError(t, estErr)
+	assert.Equal(t, wantEst, result.EstimatedImpressions)
 
 	// Verify balance unchanged
 	assert.Equal(t, int64(50_000), h.balance(t, seller))
@@ -189,6 +195,7 @@ func TestFundingIntent_ExactBalance(t *testing.T) {
 	result, err := h.svc.CreateFundingIntent(context.Background(), application.CreatePromotionInput{
 		SellerID:     seller,
 		Kind:         entity.KindInternal,
+		Targets:      []application.PromotionTargetInput{{TargetType: "for_sale", TargetID: uuid.New()}},
 		BudgetRupiah: 30_000,
 		DurationDays: 3,
 	})
@@ -217,6 +224,7 @@ func TestFundingIntent_InsufficientBalance(t *testing.T) {
 	result, err := h.svc.CreateFundingIntent(context.Background(), application.CreatePromotionInput{
 		SellerID:     seller,
 		Kind:         entity.KindInternal,
+		Targets:      []application.PromotionTargetInput{{TargetType: "for_sale", TargetID: uuid.New()}},
 		BudgetRupiah: 45_000,
 		DurationDays: 3,
 	})
@@ -229,6 +237,11 @@ func TestFundingIntent_InsufficientBalance(t *testing.T) {
 	assert.Equal(t, int64(10_000), result.AvailableFunding)
 	assert.NotEmpty(t, result.IntentID, "intent ID must be present")
 	assert.NotEmpty(t, result.BillingID, "billing ID must be present")
+
+	// SCOPE 1: estimate is present on the payment-required branch too.
+	wantEst, estErr := finance.PromotionEstimatedImpressions(45_000, 7500)
+	require.NoError(t, estErr)
+	assert.Equal(t, wantEst, result.EstimatedImpressions)
 
 	// Verify balance unchanged (no ledger mutation before payment settlement)
 	assert.Equal(t, int64(10_000), h.balance(t, seller), "balance must NOT change before payment")
@@ -272,6 +285,7 @@ func TestFundingIntent_ZeroBalance(t *testing.T) {
 	result, err := h.svc.CreateFundingIntent(context.Background(), application.CreatePromotionInput{
 		SellerID:     seller,
 		Kind:         entity.KindInternal,
+		Targets:      []application.PromotionTargetInput{{TargetType: "for_sale", TargetID: uuid.New()}},
 		BudgetRupiah: 15_000,
 		DurationDays: 1,
 	})
@@ -307,6 +321,7 @@ func TestFundingIntent_NoAllocationMutation(t *testing.T) {
 	_, err = h.svc.CreateFundingIntent(context.Background(), application.CreatePromotionInput{
 		SellerID:     seller,
 		Kind:         entity.KindInternal,
+		Targets:      []application.PromotionTargetInput{{TargetType: "for_sale", TargetID: uuid.New()}},
 		BudgetRupiah: 20_000,
 		DurationDays: 2,
 	})
@@ -349,6 +364,7 @@ func TestFundingIntent_Idempotent(t *testing.T) {
 	input := application.CreatePromotionInput{
 		SellerID:     seller,
 		Kind:         entity.KindInternal,
+		Targets:      []application.PromotionTargetInput{{TargetType: "for_sale", TargetID: uuid.New()}},
 		BudgetRupiah: 40_000,
 		DurationDays: 4,
 	}
@@ -393,6 +409,7 @@ func TestFundingIntent_ConcurrentIdempotent(t *testing.T) {
 	input := application.CreatePromotionInput{
 		SellerID:     seller,
 		Kind:         entity.KindInternal,
+		Targets:      []application.PromotionTargetInput{{TargetType: "for_sale", TargetID: uuid.New()}},
 		BudgetRupiah: 40_000,
 		DurationDays: 4,
 	}
@@ -469,6 +486,7 @@ func TestFundingIntent_BudgetBelowMinimum(t *testing.T) {
 	_, err := h.svc.CreateFundingIntent(context.Background(), application.CreatePromotionInput{
 		SellerID:     seller,
 		Kind:         entity.KindInternal,
+		Targets:      []application.PromotionTargetInput{{TargetType: "for_sale", TargetID: uuid.New()}},
 		BudgetRupiah: 5_000, // Below 10_000 minimum
 		DurationDays: 1,
 	})
@@ -490,6 +508,7 @@ func TestFundingIntent_InvalidInputs(t *testing.T) {
 	_, err := h.svc.CreateFundingIntent(context.Background(), application.CreatePromotionInput{
 		SellerID:     uuid.Nil,
 		Kind:         entity.KindInternal,
+		Targets:      []application.PromotionTargetInput{{TargetType: "for_sale", TargetID: uuid.New()}},
 		BudgetRupiah: 10_000,
 		DurationDays: 1,
 	})
@@ -508,6 +527,7 @@ func TestFundingIntent_InvalidInputs(t *testing.T) {
 	_, err = h.svc.CreateFundingIntent(context.Background(), application.CreatePromotionInput{
 		SellerID:     seller,
 		Kind:         entity.KindInternal,
+		Targets:      []application.PromotionTargetInput{{TargetType: "for_sale", TargetID: uuid.New()}},
 		BudgetRupiah: 0,
 		DurationDays: 1,
 	})
@@ -517,6 +537,7 @@ func TestFundingIntent_InvalidInputs(t *testing.T) {
 	_, err = h.svc.CreateFundingIntent(context.Background(), application.CreatePromotionInput{
 		SellerID:     seller,
 		Kind:         entity.KindInternal,
+		Targets:      []application.PromotionTargetInput{{TargetType: "for_sale", TargetID: uuid.New()}},
 		BudgetRupiah: 10_000,
 		DurationDays: 0,
 	})

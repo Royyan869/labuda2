@@ -25,17 +25,6 @@ mixin OrderDetailHandlersMixin on ConsumerState<OrderDetailScreen> {
   ) async {
     // Delegate to specific handlers based on action type
     switch (action) {
-      case 'accept':
-        final orderId = params['orderId'] as String;
-        final sellerId = params['sellerId'] as String;
-        await handleAcceptOrder(orderId, sellerId);
-        break;
-      case 'reject':
-        final orderId = params['orderId'] as String;
-        final sellerId = params['sellerId'] as String;
-        final reason = params['reason'] as String;
-        await handleRejectOrder(orderId, sellerId, reason);
-        break;
       case 'ship':
         final orderId = params['orderId'] as String;
         final sellerId = params['sellerId'] as String;
@@ -87,43 +76,12 @@ mixin OrderDetailHandlersMixin on ConsumerState<OrderDetailScreen> {
       ref.invalidate(orderRefreshTriggerProvider(orderId));
 
       if (mounted) {
-        AppSnackBar.showSuccess(context, 'Order cancelled successfully');
+        AppSnackBar.showSuccess(context, 'Pesanan berhasil dibatalkan');
       }
     } catch (e) {
+      debugPrint('order.cancel failed: $e');
       if (mounted) {
-        AppSnackBar.showError(
-          context,
-          'Failed to cancel order: ${e.toString()}',
-        );
-      }
-    }
-  }
-
-  /// Seller: Accept order
-  Future<void> handleAcceptOrder(String orderId, String sellerId) async {
-    if (mounted) {
-      AppSnackBar.showError(
-        context,
-        'Order accept action is not supported by current backend contract.',
-      );
-    }
-  }
-
-  /// Seller: Reject order
-  Future<void> handleRejectOrder(
-    String orderId,
-    String sellerId,
-    String reason,
-  ) async {
-    try {
-      // Cancel order to reject it
-      await handleCancelOrder(orderId, 'Seller rejected: $reason');
-    } catch (e) {
-      if (mounted) {
-        AppSnackBar.showError(
-          context,
-          'Failed to reject order: ${e.toString()}',
-        );
+        AppSnackBar.showError(context, 'Gagal membatalkan pesanan. Coba lagi.');
       }
     }
   }
@@ -158,11 +116,9 @@ mixin OrderDetailHandlersMixin on ConsumerState<OrderDetailScreen> {
         AppSnackBar.showSuccess(context, 'Pesanan berhasil dikirim');
       }
     } catch (e) {
+      debugPrint('order.ship failed: $e');
       if (mounted) {
-        AppSnackBar.showError(
-          context,
-          'Gagal mengirim pesanan: ${e.toString()}',
-        );
+        AppSnackBar.showError(context, 'Gagal mengirim pesanan. Coba lagi.');
       }
     }
   }
@@ -177,13 +133,14 @@ mixin OrderDetailHandlersMixin on ConsumerState<OrderDetailScreen> {
       ref.invalidate(orderRefreshTriggerProvider(orderId));
 
       if (mounted) {
-        AppSnackBar.showSuccess(context, 'Delivery confirmed successfully');
+        AppSnackBar.showSuccess(context, 'Penerimaan pesanan dikonfirmasi');
       }
     } catch (e) {
+      debugPrint('order.confirmDelivery failed: $e');
       if (mounted) {
         AppSnackBar.showError(
           context,
-          'Failed to confirm delivery: ${e.toString()}',
+          'Gagal mengonfirmasi penerimaan. Coba lagi.',
         );
       }
     }
@@ -205,10 +162,11 @@ mixin OrderDetailHandlersMixin on ConsumerState<OrderDetailScreen> {
         );
       }
     } catch (e) {
+      debugPrint('order.extendConfirmation failed: $e');
       if (mounted) {
         AppSnackBar.showError(
           context,
-          'Gagal memperpanjang konfirmasi: ${e.toString()}',
+          'Gagal memperpanjang konfirmasi. Coba lagi.',
         );
       }
     }
@@ -244,23 +202,18 @@ mixin OrderDetailHandlersMixin on ConsumerState<OrderDetailScreen> {
           return;
         }
         if (mounted) {
-          AppSnackBar.showError(
-            context,
-            'Failed to submit rating: ${result.error}',
-          );
+          AppSnackBar.showError(context, 'Gagal mengirim rating. Coba lagi.');
         }
         return;
       }
       if (mounted) {
-        AppSnackBar.showSuccess(context, 'Rating submitted successfully');
+        AppSnackBar.showSuccess(context, 'Rating berhasil dikirim');
         Navigator.of(context).pop();
       }
     } catch (e) {
+      debugPrint('order.submitRating failed: $e');
       if (mounted) {
-        AppSnackBar.showError(
-          context,
-          'Failed to submit rating: ${e.toString()}',
-        );
+        AppSnackBar.showError(context, 'Gagal mengirim rating. Coba lagi.');
       }
     }
   }
@@ -309,30 +262,40 @@ mixin OrderDetailHandlersMixin on ConsumerState<OrderDetailScreen> {
       return;
     }
 
-    // PASS_18V: buyer must select a payment method before payment creation —
-    // backend calculates the fee per method, never the client.
-    final paymentRepo = ref.read(paymentRepositoryProvider);
-    final methodsResult = await paymentRepo.getPaymentMethodOptions(order.id);
-    if (!mounted) return;
-    final methods = methodsResult.fold<List<PaymentMethodOption>>(
-      (_) => const [],
-      (options) => options,
-    );
-    if (methods.isEmpty) {
-      if (mounted) {
-        _showPaymentErrorDialog(
-          order.id,
-          'Metode pembayaran tidak tersedia',
-          'Silakan coba lagi nanti atau hubungi customer service.',
-        );
+    // PAYMENT METHOD AUTHORITY (Phase 2 final):
+    //   BOUND order  → the method selected at checkout is FIXED. Pay Now uses
+    //                  it directly; the backend rejects any other, so the UI
+    //                  must NOT offer alternatives.
+    //   UNBOUND order (auction-claim) → no checkout selection exists; the buyer
+    //                  selects a method for the first time here.
+    String? selectedMethodCode = order.paymentMethodCode;
+
+    if (selectedMethodCode == null) {
+      final paymentRepo = ref.read(paymentRepositoryProvider);
+      final methodsResult = await paymentRepo.getPaymentMethodOptions(
+        order.id,
+      );
+      if (!mounted) return;
+      final methods = methodsResult.fold<List<PaymentMethodOption>>(
+        (_) => const [],
+        (options) => options,
+      );
+      if (methods.isEmpty) {
+        if (mounted) {
+          _showPaymentErrorDialog(
+            order.id,
+            'Metode pembayaran tidak tersedia',
+            'Silakan coba lagi nanti atau hubungi customer service.',
+          );
+        }
+        return;
       }
-      return;
+      selectedMethodCode = await PaymentMethodPickerSheet.show(
+        context,
+        methods: methods,
+      );
+      if (!mounted || selectedMethodCode == null) return;
     }
-    final selectedMethodCode = await PaymentMethodPickerSheet.show(
-      context,
-      methods: methods,
-    );
-    if (!mounted || selectedMethodCode == null) return;
 
     // Get payment initiation notifier
     final paymentInitiationNotifier = ref.read(
@@ -374,12 +337,20 @@ mixin OrderDetailHandlersMixin on ConsumerState<OrderDetailScreen> {
     final paymentUrl = intent.paymentUrl;
 
     if (paymentUrl != null && paymentUrl.isNotEmpty && mounted) {
-      await context.push(
+      // The WebView returns `true` only when the gateway finish redirect is
+      // reached. A cancel/back returns false/null — stay on this order detail
+      // surface instead of the payment-result polling screen.
+      final completed = await context.push<bool>(
         '/payment-webview?url=${Uri.encodeComponent(paymentUrl)}&orderId=${Uri.encodeComponent(order.id)}',
       );
+      if (!mounted) return;
+      if (completed != true) {
+        return;
+      }
     }
 
-    // Navigate to payment result screen for status polling (backend-authoritative)
+    // Payment processed/continued (or no presentation URL) → poll backend
+    // status on the canonical payment-result surface.
     if (mounted) {
       context.push('/payment-result/${order.id}', extra: order.orderNumber);
     }
@@ -415,15 +386,4 @@ mixin OrderDetailHandlersMixin on ConsumerState<OrderDetailScreen> {
     );
   }
 
-  /// Buyer: Change payment method
-  /// NOTE: Payment processing is handled separately - not in scope for this task
-  Future<void> handleChangePaymentMethod(Order order) async {
-    // Payment flow is handled by checkout/payment feature
-    if (mounted) {
-      AppSnackBar.showInfo(
-        context,
-        'Payment method change: Navigate to payment settings',
-      );
-    }
-  }
 }

@@ -2,25 +2,35 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:labuda/core/core.dart';
+import 'package:labuda/domains/chat/chat/presentation/models/pending_commerce_attachment.dart';
 import 'package:labuda/domains/chat/chat/presentation/providers/chat_providers.dart';
 import 'package:labuda/shared/shared.dart';
 
 /// Opens (or creates) the canonical commerce chat room for [sellerId] and
-/// navigates into it with a pending product reference.
+/// navigates into it with a pending product attachment.
 ///
 /// **GUEST BOUNDARY:** unauthenticated users are routed to the canonical
 /// sign-in flow (Model B — affordance visible, auth boundary redirects to
 /// login).
 ///
-/// **COMMERCE CONTEXT:** [reference] is carried as route extra and delivered
-/// to [ChatDetailScreen] as a pending card — the user explicitly sends it
-/// through the canonical chat send flow (message-level objectReference),
-/// which persists server-side and reloads as a real message.
+/// **COMMERCE CONTEXT:** [attachment] is carried as route extra and delivered
+/// to [ChatDetailScreen] as the canonical pending composer attachment. It is
+/// sent ONLY through the composer send icon (message-level resourceOccurrence:
+/// `direct_commerce_insert_chat`) — there is no send CTA on the chip.
 Future<void> openCommerceChat({
   required BuildContext context,
   required WidgetRef ref,
-  required ShareReference reference,
+  required PendingCommerceAttachment attachment,
   required String sellerId,
+
+  /// Optional composer DRAFT delivered to Chat as PRE-FILLED textarea content.
+  ///
+  /// Supplied ONLY by an entry point that already knows why the user is opening
+  /// Chat — today that is the Checkout uncovered-shipping shortcut, which asks
+  /// the seller about shipping. It is never auto-sent: the composer send icon
+  /// remains the one send authority. Every other entry leaves this null so no
+  /// shipping question is ever autofilled.
+  String? draftMessage,
 
   /// Truthful failure signal for the CALLER's surface.
   ///
@@ -51,15 +61,6 @@ Future<void> openCommerceChat({
     return;
   }
 
-  final normalizedReference = reference.asChatReference();
-  if (normalizedReference == null) {
-    AppSnackBar.showError(
-      context,
-      'Context chat commerce tidak valid untuk produk ini',
-    );
-    return;
-  }
-
   final chat = await ref
       .read(chatListProvider.notifier)
       .getOrCreateChat(userId: currentUserId, otherUserId: sellerId);
@@ -70,10 +71,9 @@ Future<void> openCommerceChat({
   }
 
   final uri = Uri(path: '/chat/${chat.id}');
-  router.push(
-    uri.toString(),
-    extra: <String, dynamic>{
-      'pendingReference': normalizedReference,
-    },
-  );
+  final extra = <String, dynamic>{'pendingCommerce': attachment};
+  if (draftMessage != null && draftMessage.isNotEmpty) {
+    extra['draftMessage'] = draftMessage;
+  }
+  router.push(uri.toString(), extra: extra);
 }

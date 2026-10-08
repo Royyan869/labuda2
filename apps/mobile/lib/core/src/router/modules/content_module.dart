@@ -51,6 +51,7 @@ class ContentModule extends BaseModule {
       pageBuilder: (context, state) {
         return MaterialPage(
           key: state.pageKey,
+          name: 'create-content',
           child: const CreateContentScreen(),
         );
       },

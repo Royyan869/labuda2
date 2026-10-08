@@ -609,11 +609,11 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('report flow opens the submission sheet for non-owners', (
+  testWidgets('report flow opens the full-screen submission for non-owners', (
     tester,
   ) async {
-    // The report sheet is a fixed (non-scrollable) Column; give it a tall
-    // surface so the reason selector + description fit without overflow.
+    // The report form is a full screen; give it a tall surface so the reason
+    // selector + description fit without overflow.
     await tester.binding.setSurfaceSize(const Size(600, 2200));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
@@ -639,7 +639,8 @@ void main() {
     await tester.tap(find.text('Report'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Report Content'), findsOneWidget);
+    // Full-screen report form (owner decision: substantial forms belong on a
+    // full screen, not in a bottom sheet).
     expect(find.text('Reporting For Sale'), findsOneWidget);
     expect(find.text('Submit Report'), findsOneWidget);
   });

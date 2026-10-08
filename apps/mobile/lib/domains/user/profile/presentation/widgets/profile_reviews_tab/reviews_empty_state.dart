@@ -21,8 +21,7 @@ class ReviewsEmptyState extends StatelessWidget {
           const SizedBox(height: 16),
           Text(
             'No Reviews Yet',
-            style: TextStyle(
-              fontSize: AppType.s20,
+            style: context.typeRoles.titleSection.copyWith(
               fontWeight: FontWeight.w600,
               color: scheme.onSurface,
             ),
@@ -30,8 +29,7 @@ class ReviewsEmptyState extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             'Be the first to review this seller',
-            style: TextStyle(
-              fontSize: AppType.s14,
+            style: context.typeRoles.bodyDense.copyWith(
               color: scheme.onSurfaceVariant,
             ),
           ),

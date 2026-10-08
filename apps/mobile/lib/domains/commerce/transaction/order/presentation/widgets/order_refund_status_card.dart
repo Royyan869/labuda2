@@ -10,17 +10,13 @@ class RefundStatusCard extends StatelessWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    return Container(
-      padding: const EdgeInsets.all(core.AppMetrics.p16),
+    return OrderSectionCard(
       margin: const EdgeInsets.only(bottom: core.AppMetrics.p12),
-      decoration: BoxDecoration(
-        color: colorScheme.surface,
-        borderRadius: BorderRadius.circular(core.AppShape.r12),
-        border: Border.all(
-          color: _getRefundStatusColor(context, colorScheme).withValues(alpha: 0.3),
-          width: 1.5,
-        ),
-      ),
+      borderColor: _getRefundStatusColor(
+        context,
+        colorScheme,
+      ).withValues(alpha: 0.3),
+      borderWidth: 1.5,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -29,7 +25,7 @@ class RefundStatusCard extends StatelessWidget {
             children: [
               Icon(
                 _getRefundStatusIcon(),
-                size: 20,
+                size: AppIconSize.action,
                 color: _getRefundStatusColor(context, colorScheme),
               ),
               const SizedBox(width: 8),
@@ -53,10 +49,7 @@ class RefundStatusCard extends StatelessWidget {
           // Description
           if (refund.description != null && refund.description!.isNotEmpty) ...[
             const SizedBox(height: 8),
-            _RefundInfoRow(
-              label: 'Deskripsi',
-              value: refund.description!,
-            ),
+            _RefundInfoRow(label: 'Deskripsi', value: refund.description!),
           ],
           // Amount
           const SizedBox(height: 8),
@@ -72,7 +65,8 @@ class RefundStatusCard extends StatelessWidget {
             label: 'Tanggal',
             value: AppFormatters.formatDateTime(refund.createdAt),
           ),
-          if (refund.evidenceUrls != null && refund.evidenceUrls!.isNotEmpty) ...[
+          if (refund.evidenceUrls != null &&
+              refund.evidenceUrls!.isNotEmpty) ...[
             const SizedBox(height: 12),
             EvidenceMediaGallery(urls: refund.evidenceUrls!),
           ],
@@ -81,17 +75,11 @@ class RefundStatusCard extends StatelessWidget {
             const _PendingReviewBanner(),
           if (refund.sellerNotes != null && refund.sellerNotes!.isNotEmpty) ...[
             const SizedBox(height: 8),
-            _RefundNoteBanner(
-              note: refund.sellerNotes!,
-              role: 'Penjual',
-            ),
+            _RefundNoteBanner(note: refund.sellerNotes!, role: 'Penjual'),
           ],
           if (refund.adminNotes != null && refund.adminNotes!.isNotEmpty) ...[
             const SizedBox(height: 8),
-            _RefundNoteBanner(
-              note: refund.adminNotes!,
-              role: 'Admin',
-            ),
+            _RefundNoteBanner(note: refund.adminNotes!, role: 'Admin'),
           ],
         ],
       ),
@@ -190,7 +178,10 @@ class _RefundStatusBadge extends StatelessWidget {
     final colorScheme = theme.colorScheme;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: core.AppMetrics.p8, vertical: core.AppMetrics.p4),
+      padding: const EdgeInsets.symmetric(
+        horizontal: core.AppMetrics.p8,
+        vertical: core.AppMetrics.p4,
+      ),
       decoration: BoxDecoration(
         color: _getBadgeColor(context, colorScheme).withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(core.AppShape.r8),
@@ -198,14 +189,13 @@ class _RefundStatusBadge extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(status.emoji, style: const TextStyle(fontSize: core.AppType.s12)),
+          Text(status.emoji, style: context.typeRoles.labelMicro),
           const SizedBox(width: 4),
           Text(
             status.displayName,
-            style: theme.textTheme.bodySmall?.copyWith(
+            style: context.typeRoles.labelMicro.copyWith(
               color: _getBadgeColor(context, colorScheme),
               fontWeight: FontWeight.w600,
-              fontSize: core.AppType.s12,
             ),
           ),
         ],

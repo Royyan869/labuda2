@@ -21,39 +21,44 @@ import (
 
 // mockReputationAggregator stubs the reputationAggregator interface.
 type mockReputationAggregator struct {
-	mu       sync.Mutex
-	calls    int
-	agg      *reputationAggregates
-	err      error
+	mu         sync.Mutex
+	calls      int
+	agg        *reputationAggregates
+	err        error
+	lastUserID uuid.UUID
 }
 
 func (m *mockReputationAggregator) compute(
-	_ context.Context, _ db.Tx, _ uuid.UUID, _ time.Time,
+	_ context.Context, _ db.Tx, userID uuid.UUID, _ time.Time,
 ) (*reputationAggregates, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.calls++
+	m.lastUserID = userID
 	return m.agg, m.err
 }
 
 // mockReputationStore stubs the reputationSellerStore interface.
 type mockReputationStore struct {
-	mu            sync.Mutex
-	profile       *sellerEntity.SellerProfile
-	getErr        error
-	upsertCalls   int
-	upsertErr     error
+	mu              sync.Mutex
+	profile         *sellerEntity.SellerProfile
+	getErr          error
+	upsertCalls     int
+	upsertErr       error
 	updateTierCalls int
-	updateTierErr error
-	lastUpserted  *sellerEntity.SellerReputationState
-	lastTier      sellerEntity.Tier
+	updateTierErr   error
+	lastUpserted    *sellerEntity.SellerReputationState
+	lastTier        sellerEntity.Tier
+	lastGetID       uuid.UUID
+	lastTierID      uuid.UUID
 }
 
 func (m *mockReputationStore) GetByIDForUpdate(
-	_ context.Context, _ db.Tx, _ uuid.UUID,
+	_ context.Context, _ db.Tx, id uuid.UUID,
 ) (*sellerEntity.SellerProfile, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	m.lastGetID = id
 	return m.profile, m.getErr
 }
 
@@ -68,20 +73,21 @@ func (m *mockReputationStore) UpsertReputationStateTx(
 }
 
 func (m *mockReputationStore) UpdateTierTx(
-	_ context.Context, _ db.Tx, _ uuid.UUID, tier sellerEntity.Tier,
+	_ context.Context, _ db.Tx, id uuid.UUID, tier sellerEntity.Tier,
 ) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.updateTierCalls++
+	m.lastTierID = id
 	m.lastTier = tier
 	return m.updateTierErr
 }
 
 // mockReputationOutbox stubs the reputationOutboxStore interface.
 type mockReputationOutbox struct {
-	mu             sync.Mutex
-	inserts        []reputationOutboxCall
-	err            error
+	mu      sync.Mutex
+	inserts []reputationOutboxCall
+	err     error
 }
 
 type reputationOutboxCall struct {
@@ -104,7 +110,7 @@ func (m *mockReputationOutbox) InsertTx(
 }
 
 // noSellersTx is a mockTx whose Query always returns empty rows
-// (used to simulate fetchAllSellerIDs returning no sellers).
+// (used to simulate fetchAllSellers returning no sellers).
 type noSellersTx struct {
 	mockTx
 }
@@ -113,14 +119,16 @@ func (t *noSellersTx) Query(_ context.Context, _ string, _ ...any) (pgx.Rows, er
 	return &mockRows{}, nil
 }
 
-// singleSellerTx is a mockTx whose Query returns one seller UUID row.
+// singleSellerTx is a mockTx whose Query returns one seller identity row
+// (profile id, user id), matching fetchAllSellers' two-column projection.
 type singleSellerTx struct {
 	mockTx
-	sellerID uuid.UUID
+	profileID uuid.UUID
+	userID    uuid.UUID
 }
 
 func (t *singleSellerTx) Query(_ context.Context, _ string, _ ...any) (pgx.Rows, error) {
-	return &mockRows{rows: [][]any{{t.sellerID}}}, nil
+	return &mockRows{rows: [][]any{{t.profileID, t.userID}}}, nil
 }
 
 // newReputationWorkerForTest creates a worker wired with test mocks.
@@ -376,7 +384,8 @@ func TestEvaluateTier_ProDropsToBasic(t *testing.T) {
 // =============================================================================
 
 func TestProcessOneSeller_TierUnchanged_NoOutboxEvent(t *testing.T) {
-	sellerID := uuid.New()
+	profileID := uuid.New()
+	userID := uuid.New()
 	now := time.Now().UTC()
 
 	agg := &mockReputationAggregator{
@@ -388,7 +397,7 @@ func TestProcessOneSeller_TierUnchanged_NoOutboxEvent(t *testing.T) {
 	}
 	store := &mockReputationStore{
 		profile: &sellerEntity.SellerProfile{
-			ID:   sellerID,
+			ID:   profileID,
 			Tier: sellerEntity.TierBasic,
 		},
 	}
@@ -396,7 +405,7 @@ func TestProcessOneSeller_TierUnchanged_NoOutboxEvent(t *testing.T) {
 	mdb := &mockDB{}
 
 	w := newReputationWorkerForTest(t, mdb, store, outbox, agg)
-	changed, err := w.processOneSeller(context.Background(), sellerID, now)
+	changed, err := w.processOneSeller(context.Background(), profileID, userID, now)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -422,7 +431,8 @@ func TestProcessOneSeller_TierUnchanged_NoOutboxEvent(t *testing.T) {
 }
 
 func TestProcessOneSeller_TierUpgrade_EmitsUpgradedEvent(t *testing.T) {
-	sellerID := uuid.New()
+	profileID := uuid.New()
+	userID := uuid.New()
 	now := time.Now().UTC()
 
 	agg := &mockReputationAggregator{
@@ -434,7 +444,7 @@ func TestProcessOneSeller_TierUpgrade_EmitsUpgradedEvent(t *testing.T) {
 	}
 	store := &mockReputationStore{
 		profile: &sellerEntity.SellerProfile{
-			ID:   sellerID,
+			ID:   profileID,
 			Tier: sellerEntity.TierBasic, // current: Basic
 		},
 	}
@@ -442,7 +452,7 @@ func TestProcessOneSeller_TierUpgrade_EmitsUpgradedEvent(t *testing.T) {
 	mdb := &mockDB{}
 
 	w := newReputationWorkerForTest(t, mdb, store, outbox, agg)
-	changed, err := w.processOneSeller(context.Background(), sellerID, now)
+	changed, err := w.processOneSeller(context.Background(), profileID, userID, now)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -469,7 +479,8 @@ func TestProcessOneSeller_TierUpgrade_EmitsUpgradedEvent(t *testing.T) {
 }
 
 func TestProcessOneSeller_TierDowngrade_EmitsDowngradedEvent(t *testing.T) {
-	sellerID := uuid.New()
+	profileID := uuid.New()
+	userID := uuid.New()
 	now := time.Now().UTC()
 
 	agg := &mockReputationAggregator{
@@ -481,7 +492,7 @@ func TestProcessOneSeller_TierDowngrade_EmitsDowngradedEvent(t *testing.T) {
 	}
 	store := &mockReputationStore{
 		profile: &sellerEntity.SellerProfile{
-			ID:   sellerID,
+			ID:   profileID,
 			Tier: sellerEntity.TierPro, // current: Pro
 		},
 	}
@@ -489,7 +500,7 @@ func TestProcessOneSeller_TierDowngrade_EmitsDowngradedEvent(t *testing.T) {
 	mdb := &mockDB{}
 
 	w := newReputationWorkerForTest(t, mdb, store, outbox, agg)
-	changed, err := w.processOneSeller(context.Background(), sellerID, now)
+	changed, err := w.processOneSeller(context.Background(), profileID, userID, now)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -511,7 +522,8 @@ func TestProcessOneSeller_TierDowngrade_EmitsDowngradedEvent(t *testing.T) {
 // Replay safety: calling processOneSeller twice produces the same upsert
 // without a second outbox event on the second call (tier already updated).
 func TestProcessOneSeller_ReplaySafe_NoDoubleOutboxEvent(t *testing.T) {
-	sellerID := uuid.New()
+	profileID := uuid.New()
+	userID := uuid.New()
 	now := time.Now().UTC()
 
 	agg := &mockReputationAggregator{
@@ -524,7 +536,7 @@ func TestProcessOneSeller_ReplaySafe_NoDoubleOutboxEvent(t *testing.T) {
 	// Simulate: after first call the profile's tier has been updated to Pro.
 	store := &mockReputationStore{
 		profile: &sellerEntity.SellerProfile{
-			ID:   sellerID,
+			ID:   profileID,
 			Tier: sellerEntity.TierBasic,
 		},
 	}
@@ -533,7 +545,7 @@ func TestProcessOneSeller_ReplaySafe_NoDoubleOutboxEvent(t *testing.T) {
 	w := newReputationWorkerForTest(t, mdb, store, outbox, agg)
 
 	// First call: upgrades Basic → Pro.
-	changed1, err := w.processOneSeller(context.Background(), sellerID, now)
+	changed1, err := w.processOneSeller(context.Background(), profileID, userID, now)
 	if err != nil || !changed1 {
 		t.Fatalf("first call: err=%v changed=%v", err, changed1)
 	}
@@ -544,7 +556,7 @@ func TestProcessOneSeller_ReplaySafe_NoDoubleOutboxEvent(t *testing.T) {
 	store.mu.Unlock()
 
 	// Second call (same aggregates, tier already Pro): no change.
-	changed2, err := w.processOneSeller(context.Background(), sellerID, now)
+	changed2, err := w.processOneSeller(context.Background(), profileID, userID, now)
 	if err != nil {
 		t.Fatalf("second call error: %v", err)
 	}
@@ -563,18 +575,19 @@ func TestProcessOneSeller_ReplaySafe_NoDoubleOutboxEvent(t *testing.T) {
 
 // Aggregate compute error causes processOneSeller to fail.
 func TestProcessOneSeller_AggregateError_PropagatesError(t *testing.T) {
-	sellerID := uuid.New()
+	profileID := uuid.New()
+	userID := uuid.New()
 	now := time.Now().UTC()
 
 	agg := &mockReputationAggregator{err: errors.New("db timeout")}
 	store := &mockReputationStore{
-		profile: &sellerEntity.SellerProfile{ID: sellerID, Tier: sellerEntity.TierBasic},
+		profile: &sellerEntity.SellerProfile{ID: profileID, Tier: sellerEntity.TierBasic},
 	}
 	outbox := &mockReputationOutbox{}
 	mdb := &mockDB{}
 
 	w := newReputationWorkerForTest(t, mdb, store, outbox, agg)
-	_, err := w.processOneSeller(context.Background(), sellerID, now)
+	_, err := w.processOneSeller(context.Background(), profileID, userID, now)
 	if err == nil {
 		t.Error("expected error from aggregate failure")
 	}
@@ -582,7 +595,8 @@ func TestProcessOneSeller_AggregateError_PropagatesError(t *testing.T) {
 
 // Nil profile (seller deleted between ID fetch and profile lock) → error.
 func TestProcessOneSeller_ProfileNotFound_ReturnsError(t *testing.T) {
-	sellerID := uuid.New()
+	profileID := uuid.New()
+	userID := uuid.New()
 	now := time.Now().UTC()
 
 	agg := &mockReputationAggregator{
@@ -593,7 +607,7 @@ func TestProcessOneSeller_ProfileNotFound_ReturnsError(t *testing.T) {
 	mdb := &mockDB{}
 
 	w := newReputationWorkerForTest(t, mdb, store, outbox, agg)
-	_, err := w.processOneSeller(context.Background(), sellerID, now)
+	_, err := w.processOneSeller(context.Background(), profileID, userID, now)
 	if err == nil {
 		t.Error("expected error when seller profile not found")
 	}
@@ -604,7 +618,8 @@ func TestProcessOneSeller_ProfileNotFound_ReturnsError(t *testing.T) {
 // =============================================================================
 
 func TestProcessOneSeller_IdempotencyKey_ContainsSellerIDAndDate(t *testing.T) {
-	sellerID := uuid.New()
+	profileID := uuid.New()
+	userID := uuid.New()
 	now := time.Date(2026, 5, 28, 12, 0, 0, 0, time.UTC)
 
 	agg := &mockReputationAggregator{
@@ -615,13 +630,13 @@ func TestProcessOneSeller_IdempotencyKey_ContainsSellerIDAndDate(t *testing.T) {
 		},
 	}
 	store := &mockReputationStore{
-		profile: &sellerEntity.SellerProfile{ID: sellerID, Tier: sellerEntity.TierBasic},
+		profile: &sellerEntity.SellerProfile{ID: profileID, Tier: sellerEntity.TierBasic},
 	}
 	outbox := &mockReputationOutbox{}
 	mdb := &mockDB{}
 
 	w := newReputationWorkerForTest(t, mdb, store, outbox, agg)
-	_, _ = w.processOneSeller(context.Background(), sellerID, now)
+	_, _ = w.processOneSeller(context.Background(), profileID, userID, now)
 
 	outbox.mu.Lock()
 	inserts := outbox.inserts
@@ -631,8 +646,8 @@ func TestProcessOneSeller_IdempotencyKey_ContainsSellerIDAndDate(t *testing.T) {
 		t.Fatal("expected outbox event")
 	}
 	key := inserts[0].IdempotencyKey
-	if !strings.Contains(key, sellerID.String()) {
-		t.Errorf("idempotency key must contain seller ID, got: %s", key)
+	if !strings.Contains(key, userID.String()) {
+		t.Errorf("idempotency key must contain canonical seller (user) ID, got: %s", key)
 	}
 	if !strings.Contains(key, "2026-05-28") {
 		t.Errorf("idempotency key must contain date 2026-05-28, got: %s", key)
@@ -644,7 +659,8 @@ func TestProcessOneSeller_IdempotencyKey_ContainsSellerIDAndDate(t *testing.T) {
 // =============================================================================
 
 func TestProcessOneSeller_UpsertedState_ReflectsAggregates(t *testing.T) {
-	sellerID := uuid.New()
+	profileID := uuid.New()
+	userID := uuid.New()
 	now := time.Now().UTC()
 
 	inputAgg := &reputationAggregates{
@@ -656,23 +672,39 @@ func TestProcessOneSeller_UpsertedState_ReflectsAggregates(t *testing.T) {
 	}
 	agg := &mockReputationAggregator{agg: inputAgg}
 	store := &mockReputationStore{
-		profile: &sellerEntity.SellerProfile{ID: sellerID, Tier: sellerEntity.TierPro},
+		profile: &sellerEntity.SellerProfile{ID: profileID, Tier: sellerEntity.TierPro},
 	}
 	outbox := &mockReputationOutbox{}
 	mdb := &mockDB{}
 
 	w := newReputationWorkerForTest(t, mdb, store, outbox, agg)
-	_, _ = w.processOneSeller(context.Background(), sellerID, now)
+	_, _ = w.processOneSeller(context.Background(), profileID, userID, now)
 
 	store.mu.Lock()
 	state := store.lastUpserted
+	stateGetID := store.lastGetID
 	store.mu.Unlock()
+
+	agg.mu.Lock()
+	computeUserID := agg.lastUserID
+	agg.mu.Unlock()
 
 	if state == nil {
 		t.Fatal("expected upserted state, got nil")
 	}
-	if state.SellerID != sellerID {
-		t.Errorf("seller ID mismatch: got %s", state.SellerID)
+	// IDENTITY ROUTING: reputation state is keyed by the canonical commerce
+	// identity (users.id = userID), NOT the seller_profiles surrogate key.
+	if state.SellerID != userID {
+		t.Errorf("state.SellerID must be the canonical user id %s, got %s", userID, state.SellerID)
+	}
+	if state.SellerID == profileID {
+		t.Errorf("state.SellerID must NOT be the seller_profiles.id surrogate key %s", profileID)
+	}
+	if computeUserID != userID {
+		t.Errorf("aggregator must receive canonical user id %s, got %s", userID, computeUserID)
+	}
+	if stateGetID != profileID {
+		t.Errorf("profile lock must use seller_profiles.id %s, got %s", profileID, stateGetID)
 	}
 	if state.RollingCompletedOrders != 45 {
 		t.Errorf("expected RollingCompletedOrders=45, got %d", state.RollingCompletedOrders)
@@ -1034,5 +1066,3 @@ func TestProductionAggregator_DisputeQuery_FiltersAdminRefunded(t *testing.T) {
 		t.Errorf("dispute loss query must filter by 'admin_refunded', got: %s", disputeSQL)
 	}
 }
-
-

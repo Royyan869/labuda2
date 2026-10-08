@@ -21,6 +21,14 @@ class SellerAvatar extends StatelessWidget {
   final double size;
   final VoidCallback? onTap;
 
+  /// DECODE / CACHE IDENTITY — forwarded to the concrete renderer.
+  ///
+  /// Null keeps each renderer's size-derived default (static displays). The
+  /// Profile header animates [size] while the header collapses, so it
+  /// pins this to a constant: visual size may move frame by frame, the image
+  /// provider/cache key must not.
+  final int? cacheWidth;
+
   const SellerAvatar({
     super.key,
     required this.userId,
@@ -29,6 +37,7 @@ class SellerAvatar extends StatelessWidget {
     this.isSeller = false,
     this.size = 80,
     this.onTap,
+    this.cacheWidth,
   });
 
   @override
@@ -43,6 +52,7 @@ class SellerAvatar extends StatelessWidget {
         ),
         size: size,
         onTap: onTap,
+        cacheWidth: cacheWidth,
       );
     }
 
@@ -51,6 +61,7 @@ class SellerAvatar extends StatelessWidget {
       size: size,
       savedAvatarUrl: avatarUrl,
       onTap: onTap,
+      cacheWidth: cacheWidth,
     );
   }
 }

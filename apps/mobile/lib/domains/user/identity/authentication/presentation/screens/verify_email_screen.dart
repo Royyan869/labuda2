@@ -144,7 +144,9 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
                   Container(
                     padding: const EdgeInsets.all(AppMetrics.p24),
                     decoration: BoxDecoration(
-                      color: context.statusColors.warning.withValues(alpha: 0.1),
+                      color: context.statusColors.warning.withValues(
+                        alpha: 0.1,
+                      ),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
@@ -166,11 +168,11 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
                   Text(
                     pendingUsername != null
                         ? 'Hampir selesai, $pendingUsername! Kami mengirim tautan '
-                            'verifikasi ke email kamu. Buka tautan itu, lalu '
-                            'kembali ke sini — pendaftaran lanjut otomatis.'
+                              'verifikasi ke email kamu. Buka tautan itu, lalu '
+                              'kembali ke sini — pendaftaran lanjut otomatis.'
                         : 'Kami mengirim tautan verifikasi ke email kamu. '
-                            'Buka tautan itu, lalu kembali ke sini untuk '
-                            'melanjutkan masuk.',
+                              'Buka tautan itu, lalu kembali ke sini untuk '
+                              'melanjutkan masuk.',
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                       color: scheme.onSurfaceVariant,
                     ),
@@ -183,9 +185,7 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
                       decoration: BoxDecoration(
                         color: scheme.surfaceContainerLow,
                         borderRadius: BorderRadius.circular(AppShape.r12),
-                        border: Border.all(
-                          color: scheme.outlineVariant,
-                        ),
+                        border: Border.all(color: scheme.outlineVariant),
                       ),
                       child: Row(
                         children: [
@@ -198,8 +198,7 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
                           Expanded(
                             child: Text(
                               email,
-                              style: TextStyle(
-                                fontSize: AppType.s14,
+                              style: context.typeRoles.bodyDense.copyWith(
                                 fontWeight: FontWeight.w600,
                                 color: scheme.onSurface,
                               ),
@@ -214,9 +213,9 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
                     child: ElevatedButton(
                       onPressed: _isChecking ? null : _checkVerification,
                       style: ElevatedButton.styleFrom(
-                        disabledBackgroundColor:
-                            scheme.surfaceContainerHighest,
-                        padding: const EdgeInsets.symmetric(vertical: AppMetrics.p16),
+                        padding: const EdgeInsets.symmetric(
+                          vertical: AppMetrics.p16,
+                        ),
                       ),
                       child: _isChecking
                           ? SizedBox(
@@ -224,7 +223,7 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
                               height: 20,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                color: scheme.onPrimary,
+                                color: scheme.onSurfaceVariant,
                               ),
                             )
                           : const Text('Saya Sudah Verifikasi'),
@@ -234,20 +233,19 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton(
-                      onPressed:
-                          (_isResending || _cooldownSeconds > 0)
-                              ? null
-                              : _resendVerificationEmail,
+                      onPressed: (_isResending || _cooldownSeconds > 0)
+                          ? null
+                          : _resendVerificationEmail,
                       style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: AppMetrics.p16),
+                        padding: const EdgeInsets.symmetric(
+                          vertical: AppMetrics.p16,
+                        ),
                       ),
                       child: Text(
                         _cooldownSeconds > 0
                             ? 'Kirim Ulang dalam 00:${_cooldownSeconds.toString().padLeft(2, '0')}'
                             : 'Kirim Ulang Email',
-                        style: TextStyle(
-                          color: scheme.onSurface,
-                        ),
+                        style: TextStyle(color: scheme.onSurface),
                       ),
                     ),
                   ),
@@ -257,12 +255,13 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
                     child: TextButton(
                       onPressed: _isChecking ? null : _signOut,
                       style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: AppMetrics.p16),
+                        padding: const EdgeInsets.symmetric(
+                          vertical: AppMetrics.p16,
+                        ),
                       ),
                       child: Text(
                         'Ganti Akun',
-                        style: TextStyle(
-                          fontSize: AppType.s16,
+                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
                           color: scheme.onSurfaceVariant,
                         ),
                       ),

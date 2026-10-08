@@ -2,6 +2,12 @@ import 'package:go_router/go_router.dart';
 import 'package:labuda/core/src/router/route_paths.dart';
 import 'package:labuda/domains/user/profile/profile.dart';
 import 'package:labuda/domains/system/notification/notification.dart';
+import 'package:labuda/domains/system/report/presentation/screens/my_reports_screen.dart'
+    show MyReportsScreen;
+import 'package:labuda/domains/user/identity/authentication/presentation/screens/login_sessions_screen.dart'
+    show LoginSessionsScreen;
+import 'package:labuda/domains/social/follow/presentation/screens/follow_list_screen.dart'
+    show FollowListScreen, FollowListType;
 import 'package:labuda/domains/user/identity/authentication/presentation/providers/auth_controller.dart';
 import 'package:labuda/domains/user/identity/authentication/presentation/providers/auth_state.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -102,6 +108,56 @@ class ProfileModule extends BaseModule {
       path: RoutePaths.addresses,
       name: RouteNames.addresses,
       builder: (context, state) => const AddressListScreen(),
+    ),
+
+    // Follow graph of a user profile (`?type=followers|following`).
+    GoRoute(
+      path: RoutePaths.followList,
+      name: RouteNames.followList,
+      builder: (context, state) {
+        final userId = state.pathParameters['userId'] ?? '';
+        final type = state.uri.queryParameters['type'] == 'following'
+            ? FollowListType.following
+            : FollowListType.followers;
+        final username = state.extra is String ? state.extra as String : null;
+        return FollowListScreen(
+          userId: userId,
+          type: type,
+          username: username,
+        );
+      },
+    ),
+
+    // ── Account & safety surfaces ──────────────────────────────────────────
+    GoRoute(
+      path: RoutePaths.security,
+      name: RouteNames.security,
+      builder: (context, state) => const SecurityScreen(),
+    ),
+    GoRoute(
+      path: RoutePaths.loginSessions,
+      name: RouteNames.loginSessions,
+      builder: (context, state) => const LoginSessionsScreen(),
+    ),
+    GoRoute(
+      path: RoutePaths.blockedUsers,
+      name: RouteNames.blockedUsers,
+      builder: (context, state) => const BlockedUsersScreen(),
+    ),
+    GoRoute(
+      path: RoutePaths.myReports,
+      name: RouteNames.myReports,
+      builder: (context, state) => const MyReportsScreen(),
+    ),
+    GoRoute(
+      path: RoutePaths.termsOfService,
+      name: RouteNames.termsOfService,
+      builder: (context, state) => const TermsOfServiceScreen(),
+    ),
+    GoRoute(
+      path: RoutePaths.privacyPolicy,
+      name: RouteNames.privacyPolicy,
+      builder: (context, state) => const PrivacyPolicyScreen(),
     ),
   ];
 

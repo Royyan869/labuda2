@@ -7,11 +7,13 @@ library;
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:labuda/core/core.dart';
+import 'package:labuda/shared/widgets/app_dialog.dart';
 import 'package:labuda/shared/widgets/app_snackbar.dart';
+import 'package:labuda/shared/widgets/app_text_field.dart';
 import 'package:labuda/domains/user/identity/verification/verification.dart';
 import 'package:labuda/domains/user/profile/presentation/screens/ktp_camera_screen.dart';
-import 'package:labuda/domains/system/support/presentation/screens/help_center_screen.dart';
 import 'package:labuda/domains/system/support/presentation/widgets/pre_chat_form_sheet.dart';
 
 /// Seller Verification Screen
@@ -74,46 +76,52 @@ class _SellerVerificationScreenState
         // colour edge-to-edge with white ink — no other screen does that.
         title: const Text('Verifikasi Penjual'),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppMetrics.p16),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Verification Status Banner
-              _buildVerificationStatusBanner(verificationState, user),
+      // Canonical body-level bottom-inset authority (SAFE-AREA-20): the ONE
+      // `SafeArea` consumes the live system bottom inset for the whole body.
+      // The scroll view's explicit `p16` padding below is DESIGN spacing only
+      // — an explicit `ScrollView.padding` never inherits MediaQuery padding.
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(AppMetrics.p16),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Verification Status Banner
+                _buildVerificationStatusBanner(verificationState, user),
 
-              const SizedBox(height: 24),
-
-              // Instructions
-              _buildInstructionsSection(),
-
-              const SizedBox(height: 24),
-
-              // Form: only show for states where the seller can (re)submit.
-              // suspended / revoked / under_investigation / pending_review /
-              // approved = no form.
-              if (const {
-                SellerVerificationStatus.notSubmitted,
-                SellerVerificationStatus.rejected,
-                SellerVerificationStatus.needsResubmission,
-              }.contains(verificationState.status)) ...[
-                _buildPersonalInfoSection(),
                 const SizedBox(height: 24),
-                _buildKtpUploadSection(),
+
+                // Instructions
+                _buildInstructionsSection(),
+
                 const SizedBox(height: 24),
-                _buildSelfieUploadSection(),
-                const SizedBox(height: 32),
-                _buildSubmitButton(verificationState, user),
+
+                // Form: only show for states where the seller can (re)submit.
+                // suspended / revoked / under_investigation / pending_review /
+                // approved = no form.
+                if (const {
+                  SellerVerificationStatus.notSubmitted,
+                  SellerVerificationStatus.rejected,
+                  SellerVerificationStatus.needsResubmission,
+                }.contains(verificationState.status)) ...[
+                  _buildPersonalInfoSection(),
+                  const SizedBox(height: 24),
+                  _buildKtpUploadSection(),
+                  const SizedBox(height: 24),
+                  _buildSelfieUploadSection(),
+                  const SizedBox(height: 32),
+                  _buildSubmitButton(verificationState, user),
+                ],
+
+                // Documents List
+                if (verificationState.documents.isNotEmpty) ...[
+                  const SizedBox(height: 24),
+                  _buildDocumentsSection(verificationState),
+                ],
               ],
-
-              // Documents List
-              if (verificationState.documents.isNotEmpty) ...[
-                const SizedBox(height: 24),
-                _buildDocumentsSection(verificationState),
-              ],
-            ],
+            ),
           ),
         ),
       ),
@@ -133,9 +141,11 @@ class _SellerVerificationScreenState
               color: Theme.of(context).colorScheme.primary,
             ),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'Login Diperlukan',
-              style: TextStyle(fontSize: AppType.s20, fontWeight: FontWeight.bold),
+              style: context.typeRoles.titleSection.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 8),
             const Text('Silakan login untuk verifikasi penjual'),
@@ -247,8 +257,7 @@ class _SellerVerificationScreenState
               children: [
                 Text(
                   title,
-                  style: TextStyle(
-                    fontSize: AppType.s16,
+                  style: context.typeRoles.titleCompact.copyWith(
                     fontWeight: FontWeight.bold,
                     color: textColor,
                   ),
@@ -258,8 +267,7 @@ class _SellerVerificationScreenState
                   message,
                   // Body copy reads primary ink: an 80%-opacity status tone on
                   // a 10% tint of the same tone fails AA at 13px.
-                  style: TextStyle(
-                    fontSize: AppType.s14,
+                  style: context.typeRoles.bodyDense.copyWith(
                     color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
@@ -270,8 +278,7 @@ class _SellerVerificationScreenState
                   const SizedBox(height: 8),
                   Text(
                     'Alasan: ${state.rejectionReason}',
-                    style: TextStyle(
-                      fontSize: AppType.s12,
+                    style: context.typeRoles.labelMicro.copyWith(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                       fontStyle: FontStyle.italic,
                     ),
@@ -280,8 +287,11 @@ class _SellerVerificationScreenState
                 if (showHelpButton) ...[
                   const SizedBox(height: 12),
                   TextButton.icon(
-                    onPressed: () => _showVerificationHelpDialog(),
-                    icon: const Icon(Icons.support_agent, size: AppIconSize.inlineGlyph),
+                    onPressed: () => _openVerificationHelp(),
+                    icon: const Icon(
+                      Icons.support_agent,
+                      size: AppIconSize.inlineGlyph,
+                    ),
                     label: const Text('Dapatkan Bantuan'),
                     style: TextButton.styleFrom(
                       foregroundColor: textColor,
@@ -386,8 +396,7 @@ class _SellerVerificationScreenState
               ),
               Text(
                 description,
-                style: TextStyle(
-                  fontSize: AppType.s12,
+                style: context.typeRoles.labelMicro.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
@@ -407,14 +416,11 @@ class _SellerVerificationScreenState
           style: Theme.of(context).textTheme.titleMedium,
         ),
         const SizedBox(height: 16),
-        TextFormField(
+        AppTextField(
           controller: _fullNameController,
-          decoration: const InputDecoration(
-            labelText: 'Nama Lengkap',
-            hintText: 'Sesuai dengan KTP',
-            prefixIcon: Icon(Icons.person),
-            border: OutlineInputBorder(),
-          ),
+          labelText: 'Nama Lengkap',
+          hintText: 'Sesuai dengan KTP',
+          prefixIcon: Icons.person,
           validator: (value) {
             if (value == null || value.isEmpty) {
               return 'Nama lengkap wajib diisi';
@@ -426,14 +432,11 @@ class _SellerVerificationScreenState
           },
         ),
         const SizedBox(height: 16),
-        TextFormField(
+        AppTextField(
           controller: _nikController,
-          decoration: const InputDecoration(
-            labelText: 'NIK',
-            hintText: '16 digit nomor identitas',
-            prefixIcon: Icon(Icons.badge),
-            border: OutlineInputBorder(),
-          ),
+          labelText: 'NIK',
+          hintText: '16 digit nomor identitas',
+          prefixIcon: Icons.badge,
           keyboardType: TextInputType.number,
           maxLength: 16,
           validator: (value) {
@@ -454,10 +457,7 @@ class _SellerVerificationScreenState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Foto KTP',
-          style: Theme.of(context).textTheme.titleMedium,
-        ),
+        Text('Foto KTP', style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 8),
         InkWell(
           onTap: () => _captureKtp(),
@@ -497,7 +497,8 @@ class _SellerVerificationScreenState
                           icon: Icon(
                             Icons.close,
                             color: Theme.of(context).colorScheme.onPrimary,
-                          ),
+                           semanticLabel: 'Hapus',
+                           ),
                           style: IconButton.styleFrom(
                             backgroundColor: Theme.of(
                               context,
@@ -525,8 +526,7 @@ class _SellerVerificationScreenState
                       const SizedBox(height: 8),
                       Text(
                         'Pastikan terbaca dengan jelas',
-                        style: TextStyle(
-                          fontSize: AppType.s12,
+                        style: context.typeRoles.labelMicro.copyWith(
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),
@@ -549,8 +549,7 @@ class _SellerVerificationScreenState
         const SizedBox(height: 4),
         Text(
           'Pegang KTP di depan wajah, pastikan wajah dan KTP terlihat jelas',
-          style: TextStyle(
-            fontSize: AppType.s12,
+          style: context.typeRoles.labelMicro.copyWith(
             color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
@@ -593,7 +592,8 @@ class _SellerVerificationScreenState
                           icon: Icon(
                             Icons.close,
                             color: Theme.of(context).colorScheme.onPrimary,
-                          ),
+                           semanticLabel: 'Hapus',
+                           ),
                           style: IconButton.styleFrom(
                             backgroundColor: Theme.of(
                               context,
@@ -621,8 +621,7 @@ class _SellerVerificationScreenState
                       const SizedBox(height: 8),
                       Text(
                         'Selfie memegang KTP di depan wajah',
-                        style: TextStyle(
-                          fontSize: AppType.s12,
+                        style: context.typeRoles.labelMicro.copyWith(
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),
@@ -638,7 +637,10 @@ class _SellerVerificationScreenState
     final isFormValid = _formKey.currentState?.validate() ?? false;
     final hasKtp = _ktpImage != null;
     final hasSelfie = _selfieImage != null;
-    final canSubmit = isFormValid && hasKtp && hasSelfie && !state.isLoading;
+    // `!_isUploading` is essential: without it the button stays enabled during
+    // the KTP/selfie upload phase and a second tap would re-enter the flow.
+    final canSubmit =
+        isFormValid && hasKtp && hasSelfie && !state.isLoading && !_isUploading;
     final scheme = Theme.of(context).colorScheme;
 
     return SizedBox(
@@ -765,6 +767,14 @@ class _SellerVerificationScreenState
       return;
     }
 
+    // RE-ENTRY GUARD: an upload is already in flight — never start a second.
+    if (_isUploading) return;
+
+    // SUBMISSION SNAPSHOT: capture name/NIK BEFORE the document uploads so an
+    // edit during upload cannot change the KYC that is actually submitted.
+    final fullNameSnapshot = _fullNameController.text.trim();
+    final nationalIdSnapshot = _nikController.text.trim();
+
     setState(() => _isUploading = true);
 
     try {
@@ -794,8 +804,8 @@ class _SellerVerificationScreenState
       final success = await ref
           .read(sellerVerificationV2NotifierProvider.notifier)
           .submitKYC(
-            fullName: _fullNameController.text.trim(),
-            nationalId: _nikController.text.trim(),
+            fullName: fullNameSnapshot,
+            nationalId: nationalIdSnapshot,
             ktpStorageKey: _ktpStorageKey!,
             selfieStorageKey: _selfieStorageKey!,
           );
@@ -842,17 +852,21 @@ class _SellerVerificationScreenState
         );
         return;
       case 'ACCOUNT_SUSPENDED':
-        await _showAccountBlockedDialog(
+        await AppDialog.info(
+          context: context,
           title: 'Akun Ditangguhkan',
           message:
               'Akun Anda sedang ditangguhkan. Hubungi tim dukungan untuk informasi lebih lanjut.',
+          closeLabel: 'Tutup',
         );
         return;
       case 'ACCOUNT_BANNED':
-        await _showAccountBlockedDialog(
+        await AppDialog.info(
+          context: context,
           title: 'Akun Diblokir',
           message:
               'Akun Anda telah diblokir dan tidak dapat mengajukan verifikasi.',
+          closeLabel: 'Tutup',
         );
         return;
     }
@@ -875,17 +889,21 @@ class _SellerVerificationScreenState
         );
         return;
       case 'ACCOUNT_SUSPENDED':
-        await _showAccountBlockedDialog(
+        await AppDialog.info(
+          context: context,
           title: 'Akun Ditangguhkan',
           message:
               'Akun Anda sedang ditangguhkan. Hubungi tim dukungan untuk informasi lebih lanjut.',
+          closeLabel: 'Tutup',
         );
         return;
       case 'ACCOUNT_BANNED':
-        await _showAccountBlockedDialog(
+        await AppDialog.info(
+          context: context,
           title: 'Akun Diblokir',
           message:
               'Akun Anda telah diblokir dan tidak dapat mengajukan verifikasi.',
+          closeLabel: 'Tutup',
         );
         return;
     }
@@ -893,85 +911,66 @@ class _SellerVerificationScreenState
     AppSnackBar.showError(context, 'Terjadi kesalahan. Coba lagi.');
   }
 
-  Future<void> _showAccountBlockedDialog({
-    required String title,
-    required String message,
-  }) {
-    return showDialog<void>(
-      context: context,
-      builder: (dialogCtx) => AlertDialog(
-        title: Text(title),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogCtx).pop(),
-            child: const Text('Tutup'),
-          ),
-        ],
-      ),
-    );
-  }
-
   // CONTEXTUAL SUPPORT BRIDGE (Phase 2 Hardening)
-  // Shows help options when verification is rejected
-  void _showVerificationHelpDialog() {
+  // Shows help options when verification is rejected.
+  //
+  // The SURFACE is the canonical [AppDialog.info]; the two navigation actions
+  // (Lihat Panduan / Hubungi Support) are rendered as content actions and keep
+  // their business behavior. No local dialog authority is introduced.
+  void _openVerificationHelp() {
     final authState = ref.read(authControllerProvider);
     if (authState is! AuthStateAuthenticated) return;
 
-    showDialog(
+    AppDialog.info(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Bantuan Verifikasi'),
-        content: const Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Verifikasi Anda ditolak. Pilih opsi di bawah:',
-              style: TextStyle(fontSize: AppType.s14),
-            ),
-            SizedBox(height: 16),
-            Text(
-              '• Pastikan KTP terbaca jelas',
-              style: TextStyle(fontSize: AppType.s14),
-            ),
-            Text(
-              '• Nama harus sesuai dengan KTP',
-              style: TextStyle(fontSize: AppType.s14),
-            ),
-            Text('• NIK harus 16 digit', style: TextStyle(fontSize: AppType.s14)),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Tutup'),
+      title: 'Bantuan Verifikasi',
+      closeLabel: 'Tutup',
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Verifikasi Anda ditolak. Pilih opsi di bawah:',
+            style: context.typeRoles.bodyDense,
           ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              // Navigate to Help Center with verification category
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const HelpCenterScreen(),
+          const SizedBox(height: 16),
+          Text(
+            '• Pastikan KTP terbaca jelas',
+            style: context.typeRoles.bodyDense,
+          ),
+          Text(
+            '• Nama harus sesuai dengan KTP',
+            style: context.typeRoles.bodyDense,
+          ),
+          Text('• NIK harus 16 digit', style: context.typeRoles.bodyDense),
+          const SizedBox(height: 16),
+          Builder(
+            builder: (dialogContext) => Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(dialogContext).pop();
+                    // Navigate to Help Center with verification category
+                    context.push(RoutePaths.helpCategoryPath('verification'));
+                  },
+                  child: const Text('Lihat Panduan'),
                 ),
-              );
-            },
-            child: const Text('Lihat Panduan'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              // Open support chat with verification category
-              showPreChatFormRefactored(
-                context,
-                userId: authState.user.id,
-                userName: authState.user.username,
-                userAvatar: authState.user.avatarUrl,
-              );
-            },
-            child: const Text('Hubungi Support'),
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(dialogContext).pop();
+                    // Open support chat with verification category
+                    showPreChatFormRefactored(
+                      context,
+                      userId: authState.user.id,
+                      userName: authState.user.username,
+                      userAvatar: authState.user.avatarUrl,
+                    );
+                  },
+                  child: const Text('Hubungi Support'),
+                ),
+              ],
+            ),
           ),
         ],
       ),

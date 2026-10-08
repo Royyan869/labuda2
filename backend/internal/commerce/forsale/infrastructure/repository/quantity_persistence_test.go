@@ -70,9 +70,6 @@ func TestForSaleRepository_Create_PersistsRealQuantity(t *testing.T) {
 		if err != nil {
 			return err
 		}
-		if err := for_sale.Publish(); err != nil {
-			return err
-		}
 		if err := repo.Create(ctx, tx, for_sale); err != nil {
 			return err
 		}
@@ -124,9 +121,6 @@ func TestForSaleRepository_ReduceRestoreCycle_PersistsThroughUpdateStock(t *test
 			nil, entity.PreparationTime1To3Days, nil,
 		)
 		if err != nil {
-			return err
-		}
-		if err := for_sale.Publish(); err != nil {
 			return err
 		}
 		if err := repo.Create(ctx, tx, for_sale); err != nil {
@@ -263,9 +257,6 @@ func TestForSaleRepository_OversellRejected_DBStateUnchanged(t *testing.T) {
 		if err != nil {
 			return err
 		}
-		if err := for_sale.Publish(); err != nil {
-			return err
-		}
 		if err := repo.Create(ctx, tx, for_sale); err != nil {
 			return err
 		}
@@ -335,9 +326,6 @@ func TestForSaleRepository_UniqueItemDefault_QuantityOne(t *testing.T) {
 		if err != nil {
 			return err
 		}
-		if err := for_sale.Publish(); err != nil {
-			return err
-		}
 		if err := repo.Create(ctx, tx, for_sale); err != nil {
 			return err
 		}
@@ -387,9 +375,6 @@ func TestForSaleRepository_DirectQuantityEdit_PersistsThroughUpdate(t *testing.T
 			nil, entity.PreparationTime1To3Days, nil,
 		)
 		if err != nil {
-			return err
-		}
-		if err := for_sale.Publish(); err != nil {
 			return err
 		}
 		if err := repo.Create(ctx, tx, for_sale); err != nil {

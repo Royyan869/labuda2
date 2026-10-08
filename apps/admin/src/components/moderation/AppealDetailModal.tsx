@@ -4,10 +4,12 @@ import { Modal, ModalFooter } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
+import { Textarea } from '@/components/ui/Textarea'
 import { useAppeal, useAppealReview } from '@/hooks/useAppeals'
 import { useAuth } from '@/hooks/useAuth'
 import { hasCapability } from '@/lib/permissions'
 import { formatDate } from '@/lib/utils'
+import { AdminLoadingState } from '@/components/common'
 import type {
   Appeal,
 } from '@/types'
@@ -153,9 +155,7 @@ export function AppealDetailModal({ isOpen, onClose, appeal, onReviewComplete }:
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Appeal Details" size="lg">
       {loading ? (
-        <div className="flex items-center justify-center py-12">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
-        </div>
+        <AdminLoadingState embedded label="Loading appeal details" />
       ) : (
         <div className="space-y-6">
           {/* Status Badge with Refresh */}
@@ -175,7 +175,7 @@ export function AppealDetailModal({ isOpen, onClose, appeal, onReviewComplete }:
                 <RefreshCw className="h-4 w-4" />
               </button>
             </div>
-            <span className="text-sm text-muted-foreground">
+            <span className="type-secondary">
               Appeal ID: <span className="font-mono">{displayData.id}</span>
             </span>
           </div>
@@ -199,17 +199,17 @@ export function AppealDetailModal({ isOpen, onClose, appeal, onReviewComplete }:
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm text-muted-foreground">Decision ID</p>
+                  <p className="type-secondary">Decision ID</p>
                   <p className="font-mono text-sm break-all">{appeal.decision_id}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Submitted Date</p>
+                  <p className="type-secondary">Submitted Date</p>
                   <p className="text-sm">{formatDate(appeal.created_at)}</p>
                 </div>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground mb-1">Appeal Message</p>
-                <p className="text-foreground bg-muted p-3 rounded-lg whitespace-pre-wrap break-words">
+                <p className="type-secondary mb-1">Appeal Message</p>
+                <p className="text-foreground bg-surface-muted p-3 rounded-lg whitespace-pre-wrap break-words">
                   {appeal.message}
                 </p>
               </div>
@@ -217,20 +217,20 @@ export function AppealDetailModal({ isOpen, onClose, appeal, onReviewComplete }:
               {displayData.reviewed_by && (
                 <>
                   <div>
-                    <p className="text-sm text-muted-foreground">Reviewed By</p>
+                    <p className="type-secondary">Reviewed By</p>
                     <p className="font-mono text-sm break-all">{displayData.reviewed_by}</p>
                   </div>
                   {displayData.admin_response && (
                     <div>
-                      <p className="text-sm text-muted-foreground mb-1">Admin Response</p>
-                      <p className="text-foreground bg-muted p-3 rounded-lg whitespace-pre-wrap break-words">
+                      <p className="type-secondary mb-1">Admin Response</p>
+                      <p className="text-foreground bg-surface-muted p-3 rounded-lg whitespace-pre-wrap break-words">
                         {displayData.admin_response}
                       </p>
                     </div>
                   )}
                   {displayData.reviewed_at && (
                     <div>
-                      <p className="text-sm text-muted-foreground">Reviewed At</p>
+                      <p className="type-secondary">Reviewed At</p>
                       <p className="text-sm">{formatDate(displayData.reviewed_at)}</p>
                     </div>
                   )}
@@ -248,32 +248,32 @@ export function AppealDetailModal({ isOpen, onClose, appeal, onReviewComplete }:
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-sm text-muted-foreground">Case ID</p>
+                    <p className="type-secondary">Case ID</p>
                     <p className="font-mono text-sm break-all">{appealDetail.original_case.id}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Resource Type</p>
+                    <p className="type-secondary">Resource Type</p>
                     <p className="text-sm">{targetTypeLabels[appealDetail.original_case.resource_type as keyof typeof targetTypeLabels] || appealDetail.original_case.resource_type}</p>
                   </div>
                 </div>                <div className="flex items-center gap-4">
                   <div>
-                    <p className="text-sm text-muted-foreground">Case Status</p>
+                    <p className="type-secondary">Case Status</p>
                     <Badge variant={caseStatusVariants[appealDetail.original_case.status as keyof typeof caseStatusVariants] || 'info'}>
                       {caseStatusLabels[appealDetail.original_case.status as keyof typeof caseStatusLabels] || appealDetail.original_case.status}
                     </Badge>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Decision Outcome</p>
+                    <p className="type-secondary">Decision Outcome</p>
                     <p className="text-sm font-medium capitalize">
                       {appealDetail.original_case.decision_outcome}
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Decision ID</p>
+                    <p className="type-secondary">Decision ID</p>
                     <p className="font-mono text-xs break-all">{appealDetail.original_case.decision_id}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Created</p>
+                    <p className="type-secondary">Created</p>
                     <p className="text-sm">{formatDate(appealDetail.original_case.created_at)}</p>
                   </div>
                 </div>
@@ -284,24 +284,22 @@ export function AppealDetailModal({ isOpen, onClose, appeal, onReviewComplete }:
           {/* Admin Response */}
           {isPending && canReview && (
             <div>
-              <label className="text-sm font-medium text-foreground mb-2 block">
-                Admin Response (Optional)
-              </label>
-              <textarea
+              <Textarea
+                label="Admin Response (Optional)"
                 value={adminResponse}
                 onChange={(e) => setAdminResponse(e.target.value)}
                 placeholder="Provide a response to the user explaining your decision..."
                 rows={3}
                 maxLength={2000}
-                className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring resize-none"
+                className="resize-none"
               />
-              <p className="text-xs text-muted-foreground mt-1">{adminResponse.length}/2000 characters</p>
+              <p className="type-caption mt-1">{adminResponse.length}/2000 characters</p>
             </div>
           )}
 
           {/* Read-only notice: pending appeal, but this admin cannot submit a decision */}
           {isPending && !canReview && (
-            <div className="bg-muted border border-border text-muted-foreground p-3 rounded-lg flex items-center gap-2">
+            <div className="bg-surface-muted border border-border text-muted-foreground p-3 rounded-lg flex items-center gap-2">
               <AlertTriangle className="h-4 w-4 flex-shrink-0" />
               <span className="text-sm">
                 You can view this appeal but do not have permission to submit a decision

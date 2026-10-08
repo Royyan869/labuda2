@@ -5,16 +5,16 @@ import 'package:labuda/core/src/theme/app_theme.dart';
 class PhoneDisplay extends StatelessWidget {
   final String phoneNumber;
 
-  const PhoneDisplay({
-    super.key,
-    required this.phoneNumber,
-  });
+  const PhoneDisplay({super.key, required this.phoneNumber});
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p12),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppMetrics.p16,
+        vertical: AppMetrics.p12,
+      ),
       decoration: BoxDecoration(
         color: scheme.surfaceContainerHigh,
         borderRadius: BorderRadius.circular(AppShape.r10),
@@ -31,8 +31,7 @@ class PhoneDisplay extends StatelessWidget {
           const SizedBox(width: 8),
           Text(
             phoneNumber,
-            style: TextStyle(
-              fontSize: AppType.s16,
+            style: context.typeRoles.titleCompact.copyWith(
               fontWeight: FontWeight.w600,
               color: scheme.onSurface,
             ),

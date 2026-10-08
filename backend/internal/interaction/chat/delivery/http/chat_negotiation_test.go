@@ -37,7 +37,12 @@ func TestSessionToResponse_AllFieldsPopulated(t *testing.T) {
 		UpdatedAt:        now,
 	}
 
-	resp := sessionToResponse(session)
+	resp := sessionToResponse(session, true)
+
+	// Canonical Commerce actionability projection is always present.
+	if resp["viewer_can_act"] != true {
+		t.Errorf("viewer_can_act mismatch: got %v, want true", resp["viewer_can_act"])
+	}
 
 	// Required fields
 	if resp["id"] != session.ID.String() {
@@ -94,7 +99,11 @@ func TestSessionToResponse_NilOptionalFields(t *testing.T) {
 		// All pointer fields are nil
 	}
 
-	resp := sessionToResponse(session)
+	resp := sessionToResponse(session, false)
+
+	if resp["viewer_can_act"] != false {
+		t.Errorf("viewer_can_act mismatch: got %v, want false", resp["viewer_can_act"])
+	}
 
 	// These should NOT be present when nil
 	nilKeys := []string{"for_sale_id", "chat_room_id", "current_price", "accepted_price", "expires_at", "accepted_at", "order_id"}
@@ -132,7 +141,7 @@ func TestSessionToResponse_ExpiredSession(t *testing.T) {
 		UpdatedAt:        now,
 	}
 
-	resp := sessionToResponse(session)
+	resp := sessionToResponse(session, false)
 
 	if resp["is_expired"] != true {
 		t.Errorf("is_expired should be true for expired session, got %v", resp["is_expired"])

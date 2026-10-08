@@ -11,10 +11,7 @@ import 'package:labuda/core/src/theme/app_theme.dart';
 class SettingsMarketingSection extends ConsumerWidget {
   final Function(String) onNavigate;
 
-  const SettingsMarketingSection({
-    super.key,
-    required this.onNavigate,
-  });
+  const SettingsMarketingSection({super.key, required this.onNavigate});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -35,6 +32,7 @@ class SettingsMarketingSection extends ConsumerWidget {
           scheme,
         ),
         _buildSettingsTile(
+          context,
           icon: Icons.discount_outlined,
           title: 'Diskon',
           subtitle: 'Buat dan kelola diskon produk',
@@ -42,6 +40,7 @@ class SettingsMarketingSection extends ConsumerWidget {
           scheme: scheme,
         ),
         _buildSettingsTile(
+          context,
           icon: Icons.local_offer_outlined,
           title: 'Promosi',
           subtitle: 'Buat dan kelola promosi & iklan toko',
@@ -59,19 +58,19 @@ class SettingsMarketingSection extends ConsumerWidget {
     ColorScheme scheme,
   ) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p16, AppMetrics.p16, AppMetrics.p8),
+      padding: const EdgeInsets.fromLTRB(
+        AppMetrics.p16,
+        AppMetrics.p16,
+        AppMetrics.p16,
+        AppMetrics.p8,
+      ),
       child: Row(
         children: [
-          Icon(
-            icon,
-            size: AppIconSize.action,
-            color: scheme.onSurfaceVariant,
-          ),
+          Icon(icon, size: AppIconSize.action, color: scheme.onSurfaceVariant),
           const SizedBox(width: 8),
           Text(
             title,
-            style: TextStyle(
-              fontSize: AppType.s14,
+            style: context.typeRoles.bodyDense.copyWith(
               fontWeight: FontWeight.w600,
               color: scheme.onSurfaceVariant,
             ),
@@ -81,7 +80,8 @@ class SettingsMarketingSection extends ConsumerWidget {
     );
   }
 
-  Widget _buildSettingsTile({
+  Widget _buildSettingsTile(
+    BuildContext context, {
     required IconData icon,
     required String title,
     required String subtitle,
@@ -89,21 +89,12 @@ class SettingsMarketingSection extends ConsumerWidget {
     required ColorScheme scheme,
   }) {
     return ListTile(
-      leading: Icon(
-        icon,
-        color: scheme.onSurfaceVariant,
-      ),
-      title: Text(
-        title,
-        style: TextStyle(
-          color: scheme.onSurface,
-        ),
-      ),
+      leading: Icon(icon, color: scheme.onSurfaceVariant),
+      title: Text(title, style: TextStyle(color: scheme.onSurface)),
       subtitle: Text(
         subtitle,
-        style: TextStyle(
+        style: context.typeRoles.bodyDense.copyWith(
           color: scheme.onSurfaceVariant,
-          fontSize: AppType.s14,
         ),
       ),
       trailing: Icon(

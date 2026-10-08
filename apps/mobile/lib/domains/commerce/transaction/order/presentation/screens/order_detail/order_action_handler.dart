@@ -1,6 +1,7 @@
 library;
 
 import 'package:labuda/core/core.dart' as core;
+import 'package:labuda/shared/widgets/app_dialog.dart';
 
 // =============================================================================
 // ORDER ACTION HANDLER - Decision V2 Contract
@@ -22,16 +23,15 @@ import 'package:labuda/core/src/theme/app_theme.dart';
 import 'package:labuda/domains/commerce/transaction/order/domain/domain.dart'
     as order_domain;
 import 'package:labuda/domains/commerce/transaction/order/order.dart';
+import 'package:labuda/domains/commerce/transaction/order/presentation/widgets/order_action_label_resolver.dart';
+import 'package:labuda/generated/app_localizations.dart';
 
 /// Order Action Handler - routes backend actions to appropriate handlers
 class OrderActionHandler {
   final Order order;
   final BuildContext context;
 
-  // Seller action handlers
-  final void Function(String orderId, String sellerId) onAcceptOrder;
-  final void Function(String orderId, String sellerId, String reason)
-  onRejectOrder;
+  // Seller action handler
   final void Function(
     String orderId,
     String sellerId,
@@ -58,7 +58,6 @@ class OrderActionHandler {
   )
   onRate;
   final void Function(Order order) onPayNow;
-  final void Function(Order order) onChangePaymentMethod;
   final void Function(String orderId, String reason) onCancelOrder;
 
   // Dispute handler
@@ -67,21 +66,24 @@ class OrderActionHandler {
   // Support handler
   final VoidCallback onRequestSupport;
 
+  // Chat-seller destination is owned by the order detail flow. The backend
+  // action type `contact_seller` (label_key `action.chat_seller`) delegates
+  // here — no new navigation architecture is introduced.
+  final VoidCallback? onChatSeller;
+
   const OrderActionHandler({
     required this.order,
     required this.context,
-    required this.onAcceptOrder,
-    required this.onRejectOrder,
     required this.onShipOrder,
     required this.onConfirmDelivery,
     required this.onExtendConfirmation,
     required this.onRefundRequestRequest,
     required this.onRate,
     required this.onPayNow,
-    required this.onChangePaymentMethod,
     required this.onCancelOrder,
     required this.onOpenDispute,
     required this.onRequestSupport,
+    this.onChatSeller,
   });
 
   /// Handle action based on backend-provided action type
@@ -99,10 +101,6 @@ class OrderActionHandler {
         return _handleMarkShipped(action);
       case 'update_tracking':
         return _handleUpdateTracking(action);
-      case 'accept':
-        return _handleAcceptOrder();
-      case 'reject':
-        return _handleRejectOrder(action);
 
       // B4A: "Terima Barang" = complete (single click, final acceptance + escrow release)
       case 'complete':
@@ -120,7 +118,14 @@ class OrderActionHandler {
       case 'extend_confirmation':
         return _handleExtendConfirmation();
 
-      // Unknown action - show info
+      // Backend secondary actions with an existing destination in this flow
+      // (I18N-07): labels stay presentation-only, routing stays on `type`.
+      case 'contact_seller':
+        return _handleContactSeller(action);
+      case 'contact_support':
+        return onRequestSupport();
+
+      // Unknown action - show info (localized label, never a raw `action.*`)
       default:
         _showUnknownActionInfo(action);
     }
@@ -137,116 +142,41 @@ class OrderActionHandler {
     _showUpdateShippingReferenceDialog(action);
   }
 
-  void _handleAcceptOrder() {
-    // Show confirmation dialog before accepting order
-    showDialog(
-      context: context,
-      builder: (dialogContext) {
-        final colorScheme = Theme.of(dialogContext).colorScheme;
-        return AlertDialog(
-          title: const Text('Terima Pesanan'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(
-                Icons.check_circle_outline,
-                color: context.statusColors.success,
-                size: AppIconSize.display,
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Anda yakin ingin menerima pesanan ini?',
-                style: TextStyle(fontSize: core.AppType.s16),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Dengan menerima pesanan, Anda berkewajiban untuk memproses dan mengirim produk sesuai dengan pesanan.',
-                style: TextStyle(
-                  fontSize: core.AppType.s14,
-                  color: colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Batal'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(dialogContext);
-                onAcceptOrder(order.id, order.sellerId);
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: context.statusColors.success,
-              ),
-              child: const Text('Ya, Terima Pesanan'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _handleRejectOrder(order_domain.Action action) {
-    // Check if action has input schema for reason
-    _showRejectDialog(action);
-  }
-
-  void _handleCompleteOrder() {
+  Future<void> _handleCompleteOrder() async {
     // B4A: Single-click final acceptance — releases funds to seller.
     // Must show clear confirmation dialog (financial action).
-    showDialog(
+    final confirmed = await AppDialog.confirm(
       context: context,
-      builder: (dialogContext) {
-        final colorScheme = Theme.of(dialogContext).colorScheme;
-        return AlertDialog(
-          title: const Text('Terima Barang'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(
-                Icons.warning_amber_outlined,
-                color: context.statusColors.warning,
-                size: AppIconSize.display,
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Anda yakin barang sudah diterima dengan baik?',
-                style: TextStyle(fontSize: core.AppType.s16),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Dengan menerima barang, pesanan akan selesai dan pembayaran akan diteruskan ke penjual. Tindakan ini tidak dapat dibatalkan.',
-                style: TextStyle(
-                  fontSize: core.AppType.s14,
-                  color: colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
+      title: 'Terima Barang',
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.warning_amber_outlined,
+            color: context.statusColors.warning,
+            size: AppIconSize.display,
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Batal'),
+          const SizedBox(height: 16),
+          Text(
+            'Anda yakin barang sudah diterima dengan baik?',
+            style: context.typeRoles.titleCompact,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Dengan menerima barang, pesanan akan selesai dan pembayaran akan diteruskan ke penjual. Tindakan ini tidak dapat dibatalkan.',
+            style: context.typeRoles.bodyDense.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(dialogContext);
-                onConfirmDelivery(order.id, order.buyerId);
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: context.statusColors.warning,
-              ),
-              child: const Text('Ya, Terima Barang'),
-            ),
-          ],
-        );
-      },
+          ),
+        ],
+      ),
+      confirmLabel: 'Ya, Terima Barang',
+      cancelLabel: 'Batal',
     );
+    if (confirmed) {
+      onConfirmDelivery(order.id, order.buyerId);
+    }
   }
 
   void _handleRequestRefund() {
@@ -271,62 +201,65 @@ class OrderActionHandler {
     onOpenDispute(orderId: order.id);
   }
 
-  void _handleExtendConfirmation() {
+  Future<void> _handleExtendConfirmation() {
     // Show confirmation extension dialog
-    _showExtendConfirmationDialog();
+    return _showExtendConfirmationDialog();
   }
 
   void _showBlockedMessage(order_domain.Action action) {
     final blocked = action.blocked;
     if (blocked == null) return;
 
-    showDialog(
+    AppDialog.info(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Action Not Available'),
-        content: Text(blocked.reason ?? blocked.messageKey),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
+      title: 'Action Not Available',
+      // Never expose a raw backend key: fall back to the smallest existing
+      // localized generic message when the backend omits a human reason.
+      message: blocked.reason ?? AppLocalizations.of(context)!.anErrorOccurred,
+      closeLabel: 'OK',
     );
   }
 
+  /// `contact_seller` delegates to the chat-seller destination that already
+  /// exists in the order detail flow. No evidence/API/navigation feature is
+  /// created here — only routing of an existing callback.
+  void _handleContactSeller(order_domain.Action action) {
+    final chatSeller = onChatSeller;
+    if (chatSeller != null) {
+      chatSeller();
+      return;
+    }
+    // Safe localized presentation while no callback is wired.
+    _showUnknownActionInfo(action);
+  }
+
   void _showUnknownActionInfo(order_domain.Action action) {
-    showDialog(
+    final l10n = AppLocalizations.of(context)!;
+    AppDialog.info(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Action Info'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Type: ${action.type}'),
+      title: 'Action Info',
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Type: ${action.type}'),
+          const SizedBox(height: 8),
+          // Canonical localized label — raw `action.*` keys never reach UI.
+          Text(resolveOrderActionLabel(l10n, action.labelKey)),
+          const SizedBox(height: 8),
+          Text('Endpoint: ${action.endpoint}'),
+          const SizedBox(height: 8),
+          Text('Method: ${action.method}'),
+          if (action.financial) ...[
             const SizedBox(height: 8),
-            Text('Label: ${action.labelKey}'),
-            const SizedBox(height: 8),
-            Text('Endpoint: ${action.endpoint}'),
-            const SizedBox(height: 8),
-            Text('Method: ${action.method}'),
-            if (action.financial) ...[
-              const SizedBox(height: 8),
-              const Text(
-                'Financial Action',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ],
+            const Text(
+              'Financial Action',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
           ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
         ],
       ),
+      closeLabel: 'Close',
     );
   }
 
@@ -340,144 +273,156 @@ class OrderActionHandler {
       builder: (context) {
         final colorScheme = Theme.of(context).colorScheme;
         return StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Konfirmasi Pengiriman'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Read-only shipping method from checkout
-                const Text(
-                  'Metode Pengiriman',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: core.AppType.s12),
-                ),
-                const SizedBox(height: 4),
-                Container(
-                  padding: const EdgeInsets.all(core.AppMetrics.p12),
-                  decoration: BoxDecoration(
-                    color: colorScheme.surfaceContainerHigh,
-                    borderRadius: BorderRadius.circular(core.AppShape.r8),
-                    border: Border.all(color: colorScheme.outlineVariant),
+          builder: (context, setDialogState) => AlertDialog(
+            title: const Text('Konfirmasi Pengiriman'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Read-only shipping method from checkout
+                  Text(
+                    'Metode Pengiriman',
+                    style: context.typeRoles.labelMicro.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.local_shipping, size: AppIconSize.inlineGlyph),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          _formatShippingMethod(),
-                          style: const TextStyle(fontSize: core.AppType.s14),
+                  const SizedBox(height: 4),
+                  Container(
+                    padding: const EdgeInsets.all(core.AppMetrics.p12),
+                    decoration: BoxDecoration(
+                      color: colorScheme.surfaceContainerHigh,
+                      borderRadius: BorderRadius.circular(core.AppShape.r8),
+                      border: Border.all(color: colorScheme.outlineVariant),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.local_shipping,
+                          size: AppIconSize.inlineGlyph,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _formatShippingMethod(),
+                            style: context.typeRoles.bodyDense,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Reference type selector
+                  Text(
+                    'Jenis Referensi',
+                    style: context.typeRoles.labelMicro.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  SegmentedButton<String>(
+                    segments: const [
+                      ButtonSegment(
+                        value: 'tracking',
+                        label: Text('Resi Kurir'),
+                        icon: Icon(
+                          Icons.qr_code,
+                          size: AppIconSize.inlineGlyph,
+                        ),
+                      ),
+                      ButtonSegment(
+                        value: 'phone',
+                        label: Text('No. HP/WA'),
+                        icon: Icon(Icons.phone, size: AppIconSize.inlineGlyph),
+                      ),
+                      ButtonSegment(
+                        value: 'other',
+                        label: Text('Lainnya'),
+                        icon: Icon(
+                          Icons.more_horiz,
+                          size: AppIconSize.inlineGlyph,
                         ),
                       ),
                     ],
+                    selected: {referenceType ?? 'tracking'},
+                    onSelectionChanged: (Set<String> selected) {
+                      setDialogState(() {
+                        referenceType = selected.first;
+                      });
+                    },
                   ),
-                ),
-                const SizedBox(height: 16),
+                  const SizedBox(height: 16),
 
-                // Reference type selector
-                const Text(
-                  'Jenis Referensi',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: core.AppType.s12),
-                ),
-                const SizedBox(height: 8),
-                SegmentedButton<String>(
-                  segments: const [
-                    ButtonSegment(
-                      value: 'tracking',
-                      label: Text('Resi Kurir'),
-                      icon: Icon(Icons.qr_code, size: AppIconSize.inlineGlyph),
-                    ),
-                    ButtonSegment(
-                      value: 'phone',
-                      label: Text('No. HP/WA'),
-                      icon: Icon(Icons.phone, size: AppIconSize.inlineGlyph),
-                    ),
-                    ButtonSegment(
-                      value: 'other',
-                      label: Text('Lainnya'),
-                      icon: Icon(Icons.more_horiz, size: AppIconSize.inlineGlyph),
-                    ),
-                  ],
-                  selected: {referenceType ?? 'tracking'},
-                  onSelectionChanged: (Set<String> selected) {
-                    setDialogState(() {
-                      referenceType = selected.first;
-                    });
-                  },
-                ),
-                const SizedBox(height: 16),
-
-                // Shipping reference input
-                Text(
-                  referenceType == 'phone'
-                      ? 'Nomor HP / WA'
-                      : 'Referensi Pengiriman',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: core.AppType.s12,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: referenceController,
-                  decoration: InputDecoration(
-                    labelText: referenceType == 'phone'
-                        ? 'No. HP / WA'
+                  // Shipping reference input
+                  Text(
+                    referenceType == 'phone'
+                        ? 'Nomor HP / WA'
                         : 'Referensi Pengiriman',
-                    hintText: referenceType == 'phone'
-                        ? 'Contoh: 08123456789'
-                        : referenceType == 'tracking'
-                        ? 'Contoh: JNE123456789'
-                        : 'Referensi lainnya',
-                    border: const OutlineInputBorder(),
+                    style: context.typeRoles.labelMicro.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                  textCapitalization: TextCapitalization.characters,
-                  keyboardType: referenceType == 'phone'
-                      ? TextInputType.phone
-                      : TextInputType.text,
-                ),
-                const SizedBox(height: 12),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: referenceController,
+                    decoration: InputDecoration(
+                      labelText: referenceType == 'phone'
+                          ? 'No. HP / WA'
+                          : 'Referensi Pengiriman',
+                      hintText: referenceType == 'phone'
+                          ? 'Contoh: 08123456789'
+                          : referenceType == 'tracking'
+                          ? 'Contoh: JNE123456789'
+                          : 'Referensi lainnya',
+                    ),
+                    textCapitalization: TextCapitalization.characters,
+                    keyboardType: referenceType == 'phone'
+                        ? TextInputType.phone
+                        : TextInputType.text,
+                  ),
+                  const SizedBox(height: 12),
 
-                // Optional note
-                TextField(
-                  controller: noteController,
-                  decoration: const InputDecoration(
-                    labelText: 'Catatan (opsional)',
-                    hintText: 'Catatan pengiriman untuk pembeli...',
-                    border: OutlineInputBorder(),
+                  // Optional note
+                  TextField(
+                    controller: noteController,
+                    // Border/fill come from `inputDecorationTheme` (AppTheme)
+                    // — the one form-field authority.
+                    decoration: const InputDecoration(
+                      labelText: 'Catatan (opsional)',
+                      hintText: 'Catatan pengiriman untuk pembeli...',
+                    ),
+                    maxLines: 2,
                   ),
-                  maxLines: 2,
-                ),
-              ],
+                ],
+              ),
             ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Batal'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  final shippingReference = referenceController.text.trim();
+                  if (shippingReference.isEmpty) return;
+                  Navigator.pop(context);
+                  onShipOrder(
+                    order.id,
+                    order.sellerId,
+                    ShippingProofData(
+                      shippingReference: shippingReference,
+                      referenceType: referenceType,
+                      note: noteController.text.trim().isEmpty
+                          ? null
+                          : noteController.text.trim(),
+                    ),
+                  );
+                },
+                child: const Text('Konfirmasi Pengiriman'),
+              ),
+            ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Batal'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                final shippingReference = referenceController.text.trim();
-                if (shippingReference.isEmpty) return;
-                Navigator.pop(context);
-                onShipOrder(
-                  order.id,
-                  order.sellerId,
-                  ShippingProofData(
-                    shippingReference: shippingReference,
-                    referenceType: referenceType,
-                    note: noteController.text.trim().isEmpty
-                        ? null
-                        : noteController.text.trim(),
-                  ),
-                );
-              },
-              child: const Text('Konfirmasi Pengiriman'),
-            ),
-          ],
-        ),
         );
       },
     );
@@ -503,10 +448,11 @@ class OrderActionHandler {
         title: const Text('Update Referensi Pengiriman'),
         content: TextField(
           controller: referenceController,
+          // Border/fill come from `inputDecorationTheme` (AppTheme) — the
+          // one form-field authority.
           decoration: const InputDecoration(
             labelText: 'Referensi Pengiriman',
             hintText: 'Masukkan referensi pengiriman baru',
-            border: OutlineInputBorder(),
           ),
           textCapitalization: TextCapitalization.characters,
         ),
@@ -533,54 +479,6 @@ class OrderActionHandler {
     );
   }
 
-  void _showRejectDialog(order_domain.Action action) {
-    final reasonController = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Tolak Pesanan'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Mohon berikan alasan penolakan:'),
-            const SizedBox(height: 12),
-            TextField(
-              controller: reasonController,
-              decoration: const InputDecoration(
-                hintText: 'Contoh: Stok habis, lokasi jauh, dll.',
-                border: OutlineInputBorder(),
-              ),
-              maxLines: 3,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Batal'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              final reason = reasonController.text.trim();
-              Navigator.pop(context);
-              onRejectOrder(
-                order.id,
-                order.sellerId,
-                reason.isEmpty ? 'Ditolak oleh penjual' : reason,
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.error,
-            ),
-            child: const Text('Tolak Pesanan'),
-          ),
-        ],
-      ),
-    );
-  }
-
   void _showCancelDialog(order_domain.Action action) {
     final reasonController = TextEditingController();
 
@@ -596,9 +494,10 @@ class OrderActionHandler {
             const SizedBox(height: 12),
             TextField(
               controller: reasonController,
+              // Border/fill come from `inputDecorationTheme` (AppTheme) — the
+              // one form-field authority.
               decoration: const InputDecoration(
                 hintText: 'Alasan pembatalan...',
-                border: OutlineInputBorder(),
               ),
               maxLines: 3,
             ),
@@ -628,27 +527,17 @@ class OrderActionHandler {
     );
   }
 
-  void _showExtendConfirmationDialog() {
-    showDialog(
+  Future<void> _showExtendConfirmationDialog() async {
+    final confirmed = await AppDialog.confirm(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Perpanjang Konfirmasi'),
-        content: const Text('Perpanjang masa konfirmasi penerimaan pesanan?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Batal'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              // Call extend confirmation API
-              onExtendConfirmation(order.id);
-            },
-            child: const Text('Perpanjang'),
-          ),
-        ],
-      ),
+      title: 'Perpanjang Konfirmasi',
+      message: 'Perpanjang masa konfirmasi penerimaan pesanan?',
+      confirmLabel: 'Perpanjang',
+      cancelLabel: 'Batal',
     );
+    if (confirmed) {
+      // Call extend confirmation API
+      onExtendConfirmation(order.id);
+    }
   }
 }

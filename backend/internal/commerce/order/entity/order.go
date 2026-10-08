@@ -105,9 +105,9 @@ type Order struct {
 	AddressSnapshot *addressentity.AddressSnapshot `json:"address_snapshot,omitempty" db:"address_snapshot"` // Stored as JSONB in database
 
 	// Shipping Origin Snapshot - frozen at order creation time
-	// This preserves the seller's farm/warehouse address for order fulfillment,
-	// even if the seller modifies or deletes their address from the address book
-	// Populated from listing.FarmAddressID at order creation time
+	// This preserves the seller's address for order fulfillment, even if the
+	// seller modifies or deletes their address from the address book.
+	// Populated from the seller account's primary address at order creation.
 	ShippingOrigin *addressentity.AddressSnapshot `json:"shipping_origin,omitempty" db:"shipping_origin_snapshot"` // Stored as JSONB in database
 
 	Status                    Status       `json:"status"`
@@ -136,14 +136,21 @@ type Order struct {
 	// - No separate payment.expired_at field
 	// - Workers query this field directly
 	//
-	// The order does NOT store the buyer's selected payment method: that is
-	// owned by the payment domain (payments.payment_method_code), and duplicating
-	// it here would create a second authority over the same concept.
+	// PAYMENT METHOD BINDING (PHASE 2 FOLLOW-UP): PaymentMethodCode is the EXACT
+	// canonical method the buyer selected BEFORE "Buat Pesanan" — a checkout
+	// decision, not a payment-domain detail. It is the order-side binding
+	// authority: POST /payments MUST request this same method (a different
+	// method is rejected), so the method actually used can never silently differ
+	// from the method the buyer chose. It is NULL only for orders created
+	// without a checkout selection (auction-claim), where the first payment
+	// binds it. payments.payment_method_code records the method actually used
+	// and must equal this value.
 	// ============================================================================
-	PaymentExpiresAt time.Time  `json:"payment_expires_at"`     // When payment window closes (single source of truth)
-	CompletedAt      *time.Time `json:"completed_at,omitempty"` // When order was completed (NULL for non-completed orders)
-	CreatedAt        time.Time  `json:"created_at"`
-	UpdatedAt        time.Time  `json:"updated_at"`
+	PaymentExpiresAt  time.Time  `json:"payment_expires_at"` // When payment window closes (single source of truth)
+	PaymentMethodCode *string    `json:"payment_method_code,omitempty" db:"payment_method_code"`
+	CompletedAt       *time.Time `json:"completed_at,omitempty"` // When order was completed (NULL for non-completed orders)
+	CreatedAt         time.Time  `json:"created_at"`
+	UpdatedAt         time.Time  `json:"updated_at"`
 }
 
 // InvalidTransitionError is returned when attempting an invalid state transition.
@@ -1031,8 +1038,8 @@ func (o *Order) ApplyAddressSnapshot(snapshot addressentity.AddressSnapshot) {
 // It stores the immutable snapshot of the seller's farm/warehouse address.
 //
 // IMMUTABILITY GUARANTEE:
-// - The snapshot is frozen at order creation time from listing.FarmAddressID
-// - Seller can modify or delete their farm address without affecting this order
+// - The snapshot is frozen at order creation time from the seller's primary address
+// - Seller can modify or delete their address without affecting this order
 // - Buyer always has the correct shipping origin for tracking and returns
 //
 // This snapshot is used for:
@@ -1070,11 +1077,12 @@ func (o *Order) ApplyShippingOrigin(snapshot addressentity.AddressSnapshot) {
 // - shippingQuotePrice: Quote price snapshot when using shipping quote (TASK F)
 // - paymentExpiresAt: When payment window closes (SINGLE SOURCE OF TRUTH)
 //
-// NOTE: the order does not carry auction settlement metadata or the buyer's
-// selected payment method. Auction settlement type is a pricing-token/auction
-// concern (validated at creation), and the selected payment method is owned by
-// the payment domain (payments.payment_method_code). Persisting either on the
-// order would create a duplicate authority over a concept owned elsewhere.
+// NOTE: the order does not carry auction settlement metadata (a pricing-token/
+// auction concern validated at creation). The buyer's selected payment method
+// IS carried on the order (PaymentMethodCode) as of the Phase 2 follow-up: the
+// selection is a checkout decision made before order creation, so the order is
+// its binding authority and POST /payments enforces against it. This is set by
+// the caller after construction (nil for orders without a checkout selection).
 //
 // VALIDATION GUARDS:
 // - Panics if quantity <= 0

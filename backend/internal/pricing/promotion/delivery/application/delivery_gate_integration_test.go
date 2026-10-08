@@ -80,6 +80,7 @@ func TestCanonicalDeliveryGate_Disabled_IssueTicketFails(t *testing.T) {
 	contract, err := contractSvc.Create(ctx, contractapp.CreatePromotionInput{
 		SellerID:     sellerID,
 		Kind:         contractentity.KindInternal,
+		Targets:      []contractapp.PromotionTargetInput{{TargetType: "for_sale", TargetID: uuid.New()}},
 		BudgetRupiah: 100_000,
 		DurationDays: 1,
 	})
@@ -159,6 +160,7 @@ func TestCanonicalDeliveryGate_Disabled_QualifyTicketFails(t *testing.T) {
 	contract, err := contractSvc.Create(ctx, contractapp.CreatePromotionInput{
 		SellerID:     sellerID,
 		Kind:         contractentity.KindInternal,
+		Targets:      []contractapp.PromotionTargetInput{{TargetType: "for_sale", TargetID: uuid.New()}},
 		BudgetRupiah: 100_000,
 		DurationDays: 1,
 	})

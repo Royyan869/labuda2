@@ -21,6 +21,7 @@ type ExternalProductRepository interface {
 	AppendReviewHistory(ctx context.Context, tx db.Tx, history *entity.ExternalProductReviewHistory) error
 	ListOwned(ctx context.Context, tx db.Tx, userID uuid.UUID, filters ExternalProductListFilters) ([]*entity.ExternalProduct, error)
 	ListForReview(ctx context.Context, tx db.Tx, filters ExternalProductAdminListFilters) ([]*entity.ExternalProduct, error)
+	CountForReview(ctx context.Context, tx db.Tx, filters ExternalProductAdminListFilters) (int, error)
 	ListReviewHistory(ctx context.Context, tx db.Tx, id uuid.UUID) ([]*entity.ExternalProductReviewHistory, error)
 	ListMedia(ctx context.Context, tx db.Tx, id uuid.UUID) ([]*entity.ExternalProductMedia, error)
 	AddMedia(ctx context.Context, tx db.Tx, media *entity.ExternalProductMedia) error

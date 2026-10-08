@@ -14,15 +14,16 @@ import 'package:equatable/equatable.dart';
 /// Wire contract (strict, state-specific):
 ///
 ///   `LIVE:      {state, resource_type, resource_id, canonical_url,
-///               viewer_capabilities, commerce_actions?, payload}`
+///               viewer_capabilities, payload}`
 ///   `TOMBSTONE: {state, resource_type, resource_id, viewer_capabilities}`
 ///
 /// Locked decisions this parser enforces:
 ///   - resource_id is ALWAYS present, in both states — identity survives death
 ///     for dedup/audit; exposing it is not a lifecycle claim.
 ///   - canonical_url is LIVE-only.
-///   - capabilities are ENVELOPE-level (viewer_capabilities +
-///     commerce_actions); payload-level can_interact does not exist.
+///   - viewer_capabilities is ENVELOPE-level; the former commerce_actions
+///     viewer capability matrix is purged. Product attributes (e.g. for_sale
+///     `negotiation_enabled`) live on the payload.
 ///   - price is a money object {amount, currency}; the scalar price is dead.
 ///   - media is []ResourceMediaRef plus optional thumbnail_url; the singular
 ///     image_url is dead.
@@ -110,21 +111,35 @@ enum ResourceMediaKind { image, video }
 class ResourceViewerCapabilities extends Equatable {
   final bool canView;
   final bool canInteract;
+
+  /// Canonical Commerce OWNERSHIP capability for the viewer — true iff the
+  /// authenticated viewer is the product's seller (`Role == "owner"`), as
+  /// evaluated by the Commerce authority. It is the ONLY viewer-scoped signal a
+  /// conversation surface may use to offer an owner-only product action; a
+  /// surface must never derive ownership from a message/bubble sender.
+  ///
+  /// Absent on the wire (legacy) defaults to false (fail-closed).
+  final bool canManage;
+
   final bool blockedByTombstone;
 
   const ResourceViewerCapabilities({
     required this.canView,
     required this.canInteract,
+    this.canManage = false,
     required this.blockedByTombstone,
   });
 
-  const ResourceViewerCapabilities.live({required this.canInteract})
-    : canView = true,
-      blockedByTombstone = false;
+  const ResourceViewerCapabilities.live({
+    required this.canInteract,
+    this.canManage = false,
+  }) : canView = true,
+       blockedByTombstone = false;
 
   const ResourceViewerCapabilities.tombstone()
     : canView = false,
       canInteract = false,
+      canManage = false,
       blockedByTombstone = true;
 
   factory ResourceViewerCapabilities.fromJson(
@@ -137,9 +152,11 @@ class ResourceViewerCapabilities extends Equatable {
     if (canView is! bool || canInteract is! bool || blocked is! bool) {
       throw const FormatException('viewer_capabilities must contain booleans');
     }
+    final canManage = json['can_manage'] as bool? ?? false;
     final caps = ResourceViewerCapabilities(
       canView: canView,
       canInteract: canInteract,
+      canManage: canManage,
       blockedByTombstone: blocked,
     );
     caps.validate(state: state);
@@ -164,6 +181,9 @@ class ResourceViewerCapabilities extends Equatable {
         if (canInteract) {
           throw const FormatException('TOMBSTONE requires can_interact=false');
         }
+        if (canManage) {
+          throw const FormatException('TOMBSTONE requires can_manage=false');
+        }
         if (!blockedByTombstone) {
           throw const FormatException(
             'TOMBSTONE requires blocked_by_tombstone=true',
@@ -175,79 +195,16 @@ class ResourceViewerCapabilities extends Equatable {
   Map<String, dynamic> toJson() => {
     'can_view': canView,
     'can_interact': canInteract,
+    'can_manage': canManage,
     'blocked_by_tombstone': blockedByTombstone,
   };
 
   @override
-  List<Object?> get props => [canView, canInteract, blockedByTombstone];
-}
-
-/// Commerce actions for LIVE for_sale/auction. Forbidden on every other
-/// envelope, including all TOMBSTONEs.
-class CommerceActionCapabilities extends Equatable {
-  final String role;
-  final bool canChat;
-  final bool canNegotiate;
-  final bool canBuy;
-  final bool canBid;
-  final bool canManage;
-
-  const CommerceActionCapabilities({
-    required this.role,
-    required this.canChat,
-    required this.canNegotiate,
-    required this.canBuy,
-    required this.canBid,
-    required this.canManage,
-  });
-
-  factory CommerceActionCapabilities.fromJson(Map<String, dynamic> json) {
-    final role = json['role'];
-    final canChat = json['can_chat'];
-    final canNegotiate = json['can_negotiate'];
-    final canBuy = json['can_buy'];
-    final canBid = json['can_bid'];
-    final canManage = json['can_manage'];
-    if (role is! String ||
-        canChat is! bool ||
-        canNegotiate is! bool ||
-        canBuy is! bool ||
-        canBid is! bool ||
-        canManage is! bool) {
-      throw const FormatException(
-        'commerce_actions must contain role and boolean flags',
-      );
-    }
-    return CommerceActionCapabilities(
-      role: role,
-      canChat: canChat,
-      canNegotiate: canNegotiate,
-      canBuy: canBuy,
-      canBid: canBid,
-      canManage: canManage,
-    );
-  }
-
-  bool get hasAnyAction =>
-      canChat || canNegotiate || canBuy || canBid || canManage;
-
-  Map<String, dynamic> toJson() => {
-    'role': role,
-    'can_chat': canChat,
-    'can_negotiate': canNegotiate,
-    'can_buy': canBuy,
-    'can_bid': canBid,
-    'can_manage': canManage,
-  };
-
-  @override
   List<Object?> get props => [
-    role,
-    canChat,
-    canNegotiate,
-    canBuy,
-    canBid,
+    canView,
+    canInteract,
     canManage,
+    blockedByTombstone,
   ];
 }
 
@@ -618,6 +575,12 @@ class ForSaleLivePayload extends ResourceProjectionPayload {
   final LivePrice price;
   final String status;
   final int quantityAvailable;
+
+  /// Canonical PRODUCT-LEVEL negotiation attribute: the listing is negotiable,
+  /// active and in stock. Viewer-independent read-through — never derived from
+  /// auth, seller trust, role or a capability evaluation. Rendered as the
+  /// informational "Nego" attribute. Absent on the wire defaults to false.
+  final bool negotiationEnabled;
   final ResourceSellerCard seller;
 
   const ForSaleLivePayload({
@@ -627,6 +590,7 @@ class ForSaleLivePayload extends ResourceProjectionPayload {
     required this.price,
     required this.status,
     required this.quantityAvailable,
+    this.negotiationEnabled = false,
     required this.seller,
   });
 
@@ -658,6 +622,7 @@ class ForSaleLivePayload extends ResourceProjectionPayload {
       price: LivePrice.fromJson(price),
       status: status,
       quantityAvailable: quantity.toInt(),
+      negotiationEnabled: json['negotiation_enabled'] as bool? ?? false,
       seller: ResourceSellerCard.fromJson(seller),
     );
   }
@@ -690,6 +655,7 @@ class ForSaleLivePayload extends ResourceProjectionPayload {
     'price': price.toJson(),
     'status': status,
     'quantity_available': quantityAvailable,
+    'negotiation_enabled': negotiationEnabled,
     'seller': seller.toJson(),
   };
 
@@ -701,6 +667,7 @@ class ForSaleLivePayload extends ResourceProjectionPayload {
     price,
     status,
     quantityAvailable,
+    negotiationEnabled,
     seller,
   ];
 }
@@ -712,7 +679,15 @@ class AuctionLivePayload extends ResourceProjectionPayload {
   final int? currentBid;
   final int? buyNowPrice;
   final String endAt;
+
+  /// Canonical public auction PHASE projection from Commerce
+  /// (`Status.PublicPhase()`): scheduled | active | waiting_settlement |
+  /// ended | cancelled. Read-through only; the conversation never derives it.
   final String lifecycle;
+
+  /// Canonical outcome discriminator for an `ended` phase
+  /// (ended+winner vs ended+no-winner), projected by Commerce. Read-through.
+  final bool hasWinner;
   final ResourceSellerCard seller;
 
   const AuctionLivePayload({
@@ -723,6 +698,7 @@ class AuctionLivePayload extends ResourceProjectionPayload {
     this.buyNowPrice,
     required this.endAt,
     required this.lifecycle,
+    this.hasWinner = false,
     required this.seller,
   });
 
@@ -759,6 +735,7 @@ class AuctionLivePayload extends ResourceProjectionPayload {
       buyNowPrice: (buyNowPriceRaw as num?)?.toInt(),
       endAt: endAt,
       lifecycle: lifecycle,
+      hasWinner: json['has_winner'] as bool? ?? false,
       seller: ResourceSellerCard.fromJson(seller),
     );
   }
@@ -795,6 +772,7 @@ class AuctionLivePayload extends ResourceProjectionPayload {
     if (buyNowPrice != null) 'buy_now_price': buyNowPrice,
     'end_at': endAt,
     'lifecycle': lifecycle,
+    if (hasWinner) 'has_winner': hasWinner,
     'seller': seller.toJson(),
   };
 
@@ -807,6 +785,7 @@ class AuctionLivePayload extends ResourceProjectionPayload {
     buyNowPrice,
     endAt,
     lifecycle,
+    hasWinner,
     seller,
   ];
 }
@@ -828,8 +807,6 @@ sealed class ResourceProjection extends Equatable {
 
   /// LIVE-only: a URL into a dead resource is a lie.
   String? get canonicalUrl;
-
-  CommerceActionCapabilities? get commerceActions;
 
   ResourceProjectionPayload? get payload;
 
@@ -958,32 +935,6 @@ sealed class ResourceProjection extends Equatable {
     ResourceViewerCapabilities viewerCapabilities,
   ) {
     final canonicalUrl = _readRequiredString(json, 'canonical_url');
-    final commerceActionsRaw = json['commerce_actions'];
-
-    CommerceActionCapabilities? commerceActions;
-    if (resourceType == ResourceProjectionType.fixedPriceSale ||
-        resourceType == ResourceProjectionType.auction) {
-      if (commerceActionsRaw is! Map<String, dynamic>) {
-        throw FormatException(
-          'LIVE ${resourceType.wireValue} projection requires commerce_actions',
-        );
-      }
-      commerceActions = CommerceActionCapabilities.fromJson(
-        commerceActionsRaw,
-      );
-      final actionable = resourceType == ResourceProjectionType.fixedPriceSale
-          ? (commerceActions.canBuy || commerceActions.canNegotiate)
-          : (commerceActions.canBid || commerceActions.canBuy);
-      if (viewerCapabilities.canInteract && !actionable) {
-        throw const FormatException(
-          'can_interact=true requires an actionable commerce flag',
-        );
-      }
-    } else if (commerceActionsRaw != null) {
-      throw FormatException(
-        'LIVE ${resourceType.wireValue} projection requires no commerce_actions',
-      );
-    }
 
     final payloadKey = resourceType.wireValue;
     for (final key in const ['profile', 'content', 'for_sale', 'auction']) {
@@ -1025,7 +976,6 @@ sealed class ResourceProjection extends Equatable {
       resourceId: resourceId,
       canonicalUrl: canonicalUrl,
       viewerCapabilities: viewerCapabilities,
-      commerceActions: commerceActions,
       payload: payload,
     );
   }
@@ -1038,7 +988,6 @@ sealed class ResourceProjection extends Equatable {
   ) {
     for (final key in const [
       'canonical_url',
-      'commerce_actions',
       'profile',
       'content',
       'for_sale',
@@ -1066,8 +1015,6 @@ class LiveResourceProjection extends ResourceProjection {
   @override
   final String canonicalUrl;
   @override
-  final CommerceActionCapabilities? commerceActions;
-  @override
   final ResourceProjectionPayload payload;
 
   const LiveResourceProjection({
@@ -1076,7 +1023,6 @@ class LiveResourceProjection extends ResourceProjection {
     required super.viewerCapabilities,
     required this.resourceId,
     required this.canonicalUrl,
-    required this.commerceActions,
     required this.payload,
   });
 
@@ -1087,7 +1033,6 @@ class LiveResourceProjection extends ResourceProjection {
     'resource_id': resourceId,
     'canonical_url': canonicalUrl,
     'viewer_capabilities': viewerCapabilities.toJson(),
-    if (commerceActions != null) 'commerce_actions': commerceActions!.toJson(),
     resourceType.wireValue: payload.toJson(),
   };
 
@@ -1098,7 +1043,6 @@ class LiveResourceProjection extends ResourceProjection {
     resourceId,
     canonicalUrl,
     viewerCapabilities,
-    commerceActions,
     payload,
   ];
 }
@@ -1116,9 +1060,6 @@ class TombstoneResourceProjection extends ResourceProjection {
 
   @override
   String? get canonicalUrl => null;
-
-  @override
-  CommerceActionCapabilities? get commerceActions => null;
 
   @override
   ResourceProjectionPayload? get payload => null;
@@ -1146,4 +1087,60 @@ String _readRequiredString(Map<String, dynamic> json, String key) {
     return value;
   }
   throw FormatException('resource_projection requires $key');
+}
+
+/// PRESENTATION-ONLY lifecycle label for a Commerce product reference.
+///
+/// This is the ONE mapping shared by the Chat and Comment product reference
+/// cards. It reads the Commerce projection VERBATIM — `ForSaleLivePayload.status`
+/// and `AuctionLivePayload.lifecycle` + `hasWinner` — and renders a label.
+///
+/// It NEVER calculates lifecycle from `end_at`, current time, `current_bid`,
+/// bid count, `winnerId`, quantity, or order state, and it never reinterprets
+/// an unknown value as a known Commerce state.
+///
+/// Returns null for non-commerce payloads (profile/content) so each surface
+/// keeps its own fallback.
+String? commerceLifecycleLabel(ResourceProjectionPayload? payload) {
+  return switch (payload) {
+    ForSaleLivePayload p => _forSaleLifecycleLabel(p.status),
+    AuctionLivePayload p => _auctionLifecycleLabel(p.lifecycle, p.hasWinner),
+    _ => null,
+  };
+}
+
+/// For Sale display mapping (canonical `PublicLifecycle()` vocabulary).
+String _forSaleLifecycleLabel(String status) {
+  switch (status) {
+    case 'active':
+    case 'available': // tolerated synonym; canonical wire value is `active`
+      return 'Tersedia';
+    case 'sold':
+      return 'Terjual';
+    case 'unavailable':
+      return 'Tidak tersedia';
+    default:
+      return 'Status tidak tersedia';
+  }
+}
+
+/// Auction display mapping (canonical `PublicPhase()` + `has_winner`).
+///
+/// `has_winner` only discriminates the `ended` outcome; it never alters the
+/// label of any other phase.
+String _auctionLifecycleLabel(String lifecycle, bool hasWinner) {
+  switch (lifecycle) {
+    case 'scheduled':
+      return 'Terjadwal';
+    case 'active':
+      return 'Berlangsung';
+    case 'waiting_settlement':
+      return 'Menunggu Penyelesaian';
+    case 'ended':
+      return hasWinner ? 'Terjual' : 'Berakhir tanpa pemenang';
+    case 'cancelled':
+      return 'Dibatalkan';
+    default:
+      return 'Status tidak tersedia';
+  }
 }

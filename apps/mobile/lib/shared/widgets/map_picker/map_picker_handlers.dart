@@ -172,21 +172,11 @@ mixin MapPickerHandlers<T extends StatefulWidget> on State<T> {
           );
         }
       } else if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Gagal mendapatkan lokasi'),
-            duration: Duration(seconds: 4),
-          ),
-        );
+        AppSnackBar.showError(context, 'Gagal mendapatkan lokasi');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Gagal mendapatkan lokasi saat ini'),
-            duration: Duration(seconds: 4),
-          ),
-        );
+        AppSnackBar.showError(context, 'Gagal mendapatkan lokasi saat ini');
       }
     }
   }

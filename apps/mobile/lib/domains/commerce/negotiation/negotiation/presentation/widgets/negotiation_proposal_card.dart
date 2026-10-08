@@ -75,15 +75,11 @@ class NegotiationProposalCard extends ConsumerWidget {
     //   • terminal → chip only; accepted (latest) → deal block.
     final bool latest =
         inSession && attachment.proposalSequence == session.round;
-    final bool active =
-        inSession && session.status == NegotiationStatus.active;
+    final bool active = inSession && session.status == NegotiationStatus.active;
     final bool deal =
-        inSession &&
-        session.status == NegotiationStatus.accepted &&
-        latest;
+        inSession && session.status == NegotiationStatus.accepted && latest;
     final bool myTurn = inSession && session.canUserAct(viewerId);
-    final bool showActions =
-        active && latest && !isFromCurrentUser && myTurn;
+    final bool showActions = active && latest && !isFromCurrentUser && myTurn;
     // Option A (owner): Tolak is SELLER-ONLY. The buyer exits by countering
     // or by letting the active session auto-expire.
     final bool showReject = showActions && session.isSeller(viewerId);
@@ -140,8 +136,7 @@ class NegotiationProposalCard extends ConsumerWidget {
                 Expanded(
                   child: Text(
                     headerLabel,
-                    style: TextStyle(
-                      fontSize: AppType.s14,
+                    style: context.typeRoles.titleCompact.copyWith(
                       fontWeight: FontWeight.w600,
                       color: AppColors.coinPrimary,
                     ),
@@ -170,8 +165,7 @@ class NegotiationProposalCard extends ConsumerWidget {
                 ],
                 Text(
                   'Harga Penawaran',
-                  style: TextStyle(
-                    fontSize: AppType.s12,
+                  style: context.typeRoles.labelMicro.copyWith(
                     color: scheme.onSurfaceVariant,
                   ),
                 ),
@@ -179,18 +173,18 @@ class NegotiationProposalCard extends ConsumerWidget {
                 Text(
                   // One money formatter for the whole app.
                   'Rp ${formatGroupedAmount(attachment.price)}',
-                  style: TextStyle(
-                    fontSize: AppType.s16,
+                  style: context.typeRoles.titleCompact.copyWith(
                     fontWeight: FontWeight.w700,
                     color: scheme.onSurface,
                   ),
                 ),
-                if (attachment.note != null &&
-                    attachment.note!.isNotEmpty) ...[
+                if (attachment.note != null && attachment.note!.isNotEmpty) ...[
                   const SizedBox(height: 8),
                   Text(
                     attachment.note!,
-                    style: TextStyle(fontSize: AppType.s12, color: scheme.onSurface),
+                    style: context.typeRoles.bodyDense.copyWith(
+                      color: scheme.onSurface,
+                    ),
                     maxLines: 3,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -213,12 +207,10 @@ class NegotiationProposalCard extends ConsumerWidget {
                       Expanded(
                         child: ElevatedButton(
                           onPressed: () => _accept(context, ref, session),
-                          child: const Text(
+                          child: Text(
                             'Terima',
-                            style: TextStyle(
-                              fontSize: AppType.s12,
-                              fontWeight: FontWeight.w700,
-                            ),
+                            style: Theme.of(context).textTheme.labelLarge
+                                ?.copyWith(fontWeight: FontWeight.w700),
                           ),
                         ),
                       ),
@@ -227,12 +219,10 @@ class NegotiationProposalCard extends ConsumerWidget {
                         child: OutlinedButton(
                           onPressed: () =>
                               _counter(context, ref, session, forSale),
-                          child: const Text(
+                          child: Text(
                             'Counter',
-                            style: TextStyle(
-                              fontSize: AppType.s12,
-                              fontWeight: FontWeight.w700,
-                            ),
+                            style: Theme.of(context).textTheme.labelLarge
+                                ?.copyWith(fontWeight: FontWeight.w700),
                           ),
                         ),
                       ),
@@ -241,12 +231,10 @@ class NegotiationProposalCard extends ConsumerWidget {
                         Expanded(
                           child: OutlinedButton(
                             onPressed: () => _reject(context, ref, session),
-                            child: const Text(
+                            child: Text(
                               'Tolak',
-                              style: TextStyle(
-                                fontSize: AppType.s12,
-                                fontWeight: FontWeight.w700,
-                              ),
+                              style: Theme.of(context).textTheme.labelLarge
+                                  ?.copyWith(fontWeight: FontWeight.w700),
                             ),
                           ),
                         ),
@@ -258,8 +246,7 @@ class NegotiationProposalCard extends ConsumerWidget {
                   const SizedBox(height: 8),
                   Text(
                     'Menunggu respons ${session.isSeller(viewerId) ? 'pembeli' : 'penjual'}…',
-                    style: TextStyle(
-                      fontSize: AppType.s12,
+                    style: context.typeRoles.bodyDense.copyWith(
                       fontStyle: FontStyle.italic,
                       color: scheme.onSurfaceVariant,
                     ),
@@ -297,10 +284,7 @@ class NegotiationProposalCard extends ConsumerWidget {
       if (isBuyer) onDealBuy?.call();
       return;
     }
-    AppSnackBar.showError(
-      context,
-      result.error ?? 'Gagal menerima penawaran',
-    );
+    AppSnackBar.showError(context, result.error ?? 'Gagal menerima penawaran');
   }
 
   /// TOLAK — cancel the active session (either participant).
@@ -418,8 +402,7 @@ class _ProductRow extends StatelessWidget {
             children: [
               Text(
                 forSale.title,
-                style: TextStyle(
-                  fontSize: AppType.s14,
+                style: context.typeRoles.titleCompact.copyWith(
                   fontWeight: FontWeight.w600,
                   color: scheme.onSurface,
                 ),
@@ -429,8 +412,7 @@ class _ProductRow extends StatelessWidget {
               const SizedBox(height: 2),
               Text(
                 '${available ? 'Tersedia' : 'Habis'} · ${forSale.formattedPrice}',
-                style: TextStyle(
-                  fontSize: AppType.s12,
+                style: context.typeRoles.labelMicro.copyWith(
                   color: scheme.onSurfaceVariant,
                 ),
                 maxLines: 1,
@@ -476,8 +458,7 @@ class _DealBlock extends StatelessWidget {
         children: [
           Text(
             'Harga Disetujui!',
-            style: TextStyle(
-              fontSize: AppType.s12,
+            style: context.typeRoles.labelMicro.copyWith(
               fontWeight: FontWeight.w700,
               color: scheme.primary,
             ),
@@ -485,8 +466,7 @@ class _DealBlock extends StatelessWidget {
           const SizedBox(height: 2),
           Text(
             'Harga Deal: $title',
-            style: TextStyle(
-              fontSize: AppType.s14,
+            style: context.typeRoles.titleCompact.copyWith(
               fontWeight: FontWeight.w700,
               color: scheme.onSurface,
             ),
@@ -494,7 +474,9 @@ class _DealBlock extends StatelessWidget {
           if (validityLine != null)
             Text(
               validityLine!,
-              style: TextStyle(fontSize: AppType.s12, color: scheme.onSurfaceVariant),
+              style: context.typeRoles.labelMicro.copyWith(
+                color: scheme.onSurfaceVariant,
+              ),
             ),
           if (showBuy) ...[
             const SizedBox(height: 8),
@@ -502,12 +484,11 @@ class _DealBlock extends StatelessWidget {
               height: AppContentSize.controlCompact,
               child: ElevatedButton(
                 onPressed: onBuy,
-                child: const Text(
+                child: Text(
                   'Beli dengan Harga Deal',
-                  style: TextStyle(
-                    fontSize: AppType.s12,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.bold),
                 ),
               ),
             ),
@@ -515,8 +496,7 @@ class _DealBlock extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               'Menunggu pembeli checkout…',
-              style: TextStyle(
-                fontSize: AppType.s12,
+              style: context.typeRoles.bodyDense.copyWith(
                 fontStyle: FontStyle.italic,
                 color: scheme.onSurfaceVariant,
               ),
@@ -547,8 +527,7 @@ class _StatusChip extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: TextStyle(
-          fontSize: AppType.s12,
+        style: context.typeRoles.labelMicro.copyWith(
           fontWeight: FontWeight.w700,
           color: color,
         ),

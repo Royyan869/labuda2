@@ -57,7 +57,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/core/api/api_client.dart';
 import 'package:labuda/core/src/interfaces/services/i_local_storage_service.dart';
 import 'package:labuda/core/src/interfaces/services/i_logger_service.dart';
-import 'package:labuda/core/src/interfaces/services/i_validation_service.dart';
 import 'package:labuda/core/websocket/websocket_service.dart';
 import 'package:labuda/core/src/interfaces/services/i_analytics_repository.dart';
 import 'package:labuda/core/interfaces/i_notification_trigger.dart';
@@ -69,7 +68,6 @@ export 'package:labuda/core/api/api_client.dart';
 export 'package:labuda/core/navigation/navigation_handler.dart';
 export 'package:labuda/core/src/interfaces/services/i_local_storage_service.dart';
 export 'package:labuda/core/src/interfaces/services/i_logger_service.dart';
-export 'package:labuda/core/src/interfaces/services/i_validation_service.dart';
 export 'package:labuda/core/websocket/websocket_service.dart';
 export 'package:labuda/core/src/interfaces/services/i_analytics_repository.dart';
 export 'package:labuda/core/interfaces/i_notification_trigger.dart';
@@ -111,16 +109,6 @@ final localStorageServiceProvider = Provider<ILocalStorageService>((ref) {
   throw UnimplementedError(
     'ILocalStorageService must be provided externally. '
     'Override localStorageServiceProvider in main.dart.',
-  );
-});
-
-/// Provider for IValidationService
-///
-/// This must be overridden in main.dart with the actual validation service.
-final validationServiceProvider = Provider<IValidationService>((ref) {
-  throw UnimplementedError(
-    'IValidationService must be provided externally. '
-    'Override validationServiceProvider in main.dart.',
   );
 });
 

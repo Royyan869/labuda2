@@ -5,6 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/Table'
+import { Select } from '@/components/ui/Select'
+import { AdminLoadingState, AdminErrorState, AdminEmptyState, AdminPagination, PageHeader } from '@/components/common'
 import { useSupportTickets } from '@/hooks/useSupport'
 import { formatDate } from '@/lib/utils'
 import type {
@@ -78,7 +80,7 @@ export function SupportTicketsPage() {
   const [isOverdueFilter, setIsOverdueFilter] = useState<boolean | undefined>(undefined)
   const [isUnassignedFilter, setIsUnassignedFilter] = useState<boolean | undefined>(undefined)
 
-  const { tickets, loading, error, total, refetch } = useSupportTickets(
+  const { tickets, loading, error, total, page, setPage, totalPages, refetch } = useSupportTickets(
     statusFilter || categoryFilter || isOverdueFilter !== undefined || isUnassignedFilter !== undefined
       ? {
           ...(statusFilter && { status: statusFilter }),
@@ -89,30 +91,26 @@ export function SupportTicketsPage() {
       : {}
   )
 
-  // STEP 1: Priority sorting (SLA overdue tickets first)
-  const sortedTickets = [...tickets].sort((a, b) => {
-    // Priority 0: SLA overdue (most critical)
-    if (a.sla.is_overdue && !b.sla.is_overdue) return -1
-    if (!a.sla.is_overdue && b.sla.is_overdue) return 1
-
-    // Priority 1: escalation === "dispute"
-    if (a.escalation === 'dispute' && b.escalation !== 'dispute') return -1
-    if (a.escalation !== 'dispute' && b.escalation === 'dispute') return 1
-
-    // Priority 2: priority === "urgent"
-    if (a.priority === 'urgent' && b.priority !== 'urgent') return -1
-    if (a.priority !== 'urgent' && b.priority === 'urgent') return 1
-
-    // Priority 3: priority === "high"
-    if (a.priority === 'high' && b.priority !== 'high') return -1
-    if (a.priority !== 'high' && b.priority === 'high') return 1
-
-    // Priority 4: newest created_at
-    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-  })
+  // Ordering authority is the SERVER (canonical SLA-urgency order). The page
+  // renders the server-ordered slice verbatim — no client-side re-sort, no
+  // per-page sort.
 
   const handleViewTicket = (ticketId: string) => {
     navigate(`/support/tickets/${ticketId}`)
+  }
+
+  const hasActiveFilters =
+    Boolean(statusFilter) ||
+    Boolean(categoryFilter) ||
+    isOverdueFilter !== undefined ||
+    isUnassignedFilter !== undefined
+
+  const handleClearFilters = () => {
+    setStatusFilter('')
+    setCategoryFilter('')
+    setIsOverdueFilter(undefined)
+    setIsUnassignedFilter(undefined)
+    setPage(1)
   }
 
   // STEP 2: Get border color based on escalation/priority/SLA
@@ -224,31 +222,15 @@ export function SupportTicketsPage() {
     }
   }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
-          <p className="mt-4 text-muted-foreground">Loading support tickets...</p>
-        </div>
-      </div>
-    )
+  if (loading && tickets.length === 0) {
+    return <AdminLoadingState />
   }
 
   if (error) {
     return (
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Support Tickets</h1>
-          <p className="text-muted-foreground mt-1">Manage customer support requests</p>
-        </div>
-        <Card>
-          <CardContent className="p-6">
-            <div className="text-center text-destructive">
-              <p>Error loading tickets: {error.message}</p>
-            </div>
-          </CardContent>
-        </Card>
+        <PageHeader title="Support Tickets" description="Manage customer support requests" />
+        <AdminErrorState title="Failed to load tickets" message={error.message} onRetry={refetch} />
       </div>
     )
   }
@@ -259,20 +241,16 @@ export function SupportTicketsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Support Tickets</h1>
-          <p className="text-muted-foreground mt-1">Manage customer support requests</p>
-        </div>
-        <Button
-          variant="secondary"
-          onClick={refetch}
-          className="gap-2"
-        >
-          <RefreshCw className="h-4 w-4" />
-          Refresh
-        </Button>
-      </div>
+      <PageHeader
+        title="Support Tickets"
+        description="Manage customer support requests"
+        actions={
+          <Button variant="secondary" onClick={refetch} className="gap-2">
+            <RefreshCw className="h-4 w-4" />
+            Refresh
+          </Button>
+        }
+      />
 
       {/* Stats Card */}
       <Card>
@@ -280,16 +258,16 @@ export function SupportTicketsPage() {
           <div className="flex items-center justify-between">
             <div className="flex-1">
               <p className="text-sm font-medium text-muted-foreground">Total Tickets</p>
-              <p className="text-3xl font-bold text-primary mt-1">{total}</p>
-              <p className="text-xs text-muted-foreground mt-1">{openCount} open tickets</p>
+              <p className="type-metric-lg text-primary mt-1">{total}</p>
+              <p className="type-caption mt-1">{openCount} open on this page</p>
             </div>
             <div className="flex-1 text-center">
               <p className="text-sm font-medium text-muted-foreground">SLA Overdue</p>
-              <p className={`text-3xl font-bold mt-1 ${overdueCount > 0 ? 'text-destructive' : 'text-success'}`}>
+              <p className={`type-metric-lg mt-1 ${overdueCount > 0 ? 'text-destructive' : 'text-success'}`}>
                 {overdueCount}
               </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                {overdueCount > 0 ? 'tickets overdue' : 'all on track'}
+              <p className="type-caption mt-1">
+                {overdueCount > 0 ? 'overdue on this page' : 'none overdue on this page'}
               </p>
             </div>
             <div className="p-4 rounded-lg bg-info-bg">
@@ -302,83 +280,65 @@ export function SupportTicketsPage() {
       {/* Filters */}
       <Card>
         <CardContent className="pt-6">
-          <div className="flex items-center gap-6 flex-wrap">
-            <div className="flex items-center gap-4">
-              <Filter className="h-5 w-5 text-muted-foreground" />
-              <label htmlFor="status-filter" className="text-sm font-medium text-foreground">
-                Status:
-              </label>
-              <select
-                id="status-filter"
+          <div className="flex items-end gap-6 flex-wrap">
+            <div className="flex items-end gap-2">
+              <Filter className="h-5 w-5 text-muted-foreground mb-2" />
+              <Select
+                label="Status:"
                 value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as SupportTicketStatus | '')}
-                className="px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                onChange={(e) => { setStatusFilter(e.target.value as SupportTicketStatus | ''); setPage(1) }}
               >
                 {SUPPORT_STATUSES.map((status) => (
                   <option key={status.value} value={status.value}>
                     {status.label}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
-            <div className="flex items-center gap-4">
-              <label htmlFor="category-filter" className="text-sm font-medium text-foreground">
-                Category:
-              </label>
-              <select
-                id="category-filter"
-                value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value as SupportCategory | '')}
-                className="px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-              >
-                {SUPPORT_CATEGORIES.map((category) => (
-                  <option key={category.value} value={category.value}>
-                    {category.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="flex items-center gap-4">
-              <AlertCircle className="h-5 w-5 text-muted-foreground" />
-              <label htmlFor="sla-filter" className="text-sm font-medium text-foreground">
-                SLA:
-              </label>
-              <select
-                id="sla-filter"
+            <Select
+              label="Category:"
+              value={categoryFilter}
+              onChange={(e) => { setCategoryFilter(e.target.value as SupportCategory | ''); setPage(1) }}
+            >
+              {SUPPORT_CATEGORIES.map((category) => (
+                <option key={category.value} value={category.value}>
+                  {category.label}
+                </option>
+              ))}
+            </Select>
+            <div className="flex items-end gap-2">
+              <AlertCircle className="h-5 w-5 text-muted-foreground mb-2" />
+              <Select
+                label="SLA:"
                 value={isOverdueFilter === undefined ? 'undefined' : isOverdueFilter.toString()}
                 onChange={(e) => {
                   const val = e.target.value
                   setIsOverdueFilter(val === 'undefined' ? undefined : val === 'true')
+                  setPage(1)
                 }}
-                className="px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 {SLA_FILTERS.map((filter) => (
                   <option key={filter.value?.toString() || 'undefined'} value={filter.value?.toString() || 'undefined'}>
                     {filter.label}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
-            <div className="flex items-center gap-4">
-              <label htmlFor="assignment-filter" className="text-sm font-medium text-foreground">
-                Assignment:
-              </label>
-              <select
-                id="assignment-filter"
-                value={isUnassignedFilter === undefined ? 'undefined' : isUnassignedFilter.toString()}
-                onChange={(e) => {
-                  const val = e.target.value
-                  setIsUnassignedFilter(val === 'undefined' ? undefined : val === 'true')
-                }}
-                className="px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-              >
-                {ASSIGNMENT_FILTERS.map((filter) => (
-                  <option key={filter.value?.toString() || 'undefined'} value={filter.value?.toString() || 'undefined'}>
-                    {filter.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <Select
+              label="Assignment:"
+              value={isUnassignedFilter === undefined ? 'undefined' : isUnassignedFilter.toString()}
+              onChange={(e) => {
+                const val = e.target.value
+                setIsUnassignedFilter(val === 'undefined' ? undefined : val === 'true')
+                setPage(1)
+              }}
+            >
+              {ASSIGNMENT_FILTERS.map((filter) => (
+                <option key={filter.value?.toString() || 'undefined'} value={filter.value?.toString() || 'undefined'}>
+                  {filter.label}
+                </option>
+              ))}
+            </Select>
           </div>
         </CardContent>
       </Card>
@@ -389,16 +349,18 @@ export function SupportTicketsPage() {
           <CardTitle>Tickets Queue</CardTitle>
         </CardHeader>
         <CardContent>
-          {sortedTickets.length === 0 ? (
-            <div className="text-center py-12">
-              <LifeBuoy className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-foreground mb-2">No Tickets Found</h3>
-              <p className="text-muted-foreground">
-                {statusFilter || categoryFilter || isOverdueFilter !== undefined || isUnassignedFilter !== undefined
+          {tickets.length === 0 ? (
+            <AdminEmptyState
+              icon={LifeBuoy}
+              title="No Tickets Found"
+              description={
+                hasActiveFilters
                   ? 'No tickets match the current filters.'
-                  : 'No support tickets in the system.'}
-              </p>
-            </div>
+                  : 'No support tickets in the system.'
+              }
+              filtered={hasActiveFilters}
+              onClearFilters={handleClearFilters}
+            />
           ) : (
             <div className="border border-border rounded-lg overflow-hidden">
               <Table>
@@ -422,7 +384,7 @@ export function SupportTicketsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {sortedTickets.map((ticket) => {
+                  {tickets.map((ticket) => {
                     const statusDisplay = getStatusDisplay(ticket)
                     return (
                       <TableRow key={ticket.id} className={getBorderClass(ticket)}>
@@ -445,7 +407,7 @@ export function SupportTicketsPage() {
                                 {ticket.username ? `@${ticket.username}` : ticket.user_id.slice(0, 8)}
                               </div>
                               {ticket.username && ticket.seller_farm_name ? (
-                                <div className="text-xs text-muted-foreground truncate max-w-[140px]">
+                                <div className="type-caption truncate max-w-[140px]">
                                   {ticket.seller_farm_name}
                                 </div>
                               ) : null}
@@ -508,7 +470,7 @@ export function SupportTicketsPage() {
                             )
                           })()}
                         </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
+                        <TableCell className="type-secondary">
                           {formatDate(ticket.created_at)}
                         </TableCell>
                         <TableCell className="text-right">
@@ -529,6 +491,16 @@ export function SupportTicketsPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <AdminPagination
+          page={page}
+          totalPages={totalPages}
+          onPageChange={setPage}
+          disabled={loading}
+        />
+      )}
     </div>
   )
 }

@@ -24,7 +24,7 @@ import (
 // seller_identity block is absent.
 func TestAuctionDetailResponse_IsTheGetAuctionSerializer(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	h := NewAuctionHandler(nil, nil, nil, nil, nil)
+	h := NewAuctionHandler(nil, nil, nil, nil, nil, nil)
 
 	now := time.Now().UTC()
 	auction := &entity.Auction{
@@ -130,7 +130,7 @@ func TestAuctionDetailResponse_IsTheGetAuctionSerializer(t *testing.T) {
 // the handler's own validation and returns its 400 response.
 func TestGetAuctionRoute_BindsDetailEndpoint(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	h := NewAuctionHandler(nil, nil, nil, nil, nil)
+	h := NewAuctionHandler(nil, nil, nil, nil, nil, nil)
 
 	router := gin.New()
 	router.GET("/auctions/:id", h.GetAuction)

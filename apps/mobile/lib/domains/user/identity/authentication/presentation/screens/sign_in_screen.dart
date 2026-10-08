@@ -13,7 +13,7 @@ import '../shared/shared.dart';
 ///
 /// ## Architecture
 /// - UI state → AuthFormController (no local booleans)
-/// - Fields → AuthTextField, AuthPasswordField (shared)
+/// - Fields → AppTextField, AuthPasswordField (shared)
 /// - Buttons → AuthButton (shared)
 /// - Validation → Widget/Form level (controller only knows valid/invalid)
 class SignInScreen extends ConsumerStatefulWidget {
@@ -243,9 +243,10 @@ class _SignInScreenState extends ConsumerState<SignInScreen>
                       key: _formKey,
                       child: Column(
                         children: [
-                          // Email field (shared widget)
-                          AuthTextField.email(
+                          // Email field (canonical generic producer)
+                          AppTextField.email(
                             controller: _emailController,
+                            enabled: !isAuthLoading,
                             validator: (value) =>
                                 CanonicalEmailValidator.validationMessage(value),
                           ),
@@ -255,6 +256,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen>
                           // Password field (shared widget)
                           AuthPasswordField(
                             controller: _passwordController,
+                            enabled: !isAuthLoading,
                             isPasswordVisible: _controller.isPasswordVisible,
                             onToggleVisibility:
                                 _controller.togglePasswordVisibility,
@@ -272,26 +274,31 @@ class _SignInScreenState extends ConsumerState<SignInScreen>
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Checkbox(
-                                    value: _controller.rememberMe,
-                                    onChanged: (value) {
-                                      _controller.setRememberMe(value ?? false);
-                                    },
-                                    activeColor: scheme.primary,
-                                    materialTapTargetSize:
-                                        MaterialTapTargetSize.shrinkWrap,
-                                  ),
-                                  Text(
-                                    'Remember me',
-                                    style: Theme.of(context).textTheme.bodySmall
-                                        ?.copyWith(
-                                          color: scheme.onSurfaceVariant,
-                                        ),
-                                  ),
-                                ],
+                              MergeSemantics(
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Checkbox(
+                                      value: _controller.rememberMe,
+                                      onChanged: isAuthLoading
+                                          ? null
+                                          : (value) {
+                                              _controller.setRememberMe(
+                                                value ?? false,
+                                              );
+                                            },
+                                    ),
+                                    Text(
+                                      'Remember me',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall
+                                          ?.copyWith(
+                                            color: scheme.onSurfaceVariant,
+                                          ),
+                                    ),
+                                  ],
+                                ),
                               ),
                               TextButton(
                                 onPressed: () => ref

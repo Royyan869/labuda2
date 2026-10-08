@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction.dart';
 import 'package:labuda/domains/commerce/catalog/auction/presentation/providers/auction_notifier.dart';
 import 'package:labuda/domains/commerce/catalog/auction/presentation/widgets/auction_card.dart';
 import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_marketplace_primitives.dart';
 import 'package:labuda/shared/widgets/empty_state.dart';
+import 'package:labuda/shared/widgets/page_error_state.dart';
 
 /// Auction tab content for Marketplace screen.
 ///
@@ -38,14 +40,14 @@ class MarketplaceAuctionTab extends ConsumerWidget {
                 onTap: () => context.push('/auction/${auction.id}'),
               );
             },
-            emptyBuilder: (context) => const EmptyState(
+            emptyBuilder: (context) => EmptyState(
               icon: Icons.gavel_outlined,
-              title: 'Belum ada lelang',
-              subtitle: 'Cek lagi nanti ya!',
+              title: context.l10n.emptyAuctionTitle,
+              subtitle: context.l10n.emptyCheckBackMessage,
             ),
-            errorBuilder: (context, error, stackTrace) => EmptyState.error(
-              title: 'Data belum bisa dimuat.',
-              subtitle: 'Periksa koneksi kamu lalu coba lagi.',
+            // CANONICAL page-level error (PageErrorState): safe localized
+            // copy only, the raw [error] never reaches the screen.
+            errorBuilder: (context, error, stackTrace) => PageErrorState(
               onRetry: () => ref.invalidate(marketplaceAuctionsProvider),
             ),
           ),

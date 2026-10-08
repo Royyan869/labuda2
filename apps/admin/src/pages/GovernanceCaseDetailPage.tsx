@@ -20,10 +20,14 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
+import { Input } from '@/components/ui/Input'
+import { Select } from '@/components/ui/Select'
+import { Textarea } from '@/components/ui/Textarea'
 import { useGovernanceCase, useCreateDecision, useGovernanceCaseAudit } from '@/hooks/useGovernance'
 import { useAuth } from '@/hooks/useAuth'
 import { hasCapability } from '@/lib/permissions'
 import { formatDate } from '@/lib/utils'
+import { AdminLoadingState, AdminErrorState, AdminEmptyState, PageHeader } from '@/components/common'
 import {
   caseStatusLabels,
   decisionOutcomeLabels,
@@ -61,31 +65,22 @@ export function GovernanceCaseDetailPage() {
   const [decisionSuccess, setDecisionSuccess] = useState(false)
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
-          <p className="mt-4 text-muted-foreground">Loading case details...</p>
-        </div>
-      </div>
-    )
+    return <AdminLoadingState />
   }
 
   if (error) {
     return (
       <div className="space-y-6">
-        <Button variant="secondary" onClick={() => navigate('/moderation/cases')}>
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Cases
-        </Button>
-        <Card>
-          <CardContent className="p-6">
-            <div className="text-center text-destructive">
-              <p className="font-medium">Error loading case</p>
-              <p className="text-sm mt-1">{error.message}</p>
-            </div>
-          </CardContent>
-        </Card>
+        <PageHeader
+          title="Governance Case"
+          leading={
+            <Button variant="secondary" onClick={() => navigate('/moderation/cases')}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Cases
+            </Button>
+          }
+        />
+        <AdminErrorState title="Failed to load case" message={error.message} onRetry={refetch} />
       </div>
     )
   }
@@ -93,17 +88,19 @@ export function GovernanceCaseDetailPage() {
   if (!data) {
     return (
       <div className="space-y-6">
-        <Button variant="secondary" onClick={() => navigate('/moderation/cases')}>
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Cases
-        </Button>
-        <Card>
-          <CardContent className="p-6">
-            <div className="text-center text-muted-foreground">
-              <p>Case not found.</p>
-            </div>
-          </CardContent>
-        </Card>
+        <PageHeader
+          title="Governance Case"
+          leading={
+            <Button variant="secondary" onClick={() => navigate('/moderation/cases')}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Cases
+            </Button>
+          }
+        />
+        <AdminErrorState
+          title="Case not found"
+          message="The requested governance case could not be found."
+        />
       </div>
     )
   }
@@ -150,18 +147,23 @@ export function GovernanceCaseDetailPage() {
   return (
     <div className="space-y-6">
       {/* Navigation */}
-      <div className="flex items-center justify-between">
-        <Button variant="secondary" onClick={() => navigate('/moderation/cases')}>
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Cases
-        </Button>
-        {isOpen && canCreateDecision && (
-          <Button onClick={() => setShowDecisionForm(!showDecisionForm)}>
-            <Gavel className="h-4 w-4 mr-2" />
-            {showDecisionForm ? 'Cancel' : 'Create Decision'}
+      <PageHeader
+        title="Governance Case"
+        leading={
+          <Button variant="secondary" onClick={() => navigate('/moderation/cases')}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Cases
           </Button>
-        )}
-      </div>
+        }
+        actions={
+          isOpen && canCreateDecision ? (
+            <Button onClick={() => setShowDecisionForm(!showDecisionForm)}>
+              <Gavel className="h-4 w-4 mr-2" />
+              {showDecisionForm ? 'Cancel' : 'Create Decision'}
+            </Button>
+          ) : undefined
+        }
+      />
 
       {/* Read-only notice for admins without decision authority */}
       {isOpen && !canCreateDecision && (
@@ -193,19 +195,19 @@ export function GovernanceCaseDetailPage() {
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
-              <p className="text-sm text-muted-foreground">Case ID</p>
+              <p className="type-secondary">Case ID</p>
               <p className="font-mono text-sm">{kase.id}</p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Subject Type</p>
+              <p className="type-secondary">Subject Type</p>
               <Badge variant="default">{targetTypeLabels[kase.subject_type]}</Badge>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Subject ID</p>
+              <p className="type-secondary">Subject ID</p>
               <p className="font-mono text-sm">{kase.subject_id}</p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Status</p>
+              <p className="type-secondary">Status</p>
               <Badge variant={caseStatusVariants[kase.status]}>
                 {caseStatusLabels[kase.status]}
               </Badge>
@@ -213,16 +215,16 @@ export function GovernanceCaseDetailPage() {
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <div>
-              <p className="text-sm text-muted-foreground">Created</p>
+              <p className="type-secondary">Created</p>
               <p className="text-sm">{formatDate(kase.created_at)}</p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Updated</p>
+              <p className="type-secondary">Updated</p>
               <p className="text-sm">{formatDate(kase.updated_at)}</p>
             </div>
             {kase.closed_at && (
               <div>
-                <p className="text-sm text-muted-foreground">Closed</p>
+                <p className="type-secondary">Closed</p>
                 <p className="text-sm">{formatDate(kase.closed_at)}</p>
               </div>
             )}
@@ -248,76 +250,60 @@ export function GovernanceCaseDetailPage() {
             )}
 
             {/* Outcome */}
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1">
-                Outcome <span className="text-destructive">*</span>
-              </label>
-              <select
-                value={decisionOutcome}
-                onChange={(e) => setDecisionOutcome(e.target.value as DecisionOutcome)}
-                className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-              >
-                <option value="no_violation">No Violation</option>
-                <option value="violation">Violation</option>
-              </select>
-              <p className="text-xs text-muted-foreground mt-1">
-                {decisionOutcome === 'violation'
+            <Select
+              label="Outcome"
+              required
+              value={decisionOutcome}
+              onChange={(e) => setDecisionOutcome(e.target.value as DecisionOutcome)}
+              help={
+                decisionOutcome === 'violation'
                   ? 'Policy was violated — enforcement will be created'
-                  : 'Content complies with policy — no enforcement needed'}
-              </p>
-            </div>
+                  : 'Content complies with policy — no enforcement needed'
+              }
+            >
+              <option value="no_violation">No Violation</option>
+              <option value="violation">Violation</option>
+            </Select>
 
             {/* Target (violation only) */}
             {decisionOutcome === 'violation' && (
               <>
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">
-                    Target Type <span className="text-destructive">*</span>
-                  </label>
-                  <select
-                    value={targetType}
-                    onChange={(e) => setTargetType(e.target.value as GovernanceTargetType)}
-                    className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                  >
-                    <option value="content">Content</option>
-                    <option value="comment">Comment</option>
-                    <option value="for_sale">For Sale</option>
-                    <option value="auction">Auction</option>
-                    <option value="user">User</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">
-                    Target ID <span className="text-destructive">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={targetId}
-                    onChange={(e) => setTargetId(e.target.value)}
-                    placeholder="UUID of the target to enforce against"
-                    className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    The subject ID to apply enforcement to (often the Case's subject_id)
-                  </p>
-                </div>
+                <Select
+                  label="Target Type"
+                  required
+                  value={targetType}
+                  onChange={(e) => setTargetType(e.target.value as GovernanceTargetType)}
+                >
+                  <option value="content">Content</option>
+                  <option value="comment">Comment</option>
+                  <option value="for_sale">For Sale</option>
+                  <option value="auction">Auction</option>
+                  <option value="user">User</option>
+                </Select>
+                <Input
+                  type="text"
+                  label="Target ID"
+                  required
+                  value={targetId}
+                  onChange={(e) => setTargetId(e.target.value)}
+                  placeholder="UUID of the target to enforce against"
+                  help="The subject ID to apply enforcement to (often the Case's subject_id)"
+                />
               </>
             )}
 
             {/* Decision Note */}
             <div>
-              <label className="block text-sm font-medium text-foreground mb-1">
-                Decision Note <span className="text-muted-foreground">(optional)</span>
-              </label>
-              <textarea
+              <Textarea
+                label="Decision Note (optional)"
                 value={decisionNote}
                 onChange={(e) => setDecisionNote(e.target.value)}
                 placeholder="Reason or note for this decision..."
                 rows={3}
                 maxLength={2000}
-                className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+                className="resize-none"
               />
-              <p className="text-xs text-muted-foreground mt-1">{decisionNote.length}/2000 characters</p>
+              <p className="type-caption mt-1">{decisionNote.length}/2000 characters</p>
             </div>
 
             {/* Submit */}
@@ -354,37 +340,37 @@ export function GovernanceCaseDetailPage() {
         </CardHeader>
         <CardContent>
           {reports.length === 0 ? (
-            <p className="text-muted-foreground text-sm">No reports associated with this case.</p>
+            <p className="type-secondary">No reports associated with this case.</p>
           ) : (
             <div className="space-y-3">
               {reports.map((report) => (
                 <div key={report.id} className="border border-border rounded-lg p-4">
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     <div>
-                      <p className="text-xs text-muted-foreground">Report ID</p>
+                      <p className="type-caption">Report ID</p>
                       <p className="font-mono text-xs">{report.id.slice(0, 8)}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">Reporter</p>
+                      <p className="type-caption">Reporter</p>
                       <p className="font-mono text-xs">{report.reporter_id.slice(0, 8)}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">Reason</p>
+                      <p className="type-caption">Reason</p>
                       <p className="text-xs font-medium">{report.reason_code}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">Created</p>
+                      <p className="type-caption">Created</p>
                       <p className="text-xs">{formatDate(report.created_at)}</p>
                     </div>
                   </div>
                   {report.reason_note && (
                     <div className="mt-2">
-                      <p className="text-xs text-muted-foreground">Note</p>
+                      <p className="type-caption">Note</p>
                       <p className="text-sm bg-surface-muted p-2 rounded">{report.reason_note}</p>
                     </div>
                   )}
                   {report.evidence_snapshot && (
-                    <div className="mt-2 text-xs text-muted-foreground">
+                    <div className="mt-2 type-caption">
                       {report.evidence_snapshot.author_username && (
                         <span>Author: {report.evidence_snapshot.author_username} · </span>
                       )}
@@ -413,15 +399,15 @@ export function GovernanceCaseDetailPage() {
         </CardHeader>
         <CardContent>
           {decisions.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <Clock className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-              <p className="text-sm">No decisions made yet.</p>
-              {isOpen && (
-                <p className="text-xs text-muted-foreground mt-1">
-                  Click &quot;Create Decision&quot; to make a governance decision.
-                </p>
-              )}
-            </div>
+            <AdminEmptyState
+              icon={Clock}
+              title="No decisions made yet."
+              description={
+                isOpen
+                  ? 'Click "Create Decision" to make a governance decision.'
+                  : undefined
+              }
+            />
           ) : (
             <div className="space-y-4">
               {decisions.map((decision) => (
@@ -461,31 +447,14 @@ function AuditTimeline({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-center py-8">
-            <div className="inline-block h-6 w-6 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
-            <span className="ml-3 text-sm text-muted-foreground">Loading audit events...</span>
-          </div>
+          <AdminLoadingState embedded label="Loading audit events" />
         </CardContent>
       </Card>
     )
   }
 
   if (error) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5" />
-            Audit Timeline
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8">
-            <p className="text-sm text-destructive">Failed to load audit events: {error.message}</p>
-          </div>
-        </CardContent>
-      </Card>
-    )
+    return <AdminErrorState title="Failed to load audit events" message={error.message} />
   }
 
   return (
@@ -498,10 +467,7 @@ function AuditTimeline({
       </CardHeader>
       <CardContent>
         {events.length === 0 ? (
-          <div className="text-center py-8">
-            <Clock className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">No audit events recorded for this case.</p>
-          </div>
+          <AdminEmptyState icon={Clock} title="No audit events recorded for this case." />
         ) : (
           <div className="space-y-3">
             {events.map((event) => (
@@ -528,7 +494,7 @@ function AuditEventRow({ event }: { event: GovernanceAuditEvent }) {
               <Badge variant={outcomeVariant}>{outcomeLabel}</Badge>
             )}
           </div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <div className="flex items-center gap-2 type-caption">
             <span className="font-medium capitalize">{event.actor_type}</span>
             {event.actor_name && (
               <span>({event.actor_name})</span>
@@ -538,7 +504,7 @@ function AuditEventRow({ event }: { event: GovernanceAuditEvent }) {
             )}
           </div>
           {event.target_type && (
-            <div className="text-xs text-muted-foreground">
+            <div className="type-caption">
               Target: {targetTypeLabels[event.target_type] || event.target_type}
               {event.target_id && (
                 <span className="font-mono ml-1">{event.target_id.slice(0, 8)}</span>
@@ -549,7 +515,7 @@ function AuditEventRow({ event }: { event: GovernanceAuditEvent }) {
             <p className="text-sm bg-surface-muted p-2 rounded mt-1">{event.decision_note}</p>
           )}
         </div>
-        <span className="text-xs text-muted-foreground whitespace-nowrap">
+        <span className="type-caption whitespace-nowrap">
           {formatDate(event.created_at)}
         </span>
       </div>
@@ -570,13 +536,13 @@ function DecisionCard({ decision }: { decision: GovernanceDecision }) {
             <Badge variant={decisionOutcomeVariants[decision.outcome]}>
               {decisionOutcomeLabels[decision.outcome]}
             </Badge>
-            <span className="text-xs text-muted-foreground font-mono">{decision.id.slice(0, 8)}</span>
-            <span className="text-xs text-muted-foreground">·</span>
-            <span className="text-xs text-muted-foreground">
+            <span className="type-caption font-mono">{decision.id.slice(0, 8)}</span>
+            <span className="type-caption">·</span>
+            <span className="type-caption">
               by {decision.decided_by.slice(0, 8)}
             </span>
           </div>
-          <div className="text-xs text-muted-foreground">
+          <div className="type-caption">
             {formatDate(decision.created_at)}
           </div>
           {decision.decision_note && (
@@ -611,11 +577,11 @@ function EnforcementRow({ enforcement }: { enforcement: GovernanceEnforcement })
       <span className="text-muted-foreground">
         {targetTypeLabels[enforcement.target_type]}
       </span>
-      <span className="font-mono text-xs text-muted-foreground">
+      <span className="font-mono type-caption">
         {enforcement.target_id.slice(0, 8)}
       </span>
       <span className="text-muted-foreground">·</span>
-      <span className="text-xs text-muted-foreground">
+      <span className="type-caption">
         attempt {enforcement.attempt_count}
       </span>
       {enforcement.last_error && (

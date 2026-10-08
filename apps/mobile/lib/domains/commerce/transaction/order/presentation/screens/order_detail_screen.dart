@@ -10,6 +10,7 @@ import 'order_detail/order_action_handler.dart';
 import 'order_detail/direct_dispute_dialog.dart';
 import 'package:labuda/core/src/theme/app_theme.dart';
 import 'package:labuda/domains/user/identity/authentication/authentication.dart';
+import 'package:labuda/shared/shared.dart';
 import 'package:labuda/domains/commerce/transaction/order/domain/domain.dart'
     as order_domain;
 import 'package:labuda/domains/commerce/transaction/order/order.dart';
@@ -37,58 +38,6 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen>
     ref.invalidate(refundsByOrderProvider(widget.orderId));
   }
 
-  /// Calculate bottom padding based on action buttons visibility
-  /// Different statuses show different buttons with varying heights
-  double _calculateBottomPadding({
-    required Order order,
-    required bool isSeller,
-    required bool isBuyer,
-  }) {
-    // Base padding when no buttons
-    const basePadding = 24.0;
-    // Container padding (16 top + 16 bottom) + SafeArea estimate
-    const containerPadding = 32.0 + 34.0;
-    // Single button height with padding
-    const singleButtonHeight = 48.0;
-    // Small gap between buttons
-    const buttonGap = 8.0;
-
-    // Seller action buttons
-    if (isSeller) {
-      // Seller buttons: single row of 1-2 buttons
-      // O1: Removed 'processing' - not a real backend status
-      if (order.status == OrderStatus.paid ||
-          order.status == OrderStatus.shipped) {
-        return containerPadding + singleButtonHeight + basePadding;
-      }
-      return basePadding; // No seller buttons for other statuses
-    }
-
-    // Buyer action buttons
-    if (isBuyer && !isSeller) {
-      switch (order.status) {
-        case OrderStatus.pending:
-          // Pay button + row of 2 buttons (Ubah Metode + Cancel)
-          return containerPadding +
-              singleButtonHeight +
-              buttonGap +
-              singleButtonHeight +
-              basePadding;
-        case OrderStatus.shipped:
-        case OrderStatus.delivered:
-          // Confirm receipt button
-          return containerPadding + singleButtonHeight + basePadding;
-        case OrderStatus.completed:
-          // Rate button (if not rated)
-          return containerPadding + singleButtonHeight + basePadding;
-        default:
-          return basePadding;
-      }
-    }
-
-    return basePadding;
-  }
-
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
@@ -104,7 +53,7 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen>
       appBar: AppBar(
         title: const Text('Order Details'),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back, semanticLabel: 'Kembali'),
           onPressed: () {
             if (Navigator.of(context).canPop()) {
               Navigator.of(context).pop();
@@ -112,6 +61,16 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen>
           },
         ),
       ),
+      // Canonical bottom action bar (same mechanism as every other screen):
+      // the bar owns its chrome, Safe Area, and keyboard inset — no overlay,
+      // no manual clearance. The slot is `null` — never a zero-height child —
+      // whenever no action surface exists (order/refunds still loading, or
+      // the viewer is not a party): Scaffold strips the body's bottom
+      // MediaQuery.padding for ANY non-null bottomNavigationBar, so a
+      // zero-height child would leave the body SafeArea with no inset to
+      // consume and no other bottom authority (SAFE-AREA-09A). Slot present
+      // ⇔ surface present keeps exactly one bottom system-inset authority.
+      bottomNavigationBar: _buildBottomBar(context, orderStream, authState),
       body: orderStream.when(
         data: (order) {
           final isSeller = currentUserId == order.sellerId;
@@ -121,149 +80,96 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen>
           final refundAsync = ref.watch(refundsByOrderProvider(order.id));
           return refundAsync.when(
             data: (refunds) {
-              // Calculate bottom padding based on action buttons visibility
-              final bottomPadding = _calculateBottomPadding(
-                order: order,
-                isSeller: isSeller,
-                isBuyer: isBuyer,
-              );
-
+              // The action bar lives in Scaffold.bottomNavigationBar, so the
+              // body needs no overlay clearance — uniform screen padding.
               return SafeArea(
-                child: Stack(
+                child: ListView(
+                  padding: const EdgeInsets.all(core.AppMetrics.p16),
                   children: [
-                    ListView(
-                      // Dynamic bottom padding for action buttons
-                      padding: EdgeInsets.fromLTRB(core.AppMetrics.p16, core.AppMetrics.p16, core.AppMetrics.p16, bottomPadding),
-                      children: [
-                        // Seller Action Required Banner (only for seller with pending action)
-                        if (isSeller && order.isSellerActionRequired)
-                          SellerActionRequiredBanner(
-                            order: order,
-                            onTapReview: () {
-                              // Scroll to bottom where action buttons are
-                              // (optional - buttons already sticky at bottom)
-                            },
-                          ),
+                    OrderStatusTimeline(order: order),
+                    const SizedBox(height: 16),
 
-                        OrderStatusTimeline(order: order),
-                        const SizedBox(height: 16),
+                    // ===== OVERDUE AWARENESS (SELLER/BUYER) =====
+                    // Show overdue info card for paid overdue orders
+                    OrderOverdueInfoCard(order: order),
 
-                        // ===== OVERDUE AWARENESS (SELLER/BUYER) =====
-                        // Show overdue info card for paid overdue orders
-                        OrderOverdueInfoCard(order: order),
-
-                        // ===== SHIPPING READINESS CONTEXT (PAID ORDERS) =====
-                        // Show preparation context when order is paid but not yet shipped
-                        if (order.status == OrderStatus.paid)
-                          _OrderPreparationSection(
-                            order: order,
-                            onContactSeller: () =>
-                                _handleContactSeller(context, order),
-                            onContactSupport: () =>
-                                _handleContactSupport(context, order),
-                          ),
-
-                        if (order.status == OrderStatus.paid)
-                          const SizedBox(height: 16),
-
-                        // ===== CONFIRMATION SYSTEM (SHIPPED/DELIVERED ORDERS) =====
-                        if (order.status == OrderStatus.shipped ||
-                            order.status == OrderStatus.delivered)
-                          OrderConfirmationSection(
-                            order: order,
-                            isBuyer: isBuyer,
-                            currentUserId: currentUserId,
-                          ),
-
-                        OrderInfoCard(order: order),
-                        const SizedBox(height: 16),
-
-                        // Seller/Buyer Info Card
-                        if (currentUserId != null)
-                          OrderUserInfoCard(
-                            order: order,
-                            currentUserId: currentUserId,
-                          ),
-                        if (currentUserId != null) const SizedBox(height: 16),
-
-                        OrderItemsCard(order: order),
-                        const SizedBox(height: 16),
-                        OrderShippingInfoCard(order: order),
-                        const SizedBox(height: 16),
-                        OrderPaymentInfoCard(order: order),
-                        const SizedBox(height: 16),
-
-                        // Rincian Pembayaran (paling bawah sebelum refund)
-                        if (isSeller) ...[
-                          OrderSellerPricingCard(order: order),
-                          const SizedBox(height: 16),
-                        ],
-                        if (!isSeller) ...[
-                          OrderBuyerPricingCard(order: order),
-                          const SizedBox(height: 16),
-                        ],
-
-                        // ===== POST-COMPLETION CTA (SELLER ONLY) =====
-                        // Show "Lihat Penghasilan" button for seller when order is completed
-                        if (isSeller && order.status == OrderStatus.completed)
-                          _SellerEarningsCTA(order: order),
-
-                        const SizedBox(height: 8),
-                        // ===== REFUND STATUS CARD (BUYER) =====
-                        if (isBuyer && refunds.isNotEmpty)
-                          ...refunds.map((r) => RefundStatusCard(refund: r)),
-                        // ===== END REFUND STATUS CARD =====
-                        // ===== REFUND LIST (SELLER/BUYER) =====
-                        OrderRefundListSection(
-                          refunds: refunds,
-                          currentUserId: currentUserId,
-                          sellerId: order.sellerId,
-                          onActionComplete: _refreshOrder,
-                        ),
-                        // ===== END REFUND LIST =====
-                        // NOTE: Action buttons rendered by DynamicActionButtons
-                        // based on backend Decision V2 contract (primary_action, secondary_actions)
-                      ],
-                    ),
-                    // Dynamic action buttons (Decision V2 Contract from Backend)
-                    if (isSeller || isBuyer)
-                      Positioned(
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        child: Consumer(
-                          builder: (context, ref, _) {
-                            // Check if buyer has already rated this order
-                            final hasRatedAsync = isBuyer
-                                ? ref.watch(
-                                    hasUserRatedOrderProvider(
-                                      orderId: order.id,
-                                      buyerId: order.buyerId,
-                                      sellerId: order.sellerId,
-                                    ),
-                                  )
-                                : const AsyncValue.data(false);
-
-                            final hasRated = hasRatedAsync.when(
-                              data: (rated) => rated,
-                              loading: () => false,
-                              error: (_, stack) => false,
-                            );
-
-                            return _buildDynamicActionButtons(
-                              context: context,
-                              order: order,
-                              isSeller: isSeller,
-                              isBuyer: isBuyer,
-                              hasRated: hasRated,
-                              refunds: refunds,
-                              authState: authState,
-                            );
-                          },
-                        ),
+                    // ===== SHIPPING READINESS CONTEXT (PAID ORDERS) =====
+                    // Show preparation context when order is paid but not yet shipped
+                    if (order.status == OrderStatus.paid)
+                      _OrderPreparationSection(
+                        order: order,
+                        // Contact-seller is buyer-only (see the bottom
+                        // bar): the seller never gets this CTA.
+                        onContactSeller: isBuyer
+                            ? () => _handleContactSeller(context, order)
+                            : null,
+                        onContactSupport: () =>
+                            _handleContactSupport(context, order),
                       ),
+
+                    if (order.status == OrderStatus.paid)
+                      const SizedBox(height: 16),
+
+                    // ===== CONFIRMATION SYSTEM (SHIPPED/DELIVERED ORDERS) =====
+                    if (order.status == OrderStatus.shipped ||
+                        order.status == OrderStatus.delivered)
+                      OrderConfirmationSection(
+                        order: order,
+                        isBuyer: isBuyer,
+                        currentUserId: currentUserId,
+                      ),
+
+                    OrderInfoCard(order: order),
+                    const SizedBox(height: 16),
+
+                    // Seller/Buyer Info Card
+                    if (currentUserId != null)
+                      OrderUserInfoCard(
+                        order: order,
+                        currentUserId: currentUserId,
+                      ),
+                    if (currentUserId != null) const SizedBox(height: 16),
+
+                    OrderItemsCard(order: order),
+                    const SizedBox(height: 16),
+                    OrderShippingInfoCard(order: order),
+                    const SizedBox(height: 16),
+                    OrderPaymentInfoCard(order: order),
+                    const SizedBox(height: 16),
+
+                    // Rincian Pembayaran (paling bawah sebelum refund)
+                    if (isSeller) ...[
+                      OrderSellerPricingCard(order: order),
+                      const SizedBox(height: 16),
+                    ],
+                    if (!isSeller) ...[
+                      OrderBuyerPricingCard(order: order),
+                      const SizedBox(height: 16),
+                    ],
+
+                    // ===== POST-COMPLETION CTA (SELLER ONLY) =====
+                    // Show "Lihat Penghasilan" button for seller when order is completed
+                    if (isSeller && order.status == OrderStatus.completed)
+                      _SellerEarningsCTA(order: order),
+
+                    const SizedBox(height: 8),
+                    // ===== REFUND STATUS CARD (BUYER) =====
+                    if (isBuyer && refunds.isNotEmpty)
+                      ...refunds.map((r) => RefundStatusCard(refund: r)),
+                    // ===== END REFUND STATUS CARD =====
+                    // ===== REFUND LIST (SELLER/BUYER) =====
+                    OrderRefundListSection(
+                      refunds: refunds,
+                      currentUserId: currentUserId,
+                      sellerId: order.sellerId,
+                      onActionComplete: _refreshOrder,
+                    ),
+                    // ===== END REFUND LIST =====
+                    // NOTE: Action buttons live in Scaffold.bottomNavigationBar
+                    // (DynamicActionButtons on the backend Decision V2
+                    // contract) — never as an overlay in the body.
                   ],
-                ), // Stack
+                ),
               ); // SafeArea
             },
             loading: () => const Center(child: CircularProgressIndicator()),
@@ -292,6 +198,67 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen>
           ),
         ),
       ),
+    );
+  }
+
+  /// The actual bottom action SURFACE for `Scaffold.bottomNavigationBar`.
+  ///
+  /// Returns `null` — never a zero-height widget — when no surface exists:
+  /// order still loading, refunds still loading, or the viewer is neither
+  /// the buyer nor the seller (party meaning unchanged). The Scaffold slot
+  /// must not claim a bar region for an absent surface: with the slot `null`
+  /// the body keeps its bottom `MediaQuery.padding` and the existing body
+  /// `SafeArea` becomes the bottom system-inset authority (SAFE-AREA-09A).
+  /// When a surface exists it is always a real `BottomActionBar`, which owns
+  /// the bottom system inset and the keyboard inset exactly once
+  /// (SAFE-AREA-01/09).
+  Widget? _buildBottomBar(
+    BuildContext context,
+    AsyncValue<Order> orderAsync,
+    AuthState authState,
+  ) {
+    return orderAsync.maybeWhen<Widget?>(
+      data: (order) {
+        final currentUserId = authState is AuthStateAuthenticated
+            ? authState.user.id
+            : null;
+        final isSeller = currentUserId == order.sellerId;
+        final isBuyer = currentUserId == order.buyerId;
+        if (!isSeller && !isBuyer) return null;
+        final refundsAsync = ref.watch(refundsByOrderProvider(order.id));
+        return refundsAsync.maybeWhen<Widget?>(
+          data: (refunds) {
+            // Check if buyer has already rated this order
+            final hasRatedAsync = isBuyer
+                ? ref.watch(
+                    hasUserRatedOrderProvider(
+                      orderId: order.id,
+                      buyerId: order.buyerId,
+                      sellerId: order.sellerId,
+                    ),
+                  )
+                : const AsyncValue.data(false);
+
+            final hasRated = hasRatedAsync.when(
+              data: (rated) => rated,
+              loading: () => false,
+              error: (_, stack) => false,
+            );
+
+            return _buildDynamicActionButtons(
+              context: context,
+              order: order,
+              isSeller: isSeller,
+              isBuyer: isBuyer,
+              hasRated: hasRated,
+              refunds: refunds,
+              authState: authState,
+            );
+          },
+          orElse: () => null,
+        );
+      },
+      orElse: () => null,
     );
   }
 
@@ -326,7 +293,13 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen>
           authState: authState,
         ),
         onRequestSupport: () => _handleRequestSupport(order, authState),
-        onChatSeller: () => _handleChatSeller(order, authState),
+        // "Contact seller" is a BUYER-only affordance: the seller IS the
+        // seller, so a seller-side order must never render it. The backend
+        // decision is already role-aware (contact_seller is emitted for the
+        // buyer only); this keeps the generic support footer honest too.
+        onChatSeller: isBuyer
+            ? () => _handleChatSeller(order, authState)
+            : null,
       ),
     );
   }
@@ -339,11 +312,14 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen>
     required bool hasRated,
     required AuthState authState,
   }) {
+    // The `contact_seller` decision action is buyer-only; gate the handler's
+    // chat-seller callback the same way so a seller can never reach it.
+    final isBuyer =
+        authState is AuthStateAuthenticated &&
+        authState.user.id == order.buyerId;
     final handler = OrderActionHandler(
       order: order,
       context: context,
-      onAcceptOrder: handleAcceptOrder,
-      onRejectOrder: handleRejectOrder,
       onShipOrder: (orderId, sellerId, proofData) =>
           handleShipOrder(orderId, sellerId, proofData),
       onConfirmDelivery: handleConfirmDelivery,
@@ -364,7 +340,6 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen>
           ),
       onRate: handleSubmitRating,
       onPayNow: (_) => handlePayNow(order),
-      onChangePaymentMethod: (_) => handleChangePaymentMethod(order),
       onCancelOrder: (orderId, reason) => handleCancelOrder(orderId, reason),
       onOpenDispute: ({required orderId}) => DirectDisputeDialog.show(
         context: context,
@@ -375,6 +350,7 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen>
         },
       ),
       onRequestSupport: () => _handleRequestSupport(order, authState),
+      onChatSeller: isBuyer ? () => _handleChatSeller(order, authState) : null,
     );
 
     handler.handleAction(action);
@@ -416,9 +392,7 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen>
     if (authState is AuthStateAuthenticated) {
       _handleChatSeller(order, authState);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Silakan login terlebih dahulu')),
-      );
+      ref.navigation.navigateToSignIn();
     }
   }
 
@@ -428,9 +402,7 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen>
     if (authState is AuthStateAuthenticated) {
       _handleRequestSupport(order, authState);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Silakan login terlebih dahulu')),
-      );
+      ref.navigation.navigateToSignIn();
     }
   }
 }
@@ -446,47 +418,39 @@ class _DecisionMissingWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    return Container(
-      padding: const EdgeInsets.all(core.AppMetrics.p16),
-      decoration: BoxDecoration(
-        color: colorScheme.surface,
-        border: Border(
-          top: BorderSide(color: colorScheme.outlineVariant),
-        ),
-      ),
-      child: SafeArea(
-        top: false,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.error_outline, color: context.statusColors.warning, size: AppIconSize.emphasis),
-            const SizedBox(height: 12),
-            Text(
-              'Action Configuration Missing',
-              style: TextStyle(
-                fontSize: core.AppType.s16,
-                fontWeight: FontWeight.w600,
-                color: colorScheme.onSurface,
-              ),
+    // Error content rides the canonical bar chrome as header content.
+    return BottomActionBar(
+      header: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.error_outline,
+            color: context.statusColors.warning,
+            size: AppIconSize.emphasis,
+          ),
+          const SizedBox(height: core.AppMetrics.p12),
+          Text(
+            'Action Configuration Missing',
+            style: context.typeRoles.titleProminent.copyWith(
+              fontWeight: FontWeight.w600,
+              color: colorScheme.onSurface,
             ),
-            const SizedBox(height: 8),
-            Text(
-              'Order status: $orderStatus',
-              style: TextStyle(
-                fontSize: core.AppType.s12,
-                color: colorScheme.onSurfaceVariant,
-              ),
+          ),
+          const SizedBox(height: core.AppMetrics.p8),
+          Text(
+            'Order status: $orderStatus',
+            style: context.typeRoles.labelMicro.copyWith(
+              color: colorScheme.onSurfaceVariant,
             ),
-            const SizedBox(height: 4),
-            Text(
-              'Please contact support',
-              style: TextStyle(
-                fontSize: core.AppType.s12,
-                color: colorScheme.onSurfaceVariant,
-              ),
+          ),
+          const SizedBox(height: core.AppMetrics.p4),
+          Text(
+            'Please contact support',
+            style: context.typeRoles.bodyDense.copyWith(
+              color: colorScheme.onSurfaceVariant,
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -526,8 +490,7 @@ class _SellerEarningsCTA extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 'Pesanan Selesai',
-                style: TextStyle(
-                  fontSize: core.AppType.s14,
+                style: context.typeRoles.titleCompact.copyWith(
                   fontWeight: FontWeight.w600,
                   color: colorScheme.onSurface,
                 ),
@@ -537,8 +500,7 @@ class _SellerEarningsCTA extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             'Pesanan telah selesai dan diproses.',
-            style: TextStyle(
-              fontSize: core.AppType.s12,
+            style: context.typeRoles.bodyDense.copyWith(
               color: colorScheme.onSurfaceVariant,
             ),
           ),
@@ -549,10 +511,15 @@ class _SellerEarningsCTA extends StatelessWidget {
               onPressed: () {
                 context.push(RoutePaths.sellerEarnings);
               },
-              icon: const Icon(Icons.account_balance_wallet_outlined, size: AppIconSize.action),
+              icon: const Icon(
+                Icons.account_balance_wallet_outlined,
+                size: AppIconSize.action,
+              ),
               label: const Text('Lihat Penghasilan'),
               style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: core.AppMetrics.p12),
+                padding: const EdgeInsets.symmetric(
+                  vertical: core.AppMetrics.p12,
+                ),
               ),
             ),
           ),
@@ -652,8 +619,7 @@ class _OrderPreparationSection extends StatelessWidget {
                       showOverdueUI
                           ? 'Pesanan Terlambat'
                           : 'Menunggu Penjual Menyiapkan Ikan',
-                      style: TextStyle(
-                        fontSize: core.AppType.s16,
+                      style: context.typeRoles.titleCompact.copyWith(
                         fontWeight: FontWeight.w600,
                         color: colorScheme.onSurface,
                       ),
@@ -663,8 +629,7 @@ class _OrderPreparationSection extends StatelessWidget {
                       showOverdueUI
                           ? 'Pesanan melewati estimasi siap kirim'
                           : 'Penjual sedang menyiapkan pesanan Anda',
-                      style: TextStyle(
-                        fontSize: core.AppType.s12,
+                      style: context.typeRoles.bodyDense.copyWith(
                         color: colorScheme.onSurfaceVariant,
                       ),
                     ),
@@ -679,7 +644,10 @@ class _OrderPreparationSection extends StatelessWidget {
           if (showOverdueUI) ...[
             // Overdue badge
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: core.AppMetrics.p16, vertical: core.AppMetrics.p8),
+              padding: const EdgeInsets.symmetric(
+                horizontal: core.AppMetrics.p16,
+                vertical: core.AppMetrics.p8,
+              ),
               decoration: BoxDecoration(
                 color: getOverdueBadgeColor().withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(core.AppShape.r20),
@@ -698,8 +666,7 @@ class _OrderPreparationSection extends StatelessWidget {
                   const SizedBox(width: 6),
                   Text(
                     getOverdueBadgeLabel(),
-                    style: TextStyle(
-                      fontSize: core.AppType.s14,
+                    style: context.typeRoles.labelMicro.copyWith(
                       fontWeight: FontWeight.w600,
                       color: getOverdueBadgeColor(),
                     ),
@@ -728,8 +695,7 @@ class _OrderPreparationSection extends StatelessWidget {
                   Expanded(
                     child: Text(
                       _getOverdueWarningMessage(overdueTier),
-                      style: TextStyle(
-                        fontSize: core.AppType.s14,
+                      style: context.typeRoles.bodyDense.copyWith(
                         color: colorScheme.onSurfaceVariant,
                       ),
                     ),
@@ -747,7 +713,10 @@ class _OrderPreparationSection extends StatelessWidget {
           if (!showOverdueUI) ...[
             // Preparation time badge
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: core.AppMetrics.p16, vertical: core.AppMetrics.p8),
+              padding: const EdgeInsets.symmetric(
+                horizontal: core.AppMetrics.p16,
+                vertical: core.AppMetrics.p8,
+              ),
               decoration: BoxDecoration(
                 color: context.statusColors.warning.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(core.AppShape.r20),
@@ -766,8 +735,7 @@ class _OrderPreparationSection extends StatelessWidget {
                   const SizedBox(width: 6),
                   Text(
                     'Estimasi siap kirim: ${preparationTime.displayName.toLowerCase()}',
-                    style: TextStyle(
-                      fontSize: core.AppType.s14,
+                    style: context.typeRoles.labelMicro.copyWith(
                       fontWeight: FontWeight.w600,
                       color: context.statusColors.warning,
                     ),
@@ -780,8 +748,7 @@ class _OrderPreparationSection extends StatelessWidget {
             const SizedBox(height: 12),
             Text(
               preparationTime.description,
-              style: TextStyle(
-                fontSize: core.AppType.s14,
+              style: context.typeRoles.bodyDense.copyWith(
                 color: colorScheme.onSurfaceVariant,
               ),
             ),
@@ -805,11 +772,10 @@ class _OrderPreparationSection extends StatelessWidget {
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    'Target siap kirim: ${_formatDate(readyToShipBy)}',
-                  style: TextStyle(
-                    fontSize: core.AppType.s12,
-                    color: colorScheme.onSurfaceVariant,
-                  ),
+                    'Target siap kirim: ${AppFormatters.formatShortDate(readyToShipBy)}',
+                    style: context.typeRoles.labelMicro.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ],
               ),
@@ -821,12 +787,25 @@ class _OrderPreparationSection extends StatelessWidget {
   }
 
   Widget _buildOverdueCTAs(BuildContext context, String tier) {
-    // Tier 1: "Ingatkan Penjual" only
-    // Tier 2: "Chat Penjual" + "Hubungi Support"
+    // Tier 1: "Ingatkan Penjual" (buyer only)
+    // Tier 2: "Chat Penjual" (buyer only) + "Hubungi Support"
     // Tier 3: "Hubungi Support" (emphasis)
+    //
+    // "Contact seller" is a BUYER-only affordance — the seller never renders
+    // it. Support is offered to both parties.
+    final canContactSeller = onContactSeller != null;
+    final supportCta = Expanded(
+      child: _buildCTAButton(
+        context,
+        label: 'Hubungi Support',
+        icon: Icons.support_agent,
+        isPrimary: true,
+        onTap: onContactSupport,
+      ),
+    );
 
     if (tier == 'overdue') {
-      // Tier 1 - Single CTA
+      if (!canContactSeller) return const SizedBox.shrink();
       return Row(
         children: [
           Expanded(
@@ -841,7 +820,9 @@ class _OrderPreparationSection extends StatelessWidget {
         ],
       );
     } else if (tier == 'severely_overdue') {
-      // Tier 2 - Two CTAs
+      if (!canContactSeller) {
+        return Row(children: [supportCta]);
+      }
       return Row(
         children: [
           Expanded(
@@ -854,32 +835,11 @@ class _OrderPreparationSection extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          Expanded(
-            child: _buildCTAButton(
-              context,
-              label: 'Hubungi Support',
-              icon: Icons.support_agent,
-              isPrimary: true,
-              onTap: onContactSupport,
-            ),
-          ),
+          supportCta,
         ],
       );
     } else {
-      // Tier 3 - Support emphasis
-      return Row(
-        children: [
-          Expanded(
-            child: _buildCTAButton(
-              context,
-              label: 'Hubungi Support',
-              icon: Icons.support_agent,
-              isPrimary: true,
-              onTap: onContactSupport,
-            ),
-          ),
-        ],
-      );
+      return Row(children: [supportCta]);
     }
   }
 
@@ -895,7 +855,10 @@ class _OrderPreparationSection extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: core.AppMetrics.p12, vertical: core.AppMetrics.p12),
+        padding: const EdgeInsets.symmetric(
+          horizontal: core.AppMetrics.p12,
+          vertical: core.AppMetrics.p12,
+        ),
         decoration: BoxDecoration(
           color: isPrimary
               ? context.statusColors.error
@@ -918,8 +881,7 @@ class _OrderPreparationSection extends StatelessWidget {
             const SizedBox(width: 6),
             Text(
               label,
-              style: TextStyle(
-                fontSize: core.AppType.s14,
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
                 fontWeight: FontWeight.w600,
                 color: isPrimary
                     ? colorScheme.onError
@@ -940,9 +902,5 @@ class _OrderPreparationSection extends StatelessWidget {
     } else {
       return 'Pesanan ini sudah melewati estimasi siap kirim. Jika perlu, Anda dapat mengingatkan penjual.';
     }
-  }
-
-  String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year}';
   }
 }

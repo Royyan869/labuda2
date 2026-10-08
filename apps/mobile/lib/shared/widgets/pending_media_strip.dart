@@ -79,8 +79,10 @@ class PendingMediaStrip extends StatelessWidget {
                         width: _tileExtent,
                         height: _tileExtent,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, _, _) =>
-                            Icon(Icons.broken_image, color: scheme.onSurfaceVariant),
+                        errorBuilder: (_, _, _) => Icon(
+                          Icons.broken_image,
+                          color: scheme.onSurfaceVariant,
+                        ),
                       ),
               ),
               if (!uploading)
@@ -99,6 +101,7 @@ class PendingMediaStrip extends StatelessWidget {
                         Icons.close,
                         size: AppIconSize.inlineGlyph,
                         color: scheme.onPrimary,
+                        semanticLabel: 'Hapus media',
                       ),
                     ),
                   ),
@@ -135,8 +138,7 @@ class PendingMediaStrip extends StatelessWidget {
                     bottom: 6,
                     child: Text(
                       '${(item.progress * 100).round()}%',
-                      style: TextStyle(
-                        fontSize: AppType.s12,
+                      style: context.typeRoles.labelMicro.copyWith(
                         color: scheme.onPrimary,
                         fontWeight: FontWeight.w600,
                       ),
@@ -163,8 +165,7 @@ class PendingMediaStrip extends StatelessWidget {
                         ),
                         Text(
                           'Coba lagi',
-                          style: TextStyle(
-                            fontSize: AppType.s12,
+                          style: context.typeRoles.labelMicro.copyWith(
                             color: scheme.onError,
                           ),
                         ),

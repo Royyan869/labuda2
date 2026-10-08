@@ -140,7 +140,6 @@ func requireLiveProfileProjection(t *testing.T, proj *chatApp.ResourceProjection
 	require.Equal(t, chatApp.ProjectionStateLive, proj.State)
 	require.Equal(t, string(chatEntity.ResourceOccurrenceResourceTypeProfile), string(proj.ResourceType))
 	require.NotNil(t, proj.Profile)
-	require.Nil(t, proj.CommerceActions)
 	return *proj.Profile
 }
 

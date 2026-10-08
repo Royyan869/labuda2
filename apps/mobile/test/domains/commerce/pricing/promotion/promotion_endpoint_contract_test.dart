@@ -1,10 +1,12 @@
 import 'dart:collection';
+import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:labuda/core/api/api_client.dart';
 import 'package:labuda/core/api/exceptions/api_exception.dart'
     show ConflictException, ForbiddenException, NotFoundException;
+import 'package:labuda/domains/commerce/pricing/promotion/data/dto/promotion_contract_dto.dart';
 import 'package:labuda/domains/commerce/pricing/promotion/data/repositories/canonical_promotion_analytics_repository.dart';
 import 'package:labuda/domains/commerce/pricing/promotion/data/repositories/promotion_contract_repository.dart';
 
@@ -52,13 +54,16 @@ class _MapResponse<T> extends Response<T> with MapMixin<String, dynamic> {
 class _RecordingApiClient implements ApiClient {
   final List<String> getPaths = [];
   final List<String> postPaths = [];
+  final List<String> deletePaths = [];
   final List<dynamic> postPayloads = [];
 
   dynamic getPayload = <String, dynamic>{};
   dynamic postPayload = <String, dynamic>{};
+  dynamic deletePayload = <String, dynamic>{};
 
   Object? getError;
   Object? postError;
+  Object? deleteError;
 
   @override
   Future<Response<T>> get<T>(
@@ -95,8 +100,40 @@ class _RecordingApiClient implements ApiClient {
   }
 
   @override
+  Future<Response<T>> delete<T>(
+    String path, {
+    data,
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+    CancelToken? cancelToken,
+  }) async {
+    deletePaths.add(path);
+    if (deleteError != null) throw deleteError!;
+    return _MapResponse<T>(
+      requestOptions: RequestOptions(path: path),
+      data: deletePayload as Map<String, dynamic>,
+      statusCode: 200,
+    );
+  }
+
+  @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
+
+/// A promotion_contract_targets row in the factual backend wire shape (the Go
+/// contract entity has no json tags, so keys are the Go field names).
+Map<String, dynamic> _targetPayload({
+  String targetId = 'fs-1',
+  String targetType = 'for_sale',
+  int position = 0,
+}) => {
+  'ID': 't-$targetId',
+  'ContractID': 'ctr-1',
+  'TargetType': targetType,
+  'TargetID': targetId,
+  'Position': position,
+  'AddedAt': '2026-06-01T00:00:00Z',
+};
 
 Map<String, dynamic> _contractPayload({String id = 'ctr-1'}) => {
   'id': id,
@@ -182,12 +219,19 @@ void main() {
           budgetRupiah: 30000,
           durationDays: 3,
           cityIds: const [],
+          targets: const [
+            PromotionTargetDto(targetType: 'for_sale', targetId: 'fs-1'),
+          ],
         );
         expect(client.postPaths.last, '/promotions/contracts');
         expect((client.postPayloads.last as Map)['kind'], 'internal');
         expect((client.postPayloads.last as Map)['budget_rupiah'], 30000);
         expect((client.postPayloads.last as Map)['duration_days'], 3);
         expect((client.postPayloads.last as Map)['city_ids'], isEmpty);
+        // Queue is part of the configuration: targets[] is always sent.
+        expect((client.postPayloads.last as Map)['targets'], [
+          {'target_type': 'for_sale', 'target_id': 'fs-1'},
+        ]);
         expect(createResult.isSuccess, true);
         expect(createResult.data!.id, 'ctr-3');
       },
@@ -258,6 +302,9 @@ void main() {
           budgetRupiah: 30000,
           durationDays: 3,
           cityIds: const [],
+          targets: const [
+            PromotionTargetDto(targetType: 'for_sale', targetId: 'fs-1'),
+          ],
         );
 
         expect(client.postPaths.last, '/promotions/contracts/payment-intent');
@@ -297,6 +344,9 @@ void main() {
           budgetRupiah: 30000,
           durationDays: 3,
           cityIds: const [],
+          targets: const [
+            PromotionTargetDto(targetType: 'for_sale', targetId: 'fs-1'),
+          ],
         );
 
         expect(result.data!.shortage, 0);
@@ -397,6 +447,50 @@ void main() {
         expect(client.postPaths.last, contains('/intent-409/pay'));
       },
     );
+
+    test(
+      'queue refill uses the canonical contract targets endpoints',
+      () async {
+        final client = _RecordingApiClient();
+        client.getPayload = {
+          'data': {
+            'targets': [_targetPayload()],
+            'count': 1,
+          },
+        };
+        client.postPayload = {
+          'data': {'target': _targetPayload(targetId: 'au-1', targetType: 'auction')},
+        };
+        final repo = PromotionContractRepositoryImpl(client);
+
+        // List (read projection of the canonical queue).
+        final list = await repo.listTargets('ctr-1');
+        expect(client.getPaths.last, '/promotions/contracts/ctr-1/targets');
+        expect(list.isSuccess, true);
+        expect(list.data!.targets.single.targetId, 'fs-1');
+        expect(list.data!.targets.single.targetType, 'for_sale');
+
+        // Add (refill) — queue mutation only.
+        final added = await repo.addTarget(
+          contractId: 'ctr-1',
+          targetType: 'auction',
+          targetId: 'au-1',
+        );
+        expect(client.postPaths.last, '/promotions/contracts/ctr-1/targets');
+        expect(client.postPayloads.last, {
+          'target_type': 'auction',
+          'target_id': 'au-1',
+        });
+        expect(added.isSuccess, true);
+
+        // Remove.
+        await repo.removeTarget(contractId: 'ctr-1', targetId: 'fs-1');
+        expect(
+          client.deletePaths.last,
+          '/promotions/contracts/ctr-1/targets/fs-1',
+        );
+      },
+    );
   });
 
   group('Negative proof — legacy promotion endpoints are purged', () {
@@ -421,6 +515,9 @@ void main() {
         budgetRupiah: 30000,
         durationDays: 3,
         cityIds: const ['3204'],
+        targets: const [
+          PromotionTargetDto(targetType: 'for_sale', targetId: 'fs-1'),
+        ],
       );
       await repo.pauseContract('ctr-1');
       await repo.resumeContract('ctr-1');
@@ -444,6 +541,9 @@ void main() {
         budgetRupiah: 30000,
         durationDays: 3,
         cityIds: const ['3204'],
+        targets: const [
+          PromotionTargetDto(targetType: 'for_sale', targetId: 'fs-1'),
+        ],
       );
       client.getPayload = {
         'data': {
@@ -481,6 +581,21 @@ void main() {
         3,
         reason: 'funding uses exactly the three canonical funding paths',
       );
+    });
+
+    test('For Sale → Promosikan promotion-creation entry is purged', () {
+      // Owner truth: promotion is created only from the Promotion page. The
+      // product is NOT a promotion creation entry point.
+      final source = File(
+        'lib/domains/commerce/catalog/for_sale/presentation/screens/my_for_sales_screen.dart',
+      ).readAsStringSync();
+      expect(
+        source.contains('Promosikan'),
+        isFalse,
+        reason: 'the obsolete product → Promosikan action must not exist',
+      );
+      expect(source.contains("case 'promote'"), isFalse);
+      expect(source.contains('_navigateToPromotion'), isFalse);
     });
   });
 }

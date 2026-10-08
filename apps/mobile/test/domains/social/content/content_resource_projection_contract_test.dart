@@ -25,16 +25,6 @@ Map<String, dynamic> _tombstoneViewerCapabilities() => <String, dynamic>{
   'blocked_by_tombstone': true,
 };
 
-Map<String, dynamic> _commerceActions({required String kind}) =>
-    <String, dynamic>{
-      'role': 'buyer',
-      'can_chat': true,
-      'can_negotiate': kind == 'for_sale',
-      'can_buy': kind == 'for_sale',
-      'can_bid': kind == 'auction',
-      'can_manage': false,
-    };
-
 Map<String, dynamic> _profileProjection({
   String state = 'LIVE',
   String resourceId = 'profile-1',
@@ -115,7 +105,6 @@ Map<String, dynamic> _fixedPriceSaleProjection({
     'resource_id': resourceId,
     'canonical_url': '/for-sale/$resourceId',
     'viewer_capabilities': _liveViewerCapabilities(canInteract: true),
-    'commerce_actions': _commerceActions(kind: 'for_sale'),
     'for_sale': <String, dynamic>{
       'title': title,
       // Money is an object {amount, currency} — the scalar price is dead.
@@ -125,6 +114,7 @@ Map<String, dynamic> _fixedPriceSaleProjection({
       'price': {'amount': 125000, 'currency': 'IDR'},
       'status': 'active',
       'quantity_available': 1,
+      'negotiation_enabled': true,
       'seller': <String, dynamic>{
         'user': <String, dynamic>{
           'id': 'seller-1',
@@ -159,7 +149,6 @@ Map<String, dynamic> _auctionProjection({
     'resource_id': resourceId,
     'canonical_url': '/auction/$resourceId',
     'viewer_capabilities': _liveViewerCapabilities(canInteract: true),
-    'commerce_actions': _commerceActions(kind: 'auction'),
     'auction': <String, dynamic>{
       'title': title,
       'media': <Map<String, dynamic>>[],

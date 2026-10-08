@@ -33,9 +33,9 @@ export class RouteErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.error) {
       return (
-        <div className="rounded-lg border border-[hsl(var(--destructive))] bg-[hsl(var(--destructive-bg))] p-8 text-center">
-          <h2 className="text-lg font-semibold text-[hsl(var(--foreground))] mb-2">This page failed to load</h2>
-          <p className="text-[hsl(var(--muted-foreground))] mb-4">{this.state.error.message}</p>
+        <div className="rounded-lg border border-destructive bg-destructive-bg p-8 text-center">
+          <h2 className="type-section-title mb-2">This page failed to load</h2>
+          <p className="text-muted-foreground mb-4">{this.state.error.message}</p>
           <button
             onClick={() => window.location.reload()}
             className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-hover"

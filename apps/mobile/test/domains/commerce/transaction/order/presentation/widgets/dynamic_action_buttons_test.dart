@@ -3,6 +3,20 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:labuda/domains/commerce/transaction/order/domain/domain.dart'
     as order_domain;
 import 'package:labuda/domains/commerce/transaction/order/presentation/widgets/dynamic_action_buttons.dart';
+import 'package:labuda/generated/app_localizations.dart';
+
+/// Widget test host with the canonical localization wiring (I18N-07):
+/// labels come from AppLocalizations, so every pump must provide delegates.
+/// Defaults to the app's default locale (Indonesian) to keep presentation
+/// assertions locale-explicit.
+Widget _localizedApp({required Widget home, Locale locale = const Locale('id')}) {
+  return MaterialApp(
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
+    locale: locale,
+    home: home,
+  );
+}
 
 /// Locks the pending-buyer "pay" CTA label rendering for all four payment
 /// states the backend can emit (Phase 2B-1: action.pay_now /
@@ -31,7 +45,7 @@ void main() {
       );
 
       await tester.pumpWidget(
-        MaterialApp(
+        _localizedApp(
           home: Scaffold(
             body: DynamicActionButtons(
               decision: decision,
@@ -53,7 +67,7 @@ void main() {
       );
 
       await tester.pumpWidget(
-        MaterialApp(
+        _localizedApp(
           home: Scaffold(
             body: DynamicActionButtons(
               decision: decision,
@@ -75,7 +89,7 @@ void main() {
       );
 
       await tester.pumpWidget(
-        MaterialApp(
+        _localizedApp(
           home: Scaffold(
             body: DynamicActionButtons(
               decision: decision,
@@ -95,7 +109,7 @@ void main() {
       );
 
       await tester.pumpWidget(
-        MaterialApp(
+        _localizedApp(
           home: Scaffold(
             body: DynamicActionButtons(
               decision: decision,
@@ -124,7 +138,7 @@ void main() {
           );
 
           await tester.pumpWidget(
-            MaterialApp(
+            _localizedApp(
               home: Scaffold(
                 body: DynamicActionButtons(
                   decision: decision,
@@ -160,7 +174,7 @@ void main() {
         );
 
         await tester.pumpWidget(
-          MaterialApp(
+          _localizedApp(
             home: Scaffold(
               body: DynamicActionButtons(
                 decision: decision,
@@ -189,7 +203,7 @@ void main() {
       const decision = order_domain.DecisionContract(state: 'completed');
 
       await tester.pumpWidget(
-        MaterialApp(
+        _localizedApp(
           home: Scaffold(
             body: DynamicActionButtons(
               decision: decision,
@@ -224,7 +238,7 @@ void main() {
       );
 
       await tester.pumpWidget(
-        MaterialApp(
+        _localizedApp(
           home: Scaffold(
             body: DynamicActionButtons(
               decision: decision,

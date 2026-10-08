@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:labuda/core/core.dart';
+import 'package:labuda/shared/widgets/app_text_field.dart';
 
 /// Report Description Field Widget
 ///
@@ -49,16 +50,14 @@ class _ReportDescriptionFieldState extends State<ReportDescriptionField> {
           children: [
             Text(
               'Additional details (optional)',
-              style: TextStyle(
-                fontSize: AppType.s14,
+              style: context.typeRoles.bodyDense.copyWith(
                 fontWeight: FontWeight.w500,
                 color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
             Text(
               '$currentLength/$_maxLength',
-              style: TextStyle(
-                fontSize: AppType.s12,
+              style: context.typeRoles.labelMicro.copyWith(
                 color: currentLength > _maxLength * 0.9
                     ? context.statusColors.warning
                     : Theme.of(context).colorScheme.onSurfaceVariant,
@@ -67,54 +66,21 @@ class _ReportDescriptionFieldState extends State<ReportDescriptionField> {
           ],
         ),
         const SizedBox(height: 8),
-        TextFormField(
+        AppTextField(
           controller: _controller,
           enabled: widget.isEnabled,
           maxLines: 4,
           maxLength: _maxLength,
           onChanged: widget.isEnabled ? widget.onChanged : null,
-          decoration: InputDecoration(
-            hintText: 'Provide more context to help us understand the issue...',
-            hintStyle: TextStyle(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-            filled: true,
-            fillColor: Theme.of(context).colorScheme.surfaceContainer,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppShape.r12),
-              borderSide: BorderSide(
-                color: Theme.of(context).colorScheme.outlineVariant,
-              ),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppShape.r12),
-              borderSide: BorderSide(
-                color: Theme.of(context).colorScheme.outlineVariant,
-              ),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppShape.r12),
-              borderSide: BorderSide(
-                color: Theme.of(context).colorScheme.secondary,
-                width: 2,
-              ),
-            ),
-            disabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppShape.r12),
-              borderSide: BorderSide(
-                color: Theme.of(context).colorScheme.outlineVariant,
-              ),
-            ),
-            contentPadding: const EdgeInsets.all(AppMetrics.p16),
-          ),
-          style: TextStyle(
-            color: Theme.of(context).colorScheme.onSurface,
-          ),
+          hintText:
+              'Provide more context to help us understand the issue...',
         ),
         const SizedBox(height: 8),
         Text(
           'Please don\'t include personal information like phone numbers or addresses.',
-          style: TextStyle(fontSize: AppType.s12, color: Theme.of(context).colorScheme.onSurfaceVariant),
+          style: context.typeRoles.labelMicro.copyWith(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
         ),
       ],
     );

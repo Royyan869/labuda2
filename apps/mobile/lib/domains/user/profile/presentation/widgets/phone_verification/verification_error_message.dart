@@ -10,11 +10,16 @@ class VerificationErrorMessage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p8),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppMetrics.p12,
+        vertical: AppMetrics.p8,
+      ),
       decoration: BoxDecoration(
         color: context.statusColors.error.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(AppShape.r8),
-        border: Border.all(color: context.statusColors.error.withValues(alpha: 0.3)),
+        border: Border.all(
+          color: context.statusColors.error.withValues(alpha: 0.3),
+        ),
       ),
       child: Row(
         children: [
@@ -27,8 +32,7 @@ class VerificationErrorMessage extends StatelessWidget {
           Expanded(
             child: Text(
               errorMessage,
-              style: TextStyle(
-                fontSize: AppType.s12,
+              style: context.typeRoles.labelMicro.copyWith(
                 color: context.statusColors.error,
               ),
             ),

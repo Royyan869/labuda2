@@ -31,9 +31,8 @@ export 'domain/domain.dart';
 // (Firestore is current source, API Go will be added via dual-source router)
 
 // ============================================================================
-// APPLICATION LAYER (Notifiers + State)
+// APPLICATION LAYER (Notifiers + Providers)
 // ============================================================================
-export 'presentation/providers/support_state.dart';
 export 'presentation/providers/support_notifier.dart';
 
 // ============================================================================

@@ -29,8 +29,12 @@ void main() {
       // Submit is blocked when nothing is selected.
       expect(source, contains('_selectedShippingSetupIds.isEmpty'));
 
-      // Selected IDs actually reach the notifier call.
-      expect(source, contains('shippingSetupIds: _selectedShippingSetupIds'));
+      // Selected IDs actually reach the notifier call — as an immutable
+      // snapshot, so media/shipping edits mid-submission cannot change it.
+      expect(
+        source,
+        contains('shippingSetupIds: List<String>.of(_selectedShippingSetupIds)'),
+      );
     },
   );
 

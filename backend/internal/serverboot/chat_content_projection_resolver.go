@@ -42,11 +42,11 @@ type contentSourceRow struct {
 }
 
 type contentResourceOccurrenceRow struct {
-	contentID              uuid.UUID
-	profileSourceID        sql.NullString
-	contentSourceID        sql.NullString
+	contentID       uuid.UUID
+	profileSourceID sql.NullString
+	contentSourceID sql.NullString
 	forSaleSourceID sql.NullString
-	auctionSourceID        sql.NullString
+	auctionSourceID sql.NullString
 }
 
 type contentAuthorRow struct {
@@ -384,7 +384,6 @@ func (r *contentProjectionBatchResolver) ResolveContents(
 					CanInteract:        false,
 					BlockedByTombstone: false,
 				},
-				nil,
 			)
 			if projErr != nil {
 				return projErr

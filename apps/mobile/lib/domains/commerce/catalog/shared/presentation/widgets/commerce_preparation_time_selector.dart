@@ -30,10 +30,9 @@ class CommercePreparationTimeSelector extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Waktu Persiapan *',
-            style: TextStyle(
-              fontSize: AppType.s14,
+            style: context.typeRoles.bodyDense.copyWith(
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -78,11 +77,10 @@ class CommercePreparationTimeSelector extends StatelessWidget {
                       const SizedBox(width: 6),
                       Text(
                         time.displayName,
-                        style: TextStyle(
+                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
                           color: isSelected
                               ? scheme.onPrimary
                               : scheme.onSurface,
-                          fontSize: AppType.s14,
                           fontWeight: isSelected
                               ? FontWeight.w600
                               : FontWeight.normal,
@@ -97,8 +95,7 @@ class CommercePreparationTimeSelector extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             selected.description,
-            style: TextStyle(
-              fontSize: AppType.s12,
+            style: context.typeRoles.bodyDense.copyWith(
               color: scheme.onSurfaceVariant,
             ),
           ),

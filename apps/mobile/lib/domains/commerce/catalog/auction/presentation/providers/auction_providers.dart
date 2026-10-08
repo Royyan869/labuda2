@@ -12,7 +12,6 @@ export 'package:labuda/domains/commerce/catalog/auction/presentation/providers/a
         auctionNotifierProvider,
         marketplaceAuctionsProvider,
         sellerAuctionsProvider,
-        myAuctionsProvider,
         auctionStreamProvider,
         auctionBidsStreamProvider,
         auctionDetailProvider,

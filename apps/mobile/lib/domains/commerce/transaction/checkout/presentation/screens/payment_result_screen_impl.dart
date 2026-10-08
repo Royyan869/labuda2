@@ -19,7 +19,6 @@ import 'package:labuda/core/core.dart' as core;
 import 'package:labuda/domains/commerce/transaction/checkout/presentation/providers/payment_result_notifier.dart';
 import 'package:labuda/domains/commerce/transaction/checkout/presentation/providers/payment_result_state.dart'
     show PaymentResultScreenStatus, PaymentResultState;
-import 'package:labuda/domains/system/support/presentation/screens/help_center_screen.dart';
 import 'package:labuda/domains/system/support/presentation/widgets/pre_chat_form_sheet.dart';
 import 'package:labuda/domains/user/identity/authentication/authentication.dart';
 // Payment URLs are presented exclusively inside Labuda's internal WebView.
@@ -36,21 +35,14 @@ part 'payment_result_screen_sections.dart';
 /// 2. Proper cleanup in dispose via notifier.stopChecking()
 /// 3. Explicit error states - no silent failures
 /// 4. Backend authority - status only from backend order entity
-///
-/// **CV2:** returnToChat enables seamless navigation back to chat after payment
 class PaymentResultScreen extends ConsumerStatefulWidget {
   final String orderId;
   final String? orderNumber;
-
-  /// **CV2:** Chat ID to return to after successful payment
-  /// When set, a "Kembali ke Chat" button will be shown
-  final String? returnToChat;
 
   const PaymentResultScreen({
     super.key,
     required this.orderId,
     this.orderNumber,
-    this.returnToChat,
   });
 
   @override
@@ -104,18 +96,6 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
   /// Navigate back to home
   void _goToHome() {
     context.go(core.RoutePaths.home);
-  }
-
-  /// **CV2:** Navigate back to chat after successful payment
-  /// This provides chat-commerce continuity for transactions that started in chat
-  void _goToChat() {
-    if (widget.returnToChat == null || widget.returnToChat!.isEmpty) {
-      // Fallback to home if no chat ID
-      _goToHome();
-      return;
-    }
-    // Navigate to chat detail screen
-    context.go('/chat/${widget.returnToChat}');
   }
 
   /// Status-only recheck ("Cek Status Lagi" / "Coba Lagi").
@@ -210,8 +190,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
         // Title
         Text(
           'Menunggu Konfirmasi Pembayaran',
-          style: TextStyle(
-            fontSize: core.AppType.s24,
+          style: context.typeRoles.titleProminent.copyWith(
             fontWeight: FontWeight.bold,
             color: colorScheme.onSurface,
           ),
@@ -222,8 +201,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
         Text(
           'Mohon tunggu, kami sedang mengecek status pembayaran Anda...\nOrder: ${widget.orderNumber ?? widget.orderId}',
           textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: core.AppType.s16,
+          style: context.typeRoles.bodyDense.copyWith(
             color: colorScheme.onSurfaceVariant,
           ),
         ),
@@ -232,8 +210,8 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
         // Poll counter - shows transparency to user
         Text(
           'Pengecekan ke ${state.pollAttempts + 1}/${state.maxPollAttempts}',
-          style: TextStyle(
-            fontSize: core.AppType.s14,                color: colorScheme.onSurfaceVariant,
+          style: context.typeRoles.labelMicro.copyWith(
+            color: colorScheme.onSurfaceVariant,
           ),
         ),
 
@@ -241,7 +219,10 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
         if (elapsedMessage.isNotEmpty) ...[
           const SizedBox(height: 16),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: core.AppMetrics.p16, vertical: core.AppMetrics.p12),
+            padding: const EdgeInsets.symmetric(
+              horizontal: core.AppMetrics.p16,
+              vertical: core.AppMetrics.p12,
+            ),
             decoration: BoxDecoration(
               color: context.statusColors.warning.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(core.AppShape.r8),
@@ -262,8 +243,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
                   child: Text(
                     elapsedMessage,
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: core.AppType.s14,
+                    style: context.typeRoles.bodyDense.copyWith(
                       color: colorScheme.onSurfaceVariant,
                     ),
                   ),
@@ -281,12 +261,16 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
           child: OutlinedButton.icon(
             onPressed: state.isChecking ? null : _handleStatusCheck,
             icon: const Icon(Icons.refresh, size: AppIconSize.action),
-            label: const Text(
+            label: Text(
               'Coba Lagi',
-              style: TextStyle(fontSize: core.AppType.s16, fontWeight: FontWeight.w600),
+              style: Theme.of(
+                context,
+              ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
             ),
             style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: core.AppMetrics.p16),
+              padding: const EdgeInsets.symmetric(
+                vertical: core.AppMetrics.p16,
+              ),
             ),
           ),
         ),
@@ -300,12 +284,16 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
             child: ElevatedButton.icon(
               onPressed: _handleContinuePayment,
               icon: const Icon(Icons.open_in_browser, size: AppIconSize.action),
-              label: const Text(
+              label: Text(
                 'Lanjutkan Pembayaran',
-                style: TextStyle(fontSize: core.AppType.s16, fontWeight: FontWeight.w600),
+                style: Theme.of(
+                  context,
+                ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
               ),
               style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: core.AppMetrics.p16),
+                padding: const EdgeInsets.symmetric(
+                  vertical: core.AppMetrics.p16,
+                ),
               ),
             ),
           ),
@@ -318,8 +306,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
           onPressed: _goToOrderDetail,
           child: Text(
             'Lihat Detail Pesanan',
-            style: TextStyle(
-              fontSize: core.AppType.s14,
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
               color: colorScheme.onSurfaceVariant,
             ),
           ),
@@ -329,11 +316,8 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
   }
 
   /// Success state - backend confirmed payment successful
-  /// **CV2:** Shows "Kembali ke Chat" button when returnToChat is set
   Widget _buildSuccessContent(PaymentResultState state) {
     final colorScheme = Theme.of(context).colorScheme;
-    final hasReturnToChat =
-        widget.returnToChat != null && widget.returnToChat!.isNotEmpty;
 
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -357,8 +341,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
         // Title
         Text(
           'Pembayaran Berhasil',
-          style: TextStyle(
-            fontSize: core.AppType.s24,
+          style: context.typeRoles.titleProminent.copyWith(
             fontWeight: FontWeight.bold,
             color: colorScheme.onSurface,
           ),
@@ -369,8 +352,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
         Text(
           'Pesanan Anda telah dibayar.\nOrder: ${widget.orderNumber ?? widget.orderId}',
           textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: core.AppType.s16,
+          style: context.typeRoles.bodyDense.copyWith(
             color: colorScheme.onSurfaceVariant,
           ),
         ),
@@ -387,42 +369,34 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
           child: ElevatedButton(
             onPressed: _goToOrderDetail,
             style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: core.AppMetrics.p16),
+              padding: const EdgeInsets.symmetric(
+                vertical: core.AppMetrics.p16,
+              ),
             ),
-            child: const Text(
+            child: Text(
               'Lihat Pesanan',
-              style: TextStyle(fontSize: core.AppType.s16, fontWeight: FontWeight.w600),
+              style: Theme.of(
+                context,
+              ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
             ),
           ),
         ),
         const SizedBox(height: 12),
 
-        // **CV2:** "Kembali ke Chat" button when returning from chat commerce
-        if (hasReturnToChat)
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: _goToChat,
-              icon: const Icon(Icons.chat_bubble_outline, size: AppIconSize.action),
-              label: const Text(
-                'Kembali ke Chat',
-                style: TextStyle(fontSize: core.AppType.s16, fontWeight: FontWeight.w600),
-              ),
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: core.AppMetrics.p16),
-              ),
-            ),
-          ),
         SizedBox(
           width: double.infinity,
           child: OutlinedButton(
             onPressed: _goToHome,
             style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: core.AppMetrics.p16),
+              padding: const EdgeInsets.symmetric(
+                vertical: core.AppMetrics.p16,
+              ),
             ),
-            child: const Text(
+            child: Text(
               'Kembali ke Beranda',
-              style: TextStyle(fontSize: core.AppType.s16, fontWeight: FontWeight.w600),
+              style: Theme.of(
+                context,
+              ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
             ),
           ),
         ),
@@ -473,8 +447,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
         // accused of "Pembayaran Gagal".
         Text(
           state.title ?? 'Pembayaran Tidak Berhasil',
-          style: TextStyle(
-            fontSize: core.AppType.s24,
+          style: context.typeRoles.titleProminent.copyWith(
             fontWeight: FontWeight.bold,
             color: colorScheme.onSurface,
           ),
@@ -485,8 +458,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
         Text(
           '$reason\nOrder: ${widget.orderNumber ?? widget.orderId}',
           textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: core.AppType.s16,
+          style: context.typeRoles.bodyDense.copyWith(
             color: colorScheme.onSurfaceVariant,
           ),
         ),
@@ -515,8 +487,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
                   const SizedBox(width: 8),
                   Text(
                     'Butuh bantuan pembayaran?',
-                    style: TextStyle(
-                      fontSize: core.AppType.s14,
+                    style: context.typeRoles.titleCompact.copyWith(
                       fontWeight: FontWeight.w600,
                       color: colorScheme.onSurface,
                     ),
@@ -526,8 +497,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
               const SizedBox(height: 8),
               Text(
                 'Cek panduan pembayaran atau hubungi support untuk bantuan langsung.',
-                style: TextStyle(
-                  fontSize: core.AppType.s12,
+                style: context.typeRoles.bodyDense.copyWith(
                   color: colorScheme.onSurfaceVariant,
                 ),
               ),
@@ -536,25 +506,15 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
                 children: [
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) => HelpCenterScreen(
-                              userId: userId,
-                              userName: userName,
-                              userAvatar: userAvatar,
-                            ),
-                          ),
-                        );
-                      },
-                      icon: const Icon(Icons.article_outlined, size: AppIconSize.inlineGlyph),
+                      onPressed: () => context.push(core.RoutePaths.helpCenter),
+                      icon: const Icon(
+                        Icons.article_outlined,
+                        size: AppIconSize.inlineGlyph,
+                      ),
                       label: const Text('Panduan'),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: context.statusColors.warning,
-                        padding: const EdgeInsets.symmetric(vertical: core.AppMetrics.p8),
-                        textStyle: const TextStyle(fontSize: core.AppType.s12),
-                        side: BorderSide(
-                          color: context.statusColors.warning.withValues(alpha: 0.5),
+                        padding: const EdgeInsets.symmetric(
+                          vertical: core.AppMetrics.p8,
                         ),
                       ),
                     ),
@@ -573,13 +533,16 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
                               );
                             }
                           : null,
-                      icon: const Icon(Icons.support_agent, size: AppIconSize.inlineGlyph),
+                      icon: const Icon(
+                        Icons.support_agent,
+                        size: AppIconSize.inlineGlyph,
+                      ),
                       label: const Text('Support'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: context.statusColors.warning,
-                padding: const EdgeInsets.symmetric(vertical: core.AppMetrics.p8),
-                textStyle: const TextStyle(fontSize: core.AppType.s12),
-              ),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: core.AppMetrics.p8,
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -595,11 +558,15 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
           child: ElevatedButton(
             onPressed: _goToOrderDetail,
             style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: core.AppMetrics.p16),
+              padding: const EdgeInsets.symmetric(
+                vertical: core.AppMetrics.p16,
+              ),
             ),
-            child: const Text(
+            child: Text(
               'Lihat Detail Pesanan',
-              style: TextStyle(fontSize: core.AppType.s16, fontWeight: FontWeight.w600),
+              style: Theme.of(
+                context,
+              ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
             ),
           ),
         ),
@@ -609,11 +576,15 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
           child: OutlinedButton(
             onPressed: _goToHome,
             style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: core.AppMetrics.p16),
+              padding: const EdgeInsets.symmetric(
+                vertical: core.AppMetrics.p16,
+              ),
             ),
-            child: const Text(
+            child: Text(
               'Kembali ke Beranda',
-              style: TextStyle(fontSize: core.AppType.s16, fontWeight: FontWeight.w600),
+              style: Theme.of(
+                context,
+              ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
             ),
           ),
         ),
@@ -647,8 +618,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
         // Title
         Text(
           'Status Pembayaran Belum Diketahui',
-          style: TextStyle(
-            fontSize: core.AppType.s24,
+          style: context.typeRoles.titleProminent.copyWith(
             fontWeight: FontWeight.bold,
             color: colorScheme.onSurface,
           ),
@@ -659,8 +629,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
         Text(
           'Kami tidak dapat memverifikasi status pembayaran Anda setelah ${state.maxPollAttempts}x pengecekan.\nOrder: ${widget.orderNumber ?? widget.orderId}',
           textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: core.AppType.s16,
+          style: context.typeRoles.bodyDense.copyWith(
             color: colorScheme.onSurfaceVariant,
           ),
         ),
@@ -686,8 +655,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
               Expanded(
                 child: Text(
                   'Jika sudah membayar, status pembayaran akan diperbarui dalam beberapa menit. Silakan cek halaman pesanan Anda.',
-                  style: TextStyle(
-                    fontSize: core.AppType.s14,
+                  style: context.typeRoles.bodyDense.copyWith(
                     color: colorScheme.onSurfaceVariant,
                   ),
                 ),
@@ -703,11 +671,15 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
           child: ElevatedButton(
             onPressed: _handleStatusCheck,
             style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: core.AppMetrics.p16),
+              padding: const EdgeInsets.symmetric(
+                vertical: core.AppMetrics.p16,
+              ),
             ),
-            child: const Text(
+            child: Text(
               'Cek Status Lagi',
-              style: TextStyle(fontSize: core.AppType.s16, fontWeight: FontWeight.w600),
+              style: Theme.of(
+                context,
+              ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
             ),
           ),
         ),
@@ -721,12 +693,16 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
             child: OutlinedButton.icon(
               onPressed: _handleContinuePayment,
               icon: const Icon(Icons.open_in_browser, size: AppIconSize.action),
-              label: const Text(
+              label: Text(
                 'Lanjutkan Pembayaran',
-                style: TextStyle(fontSize: core.AppType.s16, fontWeight: FontWeight.w600),
+                style: Theme.of(
+                  context,
+                ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
               ),
               style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: core.AppMetrics.p16),
+                padding: const EdgeInsets.symmetric(
+                  vertical: core.AppMetrics.p16,
+                ),
               ),
             ),
           ),
@@ -738,11 +714,15 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
           child: OutlinedButton(
             onPressed: _goToOrderDetail,
             style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: core.AppMetrics.p16),
+              padding: const EdgeInsets.symmetric(
+                vertical: core.AppMetrics.p16,
+              ),
             ),
-            child: const Text(
+            child: Text(
               'Lihat Detail Pesanan',
-              style: TextStyle(fontSize: core.AppType.s16, fontWeight: FontWeight.w600),
+              style: Theme.of(
+                context,
+              ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
             ),
           ),
         ),
@@ -753,8 +733,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
             onPressed: _goToHome,
             child: Text(
               'Kembali ke Beranda',
-              style: TextStyle(
-                fontSize: core.AppType.s16,
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
                 color: colorScheme.onSurfaceVariant,
               ),
             ),
@@ -793,8 +772,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
         // Title
         Text(
           'Gagal Terhubung ke Server',
-          style: TextStyle(
-            fontSize: core.AppType.s24,
+          style: context.typeRoles.titleProminent.copyWith(
             fontWeight: FontWeight.bold,
             color: colorScheme.onSurface,
           ),
@@ -805,8 +783,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
         Text(
           errorMessage,
           textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: core.AppType.s16,
+          style: context.typeRoles.bodyDense.copyWith(
             color: colorScheme.onSurfaceVariant,
           ),
         ),
@@ -818,11 +795,15 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
           child: ElevatedButton(
             onPressed: _handleStatusCheck,
             style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: core.AppMetrics.p16),
+              padding: const EdgeInsets.symmetric(
+                vertical: core.AppMetrics.p16,
+              ),
             ),
-            child: const Text(
+            child: Text(
               'Coba Lagi',
-              style: TextStyle(fontSize: core.AppType.s16, fontWeight: FontWeight.w600),
+              style: Theme.of(
+                context,
+              ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
             ),
           ),
         ),
@@ -836,12 +817,16 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
             child: OutlinedButton.icon(
               onPressed: _handleContinuePayment,
               icon: const Icon(Icons.open_in_browser, size: AppIconSize.action),
-              label: const Text(
+              label: Text(
                 'Lanjutkan Pembayaran',
-                style: TextStyle(fontSize: core.AppType.s16, fontWeight: FontWeight.w600),
+                style: Theme.of(
+                  context,
+                ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
               ),
               style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: core.AppMetrics.p16),
+                padding: const EdgeInsets.symmetric(
+                  vertical: core.AppMetrics.p16,
+                ),
               ),
             ),
           ),
@@ -853,11 +838,15 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
           child: OutlinedButton(
             onPressed: _goToOrderDetail,
             style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: core.AppMetrics.p16),
+              padding: const EdgeInsets.symmetric(
+                vertical: core.AppMetrics.p16,
+              ),
             ),
-            child: const Text(
+            child: Text(
               'Lihat Detail Pesanan',
-              style: TextStyle(fontSize: core.AppType.s16, fontWeight: FontWeight.w600),
+              style: Theme.of(
+                context,
+              ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
             ),
           ),
         ),
@@ -868,8 +857,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
             onPressed: _goToHome,
             child: Text(
               'Kembali ke Beranda',
-              style: TextStyle(
-                fontSize: core.AppType.s16,
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
                 color: colorScheme.onSurfaceVariant,
               ),
             ),

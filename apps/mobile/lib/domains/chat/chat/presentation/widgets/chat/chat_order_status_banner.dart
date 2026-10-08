@@ -295,8 +295,7 @@ class ChatOrderStatusBanner extends StatelessWidget {
                       const SizedBox(width: 4),
                       Text(
                         'Pesanan Terkait',
-                        style: TextStyle(
-                          fontSize: AppType.s12,
+                        style: context.typeRoles.labelMicro.copyWith(
                           color: scheme.onSurface,
                           fontWeight: FontWeight.w600,
                         ),
@@ -306,8 +305,7 @@ class ChatOrderStatusBanner extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     statusDisplay.label,
-                    style: TextStyle(
-                      fontSize: AppType.s14,
+                    style: context.typeRoles.bodyDense.copyWith(
                       fontWeight: FontWeight.w600,
                       color: scheme.onSurface,
                     ),
@@ -316,8 +314,7 @@ class ChatOrderStatusBanner extends StatelessWidget {
                     const SizedBox(height: 1),
                     Text(
                       statusDisplay.subtitle!,
-                      style: TextStyle(
-                        fontSize: AppType.s12,
+                      style: context.typeRoles.labelMicro.copyWith(
                         color: scheme.onSurfaceVariant,
                       ),
                     ),
@@ -429,8 +426,7 @@ class OrderStatusMiniWidget extends StatelessWidget {
             const SizedBox(width: 4),
             Text(
               display.label,
-              style: TextStyle(
-                fontSize: AppType.s12,
+              style: context.typeRoles.labelMicro.copyWith(
                 fontWeight: FontWeight.w600,
                 color: scheme.onSurface,
               ),
@@ -452,8 +448,7 @@ class OrderStatusMiniWidget extends StatelessWidget {
           const SizedBox(width: 8),
           Text(
             display.label,
-            style: TextStyle(
-              fontSize: AppType.s12,
+            style: context.typeRoles.labelMicro.copyWith(
               fontWeight: FontWeight.w500,
               color: scheme.onSurface,
             ),

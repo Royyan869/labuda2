@@ -23,10 +23,10 @@ import (
 	financeapp "github.com/labuda/backend/internal/finance/application"
 	financeRepo "github.com/labuda/backend/internal/finance/infrastructure/repository"
 	userRepo "github.com/labuda/backend/internal/identity/user/repository"
+	paymentApp "github.com/labuda/backend/internal/integration/payment/application"
 	paymentRepository "github.com/labuda/backend/internal/integration/payment/infrastructure/repository"
 	"github.com/labuda/backend/internal/platform/response"
 	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/midtrans"
 	"github.com/labuda/backend/pkg/money"
 	"go.uber.org/zap"
 )
@@ -55,9 +55,8 @@ type SellerHandler struct {
 	// Subscription payment initiation deps
 	paymentRepo       subscriptionPaymentRepository
 	paymentMethodRepo paymentMethodRepository
-	midtransClient    snapTransactionClient
+	snapService       subscriptionSnapService
 	subRepo           subscriptionRepo.SellerSubscriptionRepository
-	frontendURL       string
 
 	// withdrawalFeeProvider returns the canonical configured seller withdrawal
 	// fee (admin-configurable, Rp0 allowed) for the seller earnings display
@@ -69,6 +68,10 @@ type subscriptionPaymentRepository interface {
 	FindPendingSubscriptionPayment(ctx context.Context, tx db.Tx, userID uuid.UUID) (*paymentRepository.Payment, error)
 	CreatePayment(ctx context.Context, tx db.Tx, input paymentRepository.CreatePaymentInput) (*paymentRepository.Payment, error)
 	UpdatePaymentURL(ctx context.Context, tx db.Tx, paymentID uuid.UUID, paymentURL string) error
+	// MarkAsFailed terminalizes a superseded pending payment when the seller
+	// changes the selected payment method (Owner decision: a different method
+	// must not silently reuse the stale pending payment).
+	MarkAsFailed(ctx context.Context, tx db.Tx, paymentID uuid.UUID, status string) error
 }
 
 // paymentMethodRepository defines the canonical payment method lookups
@@ -78,8 +81,11 @@ type paymentMethodRepository interface {
 	ListEnabled(ctx context.Context, tx db.Tx) ([]paymentmethodentity.Method, error)
 }
 
-type snapTransactionClient interface {
-	CreateSnapTransaction(req *midtrans.SnapRequest) (*midtrans.SnapResponse, error)
+// subscriptionSnapService is the canonical Snap creation surface consumed by
+// subscription initiation. Implemented by *paymentApp.SnapService — the ONE
+// Snap creation authority shared with product and billing payments.
+type subscriptionSnapService interface {
+	CreateSession(in paymentApp.SnapSessionInput) (string, error)
 }
 
 // NewSellerHandler creates a new SellerHandler.
@@ -91,9 +97,8 @@ func NewSellerHandler(
 	sellerRepo sellerRepo.SellerRepository,
 	onboardingService *subscriptionApp.SellerOnboardingService,
 	paymentRepo *paymentRepository.PaymentRepository,
-	midtransClient *midtrans.Client,
+	snapService *paymentApp.SnapService,
 	subRepo subscriptionRepo.SellerSubscriptionRepository,
-	frontendURL string,
 ) *SellerHandler {
 	if log == nil {
 		log = zap.NewNop()
@@ -103,20 +108,19 @@ func NewSellerHandler(
 	ratingFactory := ratingApp.NewRatingDomainFactory()
 
 	return &SellerHandler{
-		subscriptionService:        subscriptionService,
-		db:                         db,
-		log:                        log,
-		financeService:             financeapp.NewFinanceService(),
-		orderRepo:                  orderrepoimpl.NewOrderRepository(),
-		withdrawRepo:               financeRepo.NewWithdrawRepository(),
-		ratingReader:               ratingFactory.GetReader(),
-		userRepo:                   userRepo,
-		sellerRepo:                 sellerRepo,
-		onboardingService:          onboardingService,
-		paymentRepo:                paymentRepo,
-		midtransClient:             midtransClient,
-		subRepo:                    subRepo,
-		frontendURL:                frontendURL,
+		subscriptionService: subscriptionService,
+		db:                  db,
+		log:                 log,
+		financeService:      financeapp.NewFinanceService(),
+		orderRepo:           orderrepoimpl.NewOrderRepository(),
+		withdrawRepo:        financeRepo.NewWithdrawRepository(),
+		ratingReader:        ratingFactory.GetReader(),
+		userRepo:            userRepo,
+		sellerRepo:          sellerRepo,
+		onboardingService:   onboardingService,
+		paymentRepo:         paymentRepo,
+		snapService:         snapService,
+		subRepo:             subRepo,
 	}
 }
 
@@ -136,14 +140,14 @@ func (h *SellerHandler) SetWithdrawalFeeProvider(p financeapp.WithdrawalFeeProvi
 
 // SellerProfileResponse represents the seller profile response.
 type SellerProfileResponse struct {
-	ID                   uuid.UUID   `json:"id"`
-	UserID               uuid.UUID   `json:"user_id"`
-	StoreName            string      `json:"store_name"`
-	StoreImageURL        *string     `json:"store_image_url"`
-	StoreImageUpdatedAt  *string     `json:"store_image_updated_at,omitempty"`
-	Tier                 entity.Tier `json:"tier"`
-	CreatedAt            string      `json:"created_at"`
-	UpdatedAt            string      `json:"updated_at"`
+	ID                  uuid.UUID   `json:"id"`
+	UserID              uuid.UUID   `json:"user_id"`
+	StoreName           string      `json:"store_name"`
+	StoreImageURL       *string     `json:"store_image_url"`
+	StoreImageUpdatedAt *string     `json:"store_image_updated_at,omitempty"`
+	Tier                entity.Tier `json:"tier"`
+	CreatedAt           string      `json:"created_at"`
+	UpdatedAt           string      `json:"updated_at"`
 }
 
 // SubscriptionResponse represents the seller subscription response.
@@ -681,136 +685,95 @@ func (h *SellerHandler) initiateSubscriptionPaymentTx(c *gin.Context, ctx contex
 	}
 
 	if existingPayment != nil {
-		if existingPayment.PaymentURL != nil && *existingPayment.PaymentURL != "" {
-			return buildInitiateSubscriptionPaymentResponse(existingPayment, *existingPayment.PaymentURL), nil
-		}
-
-		// Existing pending payment — reuse its immutable snapshot for gateway.
-		amountIDR := float64(existingPayment.GrossAmount.Int64())
-		expiryMinutes := int(time.Until(existingPayment.ExpiredAt).Minutes())
-		if expiryMinutes < 1 {
-			expiryMinutes = 1
-		}
-		if expiryMinutes > 1440 {
-			expiryMinutes = 1440
-		}
-
-		snapReq := &midtrans.SnapRequest{
-			TransactionDetails: midtrans.TransactionDetails{
-				OrderID:     existingPayment.MidtransOrderID,
-				GrossAmount: amountIDR,
-			},
-			ItemDetails: []midtrans.ItemDetail{
-				{
-					ID:       "seller_subscription",
-					Price:    amountIDR,
-					Quantity: 1,
-					Name:     "Langganan Penjual 1 Tahun",
-				},
-			},
-			Expiry: &midtrans.Expiry{
-				Unit:     "minute",
-				Duration: expiryMinutes,
-			},
-			// Snap channel restriction comes ONLY from the canonical method row.
-			// Without this the reused payment's Snap page would offer every
-			// merchant-enabled channel, not the bucket of the method the seller
-			// selected (see CorePaymentHandler.createMidtransTransaction).
-			EnabledPayments: method.MidtransChannels,
-		}
-		if h.frontendURL != "" {
-			snapReq.Callbacks = &midtrans.Callbacks{
-				Finish: h.frontendURL + "/payment/finish",
+		sameMethod := existingPayment.PaymentMethodCode != nil &&
+			*existingPayment.PaymentMethodCode == method.Code
+		if sameMethod {
+			// Idempotent reuse of the immutable M1/F1 snapshot.
+			if existingPayment.PaymentURL != nil && *existingPayment.PaymentURL != "" {
+				return buildInitiateSubscriptionPaymentResponse(existingPayment, *existingPayment.PaymentURL), nil
 			}
+			paymentURL, snapErr := h.createSubscriptionSnapSession(existingPayment, method.MidtransChannels)
+			if snapErr != nil {
+				return nil, snapErr
+			}
+			if err := h.paymentRepo.UpdatePaymentURL(ctx, tx, existingPayment.ID, paymentURL); err != nil {
+				return nil, fmt.Errorf("update payment URL: %w", err)
+			}
+			return buildInitiateSubscriptionPaymentResponse(existingPayment, paymentURL), nil
 		}
 
-		snapResp, err := h.midtransClient.CreateSnapTransaction(snapReq)
-		if err != nil {
-			return nil, fmt.Errorf("midtrans snap: %w", err)
+		// Owner decision (pending subscription method change): a DIFFERENT
+		// method must not silently reuse the stale pending payment. Terminalize
+		// the superseded payment (immutable history, no duplicate settlement)
+		// and create a fresh canonical payment below.
+		if err := h.paymentRepo.MarkAsFailed(ctx, tx, existingPayment.ID, paymentRepository.PaymentStatusCancel); err != nil {
+			return nil, fmt.Errorf("supersede stale pending subscription payment: %w", err)
 		}
-
-		if err := h.paymentRepo.UpdatePaymentURL(ctx, tx, existingPayment.ID, snapResp.RedirectURL); err != nil {
-			return nil, fmt.Errorf("update payment URL: %w", err)
-		}
-
-		return buildInitiateSubscriptionPaymentResponse(existingPayment, snapResp.RedirectURL), nil
 	}
 
 	// Step 4: Create payment row with immutable snapshot (PMF-02).
-	// gross_amount = A + F, service_fee_amount = F, payment_method_code = M.
+	// gross_amount = A + F, service_fee_amount = F, payment_method_code = M,
+	// subscription_duration_days = purchased entitlement length.
 	paymentNumber := fmt.Sprintf("PAY-SUB-%d", time.Now().UnixNano())
 	midtransOrderID := fmt.Sprintf("LAB-SUB-%s", uuid.New().String())
 	grossAmount := money.New(principal).Add(fee) // A + F
-	expiredAt := time.Now().Add(24 * time.Hour) // 24h payment window
+	expiredAt := time.Now().Add(24 * time.Hour)  // 24h payment window
+	// OWNER DECISION: snapshot the purchased duration at initiation. A later
+	// config change must not alter an already-purchased entitlement.
+	durationDays := config.DurationDays
 
 	refID := userID // reference_id = userID for subscriptions
 	payment, err := h.paymentRepo.CreatePayment(ctx, tx, paymentRepository.CreatePaymentInput{
-		UserID:           userID,
-		PaymentNumber:    paymentNumber,
-		MidtransOrderID:  midtransOrderID,
-		GrossAmount:      grossAmount,
-		ServiceFeeAmount: fee,
-		CoinsToUse:       0,
-		ReferenceType:    paymentRepository.ReferenceTypeSubscription,
-		ReferenceID:      &refID,
-		ExpiredAt:        expiredAt,
-		PaymentMethodCode: &paymentMethodCode,
+		UserID:                   userID,
+		PaymentNumber:            paymentNumber,
+		MidtransOrderID:          midtransOrderID,
+		GrossAmount:              grossAmount,
+		ServiceFeeAmount:         fee,
+		CoinsToUse:               0,
+		ReferenceType:            paymentRepository.ReferenceTypeSubscription,
+		ReferenceID:              &refID,
+		ExpiredAt:                expiredAt,
+		PaymentMethodCode:        &paymentMethodCode,
+		SubscriptionDurationDays: &durationDays,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("create payment: %w", err)
 	}
 
-	// Step 5: Build Midtrans Snap request from payment snapshot (PMF-02).
+	// Step 5: Create the Snap session through the ONE canonical authority.
 	// Gateway gross MUST equal payment.GrossAmount — NOT config directly.
-	amountIDR := float64(payment.GrossAmount.Int64())
-	expiryMinutes := int(time.Until(expiredAt).Minutes())
-	if expiryMinutes < 1 {
-		expiryMinutes = 1
-	}
-	if expiryMinutes > 1440 {
-		expiryMinutes = 1440
-	}
-
-	snapReq := &midtrans.SnapRequest{
-		TransactionDetails: midtrans.TransactionDetails{
-			OrderID:     midtransOrderID,
-			GrossAmount: amountIDR,
-		},
-		ItemDetails: []midtrans.ItemDetail{
-			{
-				ID:       "seller_subscription",
-				Price:    amountIDR,
-				Quantity: 1,
-				Name:     "Langganan Penjual 1 Tahun",
-			},
-		},
-		Expiry: &midtrans.Expiry{
-			Unit:     "minute",
-			Duration: expiryMinutes,
-		},
-		// Snap channel restriction comes ONLY from the canonical method row:
-		// the Snap page must offer exactly the MidtransChannels bucket of the
-		// method the seller selected, never every merchant-enabled channel
-		// (mirrors CorePaymentHandler.createMidtransTransaction).
-		EnabledPayments: method.MidtransChannels,
-	}
-	if h.frontendURL != "" {
-		snapReq.Callbacks = &midtrans.Callbacks{
-			Finish: h.frontendURL + "/payment/finish",
-		}
-	}
-
-	snapResp, err := h.midtransClient.CreateSnapTransaction(snapReq)
+	paymentURL, err := h.createSubscriptionSnapSession(payment, method.MidtransChannels)
 	if err != nil {
-		return nil, fmt.Errorf("midtrans snap: %w", err)
+		return nil, err
 	}
 
 	// Step 6: Store redirect URL on payment row
-	if err := h.paymentRepo.UpdatePaymentURL(ctx, tx, payment.ID, snapResp.RedirectURL); err != nil {
+	if err := h.paymentRepo.UpdatePaymentURL(ctx, tx, payment.ID, paymentURL); err != nil {
 		return nil, fmt.Errorf("update payment URL: %w", err)
 	}
 
-	return buildInitiateSubscriptionPaymentResponse(payment, snapResp.RedirectURL), nil
+	return buildInitiateSubscriptionPaymentResponse(payment, paymentURL), nil
+}
+
+// createSubscriptionSnapSession creates the subscription's Midtrans Snap session
+// through the canonical SnapService (ONE Snap creation authority). Channels come
+// only from the canonical method row.
+func (h *SellerHandler) createSubscriptionSnapSession(
+	payment *paymentRepository.Payment,
+	channels []string,
+) (string, error) {
+	if h.snapService == nil {
+		return "", fmt.Errorf("snap service not configured")
+	}
+	return h.snapService.CreateSession(paymentApp.SnapSessionInput{
+		MidtransOrderID: payment.MidtransOrderID,
+		GrossAmount:     payment.GrossAmount.Int64(),
+		ExpiredAt:       payment.ExpiredAt,
+		OrderNumber:     payment.PaymentNumber,
+		ItemName:        "Langganan Penjual 1 Tahun",
+		EnabledPayments: channels,
+		Now:             time.Now(),
+	})
 }
 
 // InitiateSubscriptionPayment handles POST /api/v1/seller/subscription/initiate
@@ -818,14 +781,14 @@ func (h *SellerHandler) initiateSubscriptionPaymentTx(c *gin.Context, ctx contex
 // Creates a Midtrans Snap payment for a seller subscription purchase or renewal.
 //
 // Flow:
-// 1. Validates onboarding (seller_profile must already exist via POST /seller/onboarding)
-// 2. Loads active subscription config (admin-seeded principal A)
-// 3. Loads and validates the REQUIRED payment_method_code (unknown/disabled → 400)
-// 4. Calculates the canonical payment-method fee F = CalculateFee(A, method)
-// 5. Returns the existing pending payment if one exists (idempotent reuse of its
-//    immutable M1/F1 snapshot — a newly selected method does NOT supersede it)
-// 6. Creates payment row + Midtrans Snap token with the A+F snapshot
-// 7. Returns payment_url for client redirect
+//  1. Validates onboarding (seller_profile must already exist via POST /seller/onboarding)
+//  2. Loads active subscription config (admin-seeded principal A)
+//  3. Loads and validates the REQUIRED payment_method_code (unknown/disabled → 400)
+//  4. Calculates the canonical payment-method fee F = CalculateFee(A, method)
+//  5. Returns the existing pending payment if one exists (idempotent reuse of its
+//     immutable M1/F1 snapshot — a newly selected method does NOT supersede it)
+//  6. Creates payment row + Midtrans Snap token with the A+F snapshot
+//  7. Returns payment_url for client redirect
 //
 // Renewal is intentionally not window-gated here: the canonical renewal
 // stacking logic lives in SubscriptionPaymentService, which appends the new
@@ -1233,90 +1196,39 @@ func (h *SellerHandler) GetDashboard(c *gin.Context) {
 	response.Success(c, stats)
 }
 
-// SellerAnalyticsResponse represents the seller analytics response.
-type SellerAnalyticsResponse struct {
-	Views          int64   `json:"views"`
-	ConversionRate float64 `json:"conversion_rate"`
-}
-
-// GetAnalytics handles GET /api/v1/seller/analytics
-//
-// Returns the seller analytics:
-// - views: Total views across all seller's forSales
-// - conversion_rate: (sold_items / views) * 100, limited to 2 decimal places
-func (h *SellerHandler) GetAnalytics(c *gin.Context) {
-	ctx := c.Request.Context()
-
-	// Get user ID from context (set by auth middleware)
-	userIDVal, exists := c.Get("userID")
-	if !exists {
-		response.Unauthorized(c, "User not authenticated")
-		return
-	}
-	userID, ok := userIDVal.(uuid.UUID)
-	if !ok {
-		response.InternalServerError(c, "Invalid user ID in context")
-		return
-	}
-
-	var stats SellerAnalyticsResponse
-
-	err := h.db.WithTx(ctx, func(tx db.Tx) error {
-		// 1. Total views across all forSales.
-		// NOTE: view tracking was only ever wired to the legacy `forSales`
-		// table (write-dead since the for_sales/products split) and
-		// was never re-implemented against for_sales. There is no
-		// canonical view-count source today, so this reports 0 rather than
-		// querying a table nothing writes to. Real view tracking for
-		// for_sales is tracked as PASS_21C follow-up debt.
-		stats.Views = 0
-
-		// 2. Conversion rate: (sold_items / views) * 100
-		// Get sold items count
-		var soldItems int64
-		err := tx.QueryRow(ctx, `
-			SELECT COUNT(*) FROM orders WHERE seller_id = $1 AND status = 'completed'
-		`, userID).Scan(&soldItems)
-		if err != nil {
-			return err
-		}
-
-		if stats.Views > 0 {
-			stats.ConversionRate = (float64(soldItems) / float64(stats.Views)) * 100
-			// Limit to 2 decimal places
-			stats.ConversionRate = float64(int(stats.ConversionRate*100)) / 100
-		}
-
-		return nil
-	})
-
-	if err != nil {
-		h.log.Error("Failed to get seller analytics",
-			zap.String("user_id", userID.String()),
-			zap.Error(err),
-		)
-		response.InternalServerError(c, "Failed to retrieve seller analytics")
-		return
-	}
-
-	response.Success(c, stats)
-}
-
 // SellerPerformanceResponse represents the seller performance response.
+//
+// Seller Performance is a READ PROJECTION over canonical domain authorities —
+// it owns no metric and no new aggregation:
+//   - tier / fulfillment / cancelled-timeout → SellerReputationState (rolling 90d)
+//   - rating / review count / star distribution → RatingReader (order_ratings)
 type SellerPerformanceResponse struct {
-	Rating          float64 `json:"rating"`
-	CompletedOrders int64   `json:"completed_orders"`
-	CancelRate      float64 `json:"cancel_rate"`
-	ResponseTime    string  `json:"response_time"`
+	Tier             string  `json:"tier"`
+	FulfillmentRate  float64 `json:"fulfillment_rate"`
+	CompletedOrders  int64   `json:"completed_orders"`
+	CancelledTimeout int64   `json:"cancelled_timeout"`
+	AverageRating    float64 `json:"average_rating"`
+	ReviewCount      int64   `json:"review_count"`
+	OneStarCount     int64   `json:"one_star_count"`
+	TwoStarCount     int64   `json:"two_star_count"`
+	ThreeStarCount   int64   `json:"three_star_count"`
+	FourStarCount    int64   `json:"four_star_count"`
+	FiveStarCount    int64   `json:"five_star_count"`
 }
 
 // GetPerformance handles GET /api/v1/seller/performance
 //
-// Returns the seller performance metrics:
-// - rating: Average rating received (0-5 scale)
-// - completed_orders: Total count of completed orders
-// - cancel_rate: (cancelled_orders / total_orders) * 100
-// - response_time: Average response time in hours (placeholder for now)
+// Projects the seller's trust/reputation and order-execution quality from
+// canonical authorities only:
+//
+//   - tier                 → seller_profiles.tier (reputation worker authority)
+//   - fulfillment_rate     → seller_reputation_state.rolling_fulfillment_rate (90d)
+//   - completed_orders     → seller_reputation_state.rolling_completed_orders (90d)
+//   - cancelled_timeout    → seller_reputation_state.rolling_cancelled_timeout (90d)
+//   - average_rating       → RatingReader.GetRatingSummary (canonical rating domain)
+//   - review_count + stars → RatingReader.GetRatingSummary star distribution
+//
+// No `status='cancelled'` logic, no all-time completed orders, no response_time.
 func (h *SellerHandler) GetPerformance(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -1335,48 +1247,46 @@ func (h *SellerHandler) GetPerformance(c *gin.Context) {
 	var stats SellerPerformanceResponse
 
 	err := h.db.WithTx(ctx, func(tx db.Tx) error {
-		// 1. Average rating (from rating service)
-		// RATING DOMAIN BOUNDARY: Use RatingReader interface (read-only access)
+		// 1. Reputation authority (rolling 90-day) — fulfillment + trust.
+		// seller_reputation_state is keyed by the canonical commerce seller
+		// identity (users.id = the authenticated userID), matching the
+		// reputation worker's aggregation.
+		//
+		// Tier is read ONLY from seller_profiles.tier — the single canonical
+		// current-tier authority. seller_reputation_state.current_tier is a
+		// denormalized snapshot owned by the same worker and is NOT treated as
+		// an independent tier authority here.
+		profile, err := h.sellerRepo.GetByUserID(ctx, tx, userID)
+		if err != nil {
+			return err
+		}
+		if profile != nil {
+			stats.Tier = string(profile.Tier)
+
+			state, err := h.sellerRepo.GetReputationState(ctx, tx, userID)
+			if err != nil {
+				return err
+			}
+			if state != nil {
+				stats.FulfillmentRate = state.RollingFulfillmentRate
+				stats.CompletedOrders = int64(state.RollingCompletedOrders)
+				stats.CancelledTimeout = int64(state.RollingCancelledTimeout)
+			}
+		}
+
+		// 2. Rating authority (canonical RatingReader — read-only).
+		// order_ratings is keyed by user id (orders.seller_id = users.id).
 		ratingSummary, err := h.ratingReader.GetRatingSummary(ctx, tx, userID)
 		if err != nil {
 			return err
 		}
-		stats.Rating = ratingSummary.AverageRating
-
-		// 2. Completed orders count
-		err = tx.QueryRow(ctx, `
-			SELECT COUNT(*) FROM orders WHERE seller_id = $1 AND status = 'completed'
-		`, userID).Scan(&stats.CompletedOrders)
-		if err != nil {
-			return err
-		}
-
-		// 3. Cancel rate: (cancelled_orders / total_orders) * 100
-		var totalOrders int64
-		err = tx.QueryRow(ctx, `
-			SELECT COUNT(*) FROM orders WHERE seller_id = $1
-		`, userID).Scan(&totalOrders)
-		if err != nil {
-			return err
-		}
-
-		var cancelledOrders int64
-		err = tx.QueryRow(ctx, `
-			SELECT COUNT(*) FROM orders WHERE seller_id = $1 AND status = 'cancelled'
-		`, userID).Scan(&cancelledOrders)
-		if err != nil {
-			return err
-		}
-
-		if totalOrders > 0 {
-			stats.CancelRate = (float64(cancelledOrders) / float64(totalOrders)) * 100
-			// Limit to 2 decimal places
-			stats.CancelRate = float64(int(stats.CancelRate*100)) / 100
-		}
-
-		// 4. Response time - placeholder, would need to track message response times
-		// For now, return a default value
-		stats.ResponseTime = "2h"
+		stats.AverageRating = ratingSummary.AverageRating
+		stats.ReviewCount = int64(ratingSummary.TotalRatings)
+		stats.OneStarCount = int64(ratingSummary.OneStarCount)
+		stats.TwoStarCount = int64(ratingSummary.TwoStarCount)
+		stats.ThreeStarCount = int64(ratingSummary.ThreeStarCount)
+		stats.FourStarCount = int64(ratingSummary.FourStarCount)
+		stats.FiveStarCount = int64(ratingSummary.FiveStarCount)
 
 		return nil
 	})
@@ -1392,4 +1302,3 @@ func (h *SellerHandler) GetPerformance(c *gin.Context) {
 
 	response.Success(c, stats)
 }
-

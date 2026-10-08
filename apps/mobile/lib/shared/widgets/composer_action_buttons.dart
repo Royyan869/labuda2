@@ -69,9 +69,7 @@ class ComposerSendButton extends StatelessWidget {
               )
             : Icon(
                 Icons.send,
-                color: canTap
-                    ? scheme.onPrimary
-                    : scheme.onSurface.withValues(alpha: 0.38),
+                color: canTap ? scheme.onPrimary : scheme.onSurfaceVariant,
               ),
       ),
     );

@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -250,6 +251,7 @@ func (r *userRepositoryImpl) GetProfileByID(ctx context.Context, tx db.Tx, userI
 	var isVerified sql.NullBool
 	var followersCount, followingCount sql.NullInt64
 	var createdAt, updatedAt sql.NullTime
+	var socialMediaRaw json.RawMessage
 
 	query := `
 		SELECT
@@ -265,7 +267,8 @@ func (r *userRepositoryImpl) GetProfileByID(ctx context.Context, tx db.Tx, userI
 				FROM user_follows uf
 				WHERE uf.follower_id = user_profiles.user_id
 			), 0) AS following_count,
-			created_at, updated_at
+			created_at, updated_at,
+			COALESCE(social_media, '{}'::jsonb)
 		FROM user_profiles
 		WHERE user_id = $1
 	`
@@ -284,6 +287,7 @@ func (r *userRepositoryImpl) GetProfileByID(ctx context.Context, tx db.Tx, userI
 		&followingCount,
 		&createdAt,
 		&updatedAt,
+		&socialMediaRaw,
 	)
 
 	if err != nil {
@@ -306,8 +310,22 @@ func (r *userRepositoryImpl) GetProfileByID(ctx context.Context, tx db.Tx, userI
 	profile.FollowingCount = int(followingCount.Int64)
 	profile.CreatedAt = createdAt.Time
 	profile.UpdatedAt = updatedAt.Time
+	profile.SocialMedia = decodeSocialMedia(socialMediaRaw)
 
 	return &profile, nil
+}
+
+// decodeSocialMedia unmarshals the user_profiles.social_media jsonb value into
+// a map, tolerating NULL/empty/invalid values as "no social handles".
+func decodeSocialMedia(raw []byte) map[string]interface{} {
+	if len(raw) == 0 {
+		return nil
+	}
+	var m map[string]interface{}
+	if err := json.Unmarshal(raw, &m); err != nil || len(m) == 0 {
+		return nil
+	}
+	return m
 }
 
 func (r *userRepositoryImpl) GetPublicInfo(ctx context.Context, tx db.Tx, userID uuid.UUID, isOwnProfile bool) (*entity.UserPublicInfo, error) {
@@ -341,11 +359,13 @@ func (r *userRepositoryImpl) GetPublicInfo(ctx context.Context, tx db.Tx, userID
 			EXTRACT(EPOCH FROM u.created_at) AS created_at_epoch,
 			COALESCE(p.privacy->>'show_location' = 'true', false),
 			u.account_status,
-			(u.deleted_at IS NOT NULL) AS is_deleted
+			(u.deleted_at IS NOT NULL) AS is_deleted,
+			COALESCE(p.social_media, '{}'::jsonb)
 		FROM users u
 		LEFT JOIN user_profiles p ON u.id = p.user_id
 		WHERE u.id = $1 AND u.deleted_at IS NULL
 	`
+	var socialMediaRaw json.RawMessage
 	err := tx.QueryRow(ctx, query, userID).Scan(
 		&info.UserID,
 		&info.Username,
@@ -360,6 +380,7 @@ func (r *userRepositoryImpl) GetPublicInfo(ctx context.Context, tx db.Tx, userID
 		&showLocation,
 		&info.AccountStatus,
 		&info.IsDeleted,
+		&socialMediaRaw,
 	)
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -382,6 +403,9 @@ func (r *userRepositoryImpl) GetPublicInfo(ctx context.Context, tx db.Tx, userID
 	if showLocation || isOwnProfile {
 		info.Location = nullStringPtr(location)
 	}
+
+	// Optional social media handles (presence = visible).
+	info.SocialMedia = decodeSocialMedia(socialMediaRaw)
 
 	// Get user roles (public info)
 	roles, err := r.GetRoles(ctx, tx, userID)
@@ -627,6 +651,15 @@ func (r *userRepositoryImpl) UpdateProfile(ctx context.Context, tx db.Tx, userID
 		updateValues = append(updateValues, *input.Gender)
 		argCount++
 	}
+	if input.SocialMedia != nil {
+		raw, err := json.Marshal(input.SocialMedia.ToMap())
+		if err != nil {
+			return nil, fmt.Errorf("marshal social media: %w", err)
+		}
+		updateFields = append(updateFields, fmt.Sprintf("social_media = $%d::jsonb", argCount))
+		updateValues = append(updateValues, string(raw))
+		argCount++
+	}
 
 	if len(updateFields) == 0 {
 		return nil, fmt.Errorf("no fields to update")
@@ -673,8 +706,8 @@ func (r *userRepositoryImpl) UpdateProfile(ctx context.Context, tx db.Tx, userID
 
 func (r *userRepositoryImpl) createProfileFromUpdate(ctx context.Context, tx db.Tx, userID uuid.UUID, input *entity.UpdateProfileInput) (*entity.UserProfile, error) {
 	insertQuery := `
-		INSERT INTO user_profiles (user_id, bio, location, city, province, avatar_url, cover_photo_url, username, gender, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW())
+		INSERT INTO user_profiles (user_id, bio, location, city, province, avatar_url, cover_photo_url, username, gender, social_media, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb, NOW(), NOW())
 		RETURNING id, username, bio, avatar_url, cover_photo_url, location, city, province
 	`
 
@@ -693,9 +726,18 @@ func (r *userRepositoryImpl) createProfileFromUpdate(ctx context.Context, tx db.
 
 	_ = genderInput // Gender is stored but not returned in this query
 
+	var socialMediaInput interface{}
+	if input.SocialMedia != nil {
+		raw, err := json.Marshal(input.SocialMedia.ToMap())
+		if err != nil {
+			return nil, fmt.Errorf("marshal social media: %w", err)
+		}
+		socialMediaInput = string(raw)
+	}
+
 	err := tx.QueryRow(ctx, insertQuery,
 		userID, bioInput, locationInput, cityInput, provinceInput,
-		avatarInput, coverInput, usernameInput, genderInput,
+		avatarInput, coverInput, usernameInput, genderInput, socialMediaInput,
 	).Scan(&profileID, &username, &bio, &avatarURL, &coverPhotoURL, &location, &city, &province)
 
 	if err != nil {

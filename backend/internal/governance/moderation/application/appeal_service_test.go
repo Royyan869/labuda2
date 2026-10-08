@@ -32,7 +32,7 @@ type mockAppealRepository struct {
 	listByUserFunc             func(ctx context.Context, tx interface{}, userID uuid.UUID, limit, offset int) ([]*entity.Appeal, error)
 	listByCaseFunc             func(ctx context.Context, tx interface{}, caseID uuid.UUID) ([]*entity.Appeal, error)
 	listAllFunc                func(ctx context.Context, tx interface{}, statusFilter *entity.AppealStatus, limit, offset int) ([]*entity.Appeal, error)
-	listPendingFunc            func(ctx context.Context, tx interface{}, limit, offset int) ([]*entity.Appeal, error)
+	countAllFunc               func(ctx context.Context, tx interface{}, statusFilter *entity.AppealStatus) (int, error)
 }
 
 func (m *mockAppealRepository) Create(ctx context.Context, tx interface{}, appeal *entity.Appeal) error {
@@ -96,11 +96,11 @@ func (m *mockAppealRepository) ListAll(ctx context.Context, tx interface{}, stat
 	return nil, nil
 }
 
-func (m *mockAppealRepository) ListPending(ctx context.Context, tx interface{}, limit, offset int) ([]*entity.Appeal, error) {
-	if m.listPendingFunc != nil {
-		return m.listPendingFunc(ctx, tx, limit, offset)
+func (m *mockAppealRepository) CountAll(ctx context.Context, tx interface{}, statusFilter *entity.AppealStatus) (int, error) {
+	if m.countAllFunc != nil {
+		return m.countAllFunc(ctx, tx, statusFilter)
 	}
-	return nil, nil
+	return 0, nil
 }
 
 // mockContentRepository is a mock implementation of ContentRepository.
@@ -180,6 +180,10 @@ func (m *mockCommentRepository) GetForUpdate(ctx context.Context, tx db.Tx, id u
 }
 
 func (m *mockCommentRepository) Update(ctx context.Context, tx db.Tx, comment *contentEntity.Comment) error {
+	return nil
+}
+
+func (m *mockCommentRepository) UpdateBody(ctx context.Context, tx db.Tx, id uuid.UUID, body string) error {
 	return nil
 }
 

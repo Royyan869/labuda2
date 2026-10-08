@@ -58,16 +58,11 @@ class _MainScreenState extends ConsumerState<MainScreen> {
     // Listen untuk pending tab switch
     ref.listen(pendingTabSwitchProvider, (previous, next) {
       if (next.hasSwitch && mounted) {
-        if (next.target == 'profile') {
-          // Find Profile tab index
-          final profileTabIndex = _findTabIndexByLabel(
-            'Profile',
-            navigationRegistry,
-          );
-          if (profileTabIndex >= 0) {
-            setState(() => _currentIndex = profileTabIndex);
-          }
-        } else if (next.target == 'marketplace') {
+        // `marketplace` is the only target produced by
+        // [PendingTabSwitchNotifier.setSwitch] (create For Sale / Auction
+        // landing). The former `profile` branch was dead: no producer ever
+        // emitted it.
+        if (next.target == 'marketplace') {
           final marketplaceTabIndex = _findTabIndexByLabel(
             'Marketplace',
             navigationRegistry,
@@ -145,12 +140,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
 
         if (backButtonHasNotBeenPressedOrSnackBarHasBeenClosed) {
           _lastBackPressed = now;
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Press back again to exit'),
-              duration: Duration(seconds: 3),
-            ),
-          );
+          AppSnackBar.showInfo(context, 'Tekan sekali lagi untuk keluar');
         } else {
           // Exit app properly
           SystemNavigator.pop();
@@ -181,7 +171,6 @@ class _MainScreenState extends ConsumerState<MainScreen> {
       onHandleSignOut: handler.handleSignOut,
       onHandleSettings: () => navigation.navigateToSettings(),
       onHandleProfile: handler.handleProfile,
-      onHandleComingSoon: handler.handleComingSoon,
     );
   }
 

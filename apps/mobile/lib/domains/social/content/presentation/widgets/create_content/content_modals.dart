@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:labuda/shared/widgets/app_bottom_sheet.dart';
-import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Collection of modal dialogs used in create post screen
 class ContentModals {
@@ -27,14 +26,9 @@ class ContentModals {
       content: TextField(
         autofocus: true,
         onChanged: (value) => inputText = value,
-        decoration: InputDecoration(
-          hintText: hintText,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppShape.r12)),
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: AppMetrics.p16,
-            vertical: AppMetrics.p12,
-          ),
-        ),
+        // Border/fill/geometry come from `inputDecorationTheme` (AppTheme)
+        // — the one form-field authority.
+        decoration: InputDecoration(hintText: hintText),
       ),
     );
   }

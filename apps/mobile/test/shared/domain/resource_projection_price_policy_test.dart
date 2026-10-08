@@ -44,31 +44,17 @@ Map<String, dynamic> _tombstoneEnvelope(String resourceType, String id) => {
   },
 };
 
-Map<String, dynamic> _commerceActions({
-  required bool canBuy,
-  required bool canBid,
-}) => {
-  'role': 'buyer',
-  'can_chat': true,
-  'can_negotiate': canBuy,
-  'can_buy': canBuy,
-  'can_bid': canBid,
-  'can_manage': false,
-};
-
 Map<String, dynamic> _saleJson({
   int price = 1250000,
   String currency = 'IDR',
   String status = 'active',
-  bool canBuy = true,
 }) => {
   ..._liveEnvelope('for_sale', 'sale-1'),
   'viewer_capabilities': {
     'can_view': true,
-    'can_interact': canBuy,
+    'can_interact': false,
     'blocked_by_tombstone': false,
   },
-  'commerce_actions': _commerceActions(canBuy: canBuy, canBid: false),
   'for_sale': {
     'title': 'Kohaku 45 cm',
     'media': const <Map<String, dynamic>>[],
@@ -92,7 +78,6 @@ Map<String, dynamic> _auctionJson({
     'can_interact': false,
     'blocked_by_tombstone': false,
   },
-  'commerce_actions': _commerceActions(canBuy: false, canBid: false),
   'auction': {
     'title': 'Lelang Jumbo',
     'media': const <Map<String, dynamic>>[],

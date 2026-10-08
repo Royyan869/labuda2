@@ -22,7 +22,7 @@ import (
 
 func TestCreateAuction_RejectsLegacyListingID(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	handler := NewAuctionHandler(nil, nil, nil, nil, nil)
+	handler := NewAuctionHandler(nil, nil, nil, nil, nil, nil)
 
 	body := map[string]interface{}{
 		"listing_id":          uuid.New().String(),
@@ -51,7 +51,7 @@ func TestCreateAuction_RejectsLegacyListingID(t *testing.T) {
 
 func TestCreateAuction_RejectsLegacyListingIdCamelCase(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	handler := NewAuctionHandler(nil, nil, nil, nil, nil)
+	handler := NewAuctionHandler(nil, nil, nil, nil, nil, nil)
 
 	body := map[string]interface{}{
 		"listingId":           uuid.New().String(),

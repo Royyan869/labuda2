@@ -15,7 +15,7 @@ import 'package:labuda/features/home/home.dart';
 /// PRODUCT CONTRACT:
 /// - Home Feed is a SOCIAL-first timeline
 /// - Displays: Universal content and reposts only (no commerce shelf)
-/// - NO commerce objects (For Sale items, auctions, contests) - those belong in Marketplace
+/// - NO commerce objects (For Sale items, auctions) - those belong in Marketplace
 /// - NO "Sedang Laku Hari Ini" shelf — promotion shelf will be reintroduced only via canonical promotion delivery when promotion is active
 /// - Reposts are clearly distinguished with canonical RepostAttributionBar
 /// - No fake engagement counts (hidden instead of showing "0")
@@ -89,10 +89,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       queued++;
       try {
         unawaited(
-          precacheImage(NetworkImage(url), context).then(
-            (_) {},
-            onError: (_) {},
-          ),
+          precacheImage(
+            NetworkImage(url),
+            context,
+          ).then((_) {}, onError: (_) {}),
         );
       } catch (_) {}
     }
@@ -105,26 +105,29 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   Widget _buildFeedContent(FeedState feedState) {
-    // Handle loading, error, and data states
-    if (feedState.errorMessage != null) {
-      return _buildError(feedState.errorMessage!);
-    }
-
-    if (feedState.isLoading && feedState.items.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
+    // LOADING FOUNDATION (owner-locked):
+    // - No data yet → first-load states only: loading, PageErrorState, or
+    //   EmptyState. Loading is never Empty and Error is never Empty.
+    // - Data present → items stay visible during refresh; update progress and
+    //   refresh failure render inline, never as full-page loading/error.
     final feedItems = feedState.items;
-
     if (feedItems.isEmpty) {
+      if (feedState.isLoading) {
+        return const Center(child: LoadingIndicator());
+      }
+      if (feedState.errorMessage != null) {
+        return _buildError();
+      }
+      if (feedState.isRefreshing) {
+        return const Center(child: LoadingIndicator());
+      }
       return _buildEmptyState();
     }
 
     return RefreshIndicator(
       onRefresh: () async {
         resetPromotionExposureAttempts();
-        ref.invalidate(feedProvider);
-        await Future.delayed(AppMotion.quick);
+        await ref.read(feedProvider.notifier).refresh();
       },
       child: NotificationListener<ScrollNotification>(
         onNotification: (notification) {
@@ -142,6 +145,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             // Upload progress indicator
             const SliverToBoxAdapter(child: UploadProgressWidget()),
 
+            // Refresh update indicator: thin progress while last-known-good
+            // items stay visible. Never a full-page loading swap.
+            if (feedState.isRefreshing)
+              const SliverToBoxAdapter(
+                child: LinearProgressIndicator(minHeight: 2),
+              ),
+
+            // Refresh failure indication: old data stays, failure renders
+            // inline with retry. Never a full-page error swap.
+            if (feedState.refreshError != null)
+              SliverToBoxAdapter(child: _buildRefreshErrorBanner(feedState)),
+
             // Feed items
             SliverList(
               delegate: SliverChildBuilderDelegate((context, index) {
@@ -157,12 +172,63 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               const SliverToBoxAdapter(
                 child: Padding(
                   padding: EdgeInsets.symmetric(vertical: AppMetrics.p16),
-                  child: Center(child: CircularProgressIndicator()),
+                  child: Center(child: LoadingIndicator.small()),
                 ),
               ),
+          ],
+        ),
+      ),
+    );
+  }
 
-            // Add spacing at bottom
-            const SliverToBoxAdapter(child: SizedBox(height: 100)),
+  /// Minimum bounded refresh-failure indication: persistent inline banner
+  /// with safe localized copy ([pageErrorMessage]) and a retry action.
+  /// Not a new foundation — composition of canonical tokens for this screen.
+  Widget _buildRefreshErrorBanner(FeedState feedState) {
+    final scheme = Theme.of(context).colorScheme;
+    final l10n = context.l10n;
+    return Semantics(
+      container: true,
+      liveRegion: true,
+      child: Container(
+        width: double.infinity,
+        margin: const EdgeInsets.fromLTRB(
+          AppMetrics.p16,
+          AppMetrics.p12,
+          AppMetrics.p16,
+          AppMetrics.p4,
+        ),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppMetrics.p12,
+          vertical: AppMetrics.p8,
+        ),
+        decoration: BoxDecoration(
+          color: scheme.errorContainer,
+          borderRadius: BorderRadius.circular(AppShape.r12),
+          border: Border.all(color: scheme.error),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.refresh_outlined,
+              size: AppIconSize.action,
+              color: scheme.onErrorContainer,
+            ),
+            const SizedBox(width: AppMetrics.p8),
+            Expanded(
+              child: Text(
+                l10n.pageErrorMessage,
+                style: context.typeRoles.bodyDense.copyWith(
+                  color: scheme.onErrorContainer,
+                ),
+              ),
+            ),
+            TextButton(
+              onPressed: feedState.isRefreshing
+                  ? null
+                  : () => ref.read(feedProvider.notifier).refresh(),
+              child: Text(l10n.retryAction),
+            ),
           ],
         ),
       ),
@@ -170,80 +236,30 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   Widget _buildEmptyState() {
-    final scheme = Theme.of(context).colorScheme;
+    final l10n = context.l10n;
 
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Icon with friendly emoji
-            Container(
-              padding: const EdgeInsets.all(AppMetrics.p24),
-              decoration: BoxDecoration(
-                color: scheme.primary.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.emoji_emotions_outlined,
-                size: AppIconSize.display,
-                color: scheme.primary,
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // Decision-based title
-            Text(
-              '🎯 Kamu ingin apa hari ini?',
-              style: TextStyle(
-                fontSize: AppType.s20,
-                fontWeight: FontWeight.w700,
-                color: scheme.onSurface,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 32),
-
-            // PRIMARY ACTION: Cari & Beli Koi
-            _buildPrimaryActionButton(
-              icon: Icons.shopping_bag_outlined,
-              label: 'Cari & Beli Koi',
-              onTap: () => _navigateToMarketplace(context),
-            ),
-            const SizedBox(height: 12),
-
-            // SECONDARY ACTION: Universal content composer
-            _buildSecondaryActionButton(
-              icon: Icons.post_add_outlined,
-              label: 'Buat Konten',
-              onTap: () => _navigateToCreateContent(context),
-            ),
-          ],
+    // First-use empty: the canonical state carries exactly ONE primary
+    // action (explore the marketplace). "Buat Konten" stays a secondary
+    // affordance rendered outside the state, so no entry point is lost.
+    return Column(
+      children: [
+        Expanded(
+          child: EmptyState(
+            icon: Icons.emoji_emotions_outlined,
+            title: l10n.homeFirstUseTitle,
+            actionLabel: l10n.exploreMarketplaceAction,
+            onAction: () => _navigateToMarketplace(context),
+          ),
         ),
-      ),
-    );
-  }
-
-  /// Primary action button - filled style for main action
-  Widget _buildPrimaryActionButton({
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-  }) {
-    return SizedBox(
-      width: AppContentSize.actionWidth,
-      child: FilledButton.icon(
-        icon: Icon(icon, size: AppIconSize.header),
-        label: Text(
-          label,
-          style: const TextStyle(fontSize: AppType.s16, fontWeight: FontWeight.w600),
+        Padding(
+          padding: const EdgeInsets.only(bottom: AppMetrics.p32),
+          child: _buildSecondaryActionButton(
+            icon: Icons.post_add_outlined,
+            label: 'Buat Konten',
+            onTap: () => _navigateToCreateContent(context),
+          ),
         ),
-        onPressed: onTap,
-        style: FilledButton.styleFrom(
-          padding: const EdgeInsets.symmetric(vertical: AppMetrics.p16, horizontal: AppMetrics.p24),
-        ),
-      ),
+      ],
     );
   }
 
@@ -261,15 +277,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         icon: Icon(icon, size: AppIconSize.action),
         label: Text(
           label,
-          style: TextStyle(
-            fontSize: AppType.s16,
+          style: Theme.of(context).textTheme.labelLarge?.copyWith(
             fontWeight: FontWeight.w500,
             color: scheme.onSurface,
           ),
         ),
         onPressed: onTap,
         style: OutlinedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(vertical: AppMetrics.p16, horizontal: AppMetrics.p24),
+          padding: const EdgeInsets.symmetric(
+            vertical: AppMetrics.p16,
+            horizontal: AppMetrics.p24,
+          ),
         ),
       ),
     );
@@ -284,38 +302,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     context.push(RoutePaths.forSales);
   }
 
-  Widget _buildError(String error) {
-    final scheme = Theme.of(context).colorScheme;
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.error_outline,
-            size: AppIconSize.display,
-            color: scheme.error,
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'Feed belum bisa dimuat',
-            style: TextStyle(fontSize: AppType.s20, fontWeight: FontWeight.w500),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            error,
-            style: TextStyle(
-              fontSize: AppType.s14,
-              color: scheme.onSurfaceVariant,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: () => ref.refresh(feedProvider),
-            child: const Text('Coba Lagi'),
-          ),
-        ],
-      ),
-    );
+  /// CANONICAL page-level load error (PageErrorState). The raw feed
+  /// [FeedState.errorMessage] never reaches the screen — safe localized copy
+  /// only; the state value stays provider-side evidence for logging.
+  Widget _buildError() {
+    return PageErrorState(onRetry: () => ref.refresh(feedProvider));
   }
 }

@@ -73,7 +73,6 @@ func newAppealCapabilityTestRouter(actor *capabilityEntity.Actor) *gin.Engine {
 
 	admin := r.Group("/admin")
 	admin.GET("/appeals", middleware.RequireCapability("moderation.appeal.read"), handler.AdminListAppeals)
-	admin.GET("/appeals/pending", middleware.RequireCapability("moderation.appeal.read"), handler.AdminListPendingAppeals)
 	admin.GET("/appeals/:id", middleware.RequireCapability("moderation.appeal.read"), handler.AdminGetAppeal)
 	admin.PUT("/appeals/:id/review", middleware.RequireCapability("moderation.appeal.review"), handler.AdminReviewAppeal)
 	return r
@@ -103,26 +102,6 @@ func TestAdminListAppeals_AppealRead_Allowed(t *testing.T) {
 	router := newAppealCapabilityTestRouter(newAppealCapabilityTestActor([]string{"moderation.appeal.read"}))
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest(http.MethodGet, "/admin/appeals", nil)
-	router.ServeHTTP(w, req)
-	assert.NotEqual(t, http.StatusForbidden, w.Code, "moderation.appeal.read must pass the capability gate")
-}
-
-// ============================================================================
-// GET /admin/appeals/pending
-// ============================================================================
-
-func TestAdminListPendingAppeals_CaseReadOnly_Forbidden(t *testing.T) {
-	router := newAppealCapabilityTestRouter(newAppealCapabilityTestActor([]string{"moderation.case.read"}))
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest(http.MethodGet, "/admin/appeals/pending", nil)
-	router.ServeHTTP(w, req)
-	assert.Equal(t, http.StatusForbidden, w.Code, "moderation.case.read alone must no longer grant pending-appeal access")
-}
-
-func TestAdminListPendingAppeals_AppealRead_Allowed(t *testing.T) {
-	router := newAppealCapabilityTestRouter(newAppealCapabilityTestActor([]string{"moderation.appeal.read"}))
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest(http.MethodGet, "/admin/appeals/pending", nil)
 	router.ServeHTTP(w, req)
 	assert.NotEqual(t, http.StatusForbidden, w.Code, "moderation.appeal.read must pass the capability gate")
 }

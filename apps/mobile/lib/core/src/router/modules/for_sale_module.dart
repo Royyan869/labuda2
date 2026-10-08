@@ -70,6 +70,7 @@ class ForSaleModule extends BaseModule {
       name: RouteNames.createForSale,
       pageBuilder: (context, state) => MaterialPage(
         key: state.pageKey,
+        name: RouteNames.createForSale,
         child: CreateForSaleScreen(
           // Canonical return-mode contract: chat's direct-commerce attach
           // pushes CreateForSaleRouteArgs.chatDirectCommerce() and consumes
@@ -79,18 +80,6 @@ class ForSaleModule extends BaseModule {
               : null,
         ),
       ),
-    ),
-
-    // ============================================================================
-    // EDIT FOR SALE - Seller edits their existing For Sale
-    // ============================================================================
-    GoRoute(
-      path: RoutePaths.editForSale,
-      name: RouteNames.editForSale,
-      builder: (context, state) {
-        final forSaleId = state.pathParameters['forSaleId']!;
-        return EditForSaleScreen(forSaleId: forSaleId);
-      },
     ),
 
     // ============================================================================

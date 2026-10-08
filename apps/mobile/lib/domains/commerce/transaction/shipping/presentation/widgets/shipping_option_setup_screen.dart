@@ -1,16 +1,12 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/commerce/transaction/shipping/domain/domain.dart';
 import 'package:labuda/domains/commerce/transaction/shipping/presentation/providers/providers.dart';
-import 'package:labuda/shared/models/wilayah_models.dart';
-import 'package:labuda/shared/providers/wilayah_provider_simple.dart';
-import 'package:labuda/shared/utils/app_formatters.dart';
-import 'package:labuda/shared/widgets/wilayah/city_dropdown.dart';
+import 'package:labuda/shared/shared.dart';
 
 class ShippingSetupScreen extends ConsumerStatefulWidget {
   /// Canonical edit mode: the screen fetches the full package (option +
@@ -77,8 +73,7 @@ class ShippingCityRulesScreen extends ConsumerStatefulWidget {
       _ShippingCityRulesScreenState();
 }
 
-class _ShippingSetupScreenState
-    extends ConsumerState<ShippingSetupScreen> {
+class _ShippingSetupScreenState extends ConsumerState<ShippingSetupScreen> {
   final _nameController = TextEditingController();
   final _internalNoteController = TextEditingController();
   final List<_CoverageDraft> _coverages = [_CoverageDraft()];
@@ -117,8 +112,10 @@ class _ShippingSetupScreenState
       for (final cov in option.coverageAreas) {
         final draft = _CoverageDraft()
           ..province = Province(id: cov.provinceId, name: cov.provinceName);
-        draft.tariffController.text =
-            (cov.provinceRate ?? 0).toInt().toString();
+        // Money field: seeded in the canonical grouped display form.
+        draft.tariffController.text = MoneyInputFormatter.display(
+          (cov.provinceRate ?? 0).toInt(),
+        );
         draft.cityRules.addAll(
           cov.cityOverrides.map(
             (city) => ShippingCityRuleDraft(
@@ -220,7 +217,9 @@ class _ShippingSetupScreenState
       return;
     }
 
-    final tariff = int.tryParse(coverage.tariffController.text.trim());
+    final tariff = MoneyInputFormatter.parseAmount(
+      coverage.tariffController.text.trim(),
+    );
     if (tariff == null || tariff <= 0) {
       setState(() {
         _errorMessage =
@@ -260,32 +259,16 @@ class _ShippingSetupScreenState
     if (!_hasUnsavedChanges) return true;
     if (_isSubmitting) return false;
 
-    final colorScheme = Theme.of(context).colorScheme;
-
-    final shouldDiscard = await showDialog<bool>(
+    final shouldDiscard = await AppDialog.confirm(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Buang perubahan?'),
-        content: const Text(
+      title: 'Buang perubahan?',
+      message:
           'Ada perubahan yang belum disimpan. Jika kembali, semua draft pada halaman ini akan dibuang.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Tetap di sini'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: colorScheme.error,
-              foregroundColor: colorScheme.onError,
-            ),
-            child: const Text('Buang'),
-          ),
-        ],
-      ),
+      confirmLabel: 'Buang',
+      cancelLabel: 'Tetap di sini',
+      intent: AppDialogIntent.destructive,
     );
-    return shouldDiscard == true;
+    return shouldDiscard;
   }
 
   Future<void> _handleBack() async {
@@ -321,7 +304,9 @@ class _ShippingSetupScreenState
         return 'Provinsi ${province.name} sudah dipilih.';
       }
 
-      final tariff = int.tryParse(coverage.tariffController.text.trim());
+      final tariff = MoneyInputFormatter.parseAmount(
+        coverage.tariffController.text.trim(),
+      );
       if (tariff == null || tariff <= 0) {
         return 'Tarif untuk ${province.name} harus lebih dari 0.';
       }
@@ -357,31 +342,41 @@ class _ShippingSetupScreenState
     return _coverages.any(
       (coverage) =>
           coverage.province != null &&
-          (int.tryParse(coverage.tariffController.text.trim()) ?? 0) > 0,
+          (MoneyInputFormatter.parseAmount(
+                coverage.tariffController.text.trim(),
+              ) ??
+              0) >
+              0,
     );
   }
 
   List<ShippingDestinationRequest> _buildDestinations() {
-    return _coverages.map((coverage) {
-      final province = coverage.province!;
-      final tariff = int.parse(coverage.tariffController.text.trim());
-      return ShippingDestinationRequest(
-        provinceCode: province.id,
-        provinceName: province.name,
-        rate: tariff,
-        isAvailable: true,
-        cityQualifications: coverage.cityRules
-            .map(
-              (rule) => CityQualificationRequest(
-                cityCode: rule.cityId,
-                cityName: rule.cityName,
-                rateOverride: rule.overrideTariff,
-                excluded: rule.excluded,
-              ),
-            )
-            .toList(growable: false),
-      );
-    }).toList(growable: false);
+    return _coverages
+        .map((coverage) {
+          final province = coverage.province!;
+          final tariff =
+              MoneyInputFormatter.parseAmount(
+                coverage.tariffController.text.trim(),
+              ) ??
+              0;
+          return ShippingDestinationRequest(
+            provinceCode: province.id,
+            provinceName: province.name,
+            rate: tariff,
+            isAvailable: true,
+            cityQualifications: coverage.cityRules
+                .map(
+                  (rule) => CityQualificationRequest(
+                    cityCode: rule.cityId,
+                    cityName: rule.cityName,
+                    rateOverride: rule.overrideTariff,
+                    excluded: rule.excluded,
+                  ),
+                )
+                .toList(growable: false),
+          );
+        })
+        .toList(growable: false);
   }
 
   Future<void> _submit() async {
@@ -494,7 +489,7 @@ class _ShippingSetupScreenState
         appBar: AppBar(
           title: const Text('Edit Opsi Pengiriman'),
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
+            icon: const Icon(Icons.arrow_back, semanticLabel: 'Kembali'),
             onPressed: () => Navigator.of(context).pop(),
           ),
         ),
@@ -503,19 +498,24 @@ class _ShippingSetupScreenState
           padding: const EdgeInsets.all(AppMetrics.p24),
           children: [
             const SizedBox(height: 80),
-            Icon(Icons.error_outline, size: AppIconSize.display, color: colorScheme.error),
+            Icon(
+              Icons.error_outline,
+              size: AppIconSize.display,
+              color: colorScheme.error,
+            ),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'Gagal memuat detail opsi pengiriman',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: AppType.s20, fontWeight: FontWeight.bold),
+              style: context.typeRoles.titleProminent.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 8),
             Text(
               _detailError!,
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: AppType.s14,
+              style: context.typeRoles.bodyDense.copyWith(
                 color: colorScheme.onSurfaceVariant,
               ),
             ),
@@ -548,9 +548,11 @@ class _ShippingSetupScreenState
       },
       child: Scaffold(
         appBar: AppBar(
-          title: Text(_isEditMode ? 'Edit Opsi Pengiriman' : 'Setup Opsi Pengiriman'),
+          title: Text(
+            _isEditMode ? 'Edit Opsi Pengiriman' : 'Setup Opsi Pengiriman',
+          ),
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
+            icon: const Icon(Icons.arrow_back, semanticLabel: 'Kembali'),
             onPressed: _handleBack,
           ),
         ),
@@ -565,21 +567,26 @@ class _ShippingSetupScreenState
             padding: const EdgeInsets.all(AppMetrics.p24),
             children: [
               const SizedBox(height: 80),
-              Icon(Icons.error_outline, size: AppIconSize.display, color: colorScheme.error),
+              Icon(
+                Icons.error_outline,
+                size: AppIconSize.display,
+                color: colorScheme.error,
+              ),
               const SizedBox(height: 16),
-              const Text(
+              Text(
                 'Gagal memuat provinsi',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: AppType.s20, fontWeight: FontWeight.bold),
+                style: context.typeRoles.titleProminent.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 8),
               Text(
                 '$error',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                fontSize: AppType.s14,
-                color: colorScheme.onSurfaceVariant,
-              ),
+                style: context.typeRoles.bodyDense.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
               ),
               const SizedBox(height: 24),
               ElevatedButton(
@@ -590,7 +597,10 @@ class _ShippingSetupScreenState
           ),
           data: (provinces) => SingleChildScrollView(
             keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-            padding: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p16, AppMetrics.p16, AppMetrics.bottomBarClearance),
+            // No bottom clearance here: `Scaffold.bottomNavigationBar` already
+            // reserves the region this scrollable ends at, and the
+            // `BottomActionBar` mounted there owns the system bottom inset.
+            padding: const EdgeInsets.all(AppMetrics.p16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -598,12 +608,14 @@ class _ShippingSetupScreenState
                   _isEditMode
                       ? 'Edit lengkap opsi pengiriman termasuk cakupan, tarif, dan aturan kota.'
                       : 'Lengkapi satu opsi pengiriman, lalu simpan seluruh coverage sekaligus.',
-                  style: const TextStyle(fontSize: AppType.s14),
+                  style: context.typeRoles.bodyDense,
                 ),
                 const SizedBox(height: 16),
-                const Text(
+                Text(
                   'Jenis transportasi',
-                  style: TextStyle(fontSize: AppType.s14, fontWeight: FontWeight.w600),
+                  style: context.typeRoles.titleSection.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Wrap(
@@ -635,7 +647,6 @@ class _ShippingSetupScreenState
                   decoration: const InputDecoration(
                     labelText: 'Nama ekspedisi / layanan *',
                     hintText: 'Contoh: Bus Kencana',
-                    border: OutlineInputBorder(),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -651,13 +662,14 @@ class _ShippingSetupScreenState
                     helperText:
                         'Pengingat pribadi untuk memilih opsi ini saat membuat '
                         'ForSale — tidak pernah tampil ke pembeli.',
-                    border: OutlineInputBorder(),
                   ),
                 ),
                 const SizedBox(height: 20),
-                const Text(
+                Text(
                   'Tujuan dan tarif',
-                  style: TextStyle(fontSize: AppType.s16, fontWeight: FontWeight.w700),
+                  style: context.typeRoles.titleSection.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 // BUSINESS TRUTH: the tariff is ALL-IN (shipping + packing).
@@ -685,8 +697,7 @@ class _ShippingSetupScreenState
                         child: Text(
                           'Input biaya pengiriman beserta biaya packing jika ada. '
                           'Di sisi pembeli, tarif ini tampil sebagai "Ongkir + Packing".',
-                          style: TextStyle(
-                            fontSize: AppType.s12,
+                          style: context.typeRoles.labelMicro.copyWith(
                             color: colorScheme.onSurfaceVariant,
                           ),
                         ),
@@ -720,7 +731,7 @@ class _ShippingSetupScreenState
                   const SizedBox(height: 8),
                   Text(
                     _errorMessage!,
-                    style: TextStyle(
+                    style: context.typeRoles.bodyDense.copyWith(
                       color: colorScheme.error,
                       fontWeight: FontWeight.w600,
                     ),
@@ -736,47 +747,18 @@ class _ShippingSetupScreenState
   }
 
   Widget _buildActionBar() {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return SafeArea(
-      minimum: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p8, AppMetrics.p16, AppMetrics.p16),
-      child: Row(
-        children: [
-          Expanded(
-            child: OutlinedButton.icon(
-              onPressed: _isSubmitting ? null : _addCoverage,
-              icon: const Icon(Icons.add),
-              label: const Text('Tambah Provinsi'),
-              style: OutlinedButton.styleFrom(
-                minimumSize: const Size.fromHeight(50),
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: ElevatedButton(
-              // Save gate: enabled only when the package is complete
-              // (type + name + ≥1 destination with a rate).
-              onPressed: (_isSubmitting || !_canSave) ? null : _submit,
-              style: ElevatedButton.styleFrom(
-                disabledBackgroundColor: colorScheme.surfaceContainerHighest,
-                minimumSize: const Size.fromHeight(50),
-              ),
-              child: _isSubmitting
-                  ? SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          colorScheme.onPrimary,
-                        ),
-                      ),
-                    )
-                  : const Text('Simpan'),
-            ),
-          ),
-        ],
+    // Chrome owned by [BottomActionBar]. Save gate stays here: enabled only
+    // when the package is complete (type + name + ≥1 destination with a rate).
+    return BottomActionBar(
+      secondary: BottomBarAction(
+        label: 'Tambah Provinsi',
+        icon: Icons.add,
+        onPressed: _isSubmitting ? null : _addCoverage,
+      ),
+      primary: BottomBarAction(
+        label: 'Simpan',
+        onPressed: (_isSubmitting || !_canSave) ? null : _submit,
+        isLoading: _isSubmitting,
       ),
     );
   }
@@ -834,7 +816,9 @@ class _ShippingCityRulesScreenState
     final visibleRules = _rules.take(2).map((rule) {
       final detail = rule.excluded
           ? 'Tidak dilayani'
-          : AppFormatters.formatCurrencyInt(rule.overrideTariff ?? widget.args.provinceTariff);
+          : AppFormatters.formatCurrencyInt(
+              rule.overrideTariff ?? widget.args.provinceTariff,
+            );
       return '- ${rule.cityName}: $detail';
     }).toList();
     final overflow = _rules.length > 2
@@ -850,7 +834,12 @@ class _ShippingCityRulesScreenState
     return Scaffold(
       appBar: AppBar(title: const Text('Atur Kota/Kabupaten')),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p16, AppMetrics.p16, AppMetrics.p24),
+        padding: const EdgeInsets.fromLTRB(
+          AppMetrics.p16,
+          AppMetrics.p16,
+          AppMetrics.p16,
+          AppMetrics.p24,
+        ),
         children: [
           Container(
             padding: const EdgeInsets.all(AppMetrics.p16),
@@ -866,8 +855,7 @@ class _ShippingCityRulesScreenState
               children: [
                 Text(
                   province.name,
-                  style: const TextStyle(
-                    fontSize: AppType.s20,
+                  style: context.typeRoles.titleSection.copyWith(
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -883,10 +871,12 @@ class _ShippingCityRulesScreenState
           const SizedBox(height: 16),
           Row(
             children: [
-              const Expanded(
+              Expanded(
                 child: Text(
                   'Aturan khusus',
-                  style: TextStyle(fontSize: AppType.s16, fontWeight: FontWeight.w700),
+                  style: context.typeRoles.titleSection.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
               TextButton.icon(
@@ -950,18 +940,16 @@ class _ShippingCityRulesScreenState
           const SizedBox(height: 12),
           Text(
             _summaryText(),
-            style: TextStyle(fontSize: AppType.s14, color: colorScheme.onSurfaceVariant),
+            style: context.typeRoles.bodyDense.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
           ),
         ],
       ),
-      bottomNavigationBar: SafeArea(
-        minimum: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p8, AppMetrics.p16, AppMetrics.p16),
-        child: ElevatedButton(
+      bottomNavigationBar: BottomActionBar(
+        primary: BottomBarAction(
+          label: 'Simpan',
           onPressed: _save,
-          style: ElevatedButton.styleFrom(
-            minimumSize: const Size.fromHeight(50),
-          ),
-          child: const Text('Simpan'),
         ),
       ),
     );
@@ -1063,7 +1051,6 @@ class _CoverageCard extends StatelessWidget {
                   isExpanded: true,
                   decoration: const InputDecoration(
                     labelText: 'Provinsi *',
-                    border: OutlineInputBorder(),
                   ),
                   items: provinces
                       .map(
@@ -1080,7 +1067,7 @@ class _CoverageCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 IconButton(
                   onPressed: onRemove,
-                  icon: const Icon(Icons.delete_outline),
+                  icon: const Icon(Icons.delete_outline, semanticLabel: 'Hapus'),
                   color: colorScheme.error,
                 ),
               ],
@@ -1090,18 +1077,21 @@ class _CoverageCard extends StatelessWidget {
           TextField(
             controller: coverage.tariffController,
             keyboardType: TextInputType.number,
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            inputFormatters: const [MoneyInputFormatter()],
             onChanged: (_) => onTariffChanged(),
+            // Border/fill come from `inputDecorationTheme` (AppTheme) — the
+            // one form-field authority.
             decoration: const InputDecoration(
               labelText: 'Tarif provinsi (ongkir + packing) *',
               prefixText: 'Rp ',
-              border: OutlineInputBorder(),
             ),
           ),
           const SizedBox(height: 12),
           Text(
             _summaryText(),
-            style: TextStyle(fontSize: AppType.s14, color: colorScheme.onSurfaceVariant),
+            style: context.typeRoles.bodyDense.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
           ),
           const SizedBox(height: 8),
           Align(
@@ -1154,7 +1144,9 @@ class _CityRuleEditorDialogState extends ConsumerState<_CityRuleEditorDialog> {
       );
       _excluded = initial.excluded;
       if (initial.overrideTariff != null) {
-        _overrideController.text = initial.overrideTariff.toString();
+        _overrideController.text = MoneyInputFormatter.display(
+          initial.overrideTariff!, // money field: canonical grouped display
+        );
       }
     }
   }
@@ -1185,10 +1177,9 @@ class _CityRuleEditorDialogState extends ConsumerState<_CityRuleEditorDialog> {
       return;
     }
 
-    final overrideTariffText = _overrideController.text.trim();
-    final overrideTariff = overrideTariffText.isEmpty
-        ? null
-        : int.tryParse(overrideTariffText);
+    final overrideTariff = MoneyInputFormatter.parseAmount(
+      _overrideController.text.trim(),
+    );
     if (!_excluded && (overrideTariff == null || overrideTariff <= 0)) {
       setState(() => _error = 'Masukkan tarif override yang valid.');
       return;
@@ -1243,11 +1234,12 @@ class _CityRuleEditorDialogState extends ConsumerState<_CityRuleEditorDialog> {
               TextField(
                 controller: _overrideController,
                 keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                inputFormatters: const [MoneyInputFormatter()],
+                // Border/fill come from `inputDecorationTheme` (AppTheme) —
+                // the one form-field authority.
                 decoration: const InputDecoration(
                   labelText: 'Tarif override (ongkir + packing)',
                   prefixText: 'Rp ',
-                  border: OutlineInputBorder(),
                 ),
               ),
             ],

@@ -14,7 +14,6 @@ export 'providers/current_seller_provider.dart';
 
 // Widgets (to be migrated from old module)
 // export 'widgets/seller_stats_card.dart';
-// export 'widgets/seller_activity_item.dart';
 // export 'widgets/seller_revenue_card.dart';
 
 // Stub widgets for profile module compatibility

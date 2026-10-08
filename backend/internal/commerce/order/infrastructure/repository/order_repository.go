@@ -70,12 +70,13 @@ func (r *OrderRepository) CreateOrderTx(
 			shipping_source, shipping_origin_snapshot,
 			shipping_quote_id, shipping_quote_price,
 			order_number,
-			completed_at, created_at, updated_at
+			completed_at, created_at, updated_at,
+			payment_method_code
 		)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14,
 		        $15,
 		        $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29,
-		        $30, $31, $32, $33, $34, $35, $36)
+		        $30, $31, $32, $33, $34, $35, $36, $37)
 	`,
 		order.ID,
 		order.BuyerID,
@@ -113,6 +114,7 @@ func (r *OrderRepository) CreateOrderTx(
 		order.CompletedAt,
 		order.CreatedAt,
 		order.UpdatedAt,
+		order.PaymentMethodCode,
 	)
 
 	if err != nil {
@@ -166,6 +168,7 @@ func (r *OrderRepository) GetByID(
 	var shippingSourceDB sql.NullString
 	var shippingQuoteIDDB sql.NullString
 	var shippingQuotePriceDB sql.NullInt64
+	var paymentMethodCodeDB sql.NullString
 	var paymentExpiresAt sql.NullTime
 	var createdAt, updatedAt time.Time
 
@@ -184,6 +187,7 @@ func (r *OrderRepository) GetByID(
 		       payment_expires_at,
 		       shipping_source, shipping_origin_snapshot,
 		       shipping_quote_id, shipping_quote_price,
+		       payment_method_code,
 		       completed_at, created_at, updated_at
 		FROM orders
 		WHERE id = $1
@@ -201,6 +205,7 @@ func (r *OrderRepository) GetByID(
 		&paymentExpiresAt,
 		&shippingSourceDB, &originSnapshotJSON,
 		&shippingQuoteIDDB, &shippingQuotePriceDB,
+		&paymentMethodCodeDB,
 		&completedAt, &createdAt, &updatedAt,
 	)
 
@@ -260,6 +265,7 @@ func (r *OrderRepository) GetByID(
 		ShippingOrigin:     shippingOrigin,
 		ShippingQuoteID:    db.ToUUIDPtr(shippingQuoteIDDB),
 		ShippingQuotePrice: db.ToInt64Ptr(shippingQuotePriceDB),
+		PaymentMethodCode:  db.ToStringPtr(paymentMethodCodeDB),
 		// Shipping Readiness Snapshot
 		PreparationTimeSnapshot:   preparationTimeSnapshot.String,
 		ReadyToShipBy:             db.ToTimePtr(readyToShipBy),
@@ -329,6 +335,7 @@ func (r *OrderRepository) GetForUpdate(
 	var shippingSourceDB sql.NullString
 	var shippingQuoteIDDB sql.NullString
 	var shippingQuotePriceDB sql.NullInt64
+	var paymentMethodCodeDB sql.NullString
 	var paymentExpiresAt sql.NullTime
 	var createdAt, updatedAt time.Time
 
@@ -347,6 +354,7 @@ func (r *OrderRepository) GetForUpdate(
 		       payment_expires_at,
 		       shipping_source, shipping_origin_snapshot,
 		       shipping_quote_id, shipping_quote_price,
+		       payment_method_code,
 		       completed_at, created_at, updated_at
 		FROM orders
 		WHERE id = $1
@@ -365,6 +373,7 @@ func (r *OrderRepository) GetForUpdate(
 		&paymentExpiresAt,
 		&shippingSourceDB, &originSnapshotJSON,
 		&shippingQuoteIDDB, &shippingQuotePriceDB,
+		&paymentMethodCodeDB,
 		&completedAt, &createdAt, &updatedAt,
 	)
 
@@ -424,6 +433,7 @@ func (r *OrderRepository) GetForUpdate(
 		ShippingOrigin:     shippingOrigin,
 		ShippingQuoteID:    db.ToUUIDPtr(shippingQuoteIDDB),
 		ShippingQuotePrice: db.ToInt64Ptr(shippingQuotePriceDB),
+		PaymentMethodCode:  db.ToStringPtr(paymentMethodCodeDB),
 		// Shipping Readiness Snapshot
 		PreparationTimeSnapshot:   preparationTimeSnapshot.String,
 		ReadyToShipBy:             db.ToTimePtr(readyToShipBy),
@@ -691,6 +701,7 @@ func (r *OrderRepository) GetByPricingTokenID(
 	var originSnapshotJSON []byte
 	var shippingQuoteIDDB sql.NullString
 	var shippingQuotePriceDB sql.NullInt64
+	var paymentMethodCodeDB sql.NullString
 	var paymentExpiresAt sql.NullTime
 
 	err := tx.QueryRow(ctx, `
@@ -709,6 +720,7 @@ func (r *OrderRepository) GetByPricingTokenID(
 		       payment_expires_at,
 		       shipping_source, shipping_origin_snapshot,
 		       shipping_quote_id, shipping_quote_price,
+		       payment_method_code,
 		       completed_at, created_at, updated_at
 		FROM orders
 		WHERE pricing_token_id = $1
@@ -727,6 +739,7 @@ func (r *OrderRepository) GetByPricingTokenID(
 		&paymentExpiresAt,
 		&shippingSourceDB, &originSnapshotJSON,
 		&shippingQuoteIDDB, &shippingQuotePriceDB,
+		&paymentMethodCodeDB,
 		&completedAt, &createdAt, &updatedAt,
 	)
 
@@ -783,6 +796,7 @@ func (r *OrderRepository) GetByPricingTokenID(
 		ShippingOrigin:            shippingOrigin,
 		ShippingQuoteID:           db.ToUUIDPtr(shippingQuoteIDDB),
 		ShippingQuotePrice:        db.ToInt64Ptr(shippingQuotePriceDB),
+		PaymentMethodCode:         db.ToStringPtr(paymentMethodCodeDB),
 		PreparationTimeSnapshot:   preparationTimeSnapshot.String,
 		ReadyToShipBy:             db.ToTimePtr(readyToShipBy),
 		AddressSnapshot:           shippingDestination,
@@ -912,23 +926,32 @@ func (r *OrderRepository) UpdateStatusTx(
 // This UPDATE deliberately never writes total_before_coins_amount: the buyer
 // funding base (PD + S) is fixed at order creation and neither the payment fee
 // F nor the coins deduction may enter it.
+//
+// PAYMENT METHOD BINDING (Phase 2 follow-up): paymentMethodCode is written with
+// COALESCE so an order that already carries a bound method can NEVER be
+// switched to a different method by a payment. Only an unbound order (NULL —
+// auction-claim) is bound here, to the method used at first payment. This makes
+// "the order cannot silently switch method" a persistence-layer invariant.
 func (r *OrderRepository) UpdatePaymentSelectionTx(
 	ctx context.Context,
 	tx db.Tx,
 	orderID uuid.UUID,
 	serviceFeeAmount money.Money,
 	totalPayableAmount money.Money,
+	paymentMethodCode string,
 ) error {
 	_, err := tx.Exec(ctx, `
 		UPDATE orders
 		SET service_fee_amount = $2,
 		    total_payable_amount = $3,
+		    payment_method_code = COALESCE(payment_method_code, $4),
 		    updated_at = NOW()
 		WHERE id = $1
 	`,
 		orderID,
 		serviceFeeAmount.Int64(),
 		totalPayableAmount.Int64(),
+		paymentMethodCode,
 	)
 	if err != nil {
 		return fmt.Errorf("update order payment selection failed: %w", err)

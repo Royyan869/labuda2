@@ -1,79 +1,28 @@
 import 'package:equatable/equatable.dart';
 import 'package:labuda/shared/shared.dart';
 
-/// Role tags describing how a saved address may be used.
-///
-/// CANONICAL TRUTH: an address belongs to the ACCOUNT, not to a role. Tags are
-/// a SET — one address may be both a shipping destination and a sender origin,
-/// and promotion scope will attach further tags later without a new entity.
-enum AddressTag {
-  /// Destination the account can be delivered to (any account may create one).
-  shipping,
-
-  /// Origin goods are shipped from (the account's farm/warehouse).
-  sender,
-}
-
-extension AddressTagExtension on AddressTag {
-  /// Wire value accepted by the backend (`tags: [...]`).
-  String get wireValue => name;
-
-  String get label {
-    switch (this) {
-      case AddressTag.shipping:
-        return 'Shipping Address';
-      case AddressTag.sender:
-        return 'Sender Address';
-    }
-  }
-
-  String get description {
-    switch (this) {
-      case AddressTag.shipping:
-        return 'Address for receiving packages/shipments';
-      case AddressTag.sender:
-        return 'Origin address for goods (for seller)';
-    }
-  }
-
-  String get shortLabel {
-    switch (this) {
-      case AddressTag.shipping:
-        return 'Shipping';
-      case AddressTag.sender:
-        return 'Sender';
-    }
-  }
-
-  /// Parses a wire value. Unknown values resolve to null — the caller decides
-  /// whether to fail or to drop the tag, never to silently invent a role.
-  static AddressTag? parse(String raw) {
-    for (final tag in AddressTag.values) {
-      if (tag.wireValue == raw) return tag;
-    }
-    return null;
-  }
-}
-
 /// A saved address owned by the account.
+///
+/// CANONICAL TRUTH: the account owns one address book (0..N addresses).
+/// Exactly one address is primary when the account has any active address.
+/// The primary address is the account's single default address: the default
+/// destination at checkout and the default origin for every product. There are
+/// no shipping/sender roles, no tags, and no address purpose.
 ///
 /// Business rules:
 /// - Many addresses per account; at most one `isPrimary` across the whole
-///   account (the backend enforces this — there is no per-tag primary).
-/// - `tags` must be non-empty; an address may carry both tags.
+///   account (the backend enforces this).
 /// - Max 10 addresses per account.
 class AddressEntity extends Equatable {
   final String id;
   final String userId;
 
-  /// How this address may be used. A set, not a single role.
-  final List<AddressTag> tags;
-
-  /// Optional user-defined nickname (e.g., "Rumah Utama", "Kantor", "Farm Sukabumi")
+  /// Optional user-defined label for recognition only (e.g., "Rumah",
+  /// "Kantor"). Never a business role and never used for branching.
   final String? nickname;
 
-  final String recipientName; // Nama penerima/pengirim (bisa beda dari user)
-  final String phone; // Nomor telepon penerima/pengirim
+  final String recipientName; // Nama penerima (bisa beda dari user)
+  final String phone; // Nomor telepon penerima
   final Province province;
   final City city;
   final District district;
@@ -93,7 +42,6 @@ class AddressEntity extends Equatable {
   const AddressEntity({
     required this.id,
     required this.userId,
-    required this.tags,
     this.nickname,
     required this.recipientName,
     required this.phone,
@@ -115,7 +63,6 @@ class AddressEntity extends Equatable {
   List<Object?> get props => [
         id,
         userId,
-        tags,
         nickname,
         recipientName,
         phone,
@@ -133,21 +80,6 @@ class AddressEntity extends Equatable {
         updatedAt,
       ];
 
-  /// Whether this address carries [tag].
-  bool hasTag(AddressTag tag) => tags.contains(tag);
-
-  /// Wire representation of the tag set.
-  List<String> get tagValues => tags.map((tag) => tag.wireValue).toList();
-
-  /// Display label priority: nickname, then the joined tag labels.
-  String get displayLabel {
-    final tagText = tags.map((tag) => tag.label).join(', ');
-    if (nickname != null && nickname!.isNotEmpty) {
-      return tags.isEmpty ? nickname! : '$nickname ($tagText)';
-    }
-    return tagText;
-  }
-
   /// Get full formatted address string
   String get fullAddress =>
       '$streetAddress, ${village.name}, ${district.name}, ${city.name}, '
@@ -156,12 +88,9 @@ class AddressEntity extends Equatable {
   /// Check if address has GPS coordinates
   bool get hasCoordinates => latitude != null && longitude != null;
 
-  /// Only addresses tagged for shipping are selectable at checkout.
-
   AddressEntity copyWith({
     String? id,
     String? userId,
-    List<AddressTag>? tags,
     String? nickname,
     String? recipientName,
     String? phone,
@@ -181,7 +110,6 @@ class AddressEntity extends Equatable {
     return AddressEntity(
       id: id ?? this.id,
       userId: userId ?? this.userId,
-      tags: tags ?? this.tags,
       nickname: nickname ?? this.nickname,
       recipientName: recipientName ?? this.recipientName,
       phone: phone ?? this.phone,
@@ -204,7 +132,6 @@ class AddressEntity extends Equatable {
   Map<String, dynamic> toJson() {
     return {
       'user_id': userId,
-      'tags': tagValues,
       'nickname': nickname,
       'recipient_name': recipientName,
       'phone': phone,
@@ -224,21 +151,10 @@ class AddressEntity extends Equatable {
   }
 
   /// Create from the backend wire shape.
-  ///
-  /// An unknown tag value is dropped rather than defaulted to a role: an
-  /// address never silently claims a usage the backend did not declare.
   factory AddressEntity.fromJson(Map<String, dynamic> json, String id) {
-    final rawTags = (json['tags'] as List<dynamic>? ?? const [])
-        .whereType<String>()
-        .toList();
-
     return AddressEntity(
       id: id,
       userId: (json['userId'] ?? json['user_id']) as String,
-      tags: rawTags
-          .map(AddressTagExtension.parse)
-          .whereType<AddressTag>()
-          .toList(),
       nickname: json['nickname'] as String?,
       recipientName:
           (json['recipientName'] ?? json['recipient_name'] ?? '') as String,
@@ -269,7 +185,7 @@ class AddressEntity extends Equatable {
 
   @override
   String toString() {
-    return 'AddressEntity(id: $id, tags: ${tagValues.join('|')}, '
-        'nickname: $nickname, isPrimary: $isPrimary, address: $fullAddress)';
+    return 'AddressEntity(id: $id, nickname: $nickname, '
+        'isPrimary: $isPrimary, address: $fullAddress)';
   }
 }

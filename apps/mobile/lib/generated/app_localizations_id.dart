@@ -1104,14 +1104,14 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get articleHowToPayContent =>
-      'Untuk membayar pesanan:\n\n1. Buka pesanan dari Keranjang atau Pesanan\n2. Tap tombol \'Bayar Sekarang\'\n3. Pilih metode pembayaran (GoPay, Transfer Bank, dll)\n4. Ikuti instruksi untuk menyelesaikan pembayaran\n5. Pembayaran akan dikonfirmasi dalam 24 jam\n\nJika pembayaran gagal, Anda bisa mencoba lagi dari layar pesanan.';
+      'Untuk membayar pesanan:\n\n1. Buka pesanan dari layar Pesanan\n2. Tap tombol \'Bayar Sekarang\'\n3. Pilih metode pembayaran (GoPay, Transfer Bank, dll)\n4. Ikuti instruksi untuk menyelesaikan pembayaran\n\nSelesaikan pembayaran sebelum batas waktu yang tertera di layar pesanan. Jika batas waktu terlewat, pesanan otomatis dibatalkan.\n\nStatus pesanan diperbarui begitu pembayaran dikonfirmasi. Jika pembayaran gagal, Anda bisa mencoba lagi dari layar pesanan.';
 
   @override
   String get articleTrackOrder => 'Cara melacak pesanan saya?';
 
   @override
   String get articleTrackOrderContent =>
-      'Untuk melacak pesanan:\n\n1. Buka \'Pesanan Saya\' dari menu profil\n2. Tap pesanan yang ingin dilacak\n3. Anda akan melihat status dan info pelacakan\n\nStatus pesanan:\n- Pending: Menunggu pembayaran\n- Processing: Penjual menyiapkan pesanan\n- Shipped: Pesanan dikirim\n- Delivered: Pesanan sampai\n- Completed: Pesanan selesai';
+      'Untuk melacak pesanan:\n\n1. Buka \'Pesanan Saya\' dari menu profil\n2. Tap pesanan yang ingin dilacak\n3. Anda akan melihat status terkini, info pengiriman, dan nomor resi\n\nStatus pesanan:\n- Menunggu Pembayaran: Pesanan sudah dibuat, segera selesaikan pembayaran Anda\n- Diproses: Pembayaran diterima, penjual sedang menyiapkan pesanan Anda\n- Dalam Pengiriman: Pesanan sudah dikirim\n- Selesai: Pesanan tuntas\n\nJika penjual tidak mengirim dalam estimasi waktu persiapan yang tertera pada pesanan, pesanan bisa dibatalkan.';
 
   @override
   String get articleRequestRefund => 'Cara meminta refund?';
@@ -1125,21 +1125,21 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get articleBecomeSellerContent =>
-      'Untuk menjadi penjual di LABUDA:\n\n1. Buka Pengaturan → Upgrade ke Penjual\n2. Pilih paket (Basic atau Pro)\n3. Isi informasi bisnis\n4. Selesaikan pembayaran langganan\n5. Tunggu persetujuan verifikasi\n\nSetelah disetujui, Anda bisa mulai menjual koi Anda!';
+      'Untuk menjadi penjual di LABUDA:\n\n1. Buka Pengaturan → Upgrade ke Penjual\n2. Pilih paket (Basic atau Pro)\n3. Isi informasi bisnis\n4. Selesaikan pembayaran langganan\n5. Tunggu persetujuan verifikasi\n\nSetelah disetujui, Anda bisa mulai membuat For Sale untuk koi Anda!';
 
   @override
   String get articleCancelOrder => 'Cara membatalkan pesanan?';
 
   @override
   String get articleCancelOrderContent =>
-      'Pembatalan pesanan tergantung status:\n\n- Pending payment: Otomatis dibatalkan jika belum dibayar dalam 24 jam\n- Processing: Hubungi penjual untuk membatalkan\n- Shipped: Tidak bisa dibatalkan, gunakan proses refund\n\nUntuk meminta pembatalan, tap pesanan dan pilih \'Chat Penjual\' untuk diskusi.';
+      'Pembatalan pesanan tergantung status:\n\n- Menunggu Pembayaran: Batalkan dari detail pesanan, atau biarkan hangus otomatis jika batas waktu pembayaran terlewat\n- Diproses atau Dalam Pengiriman: Pesanan tidak bisa dibatalkan langsung, gunakan proses refund\n- Penjual terlambat mengirim: Anda bisa membatalkan pesanan dari detail pesanan\n- Selesai: Gunakan proses refund jika ada masalah\n\nUntuk membahas pembatalan, buka pesanan dan pilih \'Chat Penjual\'.';
 
   @override
   String get articleConfirmDelivery => 'Cara menyelesaikan pesanan?';
 
   @override
   String get articleConfirmDeliveryContent =>
-      'Untuk menyelesaikan pesanan setelah barang diterima:\n\n1. Buka detail pesanan\n2. Tap tombol \'Terima Barang\'\n3. Pastikan barang sesuai pesanan\n\nJika tidak dikonfirmasi dalam 5 hari setelah pengiriman, pesanan akan otomatis selesai.';
+      'Untuk menyelesaikan pesanan setelah barang diterima:\n\n1. Buka detail pesanan\n2. Tap tombol \'Terima Barang\'\n3. Pastikan barang sesuai pesanan\n\nAnda punya 5 hari sejak penjual menandai pesanan dikirim untuk konfirmasi terima atau membuka dispute. Jika tidak dikonfirmasi, pesanan selesai otomatis.\n\nJika pesanan belum tiba dan 5 hari hampir habis, gunakan \'Perpanjang Konfirmasi\' satu kali untuk menambah 3 hari.';
 
   @override
   String get articlePaymentFailed =>
@@ -1154,21 +1154,21 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get articleRefundTimeContent =>
-      'Waktu proses refund:\n\n1. Review penjual: 1-3 hari\n2. Jika disetujui: 3-7 hari kerja untuk dana kembali\n\nWaktu tepat tergantung metode pembayaran. Refund GoPay biasanya lebih cepat dari transfer bank.';
+      'Proses refund tergantung kasusnya:\n\n1. Kirim permintaan refund dengan bukti yang diminta\n2. Penjual meninjau permintaan. Jika ditolak, Anda bisa naik banding ke admin untuk keputusan final\n3. Jika disetujui, dana dikembalikan ke metode pembayaran awal Anda\n\nWaktu peninjauan dan waktu dana kembali tergantung kasus dan penyedia pembayaran Anda. Anda bisa memantau statusnya dari detail pesanan.';
 
   @override
-  String get articleCreateForSale => 'Cara membuat listing baru?';
+  String get articleCreateForSale => 'Cara membuat For Sale?';
 
   @override
   String get articleCreateForSaleContent =>
-      'Untuk membuat listing baru:\n\n1. Tap tombol + di layar utama\n2. Pilih \'Listing\'\n3. Tambah foto koi (beberapa sudut direkomendasikan)\n4. Isi detail (jenis, ukuran, harga, lokasi)\n5. Tulis deskripsi\n6. Publish listing\n\nListing Anda akan langsung terlihat oleh pembeli!';
+      'Untuk membuat For Sale baru:\n\n1. Tap tombol + di layar utama\n2. Pilih \'For Sale\'\n3. Tambah foto koi (beberapa sudut direkomendasikan)\n4. Isi detail (jenis, ukuran, harga, lokasi)\n5. Tulis deskripsi\n6. Publish For Sale Anda\n\nFor Sale Anda langsung terlihat oleh pembeli!';
 
   @override
   String get articleShippingSetup => 'Cara mengatur pengiriman?';
 
   @override
   String get articleShippingSetupContent =>
-      'Untuk mengatur pengiriman:\n\n1. Buka Dasbor Penjual\n2. Pilih partner pengiriman (opsi tersedia)\n3. Atur zona dan tarif pengiriman\n4. Tambah instruksi packaging\n\nSelalu gunakan packaging yang benar dengan oksigen untuk pengiriman koi hidup!';
+      'Untuk mengatur pengiriman:\n\n1. Buka Pengaturan → Pengiriman, atau Dasbor Penjual → Atur Pengiriman\n2. Tambahkan opsi pengiriman (kereta, bus, travel, pesawat, atau custom)\n3. Atur cakupan provinsi beserta tarif yang Anda tetapkan untuk setiap provinsi\n4. Aktifkan opsi tersebut agar tersedia untuk For Sale Anda\n5. Saat membuat For Sale, pilih opsi mana yang berlaku untuk For Sale tersebut\n\nPengiriman dikelola sendiri oleh penjual: Anda menentukan opsi, tarif, dan kurir. Untuk kasus khusus (ikan besar, penanganan khusus), kirim penawaran ongkir ke pembeli melalui chat sebagai cadangan.\n\nSelalu gunakan kemasan yang benar dengan oksigen untuk pengiriman koi hidup!';
 
   @override
   String get articleEditProfile => 'Cara mengedit profil saya?';
@@ -1189,21 +1189,59 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get articleSellerVerificationContent =>
-      'Verifikasi penjual memerlukan:\n\n1. KTP valid (Kartu Tanda Penduduk)\n2. Foto jelas KTP\n3. Nomor KTP (16 digit)\n4. Nama sesuai KTP\n5. Alamat bisnis\n6. Nomor telepon aktif\n\nVerifikasi biasanya memakan waktu 1-3 hari kerja.';
+      'Verifikasi penjual memerlukan:\n\n1. KTP valid (Kartu Tanda Penduduk)\n2. Foto jelas KTP\n3. Nomor KTP (16 digit)\n4. Nama sesuai KTP\n5. Alamat bisnis\n6. Nomor telepon aktif\n\nVerifikasi biasanya memakan waktu 1-2 hari kerja.';
 
   @override
   String get articleAppNotWorking => 'Aplikasi tidak berfungsi?';
 
   @override
   String get articleAppNotWorkingContent =>
-      'Jika aplikasi tidak berfungsi:\n\n1. Cek koneksi internet\n2. Tutup dan buka kembali aplikasi\n3. Hapus cache aplikasi (Pengaturan → Hapus Cache)\n4. Update ke versi terbaru\n5. Restart HP\n\nJika masalah berlanjut, hubungi support dengan detail masalah.';
+      'Jika aplikasi tidak berfungsi dengan baik:\n\n1. Cek koneksi internet\n2. Tutup dan buka kembali aplikasi\n3. Pastikan Anda memakai versi aplikasi terbaru\n4. Restart HP\n\nJika masalah berlanjut, hubungi support dengan detail masalah yang Anda alami.';
 
   @override
-  String get articleClearCache => 'Cara menghapus cache aplikasi?';
+  String get articleAppSlowOrNotLoading => 'Aplikasi lambat atau tidak memuat?';
 
   @override
-  String get articleClearCacheContent =>
-      'Untuk menghapus cache aplikasi:\n\n1. Buka Pengaturan\n2. Scroll ke \'Preferensi Aplikasi\'\n3. Tap \'Hapus Cache\'\n4. Konfirmasi saat diminta\n\nIni akan membebaskan storage tapi tidak menghapus data Anda. Perlu login lagi.';
+  String get articleAppSlowOrNotLoadingContent =>
+      'Jika aplikasi terasa lambat atau ada layar yang tidak memuat:\n\n1. Cek koneksi internet — coba Wi-Fi atau data seluler\n2. Tutup aplikasi sepenuhnya lalu buka kembali\n3. Pastikan Anda memakai versi aplikasi terbaru\n4. Restart HP\n\nJika masalah berlanjut, hubungi support dan sebutkan layar mana yang bermasalah.';
+
+  @override
+  String get articleWithdrawalFailed =>
+      'Penarikan gagal, apa yang harus dilakukan?';
+
+  @override
+  String get articleWithdrawalFailedContent =>
+      'Jika penarikan Anda gagal:\n\n1. Periksa apakah data rekening bank sudah benar\n2. Pastikan verifikasi penjual (KTP) Anda sudah selesai\n3. Pastikan jumlahnya memenuhi minimum penarikan yang tertera di layar Pendapatan\n\nPenarikan ditinjau admin terlebih dahulu. Setelah disetujui, dana ditransfer ke rekening terdaftar dalam 1-3 hari kerja.\n\nLangkah berikutnya:\n• Buka layar Pendapatan dan cek status penarikan\n• Jika status penarikan gagal, periksa data rekening lalu ajukan permintaan baru\n• Hubungi support jika saldo Anda sudah terpotong tetapi dana belum diterima';
+
+  @override
+  String get articleForSaleNotVisible => 'Kenapa For Sale saya tidak terlihat?';
+
+  @override
+  String get articleForSaleNotVisibleContent =>
+      'For Sale Anda mungkin tidak terlihat oleh pembeli karena:\n\n1. Sudah terjual — stoknya habis sehingga tidak lagi ditawarkan\n2. Ditarik — For Sale sudah dihapus dari penjualan\n3. Detailnya belum lengkap — pastikan foto, harga, dan opsi pengiriman sudah diisi\n\nFor Sale baru langsung tayang begitu Anda buat — tidak ada tahap review atau persetujuan.\n\nLangkah berikutnya:\n• Buka For Sale Saya dan cek statusnya\n• Lengkapi detail yang kurang lalu simpan lagi\n\nJika For Sale masih aktif tetapi tetap tidak terlihat pembeli, hubungi support.';
+
+  @override
+  String get articleSellerPaymentPending =>
+      'Pembayaran dari pesanan belum diterima?';
+
+  @override
+  String get articleSellerPaymentPendingContent =>
+      'Pembayaran pesanan sampai ke penjual melalui tahap berikut:\n\n1. Pembayaran selesai → dana ditahan di eskrow selama pesanan berjalan\n2. Pesanan dikirim → dana tetap di eskrow sampai pembeli mengonfirmasi penerimaan\n3. Pesanan selesai → dana dilepas ke pendapatan Anda dan langsung bisa ditarik\n\nCek layar berikut:\n• Status pesanan di Dasbor Penjual\n• Layar Pendapatan untuk saldo yang tersedia\n\nSetelah pembeli menekan \'Terima Barang\' (atau pesanan selesai otomatis), nilai pesanan masuk ke pendapatan Anda dan tidak ada masa tunggu sebelum bisa ditarik.\n\nJika pesanan yang sudah selesai tidak muncul di pendapatan, hubungi support dengan nomor pesanan.';
+
+  @override
+  String get articleOrderShipmentHelp => 'Masalah pengiriman dan pelacakan';
+
+  @override
+  String get articleOrderShipmentHelpContent =>
+      'Untuk masalah pengiriman:\n\n1. Buka detail pesanan\n2. Cek nomor resi di info pengiriman\n3. Lacak paket lewat situs atau aplikasi kurir\n\nMasalah umum:\n• Resi belum update — butuh waktu sebelum kurir mencatat scan pertama\n• Pengiriman terlambat — hubungi penjual lewat chat pesanan untuk update\n• Alamat salah — segera kirim pesan ke penjual\n\nJika paket belum diterima:\n• Cek status pesanan dan konfirmasi pengiriman\n• Hubungi penjual lewat chat pesanan\n• Jika batas waktu pengiriman sudah lewat, buka dispute dari pesanan\n\nMasih bermasalah? Hubungi support dengan nomor pesanan.';
+
+  @override
+  String get articleItemNotReceived =>
+      'Barang sudah dibayar tapi belum diterima?';
+
+  @override
+  String get articleItemNotReceivedContent =>
+      'Jika Anda sudah membayar tetapi belum menerima barang:\n\nLangkah 1: Cek status pesanan\n• Diproses: penjual sedang menyiapkan pesanan Anda\n• Dalam Pengiriman: cek nomor resi pada pesanan\n\nLangkah 2: Hubungi penjual\n• Gunakan tombol \'Chat Penjual\' pada pesanan\n• Tanyakan update pengiriman atau nomor resi\n\nLangkah 3: Manfaatkan masa perlindungan\n• Anda punya 5 hari sejak penjual mengirim untuk konfirmasi terima atau membuka dispute\n• Jika butuh waktu tambahan, gunakan \'Perpanjang Konfirmasi\' satu kali untuk menambah 3 hari\n• Jika penjual tidak kunjung mengirim, pesanan bisa dibatalkan\n\nLangkah berikutnya:\n1. Chat penjual dulu (paling cepat)\n2. Jika tidak ada respons, hubungi support dengan detail pesanan Anda';
 
   @override
   String get sellerTierPro => 'Penjual Pro';
@@ -1228,4 +1266,282 @@ class AppLocalizationsId extends AppLocalizations {
   @override
   String get accountRestrictedSupport =>
       'Jika Anda merasa ini adalah kesalahan, hubungi tim dukungan melalui email support.';
+
+  @override
+  String get pageErrorTitle => 'Terjadi Kesalahan';
+
+  @override
+  String get pageErrorMessage => 'Data belum bisa dimuat. Silakan coba lagi.';
+
+  @override
+  String get retryAction => 'Coba Lagi';
+
+  @override
+  String get emptyCollectionTitle => 'Belum Ada Data';
+
+  @override
+  String get emptyCollectionMessage => 'Belum ada item untuk ditampilkan';
+
+  @override
+  String get emptySearchTitle => 'Tidak Ada Hasil';
+
+  @override
+  String get emptySearchMessage => 'Coba kata kunci atau filter yang lain.';
+
+  @override
+  String get resetFilterAction => 'Atur Ulang';
+
+  @override
+  String get exploreMarketplaceAction => 'Jelajahi Marketplace';
+
+  @override
+  String get createForSaleAction => 'Buat For Sale';
+
+  @override
+  String get startChatAction => 'Mulai Chat';
+
+  @override
+  String get createTicketAction => 'Buat Tiket';
+
+  @override
+  String get addAddressAction => 'Tambah Alamat';
+
+  @override
+  String get emptyForSaleTitle => 'Belum ada for sale';
+
+  @override
+  String get emptyAuctionTitle => 'Belum ada lelang';
+
+  @override
+  String get emptyCheckBackMessage => 'Cek lagi nanti ya!';
+
+  @override
+  String get emptySellerForSaleMessage =>
+      'Seller ini belum memiliki for sale aktif';
+
+  @override
+  String get emptySellerAuctionMessage =>
+      'Seller ini belum memiliki lelang aktif';
+
+  @override
+  String get myForSalesTitle => 'Belum Ada For Sale';
+
+  @override
+  String get firstUseForSaleMessage =>
+      'Mulai buat For Sale untuk menjual produk Anda';
+
+  @override
+  String get emptySavedTitle => 'Belum ada item yang disimpan';
+
+  @override
+  String get emptySavedMessage =>
+      'Item For Sale dan lelang yang kamu simpan akan muncul di sini.';
+
+  @override
+  String get emptyOrdersTitle => 'Belum Ada Pesanan';
+
+  @override
+  String get emptyOrdersMessage => 'Mulai berbelanja dari koleksi Koi terbaik';
+
+  @override
+  String get emptyIncomingOrdersTitle => 'Belum Ada Pesanan Masuk';
+
+  @override
+  String get emptyIncomingOrdersMessage =>
+      'Pesanan dari pembeli akan muncul di sini';
+
+  @override
+  String get emptyChatsTitle => 'Belum Ada Pesan';
+
+  @override
+  String get emptyChatsMessage => 'Hubungi penjual untuk menanyakan produk';
+
+  @override
+  String get emptyChatSearchTitle => 'Tidak Ada Chat Ditemukan';
+
+  @override
+  String get emptyFollowersTitle => 'Belum ada pengikut';
+
+  @override
+  String get emptyFollowingTitle => 'Belum mengikuti siapa pun';
+
+  @override
+  String get emptyReportsTitle => 'Belum ada laporan';
+
+  @override
+  String get emptyReportsMessage =>
+      'Kamu belum pernah mengirim laporan. Gunakan aksi lapor pada konten untuk melaporkannya.';
+
+  @override
+  String get emptySupportTicketsTitle => 'Belum ada tiket bantuan';
+
+  @override
+  String get emptySupportTicketsMessage =>
+      'Buat tiket untuk mendapatkan bantuan dari tim dukungan';
+
+  @override
+  String get supportCategoryOrderIssue => 'Masalah Pesanan';
+
+  @override
+  String get supportCategoryPaymentIssue => 'Masalah Pembayaran';
+
+  @override
+  String get supportCategoryAccountIssue => 'Bantuan Akun';
+
+  @override
+  String get supportCategoryListingIssue => 'Masalah Produk';
+
+  @override
+  String get supportCategoryShippingIssue => 'Masalah Pengiriman';
+
+  @override
+  String get supportCategoryRefundRequest => 'Permintaan Refund';
+
+  @override
+  String get supportCategoryDispute => 'Sengketa';
+
+  @override
+  String get supportCategoryTechnicalIssue => 'Bantuan Teknis';
+
+  @override
+  String get supportCategoryOther => 'Lainnya';
+
+  @override
+  String get supportStatusOpen => 'Baru';
+
+  @override
+  String get supportStatusInProgress => 'Diproses';
+
+  @override
+  String get supportStatusWaitingUser => 'Menunggu User';
+
+  @override
+  String get supportStatusResolved => 'Selesai';
+
+  @override
+  String get supportStatusClosed => 'Ditutup';
+
+  @override
+  String get supportPriorityLow => 'Rendah';
+
+  @override
+  String get supportPriorityMedium => 'Sedang';
+
+  @override
+  String get supportPriorityHigh => 'Tinggi';
+
+  @override
+  String get supportPriorityUrgent => 'Mendesak';
+
+  @override
+  String get supportEventTicketCreated => 'Tiket Dibuat';
+
+  @override
+  String get supportEventTicketClaimed => 'Tiket Ditangani';
+
+  @override
+  String get supportEventTicketWaitingUser => 'Menunggu Balasan Anda';
+
+  @override
+  String get supportEventStatusChanged => 'Status Berubah';
+
+  @override
+  String get supportEventPriorityChanged => 'Prioritas Berubah';
+
+  @override
+  String get supportEventCategoryChanged => 'Kategori Berubah';
+
+  @override
+  String get supportEventTicketResolved => 'Tiket Diselesaikan';
+
+  @override
+  String get supportEventTicketClosed => 'Tiket Ditutup';
+
+  @override
+  String get supportEventTicketReopened => 'Tiket Dibuka Kembali';
+
+  @override
+  String get supportEventAdminAssigned => 'Agen Support Ditugaskan';
+
+  @override
+  String get supportEventAdminUnassigned => 'Agen Support Dilepas';
+
+  @override
+  String get supportEventTicketEscalated => 'Dieskalasi ke Sengketa';
+
+  @override
+  String get supportEventUnknown => 'Aktivitas Tiket';
+
+  @override
+  String supportEventTransition(String from, String to) {
+    return 'Dari $from ke $to';
+  }
+
+  @override
+  String get supportTimelineTitle => 'Riwayat Aktivitas';
+
+  @override
+  String get supportTimelineEmpty => 'Belum ada aktivitas tercatat';
+
+  @override
+  String get emptyAddressTitle => 'Belum ada alamat';
+
+  @override
+  String get emptyAddressMessage =>
+      'Tambahkan alamat untuk belanja dan pengiriman';
+
+  @override
+  String get emptyProfileContentTitle => 'Belum ada konten';
+
+  @override
+  String get emptyProfileContentMessage =>
+      'Pengguna ini belum membagikan konten';
+
+  @override
+  String get orderActionMarkShipped => 'Kirim Pesanan';
+
+  @override
+  String get orderActionConfirmReceipt => 'Terima Barang';
+
+  @override
+  String get orderActionProvideEvidence => 'Sediakan Bukti';
+
+  @override
+  String get orderActionCancelOrderOverdue => 'Batalkan Pesanan';
+
+  @override
+  String get orderActionPayNow => 'Bayar Sekarang';
+
+  @override
+  String get orderActionPaymentContinue => 'Lanjutkan Pembayaran';
+
+  @override
+  String get orderActionPaymentCheckStatus => 'Cek Status Pembayaran';
+
+  @override
+  String get orderActionPayAgain => 'Bayar Ulang';
+
+  @override
+  String get orderActionCancelOrder => 'Batalkan';
+
+  @override
+  String get orderActionExtendConfirmation => 'Perpanjang Konfirmasi';
+
+  @override
+  String get orderActionRequestRefund => 'Ajukan Pengembalian';
+
+  @override
+  String get orderActionOpenDispute => 'Buka Dispute';
+
+  @override
+  String get orderActionUpdateTracking => 'Update Nomor Resi';
+
+  @override
+  String get orderActionChatSeller => 'Chat Penjual';
+
+  @override
+  String get orderActionContactSupport => 'Hubungi Dukungan';
+
+  @override
+  String get homeFirstUseTitle => '🎯 Kamu ingin apa hari ini?';
 }

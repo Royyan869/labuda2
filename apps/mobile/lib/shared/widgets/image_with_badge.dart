@@ -69,19 +69,21 @@ class StatusOverlayConfig {
   );
 
   /// Factory for RESERVED status
-  factory StatusOverlayConfig.reserved(BuildContext context) => StatusOverlayConfig(
-    label: 'RESERVED',
-    backgroundColor: context.statusColors.warning,
-    darkInk: true,
-    icon: Icons.bookmark,
-  );
+  factory StatusOverlayConfig.reserved(BuildContext context) =>
+      StatusOverlayConfig(
+        label: 'RESERVED',
+        backgroundColor: context.statusColors.warning,
+        darkInk: true,
+        icon: Icons.bookmark,
+      );
 
   /// Factory for FOR SALE status
-  factory StatusOverlayConfig.forSale(BuildContext context) => StatusOverlayConfig(
-    label: 'DIJUAL',
-    backgroundColor: context.statusColors.success,
-    icon: Icons.local_offer,
-  );
+  factory StatusOverlayConfig.forSale(BuildContext context) =>
+      StatusOverlayConfig(
+        label: 'DIJUAL',
+        backgroundColor: context.statusColors.success,
+        icon: Icons.local_offer,
+      );
 
   /// Factory for LIVE status
   factory StatusOverlayConfig.live(BuildContext context) => StatusOverlayConfig(
@@ -91,18 +93,17 @@ class StatusOverlayConfig {
   );
 
   /// Factory for OUT OF STOCK status
-  factory StatusOverlayConfig.outOfStock() => StatusOverlayConfig(
-    label: 'HABIS',
-    icon: Icons.do_not_disturb,
-  );
+  factory StatusOverlayConfig.outOfStock() =>
+      StatusOverlayConfig(label: 'HABIS', icon: Icons.do_not_disturb);
 
   /// Factory for FEATURED status
-  factory StatusOverlayConfig.featured(BuildContext context) => StatusOverlayConfig(
-    label: 'FEATURED',
-    backgroundColor: context.statusColors.error,
-    position: BadgePosition.topRight,
-    icon: Icons.star,
-  );
+  factory StatusOverlayConfig.featured(BuildContext context) =>
+      StatusOverlayConfig(
+        label: 'FEATURED',
+        backgroundColor: context.statusColors.error,
+        position: BadgePosition.topRight,
+        icon: Icons.star,
+      );
 
   /// Factory for PROMOTED status
   factory StatusOverlayConfig.promoted() => StatusOverlayConfig(
@@ -284,7 +285,10 @@ class ImageWithBadge extends StatelessWidget {
           ? 8
           : null,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8, vertical: AppMetrics.p4),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppMetrics.p8,
+          vertical: AppMetrics.p4,
+        ),
         decoration: BoxDecoration(
           color: scheme.scrim.withValues(alpha: 0.7),
           borderRadius: BorderRadius.circular(AppShape.r4),
@@ -301,9 +305,7 @@ class ImageWithBadge extends StatelessWidget {
               const SizedBox(width: 4),
               Text(
                 config.label!,
-                style: textTheme.labelSmall?.copyWith(
-                  color: scheme.onPrimary,
-                ),
+                style: textTheme.labelSmall?.copyWith(color: scheme.onPrimary),
               ),
             ],
           ],
@@ -318,7 +320,8 @@ class ImageWithBadge extends StatelessWidget {
     TextTheme textTheme,
   ) {
     final bg = config.backgroundColor ?? scheme.onSurfaceVariant;
-    final ink = config.textColor ??
+    final ink =
+        config.textColor ??
         (config.backgroundColor == null
             ? scheme.surface
             : (config.darkInk ? scheme.scrim : scheme.onPrimary));
@@ -344,7 +347,10 @@ class ImageWithBadge extends StatelessWidget {
           ? 8
           : null,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8, vertical: AppMetrics.p4),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppMetrics.p8,
+          vertical: AppMetrics.p4,
+        ),
         decoration: BoxDecoration(
           color: bg,
           borderRadius: BorderRadius.circular(AppShape.r4),
@@ -358,10 +364,9 @@ class ImageWithBadge extends StatelessWidget {
             ],
             Text(
               config.label,
-              style: textTheme.labelSmall?.copyWith(
+              style: textTheme.labelMedium?.copyWith(
                 color: ink,
                 fontWeight: FontWeight.bold,
-                fontSize: AppType.s12,
               ),
             ),
           ],
@@ -397,7 +402,10 @@ class ImageWithBadge extends StatelessWidget {
           ? 8
           : null,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8, vertical: AppMetrics.p4),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppMetrics.p8,
+          vertical: AppMetrics.p4,
+        ),
         decoration: BoxDecoration(
           color: scheme.scrim.withValues(alpha: 0.7),
           borderRadius: BorderRadius.circular(AppShape.r12),
@@ -405,7 +413,11 @@ class ImageWithBadge extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.photo_library, size: AppIconSize.inlineGlyph, color: scheme.onPrimary),
+            Icon(
+              Icons.photo_library,
+              size: AppIconSize.inlineGlyph,
+              color: scheme.onPrimary,
+            ),
             const SizedBox(width: 4),
             Text(
               '${config.count}',

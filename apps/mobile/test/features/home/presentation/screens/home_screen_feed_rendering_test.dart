@@ -13,6 +13,7 @@ import 'package:labuda/domains/social/like/domain/repositories/like_repository.d
 import 'package:labuda/domains/social/like/presentation/providers/like_notifier.dart';
 import 'package:labuda/features/home/home.dart';
 import 'package:labuda/features/home/presentation/providers/feed_renderers.dart';
+import 'package:labuda/generated/app_localizations.dart';
 import 'package:labuda/shared/services/logger_service.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
@@ -113,9 +114,13 @@ class _FakeFeedHttpAdapter implements HttpClientAdapter {
         items: <Map<String, dynamic>>[],
         hasMore: false,
       );
-      return ResponseBody.fromString(jsonEncode(body), 200, headers: {
-        'content-type': ['application/json'],
-      });
+      return ResponseBody.fromString(
+        jsonEncode(body),
+        200,
+        headers: {
+          'content-type': ['application/json'],
+        },
+      );
     }
 
     final canned = _responses[_callCount];
@@ -248,21 +253,21 @@ void _setOverflowViewport(WidgetTester tester) {
   });
 }
 
-Widget _buildHarness(
-  _FakeFeedHttpAdapter adapter, {
-  required GoRouter router,
-}) {
+Widget _buildHarness(_FakeFeedHttpAdapter adapter, {required GoRouter router}) {
   return ProviderScope(
     overrides: [
       apiClientProvider.overrideWithValue(_fakeApiClient(adapter)),
-      authControllerProvider.overrideWith(
-        _FakeAuthenticatedAuthController.new,
-      ),
+      authControllerProvider.overrideWith(_FakeAuthenticatedAuthController.new),
       auctionRepositoryProvider.overrideWithValue(_FakeAuctionRepository()),
       likeRepositoryProvider.overrideWithValue(_FakeLikeRepository()),
       loggerServiceProvider.overrideWithValue(LoggerService.instance),
     ],
-    child: MaterialApp.router(routerConfig: router),
+    child: MaterialApp.router(
+      routerConfig: router,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      locale: const Locale('id'),
+    ),
   );
 }
 
@@ -350,7 +355,7 @@ void main() {
       expect(find.text('world'), findsOneWidget);
       expect(find.byType(FeedCard), findsNWidgets(2));
       expect(find.text('🎯 Kamu ingin apa hari ini?'), findsNothing);
-      expect(find.text('Feed belum bisa dimuat'), findsNothing);
+      expect(find.text('Terjadi Kesalahan'), findsNothing);
     });
 
     testWidgets('empty state tidak tampil saat items ada', (tester) async {
@@ -388,7 +393,7 @@ void main() {
       await _pump(tester);
 
       expect(find.text('hello'), findsOneWidget);
-      expect(find.text('Feed belum bisa dimuat'), findsNothing);
+      expect(find.text('Terjadi Kesalahan'), findsNothing);
     });
   });
 
@@ -403,7 +408,10 @@ void main() {
         final adapter = _FakeFeedHttpAdapter([
           _CannedResponse(
             statusCode: 200,
-            body: _feedEnvelope(items: <Map<String, dynamic>>[], hasMore: false),
+            body: _feedEnvelope(
+              items: <Map<String, dynamic>>[],
+              hasMore: false,
+            ),
           ),
         ]);
 
@@ -412,7 +420,7 @@ void main() {
 
         expect(find.text('🎯 Kamu ingin apa hari ini?'), findsOneWidget);
         expect(find.byType(CircularProgressIndicator), findsNothing);
-        expect(find.text('Feed belum bisa dimuat'), findsNothing);
+        expect(find.text('Terjadi Kesalahan'), findsNothing);
       },
     );
   });
@@ -430,7 +438,7 @@ void main() {
       await tester.pump();
 
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
-      expect(find.text('Feed belum bisa dimuat'), findsNothing);
+      expect(find.text('Terjadi Kesalahan'), findsNothing);
       expect(find.text('🎯 Kamu ingin apa hari ini?'), findsNothing);
 
       adapter.blockUntil!.complete();
@@ -460,23 +468,25 @@ void main() {
   // INITIAL ERROR
   // ==========================================================================
   group('INITIAL ERROR', () {
-    testWidgets(
-      'items=[] errorMessage set → full error tampil + retry',
-      (tester) async {
-        _setLargeViewport(tester);
-        final adapter = _FakeFeedHttpAdapter([
-          const _CannedResponse(statusCode: 200, body: null),
-        ]);
+    testWidgets('items=[] errorMessage set → full error tampil + retry', (
+      tester,
+    ) async {
+      _setLargeViewport(tester);
+      final adapter = _FakeFeedHttpAdapter([
+        const _CannedResponse(statusCode: 200, body: null),
+      ]);
 
-        await tester.pumpWidget(_buildHarness(adapter, router: _homeRouter()));
-        await _pump(tester);
+      await tester.pumpWidget(_buildHarness(adapter, router: _homeRouter()));
+      await _pump(tester);
 
-        expect(find.text('Feed belum bisa dimuat'), findsOneWidget);
-        expect(find.text('Coba Lagi'), findsOneWidget);
-        expect(find.text('Coba lagi beberapa saat.'), findsOneWidget);
-        expect(find.text('🎯 Kamu ingin apa hari ini?'), findsNothing);
-      },
-    );
+      expect(find.text('Terjadi Kesalahan'), findsOneWidget);
+      expect(find.text('Coba Lagi'), findsOneWidget);
+      expect(
+        find.text('Data belum bisa dimuat. Silakan coba lagi.'),
+        findsOneWidget,
+      );
+      expect(find.text('🎯 Kamu ingin apa hari ini?'), findsNothing);
+    });
 
     testWidgets('empty tidak tampil saat initial error', (tester) async {
       _setLargeViewport(tester);
@@ -488,46 +498,50 @@ void main() {
       await _pump(tester);
 
       expect(find.text('🎯 Kamu ingin apa hari ini?'), findsNothing);
-      expect(find.text('Feed belum bisa dimuat'), findsOneWidget);
+      expect(find.text('Terjadi Kesalahan'), findsOneWidget);
     });
 
-    testWidgets('initial error retry → loadFeed again via feedProvider refresh',
-        (tester) async {
-      _setLargeViewport(tester);
-      final adapter = _FakeFeedHttpAdapter([
-        const _CannedResponse(statusCode: 200, body: null),
-        _CannedResponse(
-          statusCode: 200,
-          body: _feedEnvelope(
-            items: [_feedContentItem(id: 'feed-1', body: 'hello')],
-            hasMore: false,
+    testWidgets(
+      'initial error retry → loadFeed again via feedProvider refresh',
+      (tester) async {
+        _setLargeViewport(tester);
+        final adapter = _FakeFeedHttpAdapter([
+          const _CannedResponse(statusCode: 200, body: null),
+          _CannedResponse(
+            statusCode: 200,
+            body: _feedEnvelope(
+              items: [_feedContentItem(id: 'feed-1', body: 'hello')],
+              hasMore: false,
+            ),
           ),
-        ),
-      ]);
+        ]);
 
-      await tester.pumpWidget(_buildHarness(adapter, router: _homeRouter()));
-      await _pump(tester);
+        await tester.pumpWidget(_buildHarness(adapter, router: _homeRouter()));
+        await _pump(tester);
 
-      expect(adapter.requestCount, 1);
-      expect(find.text('Feed belum bisa dimuat'), findsOneWidget);
+        expect(adapter.requestCount, 1);
+        expect(find.text('Terjadi Kesalahan'), findsOneWidget);
 
-      await tester.tap(find.text('Coba Lagi'));
-      await _pump(tester);
+        await tester.tap(find.text('Coba Lagi'));
+        await _pump(tester);
 
-      expect(adapter.requestCount, 2);
-      expect(find.text('Feed belum bisa dimuat'), findsNothing);
-      expect(find.text('hello'), findsOneWidget);
-    });
+        expect(adapter.requestCount, 2);
+        expect(find.text('Terjadi Kesalahan'), findsNothing);
+        expect(find.text('hello'), findsOneWidget);
+      },
+    );
   });
 
   // ==========================================================================
   // REFRESH FAILURE
-  // HomeScreen shows the full error whenever FeedState.errorMessage is set.
-  // FeedNotifier.refresh() clears items then loadFeed(); a failed refresh
-  // therefore surfaces the same full-error UI as an initial load failure.
+  // Loading Foundation: refresh failure preserves last-known-good items with
+  // an inline indication — never a full-page error swap. PageErrorState
+  // ('Terjadi Kesalahan') appears only when there is no data to preserve.
   // ==========================================================================
   group('REFRESH FAILURE', () {
-    testWidgets('refresh gagal menampilkan full error', (tester) async {
+    testWidgets('refresh gagal mempertahankan data + banner inline', (
+      tester,
+    ) async {
       _setLargeViewport(tester);
       final adapter = _FakeFeedHttpAdapter([
         _CannedResponse(
@@ -559,8 +573,12 @@ void main() {
       );
       await _pump(tester);
 
-      expect(find.text('Feed belum bisa dimuat'), findsOneWidget);
-      expect(find.text('Coba lagi beberapa saat.'), findsOneWidget);
+      expect(find.text('hello'), findsOneWidget);
+      expect(find.text('Terjadi Kesalahan'), findsNothing);
+      expect(
+        find.text('Data belum bisa dimuat. Silakan coba lagi.'),
+        findsOneWidget,
+      );
       expect(find.text('🎯 Kamu ingin apa hari ini?'), findsNothing);
     });
 
@@ -597,53 +615,62 @@ void main() {
         reason: 'refresh() must complete as the fake clock advances',
       );
       await _pump(tester);
-      expect(find.text('Coba lagi beberapa saat.'), findsOneWidget);
+      expect(
+        find.text('Data belum bisa dimuat. Silakan coba lagi.'),
+        findsOneWidget,
+      );
+      // Last-known-good data stays visible; no full-page error swap.
+      expect(find.text('hello'), findsOneWidget);
+      expect(find.text('Terjadi Kesalahan'), findsNothing);
 
       await tester.tap(find.text('Coba Lagi'));
       await _pump(tester);
 
-      expect(find.text('Feed belum bisa dimuat'), findsNothing);
+      expect(find.text('Terjadi Kesalahan'), findsNothing);
       expect(find.text('fresh'), findsOneWidget);
     });
   });
 
   // ==========================================================================
   // PULL-TO-REFRESH
-  // HomeScreen RefreshIndicator invalidates feedProvider (rebuild + loadFeed).
+  // HomeScreen RefreshIndicator drives FeedNotifier.refresh() (data-preserving
+  // refresh with inline failure indication, never a full-page swap).
   // ==========================================================================
   group('PULL-TO-REFRESH', () {
-    testWidgets('pull-to-refresh memanggil loadFeed ulang dan items tidak hilang',
-        (tester) async {
-      _setLargeViewport(tester);
-      final adapter = _FakeFeedHttpAdapter([
-        _CannedResponse(
-          statusCode: 200,
-          body: _feedEnvelope(
-            items: [_feedContentItem(id: 'feed-1', body: 'hello')],
-            hasMore: true,
-            nextCursor: 'cursor-1',
+    testWidgets(
+      'pull-to-refresh memanggil loadFeed ulang dan items tidak hilang',
+      (tester) async {
+        _setLargeViewport(tester);
+        final adapter = _FakeFeedHttpAdapter([
+          _CannedResponse(
+            statusCode: 200,
+            body: _feedEnvelope(
+              items: [_feedContentItem(id: 'feed-1', body: 'hello')],
+              hasMore: true,
+              nextCursor: 'cursor-1',
+            ),
           ),
-        ),
-        _CannedResponse(
-          statusCode: 200,
-          body: _feedEnvelope(
-            items: [_feedContentItem(id: 'feed-2', body: 'refreshed')],
-            hasMore: false,
+          _CannedResponse(
+            statusCode: 200,
+            body: _feedEnvelope(
+              items: [_feedContentItem(id: 'feed-2', body: 'refreshed')],
+              hasMore: false,
+            ),
           ),
-        ),
-      ]);
+        ]);
 
-      await tester.pumpWidget(_buildHarness(adapter, router: _homeRouter()));
-      await _pump(tester);
-      expect(find.text('hello'), findsOneWidget);
-      final requestsBefore = adapter.requestCount;
+        await tester.pumpWidget(_buildHarness(adapter, router: _homeRouter()));
+        await _pump(tester);
+        expect(find.text('hello'), findsOneWidget);
+        final requestsBefore = adapter.requestCount;
 
-      await tester.drag(find.byType(HomeScreen), const Offset(0, 300));
-      await _pump(tester);
+        await tester.drag(find.byType(HomeScreen), const Offset(0, 300));
+        await _pump(tester);
 
-      expect(adapter.requestCount, greaterThan(requestsBefore));
-      expect(find.text('refreshed'), findsOneWidget);
-    });
+        expect(adapter.requestCount, greaterThan(requestsBefore));
+        expect(find.text('refreshed'), findsOneWidget);
+      },
+    );
   });
 
   // ==========================================================================
@@ -682,10 +709,12 @@ void main() {
       await _pump(tester);
 
       expect(find.text('hello'), findsOneWidget);
-      expect(find.text('Feed belum bisa dimuat'), findsNothing);
+      expect(find.text('Terjadi Kesalahan'), findsNothing);
     });
 
-    testWidgets('pagination error tidak menampilkan full error', (tester) async {
+    testWidgets('pagination error tidak menampilkan full error', (
+      tester,
+    ) async {
       _setLargeViewport(tester);
       final adapter = _FakeFeedHttpAdapter([
         _CannedResponse(
@@ -712,7 +741,7 @@ void main() {
       );
       await _pump(tester);
 
-      expect(find.text('Feed belum bisa dimuat'), findsNothing);
+      expect(find.text('Terjadi Kesalahan'), findsNothing);
       expect(find.text('hello'), findsOneWidget);
     });
   });
@@ -826,11 +855,11 @@ void main() {
 
       await tester.pumpWidget(_buildHarness(adapter, router: _homeRouter()));
       await _pump(tester);
-      expect(find.text('Feed belum bisa dimuat'), findsOneWidget);
+      expect(find.text('Terjadi Kesalahan'), findsOneWidget);
 
       await tester.tap(find.text('Coba Lagi'));
       await _pump(tester);
-      expect(find.text('Feed belum bisa dimuat'), findsNothing);
+      expect(find.text('Terjadi Kesalahan'), findsNothing);
 
       final requestsBefore = adapter.requestCount;
       final scrollableFinder = find.byType(Scrollable);

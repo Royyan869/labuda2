@@ -18,6 +18,7 @@ package http
 import (
 	"context"
 	"errors"
+	"strconv"
 	"strings"
 	"time"
 
@@ -126,12 +127,39 @@ func (h *AdminVerificationHandler) ListPending(c *gin.Context) {
 		targetStatus = candidate
 	}
 
-	pending, err := h.sellerService.ListVerificationsByStatusWithUsername(ctx, targetStatus)
+	// Page-based navigation.
+	page := 1
+	if pageStr := c.Query("page"); pageStr != "" {
+		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+			page = p
+		}
+	}
+	pageSize := 20
+	if psStr := c.Query("page_size"); psStr != "" {
+		if ps, err := strconv.Atoi(psStr); err == nil && ps > 0 && ps <= 100 {
+			pageSize = ps
+		}
+	}
+	offset := (page - 1) * pageSize
+
+	pending, err := h.sellerService.ListVerificationsByStatusWithUsername(ctx, targetStatus, pageSize, offset)
 	if err != nil {
 		h.log.Error("verification admin: list by status failed",
 			zap.String("status", string(targetStatus)), zap.Error(err))
 		response.InternalServerError(c, "Failed to load verifications")
 		return
+	}
+
+	total, err := h.sellerService.CountVerificationsByStatus(ctx, targetStatus)
+	if err != nil {
+		h.log.Error("verification admin: count by status failed",
+			zap.String("status", string(targetStatus)), zap.Error(err))
+		response.InternalServerError(c, "Failed to load verifications")
+		return
+	}
+	totalPages := 0
+	if total > 0 {
+		totalPages = (total + pageSize - 1) / pageSize
 	}
 
 	items := make([]AdminVerificationListItem, 0, len(pending))
@@ -147,7 +175,13 @@ func (h *AdminVerificationHandler) ListPending(c *gin.Context) {
 			UpdatedAt:      v.UpdatedAt,
 		})
 	}
-	response.Success(c, gin.H{"items": items, "count": len(items)})
+	response.Success(c, gin.H{
+		"items":       items,
+		"count":       total,
+		"page":        page,
+		"page_size":   pageSize,
+		"total_pages": totalPages,
+	})
 }
 
 // GetDetail handles GET /api/v1/admin/seller-verifications/:seller_id.

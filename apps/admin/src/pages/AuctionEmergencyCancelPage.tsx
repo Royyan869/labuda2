@@ -2,11 +2,13 @@ import { useState } from 'react'
 import { AlertTriangle, ShieldAlert, CheckCircle2, Gavel } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
+import { Input } from '@/components/ui/Input'
 import { Textarea } from '@/components/ui/Textarea'
 import { Modal, ModalFooter } from '@/components/ui/Modal'
 import { Badge } from '@/components/ui/Badge'
 import { adminCancelAuction, type AdminCancelAuctionResponse } from '@/lib/api/auctions'
 import { ApiError } from '@/lib/api/client'
+import { PageHeader } from '@/components/common'
 
 /**
  * Extracts a clear, backend-specific message from an admin API error.
@@ -82,17 +84,11 @@ export function AuctionEmergencyCancelPage() {
   return (
     <div className="space-y-6 max-w-2xl">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
-          <Gavel className="h-7 w-7 text-destructive" />
-          Emergency Auction Cancel
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          Governance-authority override to stop a live auction (e.g. unreachable or abusive
-          seller). This is separate from moderation case enforcement — use this only when there
-          is no filed moderation case, or the situation requires an immediate stop.
-        </p>
-      </div>
+      <PageHeader
+        title="Emergency Auction Cancel"
+        icon={<Gavel className="h-7 w-7 text-destructive" />}
+        description="Governance-authority override to stop a live auction (e.g. unreachable or abusive seller). This is separate from moderation case enforcement — use this only when there is no filed moderation case, or the situation requires an immediate stop."
+      />
 
       <Card>
         <CardContent className="p-6 space-y-4">
@@ -106,20 +102,14 @@ export function AuctionEmergencyCancelPage() {
             </p>
           </div>
 
-          <div>
-            <label htmlFor="auction-id" className="block text-sm font-medium text-foreground mb-1">
-              Auction ID
-            </label>
-            <input
-              id="auction-id"
-              type="text"
-              placeholder="UUID"
-              className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-              value={auctionId}
-              onChange={(e) => setAuctionId(e.target.value)}
-              disabled={loading}
-            />
-          </div>
+          <Input
+            label="Auction ID"
+            type="text"
+            placeholder="UUID"
+            value={auctionId}
+            onChange={(e) => setAuctionId(e.target.value)}
+            disabled={loading}
+          />
 
           <Textarea
             label="Reason (required)"
@@ -147,12 +137,12 @@ export function AuctionEmergencyCancelPage() {
             <div className="flex items-start gap-3">
               <ShieldAlert className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm font-medium text-foreground">
+                <p className="type-label">
                   <Badge variant="error" className="mr-2">{errorDetail.code}</Badge>
                   {errorDetail.message}
                 </p>
                 {errorDetail.code === 'AUCTION_CANCEL_CONFLICT' && (
-                  <p className="text-xs text-muted-foreground mt-2">
+                  <p className="type-caption mt-2">
                     This auction cannot be cancelled here — it likely already has an order or is
                     in a terminal state. Use the Orders / Disputes admin pages to handle it through
                     the canonical order/dispute/refund flow instead.
@@ -194,11 +184,11 @@ export function AuctionEmergencyCancelPage() {
         title="Confirm Emergency Cancel"
         size="sm"
       >
-        <p className="text-sm text-foreground">
+        <p className="type-body">
           This will immediately cancel auction <span className="font-mono">{trimmedAuctionId}</span>{' '}
           under governance authority. This action cannot be undone.
         </p>
-        <p className="text-sm text-muted-foreground mt-3">
+        <p className="type-secondary mt-3">
           <span className="font-medium">Reason:</span> {trimmedReason}
         </p>
         <ModalFooter>

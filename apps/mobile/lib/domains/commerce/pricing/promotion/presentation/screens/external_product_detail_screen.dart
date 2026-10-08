@@ -5,8 +5,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:labuda/shared/widgets/app_image.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 import 'package:labuda/core/core.dart';
+import 'package:labuda/shared/utils/app_formatters.dart';
+import 'package:labuda/shared/widgets/app_bottom_sheet_actions.dart';
 import 'package:labuda/shared/widgets/app_snackbar.dart';
 import 'package:labuda/domains/commerce/pricing/promotion/domain/entities/external_product.dart';
 import 'package:labuda/domains/commerce/pricing/promotion/domain/entities/external_product_media.dart';
@@ -72,12 +73,18 @@ class _ExternalProductDetailScreenState
             _kv('Review Status', _reviewStatusLabel(product.reviewStatus)),
             if (product.publicVisible) _kv('Public Visibility', 'Visible'),
             if (product.unsafeUrlFlag) _kv('URL Safety', 'Flagged as unsafe'),
-            _kv('Created', _dateTime(product.createdAt)),
-            _kv('Updated', _dateTime(product.updatedAt)),
+            _kv('Created', AppFormatters.formatDateTime(product.createdAt)),
+            _kv('Updated', AppFormatters.formatDateTime(product.updatedAt)),
             if (product.submittedAt != null)
-              _kv('Submitted', _dateTime(product.submittedAt!)),
+              _kv(
+                'Submitted',
+                AppFormatters.formatDateTime(product.submittedAt!),
+              ),
             if (product.approvedAt != null)
-              _kv('Approved', _dateTime(product.approvedAt!)),
+              _kv(
+                'Approved',
+                AppFormatters.formatDateTime(product.approvedAt!),
+              ),
           ],
         ),
 
@@ -156,9 +163,7 @@ class _ExternalProductDetailScreenState
       width: double.infinity,
       child: ElevatedButton(
         onPressed: _isSubmitting ? null : onPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: color,
-        ),
+        style: ElevatedButton.styleFrom(backgroundColor: color),
         child: _isSubmitting ? const CircularProgressIndicator() : Text(label),
       ),
     );
@@ -190,8 +195,7 @@ class _ExternalProductDetailScreenState
         children: [
           Text(
             titleText,
-            style: TextStyle(
-              fontSize: AppType.s14,
+            style: context.typeRoles.titleSection.copyWith(
               fontWeight: FontWeight.w700,
               color: textColor,
             ),
@@ -287,7 +291,9 @@ class _ExternalProductDetailScreenState
                   padding: EdgeInsets.only(top: AppMetrics.p8),
                   child: Text(
                     'Editing an approved product will return it to pending review.',
-                    style: TextStyle(fontSize: AppType.s12, color: context.statusColors.warning),
+                    style: context.typeRoles.labelMicro.copyWith(
+                      color: context.statusColors.warning,
+                    ),
                   ),
                 ),
             ],
@@ -340,7 +346,9 @@ class _ExternalProductDetailScreenState
           title: const Text('Add Media to Approved Product'),
           content: Text(
             'Adding media to an approved product will return it to pending review.',
-            style: TextStyle(fontSize: AppType.s14, color: context.statusColors.warning),
+            style: context.typeRoles.bodyDense.copyWith(
+              color: context.statusColors.warning,
+            ),
           ),
           actions: [
             TextButton(
@@ -357,26 +365,22 @@ class _ExternalProductDetailScreenState
       if (confirmed != true || !context.mounted) return;
     }
 
-    // Media type selection via bottom sheet
-    final mediaType = await showModalBottomSheet<String>(
+    // Media type selection — canonical action sheet.
+    final mediaType = await AppBottomSheetActions.showActions<String>(
       context: context,
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.image_outlined),
-              title: const Text('Image'),
-              onTap: () => Navigator.of(ctx).pop('image'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.videocam_outlined),
-              title: const Text('Video'),
-              onTap: () => Navigator.of(ctx).pop('video'),
-            ),
-          ],
+      title: 'Add Media',
+      actions: [
+        BottomSheetAction<String>(
+          title: 'Image',
+          icon: Icons.image_outlined,
+          onPressed: () => Navigator.of(context).pop('image'),
         ),
-      ),
+        BottomSheetAction<String>(
+          title: 'Video',
+          icon: Icons.videocam_outlined,
+          onPressed: () => Navigator.of(context).pop('video'),
+        ),
+      ],
     );
     if (mediaType == null || !context.mounted) return;
 
@@ -416,7 +420,8 @@ class _ExternalProductDetailScreenState
 
     if (!context.mounted) return;
     if (!uploadResult.isSuccess) {
-      setState(() => _isSubmitting = false);        AppSnackBar.showError(context, uploadResult.error ?? 'Upload failed');
+      setState(() => _isSubmitting = false);
+      AppSnackBar.showError(context, uploadResult.error ?? 'Gagal mengunggah');
       return;
     }
 
@@ -439,11 +444,10 @@ class _ExternalProductDetailScreenState
     if (success) {
       ref.invalidate(externalProductDetailProvider(widget.productId));
       ref.invalidate(myExternalProductsProvider);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Success')));
+      AppSnackBar.showSuccess(context, 'Berhasil');
       return;
-    }      AppSnackBar.showError(context, errorText);
+    }
+    AppSnackBar.showError(context, errorText);
   }
 
   static String _reviewStatusLabel(ExternalProductReviewStatus status) {
@@ -475,9 +479,6 @@ class _ExternalProductDetailScreenState
       ),
     );
   }
-
-  static String _dateTime(DateTime d) =>
-      DateFormat('dd MMM yyyy, HH:mm').format(d);
 }
 
 class _SectionCard extends StatelessWidget {
@@ -499,7 +500,9 @@ class _SectionCard extends StatelessWidget {
         children: [
           Text(
             title,
-            style: const TextStyle(fontSize: AppType.s16, fontWeight: FontWeight.w700),
+            style: context.typeRoles.titleSection.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
           ),
           const SizedBox(height: 10),
           ...children,
@@ -535,11 +538,11 @@ class _MediaRow extends StatelessWidget {
             ),
             clipBehavior: Clip.antiAlias,
             child: media.mediaType == 'image'
-            ? AppImage(
-                imageUrl: media.thumbnailUrl ?? media.url,
-                fit: BoxFit.cover,
-                errorWidget: const Icon(Icons.broken_image_outlined),
-              )
+                ? AppImage(
+                    imageUrl: media.thumbnailUrl ?? media.url,
+                    fit: BoxFit.cover,
+                    errorWidget: const Icon(Icons.broken_image_outlined),
+                  )
                 : const Icon(Icons.videocam_outlined),
           ),
           const SizedBox(width: 10),
@@ -553,8 +556,7 @@ class _MediaRow extends StatelessWidget {
                 ),
                 Text(
                   media.url,
-                  style: TextStyle(
-                    fontSize: AppType.s12,
+                  style: context.typeRoles.labelMicro.copyWith(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                   maxLines: 1,
@@ -566,7 +568,7 @@ class _MediaRow extends StatelessWidget {
           if (onDelete != null)
             IconButton(
               onPressed: onDelete,
-              icon: const Icon(Icons.delete_outline, size: AppIconSize.action),
+              icon: const Icon(Icons.delete_outline, size: AppIconSize.action, semanticLabel: 'Hapus'),
               color: Theme.of(context).colorScheme.primary,
             ),
         ],

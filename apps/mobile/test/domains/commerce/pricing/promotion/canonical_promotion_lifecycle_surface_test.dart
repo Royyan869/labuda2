@@ -311,7 +311,7 @@ void main() {
     await _flush(tester);
     // Confirmation dialog → confirm.
     expect(find.text('Hentikan promosi?'), findsOneWidget);
-    await tester.tap(find.widgetWithText(TextButton, 'Hentikan'));
+      await tester.tap(find.widgetWithText(ElevatedButton, 'Hentikan'));
     await _flush(tester);
 
     expect(

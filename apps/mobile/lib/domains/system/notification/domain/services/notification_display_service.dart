@@ -158,8 +158,6 @@ class NotificationDisplayService {
         return NotificationDisplayIcon.gavel;
       case NotificationType.auctionEndedNoWinner:
         return NotificationDisplayIcon.warning;
-      case NotificationType.auctionCancelledSeller:
-        return NotificationDisplayIcon.cancel;
       case NotificationType.auctionBnrSeller:
       case NotificationType.auctionBnrWinner:
         return NotificationDisplayIcon.warning;
@@ -311,8 +309,6 @@ class NotificationDisplayService {
         return NotificationDisplayColor.green;
       case NotificationType.auctionEndedNoWinner:
         return NotificationDisplayColor.orange;
-      case NotificationType.auctionCancelledSeller:
-        return NotificationDisplayColor.red;
       case NotificationType.auctionBnrSeller:
         return NotificationDisplayColor.orange;
       case NotificationType.auctionBnrWinner:

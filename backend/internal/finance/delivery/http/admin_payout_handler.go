@@ -2,6 +2,8 @@
 package http
 
 import (
+	"encoding/base64"
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -603,12 +605,44 @@ func (h *AdminPayoutHandler) MarkWithdrawalProcessed(c *gin.Context) {
 // HELPER FUNCTIONS
 // ============================================================================
 
+// encodeWhitelistAuditCursor encodes the keyset position (created_at, id) of
+// the last row of a page into an opaque token. Opaque on purpose: callers must
+// treat it as a continuation token, never construct one.
+func encodeWhitelistAuditCursor(rec withdrawrepo.WhitelistAuditRecord) string {
+	raw := rec.CreatedAt.UTC().Format(time.RFC3339Nano) + "|" + rec.ID.String()
+	return base64.RawURLEncoding.EncodeToString([]byte(raw))
+}
+
+// decodeWhitelistAuditCursor decodes an opaque continuation token produced by
+// encodeWhitelistAuditCursor. Returns an error on any malformed input.
+func decodeWhitelistAuditCursor(token string) (*withdrawrepo.WhitelistAuditCursor, error) {
+	decoded, err := base64.RawURLEncoding.DecodeString(token)
+	if err != nil {
+		return nil, fmt.Errorf("malformed cursor")
+	}
+	parts := strings.SplitN(string(decoded), "|", 2)
+	if len(parts) != 2 {
+		return nil, fmt.Errorf("malformed cursor")
+	}
+	createdAt, err := time.Parse(time.RFC3339Nano, parts[0])
+	if err != nil {
+		return nil, fmt.Errorf("malformed cursor")
+	}
+	id, err := uuid.Parse(parts[1])
+	if err != nil {
+		return nil, fmt.Errorf("malformed cursor")
+	}
+	return &withdrawrepo.WhitelistAuditCursor{CreatedAt: createdAt, ID: id}, nil
+}
+
 // ListWhitelistAudit handles GET /admin/payouts/whitelist/audit
 //
-// Returns paginated, read-only history of every whitelist mutation:
-// WHITELIST_INITIALIZED, SELLER_ADDED, SELLER_REMOVED.
-// Optional query param: seller_id=<uuid> to filter by seller.
-// Pagination: limit (default 50, max 200) and offset.
+// Returns a keyset page of the read-only, append-only history of every
+// whitelist mutation: WHITELIST_INITIALIZED, SELLER_ADDED, SELLER_REMOVED.
+// Optional query params: seller_id=<uuid> to filter by seller, limit
+// (default 50, max 200), cursor=<opaque token> to continue from the previous
+// page. The log is ordered (created_at DESC, id DESC); there is deliberately
+// no total and no page number because the log is append-only.
 // Requires: finance.withdraw.read capability.
 func (h *AdminPayoutHandler) ListWhitelistAudit(c *gin.Context) {
 	if !middleware.HasCapability(c, "finance.withdraw.read") {
@@ -626,13 +660,18 @@ func (h *AdminPayoutHandler) ListWhitelistAudit(c *gin.Context) {
 			limit = parsed
 		}
 	}
-	offset := 0
-	if o := c.Query("offset"); o != "" {
-		if parsed, err := strconv.Atoi(o); err == nil && parsed >= 0 {
-			offset = parsed
+
+	var cursor *withdrawrepo.WhitelistAuditCursor
+	if token := strings.TrimSpace(c.Query("cursor")); token != "" {
+		parsed, err := decodeWhitelistAuditCursor(token)
+		if err != nil {
+			response.BadRequest(c, "invalid cursor")
+			return
 		}
+		cursor = parsed
 	}
 
+	// Fetch one extra row to decide has_more without a COUNT query.
 	var (
 		records []withdrawrepo.WhitelistAuditRecord
 		err     error
@@ -645,15 +684,20 @@ func (h *AdminPayoutHandler) ListWhitelistAudit(c *gin.Context) {
 			response.BadRequest(c, "invalid seller_id: must be a valid UUID")
 			return
 		}
-		records, err = h.whitelistAuditRepo.ListBySeller(c.Request.Context(), sellerID, limit, offset)
+		records, err = h.whitelistAuditRepo.ListBySeller(c.Request.Context(), sellerID, limit+1, cursor)
 	} else {
-		records, err = h.whitelistAuditRepo.List(c.Request.Context(), limit, offset)
+		records, err = h.whitelistAuditRepo.List(c.Request.Context(), limit+1, cursor)
 	}
 
 	if err != nil {
 		h.log.Error("Failed to query whitelist audit log", zap.Error(err))
 		response.InternalServerError(c, "failed to retrieve whitelist audit log")
 		return
+	}
+
+	hasMore := len(records) > limit
+	if hasMore {
+		records = records[:limit]
 	}
 
 	rows := make([]WhitelistAuditRow, 0, len(records))
@@ -669,11 +713,16 @@ func (h *AdminPayoutHandler) ListWhitelistAudit(c *gin.Context) {
 		})
 	}
 
+	var nextCursor interface{}
+	if hasMore && len(records) > 0 {
+		nextCursor = encodeWhitelistAuditCursor(records[len(records)-1])
+	}
+
 	c.JSON(200, gin.H{
-		"audit_log": rows,
-		"limit":     limit,
-		"offset":    offset,
-		"count":     len(rows),
+		"audit_log":   rows,
+		"limit":       limit,
+		"has_more":    hasMore,
+		"next_cursor": nextCursor,
 	})
 }
 

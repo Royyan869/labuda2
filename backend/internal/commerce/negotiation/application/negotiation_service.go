@@ -559,6 +559,58 @@ func counterTurnDenied(history []*negotiationEntity.NegotiationPriceHistory, sen
 	return len(history) > 0 && history[0].ChangedByUserID == senderID
 }
 
+// CanViewerAct is the canonical projection of "may this viewer act on the
+// current proposal" for a conversation surface. It derives the answer ONLY
+// from Commerce facts: participation, session lifecycle, and the authoritative
+// last price-change author (counterTurnDenied). It NEVER derives turn from
+// proposal_sequence parity — that client-side reconstruction was a duplicate
+// authority (see counterTurnDenied's doc and the runtime bug it caused).
+//
+// Pure so the projection has a proof that needs no database.
+func CanViewerAct(
+	session *negotiationEntity.NegotiationSession,
+	history []*negotiationEntity.NegotiationPriceHistory,
+	viewerID uuid.UUID,
+) bool {
+	if session == nil || !session.IsParticipant(viewerID) {
+		return false
+	}
+	if session.Status != negotiationEntity.NegotiationStatusActive {
+		return false
+	}
+	if session.IsExpired() || session.IsSettled() {
+		return false
+	}
+	return !counterTurnDenied(history, viewerID)
+}
+
+// ViewerCanAct is the database-backed entry point for the canonical
+// negotiation actionability projection. It reads the authoritative price
+// history and delegates the decision to CanViewerAct — one evaluator, owned by
+// Commerce, consumed verbatim by conversation surfaces.
+func (s *NegotiationService) ViewerCanAct(
+	ctx context.Context,
+	session *negotiationEntity.NegotiationSession,
+	viewerID uuid.UUID,
+) (bool, error) {
+	if session == nil || !session.IsParticipant(viewerID) {
+		return false, nil
+	}
+	var canAct bool
+	err := s.db.WithTx(ctx, func(tx db.Tx) error {
+		history, histErr := s.negotiationRepo.GetPriceHistoryBySession(ctx, tx, session.ID)
+		if histErr != nil {
+			return histErr
+		}
+		canAct = CanViewerAct(session, history, viewerID)
+		return nil
+	})
+	if err != nil {
+		return false, err
+	}
+	return canAct, nil
+}
+
 // AcceptNegotiation accepts the current price proposal.
 //
 // TRANSACTION: All operations happen within a single transaction.

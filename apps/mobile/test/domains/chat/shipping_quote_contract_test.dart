@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:labuda/domains/chat/chat/presentation/screens/chat_detail_screen.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/data/dto/shipping_quote_dto.dart';
-import 'package:labuda/domains/commerce/transaction/shipping/presentation/shipping_quote_intent.dart';
 import 'package:labuda/shared/attachment/entities/attachment.dart';
 
 // Canonical distinct UUIDs for ID-confusion proof tests.
@@ -10,40 +9,6 @@ const _fixedPriceSaleId = '22222222-2222-2222-2222-222222222222';
 const _auctionId = '33333333-3333-3333-3333-333333333333';
 
 void main() {
-  // ── A. Fixed-price-sale shipping quote request ──────────────────────────────
-
-  test(
-    'fixed-price sale shipping quote request uses canonical backend fields',
-    () {
-      final request = buildForSaleShippingQuoteRequest(
-        productId: _productId,
-        forSaleId: _fixedPriceSaleId,
-        cost: 25000,
-        note: 'catatan',
-        destinationCityId: '3171',
-        destinationProvinceId: '31',
-      );
-
-      expect(request.productId, _productId);
-      expect(request.sourceType, 'for_sale');
-      expect(request.sourceId, _fixedPriceSaleId);
-      // productId must never equal sourceId for FPS
-      expect(request.productId, isNot(equals(request.sourceId)));
-
-      final json = request.toJson();
-      expect(json['product_id'], _productId);
-      expect(json['source_type'], 'for_sale');
-      expect(json['source_id'], _fixedPriceSaleId);
-      expect(json['cost'], 25000);
-      expect(json['note'], 'catatan');
-      // Destination lock travels on every FPS quote wire (kota/kabupaten).
-      expect(json['destination_city_id'], '3171');
-      expect(json['destination_province_id'], '31');
-      expect(json.containsKey('for_sale_id'), isFalse);
-      expect(json.containsKey('auction_id'), isFalse);
-    },
-  );
-
   // ── B. Auction shipping quote checkout target ───────────────────────────────
 
   test(
@@ -70,8 +35,8 @@ void main() {
 
       expect(target, isNotNull);
       // Auction path: the auctionId surface is what chat forwards.
-      // The physical product id is resolved by the commerce intent
-      // (openAuctionCheckout) — never by chat.
+      // The physical product id is resolved by the Commerce winner CLAIM
+      // authority (POST /auctions/:id/claim) — never by chat.
       expect(target!.auctionId, _auctionId);
       expect(target.forSaleId, isNull);
       // productId must not appear in the auctionId slot

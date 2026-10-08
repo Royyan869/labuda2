@@ -127,6 +127,11 @@ class _RecordingAuthRepository extends Fake implements IAuthRepository {
     String? username,
     String? bio,
     String? location,
+    String? coverPhotoUrl,
+    String? instagramHandle,
+    String? facebookHandle,
+    String? tiktokHandle,
+    String? twitterHandle,
     DateTime? dateOfBirth,
   }) async => Result.error('not used');
 
@@ -196,9 +201,10 @@ class _FakeAnalyticsRepository extends Fake implements IAnalyticsRepository {
   }) async => Result.success(null);
 
   @override
-  Future<Result<void>> setUserProperties(
-    Map<String, dynamic> properties,
-  ) async => Result.success(null);
+  Future<Result<void>> logScreenView({
+    required String screenName,
+    String? screenClass,
+  }) async => Result.success(null);
 }
 
 class _FakeLocalStorageService extends Fake implements ILocalStorageService {

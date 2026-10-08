@@ -278,16 +278,6 @@ class UserSyncService {
     String? facebookHandle,
     String? twitterHandle,
     String? tiktokHandle,
-    String? youtubeHandle,
-    String? websiteUrl,
-    String? visibility,
-    bool? showPhoneNumber,
-    bool? showEmail,
-    bool? showLocation,
-    String? allowMessagesFrom,
-    bool? allowTagging,
-    bool? showActivityStatus,
-    bool? showTransactionCount,
   }) async {
     _logger?.info('Updating profile for user: $userId');
 
@@ -301,16 +291,6 @@ class UserSyncService {
       facebookHandle: facebookHandle,
       twitterHandle: twitterHandle,
       tiktokHandle: tiktokHandle,
-      youtubeHandle: youtubeHandle,
-      websiteUrl: websiteUrl,
-      visibility: visibility,
-      showPhoneNumber: showPhoneNumber,
-      showEmail: showEmail,
-      showLocation: showLocation,
-      allowMessagesFrom: allowMessagesFrom,
-      allowTagging: allowTagging,
-      showActivityStatus: showActivityStatus,
-      showTransactionCount: showTransactionCount,
     );
 
     final result = await _datasource.updateProfile(userId, request);

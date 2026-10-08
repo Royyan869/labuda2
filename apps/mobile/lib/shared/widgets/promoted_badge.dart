@@ -55,7 +55,10 @@ class PromotedBadge extends StatelessWidget {
 
   Widget _buildPill(BuildContext context, String label, ThemeData theme) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8, vertical: AppMetrics.p4),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppMetrics.p8,
+        vertical: AppMetrics.p4,
+      ),
       decoration: BoxDecoration(
         color: theme.colorScheme.secondary.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(AppShape.r12),
@@ -66,8 +69,7 @@ class PromotedBadge extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: TextStyle(
-          fontSize: AppType.s12,
+        style: context.typeRoles.labelMicro.copyWith(
           fontWeight: FontWeight.w600,
           color: theme.colorScheme.secondary.withValues(alpha: 0.8),
           letterSpacing: 0.3,
@@ -80,13 +82,15 @@ class PromotedBadge extends StatelessWidget {
     return Chip(
       label: Text(
         label,
-        style: TextStyle(
-          fontSize: AppType.s12,
+        style: context.typeRoles.labelMicro.copyWith(
           fontWeight: FontWeight.w600,
           color: theme.colorScheme.secondary.withValues(alpha: 0.8),
         ),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8, vertical: AppMetrics.p4),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppMetrics.p8,
+        vertical: AppMetrics.p4,
+      ),
       labelPadding: const EdgeInsets.symmetric(horizontal: AppMetrics.p4),
       backgroundColor: theme.colorScheme.secondary.withValues(alpha: 0.1),
       side: BorderSide(
@@ -100,8 +104,7 @@ class PromotedBadge extends StatelessWidget {
   Widget _buildText(BuildContext context, String label, ThemeData theme) {
     return Text(
       label,
-      style: TextStyle(
-        fontSize: AppType.s12,
+      style: context.typeRoles.labelMicro.copyWith(
         fontWeight: FontWeight.w600,
         color: theme.colorScheme.secondary.withValues(alpha: 0.7),
         letterSpacing: 0.5,

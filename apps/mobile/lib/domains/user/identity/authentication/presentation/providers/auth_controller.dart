@@ -20,6 +20,26 @@ import 'package:labuda/domains/user/profile/data/services/user_sync_service.dart
 import 'package:labuda/domains/system/notification/data/notification_providers.dart'
     show fcmServiceProvider;
 
+/// Origin of a backend sync.
+///
+/// Product analytics treats these differently: `login` is reserved for an
+/// authentication the USER explicitly performed. A session restored from
+/// storage or re-read on resume is NOT a login — it is reported through a
+/// distinct lifecycle event so login counts stay truthful.
+enum AuthSyncOrigin {
+  /// Explicit user authentication (email/password or Google).
+  userLogin,
+
+  /// Explicit user registration exchange.
+  userSignup,
+
+  /// An existing session was restored without an explicit user login.
+  sessionRestore,
+
+  /// The live session was re-read/refreshed without a new user login.
+  sessionRefresh,
+}
+
 /// PASS 2A / F1 — structured classification of a failed backend auth-sync
 /// call (POST /api/v1/auth/firebase/exchange, GET /users/me).
 ///
@@ -703,7 +723,12 @@ class AuthController extends Notifier<AuthState> {
       final username = intent.username?.trim() ?? '';
       if (username.isNotEmpty) _authIntent = EmailSignupIntent(username);
     }
-    _syncWithBackend(firebaseUser.uid, firebaseUser, isEmailSignup: false);
+    _syncWithBackend(
+      firebaseUser.uid,
+      firebaseUser,
+      isEmailSignup: false,
+      origin: AuthSyncOrigin.sessionRestore,
+    );
   }
 
   void _setupFirebaseAuthListener() {
@@ -915,6 +940,7 @@ class AuthController extends Notifier<AuthState> {
     String userId,
     User firebaseUser, {
     required bool isEmailSignup,
+    required AuthSyncOrigin origin,
   }) async {
     final principal = FirebasePrincipal.fromFirebaseUser(firebaseUser);
     _logger.log(
@@ -1266,11 +1292,7 @@ class AuthController extends Notifier<AuthState> {
 
       _activateRealtimeServices(backendUser.id);
 
-      await _analytics.logEvent(
-        'login',
-        parameters: {'method': 'firebase_auth', 'user_id': backendUser.id},
-        userId: backendUser.id,
-      );
+      await _emitAuthenticationLifecycleEvent(origin, backendUser.id);
     } catch (e, stackTrace) {
       final errorStr = e.toString();
       _logger.error(
@@ -1331,6 +1353,51 @@ class AuthController extends Notifier<AuthState> {
       syncCompleter.complete();
       _logger.log('[SYNC] Backend sync complete', level: LogLevel.debug);
     }
+  }
+
+  /// Emit the analytics lifecycle event for a successful backend sync.
+  ///
+  /// `login` is emitted ONLY for an authentication the user explicitly
+  /// performed. Session restore/refresh get their own distinct events, so a
+  /// single successful login yields exactly one `login`.
+  Future<void> _emitAuthenticationLifecycleEvent(
+    AuthSyncOrigin origin,
+    String userId,
+  ) async {
+    switch (origin) {
+      case AuthSyncOrigin.userLogin:
+        await _analytics.logEvent(
+          AnalyticsEvents.login,
+          parameters: {AnalyticsParams.method: _loginMethod()},
+          userId: userId,
+        );
+      case AuthSyncOrigin.userSignup:
+        // `sign_up` is emitted by the registration flow. A signup exchange is
+        // not a user login and must not inflate login counts.
+        break;
+      case AuthSyncOrigin.sessionRestore:
+        await _analytics.logEvent(
+          AnalyticsEvents.sessionRestored,
+          parameters: {
+            AnalyticsParams.method: AnalyticsAuthMethods.sessionRestore,
+          },
+          userId: userId,
+        );
+      case AuthSyncOrigin.sessionRefresh:
+        await _analytics.logEvent(
+          AnalyticsEvents.sessionRefreshed,
+          parameters: {
+            AnalyticsParams.method: AnalyticsAuthMethods.sessionRefresh,
+          },
+          userId: userId,
+        );
+    }
+  }
+
+  String _loginMethod() {
+    final intent = _authIntent;
+    if (intent is GoogleLoginIntent) return AnalyticsAuthMethods.google;
+    return AnalyticsAuthMethods.email;
   }
 
   /// D2 HARD GATE (INV-8): the backend exchange is single-path and
@@ -1451,6 +1518,9 @@ class AuthController extends Notifier<AuthState> {
       current.uid,
       current,
       isEmailSignup: _authIntent is EmailSignupIntent,
+      origin: _authIntent is EmailSignupIntent
+          ? AuthSyncOrigin.userSignup
+          : AuthSyncOrigin.userLogin,
     );
   }
 
@@ -1539,6 +1609,7 @@ class AuthController extends Notifier<AuthState> {
       firebaseUser.uid,
       firebaseUser,
       isEmailSignup: false,
+      origin: AuthSyncOrigin.userLogin,
     );
     // _authIntent cleared in _syncWithBackend finally.
   }
@@ -1620,6 +1691,7 @@ class AuthController extends Notifier<AuthState> {
         firebaseUser.uid,
         firebaseUser,
         isEmailSignup: false,
+        origin: AuthSyncOrigin.userLogin,
       );
       // _authIntent cleared in _syncWithBackend finally.
     } finally {
@@ -1672,8 +1744,8 @@ class AuthController extends Notifier<AuthState> {
     }
 
     await _analytics.logEvent(
-      'sign_up',
-      parameters: {'method': 'email', 'user_id': firebaseUser.uid},
+      AnalyticsEvents.signUp,
+      parameters: {AnalyticsParams.method: AnalyticsAuthMethods.email},
       userId: firebaseUser.uid,
     );
 
@@ -1704,7 +1776,12 @@ class AuthController extends Notifier<AuthState> {
     // Already verified (e.g. re-provisioned identity): go straight to the
     // canonical exchange.
     _authIntent = EmailSignupIntent(trimmedUsername);
-    await _syncWithBackend(firebaseUser.uid, firebaseUser, isEmailSignup: true);
+    await _syncWithBackend(
+      firebaseUser.uid,
+      firebaseUser,
+      isEmailSignup: true,
+      origin: AuthSyncOrigin.userSignup,
+    );
     // _authIntent cleared in _syncWithBackend (keep for retry on USERNAME_TAKEN)
   }
 
@@ -1763,7 +1840,12 @@ class AuthController extends Notifier<AuthState> {
       level: LogLevel.debug,
     );
 
-    await _syncWithBackend(firebaseUser.uid, firebaseUser, isEmailSignup: true);
+    await _syncWithBackend(
+      firebaseUser.uid,
+      firebaseUser,
+      isEmailSignup: true,
+      origin: AuthSyncOrigin.userSignup,
+    );
   }
 
   /// Sign out user
@@ -1866,8 +1948,7 @@ class AuthController extends Notifier<AuthState> {
     // 3. Track logout event (before auth state changes)
     if (currentState is AuthStateAuthenticated) {
       await _analytics.logEvent(
-        'logout',
-        parameters: {'user_id': currentState.user.id},
+        AnalyticsEvents.logout,
         userId: currentState.user.id,
       );
     }
@@ -1916,8 +1997,8 @@ class AuthController extends Notifier<AuthState> {
     } catch (_) {}
     if (currentState is AuthStateAuthenticated) {
       await _analytics.logEvent(
-        'logout',
-        parameters: {'user_id': currentState.user.id, 'all_devices': true},
+        AnalyticsEvents.logout,
+        parameters: {AnalyticsParams.allDevices: true},
         userId: currentState.user.id,
       );
     }
@@ -1994,7 +2075,12 @@ class AuthController extends Notifier<AuthState> {
     _syncedUserId = null;
 
     // Trigger backend sync
-    _syncWithBackend(firebaseUser.uid, firebaseUser, isEmailSignup: false);
+    _syncWithBackend(
+      firebaseUser.uid,
+      firebaseUser,
+      isEmailSignup: false,
+      origin: AuthSyncOrigin.sessionRestore,
+    );
   }
 
   /// Verify-screen resend authority (D2): sends the verification email for
@@ -2038,6 +2124,11 @@ class AuthController extends Notifier<AuthState> {
     String? bio,
     String? phoneNumber,
     String? location,
+    String? coverPhotoUrl,
+    String? instagramHandle,
+    String? facebookHandle,
+    String? tiktokHandle,
+    String? twitterHandle,
     DateTime? phoneVerifiedAt,
     DateTime? dateOfBirth,
   }) async {
@@ -2047,6 +2138,11 @@ class AuthController extends Notifier<AuthState> {
       bio: bio,
       phoneNumber: phoneNumber,
       location: location,
+      coverPhotoUrl: coverPhotoUrl,
+      instagramHandle: instagramHandle,
+      facebookHandle: facebookHandle,
+      tiktokHandle: tiktokHandle,
+      twitterHandle: twitterHandle,
       phoneVerifiedAt: phoneVerifiedAt,
       dateOfBirth: dateOfBirth,
     );
@@ -2125,11 +2221,8 @@ class AuthController extends Notifier<AuthState> {
       _startSessionValidation();
       _activateRealtimeServices(completedUser.id);
       await _analytics.logEvent(
-        'login',
-        parameters: {
-          'method': 'profile_completion',
-          'user_id': completedUser.id,
-        },
+        AnalyticsEvents.login,
+        parameters: {AnalyticsParams.method: AnalyticsAuthMethods.profileCompletion},
         userId: completedUser.id,
       );
 
@@ -2243,7 +2336,12 @@ class AuthController extends Notifier<AuthState> {
 
       // Trigger full backend sync with refreshed user
       // This handles the flow: firebaseAuthenticated → syncingWithBackend → authenticated
-      _syncWithBackend(firebaseUser.uid, firebaseUser, isEmailSignup: false);
+      _syncWithBackend(
+        firebaseUser.uid,
+        firebaseUser,
+        isEmailSignup: false,
+        origin: AuthSyncOrigin.sessionRefresh,
+      );
     } catch (e) {
       _logger.error(
         'Failed to refresh auth state',
@@ -2257,7 +2355,12 @@ class AuthController extends Notifier<AuthState> {
       }
       _syncedUserId = null;
       if (!_mayExchangeVerifiedEmail(firebaseUser)) return;
-      _syncWithBackend(firebaseUser.uid, firebaseUser, isEmailSignup: false);
+      _syncWithBackend(
+        firebaseUser.uid,
+        firebaseUser,
+        isEmailSignup: false,
+        origin: AuthSyncOrigin.sessionRefresh,
+      );
     }
   }
 
@@ -2276,7 +2379,7 @@ class AuthController extends Notifier<AuthState> {
   /// IN-PLACE REFRESH — never downgrades a live session to
   /// [AuthState.loading]: that state maps to AppAuthStatus.initializing,
   /// which the router turns into a forced /splash, and it nulls
-  /// authenticatedUserProvider (AuthGuard surfaces flicker to empty state).
+  /// authenticatedUserProvider (auth surfaces flicker to empty state).
   /// A refresh runs at any time (resume, settings, renewal, profile update)
   /// without ever parking a signed-in user.
   ///
@@ -2463,8 +2566,8 @@ class AuthController extends Notifier<AuthState> {
     if (result.isSuccess) {
       // Track account deactivation
       await _analytics.logEvent(
-        'account_deactivated',
-        parameters: {'user_id': userId, 'reason': reason},
+        AnalyticsEvents.accountDeactivated,
+        parameters: {AnalyticsParams.reason: reason},
         userId: userId,
       );
 
@@ -2604,8 +2707,8 @@ class AuthController extends Notifier<AuthState> {
         // seller subscription expiring mid-session flips
         // hasMarketAuthority/sellerSubscriptionStatus without ever
         // changing role, and the stale cached AuthUser (still
-        // hasMarketAuthority=true) keeps being read by SellerGuard/the
-        // router's seller guard for up to the full 5-minute period between
+        // hasMarketAuthority=true) keeps being read by the router's seller
+        // guard for up to the full 5-minute period between
         // validations. See forceRefreshAuthState() above for the identical
         // fix
         // on the resume path.

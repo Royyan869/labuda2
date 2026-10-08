@@ -35,7 +35,6 @@ void main() {
           breeder: 'Farm A',
           bloodline: 'Sakai',
           certificates: const ['cert-1'],
-          farmAddressId: 'address-1',
           preparationTime: '1_3_days',
           shippingSetupIds: const ['option-1', 'option-2'],
           startPrice: 1000000,
@@ -62,7 +61,7 @@ void main() {
         expect(json['breeder'], 'Farm A');
         expect(json['bloodline'], 'Sakai');
         expect(json['certificates'], const ['cert-1']);
-        expect(json['farm_address_id'], 'address-1');
+        expect(json.containsKey('farm_address_id'), isFalse);
         expect(json['preparation_time'], '1_3_days');
         expect(json['shipping_option_ids'], const ['option-1', 'option-2']);
         expect(json['start_price'], 1000000);
@@ -157,7 +156,6 @@ void main() {
           buyNowPrice: 2500000,
           startMode: 'now',
           durationHours: 72,
-          farmAddressId: 'address-1',
           preparationTime: PreparationTime.days1_3,
           shippingSetupIds: const ['option-1', 'option-2'],
         );
@@ -172,7 +170,7 @@ void main() {
         expect(json['breeder'], 'Farm A');
         expect(json['bloodline'], 'Sakai');
         expect(json['certificates'], const ['cert-1']);
-        expect(json['farm_address_id'], 'address-1');
+        expect(json.containsKey('farm_address_id'), isFalse);
         expect(json['preparation_time'], '1_3_days');
         expect(json['shipping_option_ids'], const ['option-1', 'option-2']);
         expect(

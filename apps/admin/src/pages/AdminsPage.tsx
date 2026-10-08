@@ -5,7 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/Table'
+import { Input } from '@/components/ui/Input'
+import { Select } from '@/components/ui/Select'
 import { useUsers } from '@/hooks/useUsers'
+import { AdminLoadingState, AdminErrorState, AdminEmptyState, PageHeader } from '@/components/common'
 import { PromoteAdminPanel } from '@/components/users/PromoteAdminPanel'
 import { hasCapability } from '@/lib/permissions'
 import { useAuth } from '@/hooks/useAuth'
@@ -39,31 +42,22 @@ export function AdminsPage() {
     refetch()
   }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
-          <p className="mt-4 text-[hsl(var(--muted-foreground))]">Loading admins...</p>
-        </div>
-      </div>
-    )
+  const hasActiveFilters = statusFilter || searchQuery
+
+  const handleClearFilters = () => {
+    setStatusFilter('')
+    setSearchQuery('')
+  }
+
+  if (loading && users.length === 0) {
+    return <AdminLoadingState />
   }
 
   if (error) {
     return (
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-[hsl(var(--foreground))]">Admin Management</h1>
-          <p className="text-[hsl(var(--muted-foreground))] mt-1">Manage admin accounts and capabilities</p>
-        </div>
-        <Card>
-          <CardContent className="p-6">
-            <div className="text-center text-[hsl(var(--destructive))]">
-              <p>Error loading admins: {error.message}</p>
-            </div>
-          </CardContent>
-        </Card>
+        <PageHeader title="Admin Management" description="Manage admin accounts and their capabilities" />
+        <AdminErrorState title="Failed to load admins" message={error.message} onRetry={refetch} />
       </div>
     )
   }
@@ -71,31 +65,27 @@ export function AdminsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-[hsl(var(--foreground))]">Admin Management</h1>
-          <p className="text-[hsl(var(--muted-foreground))] mt-1">Manage admin accounts and their capabilities</p>
-        </div>
-        <Button
-          variant="secondary"
-          onClick={refetch}
-          className="gap-2"
-        >
-          <RefreshCw className="h-4 w-4" />
-          Refresh
-        </Button>
-      </div>
+      <PageHeader
+        title="Admin Management"
+        description="Manage admin accounts and their capabilities"
+        actions={
+          <Button variant="secondary" onClick={refetch} className="gap-2">
+            <RefreshCw className="h-4 w-4" />
+            Refresh
+          </Button>
+        }
+      />
 
       {/* Stats Card */}
       <Card>
         <CardContent className="pt-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-[hsl(var(--muted-foreground))]">Total Admins</p>
-              <p className="text-3xl font-bold text-primary mt-1">{total}</p>
+              <p className="text-sm font-medium text-muted-foreground">Total Admins</p>
+              <p className="type-metric-lg text-primary mt-1">{total}</p>
             </div>
-            <div className="p-4 rounded-lg bg-[hsl(var(--info-bg))]">
-              <Shield className="h-8 w-8 text-[hsl(var(--info))]" />
+            <div className="p-4 rounded-lg bg-info-bg">
+              <Shield className="h-8 w-8 text-info" />
             </div>
           </div>
         </CardContent>
@@ -108,40 +98,32 @@ export function AdminsPage() {
       {/* Filters */}
       <Card>
         <CardContent className="pt-6">
-          <div className="flex items-center gap-6 flex-wrap">
-            <div className="flex items-center gap-4">
-              <Filter className="h-5 w-5 text-[hsl(var(--muted-foreground))]" />
-            </div>
+          <div className="flex items-end gap-6 flex-wrap">
+            <Filter className="h-5 w-5 text-muted-foreground mb-2" />
 
             {/* Status Filter */}
-            <div className="flex items-center gap-2">
-              <label htmlFor="status-filter" className="text-sm font-medium text-[hsl(var(--foreground))]">
-                Status:
-              </label>
-              <select
-                id="status-filter"
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as 'active' | 'suspended' | 'banned' | '')}
-                className="px-3 py-2 border border-[hsl(var(--border))] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-              >
-                {ADMIN_STATUSES.map((status) => (
-                  <option key={status.value} value={status.value}>
-                    {status.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <Select
+              label="Status:"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as 'active' | 'suspended' | 'banned' | '')}
+            >
+              {ADMIN_STATUSES.map((status) => (
+                <option key={status.value} value={status.value}>
+                  {status.label}
+                </option>
+              ))}
+            </Select>
 
             {/* Search */}
-            <form onSubmit={handleSearch} className="flex items-center gap-2">
+            <form onSubmit={handleSearch} className="flex items-end gap-2">
               <div className="relative">
-                <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-[hsl(var(--muted-foreground))]" />
-                <input
+                <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground z-10" />
+                <Input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search by name or email..."
-                  className="pl-9 pr-3 py-2 border border-[hsl(var(--border))] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary w-64"
+                  className="pl-9 w-64"
                 />
               </div>
               <Button type="submit" size="sm" variant="secondary">
@@ -159,17 +141,19 @@ export function AdminsPage() {
         </CardHeader>
         <CardContent>
           {users.length === 0 ? (
-            <div className="text-center py-12">
-              <Shield className="h-12 w-12 text-[hsl(var(--muted-foreground))] mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-[hsl(var(--foreground))] mb-2">No Admins Found</h3>
-              <p className="text-[hsl(var(--muted-foreground))]">
-                {statusFilter || searchQuery
+            <AdminEmptyState
+              icon={Shield}
+              title="No Admins Found"
+              description={
+                hasActiveFilters
                   ? 'No admins match the current filters.'
-                  : 'No admin accounts in the system.'}
-              </p>
-            </div>
+                  : 'No admin accounts in the system.'
+              }
+              filtered={Boolean(hasActiveFilters)}
+              onClearFilters={handleClearFilters}
+            />
           ) : (
-            <div className="border border-[hsl(var(--border))] rounded-lg overflow-hidden">
+            <div className="border border-border rounded-lg overflow-hidden">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -194,17 +178,17 @@ export function AdminsPage() {
                               className="w-8 h-8 rounded-full object-cover"
                             />
                           ) : (
-                            <div className="w-8 h-8 rounded-full bg-[hsl(var(--surface-muted))] flex items-center justify-center">
-                              <Users className="h-4 w-4 text-[hsl(var(--muted-foreground))]" />
+                            <div className="w-8 h-8 rounded-full bg-surface-muted flex items-center justify-center">
+                              <Users className="h-4 w-4 text-muted-foreground" />
                             </div>
                           )}
                           <div>
-                            <p className="text-xs text-[hsl(var(--muted-foreground))]">@{user.username}</p>
+                            <p className="type-caption">@{user.username}</p>
                           </div>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <p className="text-sm font-mono text-[hsl(var(--muted-foreground))] truncate max-w-[150px]">{user.email}</p>
+                        <p className="text-sm font-mono text-muted-foreground truncate max-w-[150px]">{user.email}</p>
                       </TableCell>
                       <TableCell>
                         <Badge variant="info" className="gap-1">
@@ -222,10 +206,10 @@ export function AdminsPage() {
                           {user.account_status.charAt(0).toUpperCase() + user.account_status.slice(1)}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-sm text-[hsl(var(--muted-foreground))]">
+                      <TableCell className="type-secondary">
                         {formatDate(user.created_at)}
                       </TableCell>
-                      <TableCell className="text-sm text-[hsl(var(--muted-foreground))]">
+                      <TableCell className="type-secondary">
                         {user.last_active_at ? formatDate(user.last_active_at) : 'Never'}
                       </TableCell>
                       <TableCell className="text-right">

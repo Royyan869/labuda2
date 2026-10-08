@@ -96,17 +96,94 @@ class PromotionContractListDto {
   }
 }
 
+/// One entry of the promotion product queue in the canonical backend shape.
+///
+/// WIRE AUTHORITY: the create/funding-intent request `targets[]` array, each
+/// entry carrying `target_type` (for_sale / auction / external_product) and
+/// `target_id` (uuid string). The backend owns every queue rule
+/// (minimum 1, maximum 10, duplicates, kind match, ownership, eligibility).
+/// This is transport only — never a mobile business authority.
+class PromotionTargetDto {
+  final String targetType;
+  final String targetId;
+
+  const PromotionTargetDto({required this.targetType, required this.targetId});
+
+  Map<String, dynamic> toJson() => {
+    'target_type': targetType,
+    'target_id': targetId,
+  };
+}
+
+/// One persisted queue entry returned by
+/// GET /promotions/contracts/:id/targets.
+///
+/// WIRE AUTHORITY: the backend returns the promotion_contract_targets rows as
+/// the Go contract entity, which carries no json tags — the wire keys are the
+/// Go field names (ID, ContractID, TargetType, TargetID, Position, AddedAt).
+/// This is a read projection only; the backend owns the queue.
+class PromotionContractTargetDto {
+  final String id;
+  final String contractId;
+  final String targetType; // for_sale | auction | external_product
+  final String targetId;
+  final int position;
+  final String addedAt;
+
+  const PromotionContractTargetDto({
+    required this.id,
+    required this.contractId,
+    required this.targetType,
+    required this.targetId,
+    required this.position,
+    required this.addedAt,
+  });
+
+  factory PromotionContractTargetDto.fromJson(Map<String, dynamic> json) {
+    return PromotionContractTargetDto(
+      id: json['ID'] as String,
+      contractId: json['ContractID'] as String,
+      targetType: json['TargetType'] as String,
+      targetId: json['TargetID'] as String,
+      position: (json['Position'] as num?)?.toInt() ?? 0,
+      addedAt: json['AddedAt'] as String? ?? '',
+    );
+  }
+}
+
+/// Canonical persisted queue for one promotion contract.
+class PromotionTargetListDto {
+  final List<PromotionContractTargetDto> targets;
+  final int count;
+
+  const PromotionTargetListDto({required this.targets, required this.count});
+
+  factory PromotionTargetListDto.fromJson(Map<String, dynamic> json) {
+    final list = (json['targets'] as List<dynamic>? ?? [])
+        .map(
+          (e) => PromotionContractTargetDto.fromJson(e as Map<String, dynamic>),
+        )
+        .toList();
+    return PromotionTargetListDto(
+      targets: list,
+      count: json['count'] as int? ?? list.length,
+    );
+  }
+}
+
 class CreatePromotionContractRequestDto {
   final String kind;
   final int budgetRupiah;
   final int durationDays;
   final List<String> cityIds;
+  final List<PromotionTargetDto> targets;
 
   CreatePromotionContractRequestDto({
     required this.kind,
     required this.budgetRupiah,
     required this.durationDays,
     required this.cityIds,
+    required this.targets,
   });
 
   Map<String, dynamic> toJson() => {
@@ -114,6 +191,7 @@ class CreatePromotionContractRequestDto {
     'budget_rupiah': budgetRupiah,
     'duration_days': durationDays,
     'city_ids': cityIds,
+    'targets': targets.map((t) => t.toJson()).toList(),
   };
 }
 
@@ -173,11 +251,17 @@ class PromotionFundingIntentDto {
   /// Seller's reusable PROMOTE_BALANCE at intent time (informational).
   final int availableFunding;
 
+  /// Server-calculated informational estimate of Qualified Impressions the
+  /// budget can approximately buy at the platform CPM. Rendered verbatim; the
+  /// client never computes it.
+  final int estimatedImpressions;
+
   const PromotionFundingIntentDto({
     required this.paymentRequired,
     required this.shortage,
     required this.requiredCost,
     required this.availableFunding,
+    this.estimatedImpressions = 0,
     this.intentId,
     this.billingId,
   });
@@ -190,6 +274,8 @@ class PromotionFundingIntentDto {
       shortage: (json['shortage'] as num?)?.toInt() ?? 0,
       requiredCost: (json['required_cost'] as num?)?.toInt() ?? 0,
       availableFunding: (json['available_funding'] as num?)?.toInt() ?? 0,
+      estimatedImpressions:
+          (json['estimated_impressions'] as num?)?.toInt() ?? 0,
       intentId: (intentId == null || intentId.isEmpty) ? null : intentId,
       billingId: (billingId == null || billingId.isEmpty) ? null : billingId,
     );

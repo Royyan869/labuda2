@@ -225,6 +225,10 @@ func SetupRoutes(
 		paymentRoutes := v1.Group("/payments")
 		paymentRoutes.POST("", deps.PaymentHandler.CreatePayment)
 		paymentRoutes.POST("/billing", deps.PaymentHandler.CreateBillingPayment)
+		// CANONICAL PRE-ORDER PRICING CONTRACT (Phase 1): discloses methods +
+		// backend-computed fee + final payable for a valid pricing token, before
+		// any order exists. Read-only; the token is consumed only by POST /orders.
+		paymentRoutes.GET("/pre-order-methods", deps.PaymentHandler.ListPreOrderPaymentMethods)
 		paymentRoutes.GET("/methods", deps.PaymentHandler.ListPaymentMethods)
 		paymentRoutes.POST("/:id/sync", deps.PaymentHandler.SyncPayment)
 		paymentRoutes.GET("/:id", deps.PaymentHandler.GetPayment)
@@ -302,8 +306,9 @@ func SetupRoutes(
 		{
 			auctionSellerRoutes.POST("", deps.AuctionHandler.CreateAuction)
 			auctionSellerRoutes.PUT("/:id", deps.AuctionHandler.UpdateAuction)
-			auctionSellerRoutes.POST("/:id/schedule", deps.AuctionHandler.ScheduleAuction)
 			auctionSellerRoutes.POST("/:id/cancel", deps.AuctionHandler.CancelAuction)
+			// Owner business truth: an auction that ended with no bids can be relisted.
+			auctionSellerRoutes.POST("/:id/relist", deps.AuctionHandler.RelistAuction)
 		}
 
 		// Authenticated buyer endpoints
@@ -341,16 +346,17 @@ func SetupRoutes(
 		// Seller-only endpoints (for_sale CRUD operations)
 		forSaleSellerRoutes := v1.Group("/for-sale")
 		{
-			// ForSale workspace gate: verified email + active account + seller profile.
-			// Private/draft creation is workspace state (no subscription required);
-			// market-visible exposure is gated transactionally by HasActiveSellerCapability.
+			// ForSale create = publish (no draft state): workspace gate first,
+			// then market authority is checked inside the create transaction.
 			forSaleSellerRoutes.POST("",
 				middleware.RequireActiveAccount(db.Pgx()),
 				middleware.RequireSellerProfileMiddleware(deps.RoleChecker),
 				deps.ForSaleHandler.CreateForSale,
 			)
-			// ForSale owner mutations on draft: workspace authority only.
-			// Publish (draft→active) is gated transactionally by HasActiveSellerCapability.
+			// ForSale owner mutations: workspace authority only. There is no draft
+			// state to edit into — publish happens at create (gated transactionally
+			// by HasActiveSellerCapability), so this PUT only serves canonical
+			// rejection paths (live immutability / dedicated lifecycle endpoints).
 			forSaleSellerRoutes.PUT("/:id",
 				middleware.RequireActiveAccount(db.Pgx()),
 				middleware.RequireSellerProfileMiddleware(deps.RoleChecker),
@@ -518,9 +524,8 @@ func SetupRoutes(
 			sellerRoutes.GET("/profile", deps.SellerHandler.GetProfile)
 			sellerRoutes.GET("/subscription", deps.SellerHandler.GetSubscription)
 
-			// Seller dashboard / analytics / performance (market operation surfaces)
+			// Seller dashboard / performance (market operation surfaces)
 			sellerRoutes.GET("/dashboard", deps.SellerHandler.GetDashboard)
-			sellerRoutes.GET("/analytics", deps.SellerHandler.GetAnalytics)
 			sellerRoutes.GET("/performance", deps.SellerHandler.GetPerformance)
 
 			// ===== SELLER SHIPPING MANAGEMENT (market configuration) =====
@@ -573,6 +578,11 @@ func SetupRoutes(
 			// Expired sellers earned balance is theirs; they must be able to see it.
 			sellerWorkspaceRoutes.GET("/earnings", deps.SellerHandler.GetEarnings)
 
+			// Seller Analytics — read projection over canonical Product View +
+			// sale/auction data. Survives subscription expiry so historical
+			// products and their views remain visible to the seller.
+			sellerWorkspaceRoutes.GET("/analytics", deps.SellerHandler.GetAnalytics)
+
 			// ===== SELLER VERIFICATION (Phase 2) =====
 			// Verification opens payout authority, not selling authority.
 			// Expired sellers must be able to check status and resubmit KYC
@@ -618,6 +628,19 @@ func SetupRoutes(
 			addressRoutes.PUT("/:id", deps.AddressHandler.UpdateAddress)
 			addressRoutes.DELETE("/:id", deps.AddressHandler.DeleteAddress)
 			addressRoutes.POST("/:id/primary", deps.AddressHandler.SetPrimary)
+		}
+
+		// Geography domain routes (CANONICAL — ONE master read path).
+		// Every consumer (address picker, seller shipping coverage, promotion
+		// targeting) reads geographic reference data from here only. There is
+		// intentionally no second geography endpoint.
+		geographyRoutes := v1.Group("/geographies")
+		{
+			geographyRoutes.GET("/provinces", deps.GeographyHandler.ListProvinces)
+			geographyRoutes.GET("/provinces/:code/regencies", deps.GeographyHandler.ListRegencies)
+			geographyRoutes.GET("/regencies/:code/districts", deps.GeographyHandler.ListDistricts)
+			geographyRoutes.GET("/districts/:code/villages", deps.GeographyHandler.ListVillages)
+			geographyRoutes.GET("/villages/:code", deps.GeographyHandler.GetByCode)
 		}
 
 		// Withdraw domain routes (CORE)
@@ -914,10 +937,7 @@ func SetupRoutes(
 			// no longer implies appeal read access. See moderation.appeal.read.
 			adminRoutes.GET("/appeals",
 				middleware.RequireCapability("moderation.appeal.read"),
-				deps.AppealHandler.AdminListAppeals) // List all appeals
-			adminRoutes.GET("/appeals/pending",
-				middleware.RequireCapability("moderation.appeal.read"),
-				deps.AppealHandler.AdminListPendingAppeals) // Pending appeals queue
+				deps.AppealHandler.AdminListAppeals) // List all appeals (filter status=pending for the pending queue)
 			adminRoutes.GET("/appeals/:id",
 				middleware.RequireCapability("moderation.appeal.read"),
 				deps.AppealHandler.AdminGetAppeal) // W1-B2: Get appeal with original case context
@@ -1059,7 +1079,7 @@ func SetupRoutes(
 				deps.AdminFinanceHandler.GetSummary)
 
 			// Payout pilot whitelist audit history (read-only, append-only log)
-			// GET /api/v1/admin/payouts/whitelist/audit?seller_id=<uuid>&limit=50&offset=0
+			// GET /api/v1/admin/payouts/whitelist/audit?seller_id=<uuid>&limit=50&cursor=<opaque>
 			adminRoutes.GET("/payouts/whitelist/audit",
 				middleware.RequireCapability("finance.withdraw.read"),
 				deps.AdminPayoutHandler.ListWhitelistAudit)

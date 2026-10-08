@@ -18,6 +18,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:labuda/domains/user/identity/authentication/presentation/providers/auth_controller.dart';
+import 'package:labuda/generated/app_localizations.dart';
 import 'package:labuda/domains/user/identity/authentication/presentation/providers/auth_state.dart';
 import 'package:labuda/features/search/search/data/dto/search_dto.dart';
 import 'package:labuda/features/search/search/data/remote/search_api_service.dart';
@@ -197,8 +198,11 @@ Future<void> _pumpSearchResults(
         searchApiServiceProvider.overrideWithValue(api),
         authControllerProvider.overrideWith(() => _FakeAuthController()),
       ],
-      child: const MaterialApp(
-        home: Scaffold(body: SearchResultsScreen(query: 'koi')),
+      child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        locale: const Locale('id'),
+        home: const Scaffold(body: SearchResultsScreen(query: 'koi')),
       ),
     ),
   );
@@ -312,7 +316,9 @@ void main() {
     // All-empty -> canonical global empty state (no per-domain placeholders).
     final emptyApi = _CountingSearchApiService();
     await _pumpSearchResults(tester, emptyApi);
-    expect(find.text('No results found'), findsOneWidget);
+    // CANONICAL search/filter-empty copy (Bahasa Indonesia via l10n) —
+    // never the old hardcoded English renderer.
+    expect(find.text('Tidak Ada Hasil'), findsOneWidget);
     expect(find.text('No Users'), findsNothing);
     expect(find.text('No For Sale'), findsNothing);
     expect(find.text('No Auctions'), findsNothing);

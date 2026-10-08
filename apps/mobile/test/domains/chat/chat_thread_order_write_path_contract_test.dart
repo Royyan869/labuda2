@@ -13,7 +13,6 @@ import 'package:labuda/domains/chat/chat/domain/repositories/chat_repository.dar
 import 'package:labuda/domains/chat/chat/presentation/providers/chat_notifier.dart';
 import 'package:labuda/domains/system/notification/data/notification_providers.dart';
 import 'package:labuda/domains/system/notification/domain/repositories/i_notification_repository.dart';
-import 'package:labuda/shared/attachment/entities/share_reference.dart';
 import 'package:labuda/shared/providers/auth_status_providers.dart';
 
 // ============================================================================
@@ -105,8 +104,6 @@ class _ThreadRepo implements ChatRepository {
     List<String> mediaAssetIds = const [],
     String? replyToId,
     List<String> mentionedUserIds = const [],
-    ShareReference? objectReference,
-    Map<String, dynamic>? workflowAttachment,
     ChatResourceOccurrenceRequest? resourceOccurrence,
   }) async {
     sendCalls++;

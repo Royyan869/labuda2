@@ -1,56 +1,115 @@
 /// Notification List Content
 ///
-/// Main list content with pull-to-refresh and loading states.
-/// Extracted from notification_list_screen for better modularity.
-///
-/// Size: < 150 lines (per GUIDELINES)
+/// Renders the loaded notification list grouped by date, with pull-to-refresh
+/// and the non-destructive refresh progress / inline refresh-error banner.
+/// The page-level loading/error/empty states are owned by the screen; this
+/// widget only renders a non-empty collection.
 library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:labuda/core/core.dart' hide NotificationEntity;
 import 'package:labuda/domains/system/notification/domain/entities/notification_entity.dart';
-import 'package:labuda/domains/system/notification/domain/entities/notification_filter.dart';
-import 'package:labuda/domains/system/notification/presentation/providers/notification_list_provider.dart';
 import 'package:labuda/domains/system/notification/presentation/widgets/notification_dismissible_item.dart';
-import 'package:labuda/domains/system/notification/presentation/widgets/notification_empty_state_widget.dart';
 
 import 'package:flutter/material.dart';
-import 'package:labuda/core/src/theme/app_theme.dart';
 
 class NotificationListContent extends ConsumerWidget {
   final String userId;
   final List<NotificationEntity> notifications;
-  final NotificationFilter selectedFilter;
   final Function(NotificationEntity) onNotificationTap;
+
+  /// True while a refresh is in flight with data already on screen.
+  final bool isRefreshing;
+
+  /// True when the last refresh failed while data is still on screen.
+  final bool hasRefreshError;
+
+  /// Canonical refresh operation (re-runs the list authority).
+  final Future<void> Function() onRefresh;
 
   const NotificationListContent({
     super.key,
     required this.userId,
     required this.notifications,
-    required this.selectedFilter,
     required this.onNotificationTap,
+    required this.onRefresh,
+    this.isRefreshing = false,
+    this.hasRefreshError = false,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (notifications.isEmpty) {
-      return NotificationEmptyStateWidget(filter: selectedFilter);
-    }
-
     // Group notifications by date
     final groupedNotifications = _groupNotificationsByDate(notifications);
+    final showStatus = isRefreshing || hasRefreshError;
+    final statusOffset = showStatus ? 1 : 0;
 
     return RefreshIndicator(
-      onRefresh: () async {
-        ref.invalidate(notificationListProvider(userId));
-        await Future.delayed(AppMotion.slow);
-      },
+      onRefresh: onRefresh,
       child: ListView.builder(
         padding: const EdgeInsets.symmetric(vertical: AppMetrics.p12),
-        itemCount: groupedNotifications.length,
+        itemCount: groupedNotifications.length + statusOffset,
         itemBuilder: (context, index) {
-          final group = groupedNotifications[index];
+          // Non-destructive refresh status: rows stay, progress/error on top.
+          if (showStatus && index == 0) {
+            return Column(
+              children: [
+                if (isRefreshing) const LinearProgressIndicator(minHeight: 2),
+                if (hasRefreshError) _buildRefreshErrorBanner(context),
+              ],
+            );
+          }
+          final group = groupedNotifications[index - statusOffset];
           return _buildDateGroup(context, ref, group);
         },
+      ),
+    );
+  }
+
+  /// Minimum bounded refresh-failure indication: persistent inline banner
+  /// with safe localized copy and a retry that re-runs the canonical refresh.
+  Widget _buildRefreshErrorBanner(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final l10n = context.l10n;
+    return Semantics(
+      container: true,
+      liveRegion: true,
+      child: Container(
+        width: double.infinity,
+        margin: const EdgeInsets.fromLTRB(
+          AppMetrics.p16,
+          AppMetrics.p12,
+          AppMetrics.p16,
+          AppMetrics.p4,
+        ),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppMetrics.p12,
+          vertical: AppMetrics.p8,
+        ),
+        decoration: BoxDecoration(
+          color: scheme.errorContainer,
+          borderRadius: BorderRadius.circular(AppShape.r12),
+          border: Border.all(color: scheme.error),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.refresh_outlined,
+              size: AppIconSize.action,
+              color: scheme.onErrorContainer,
+            ),
+            const SizedBox(width: AppMetrics.p8),
+            Expanded(
+              child: Text(
+                l10n.pageErrorMessage,
+                style: context.typeRoles.bodyDense.copyWith(
+                  color: scheme.onErrorContainer,
+                ),
+              ),
+            ),
+            TextButton(onPressed: onRefresh, child: Text(l10n.retryAction)),
+          ],
+        ),
       ),
     );
   }
@@ -110,11 +169,15 @@ class NotificationListContent extends ConsumerWidget {
       children: [
         // Date header
         Padding(
-          padding: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p16, AppMetrics.p16, AppMetrics.p8),
+          padding: const EdgeInsets.fromLTRB(
+            AppMetrics.p16,
+            AppMetrics.p16,
+            AppMetrics.p16,
+            AppMetrics.p8,
+          ),
           child: Text(
             group.dateLabel,
-            style: TextStyle(
-              fontSize: AppType.s14,
+            style: context.typeRoles.labelMicro.copyWith(
               fontWeight: FontWeight.w600,
               color: Theme.of(context).colorScheme.onSurfaceVariant,
               letterSpacing: 0.5,

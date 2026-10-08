@@ -22,7 +22,10 @@ class DropdownDecorationHelper {
           ? Icon(prefixIcon, color: scheme.onSurfaceVariant)
           : null,
       border: InputBorder.none,
-      contentPadding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p16),
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: AppMetrics.p16,
+        vertical: AppMetrics.p16,
+      ),
       hintStyle: TextStyle(color: scheme.onSurfaceVariant),
     );
   }
@@ -34,7 +37,7 @@ class DropdownDecorationHelper {
 
   /// Get text style untuk dropdown
   static TextStyle getTextStyle(ColorScheme scheme) {
-    return TextStyle(color: scheme.onSurface, fontSize: AppType.s16);
+    return TextStyle(color: scheme.onSurface);
   }
 
   /// Create selected item builder untuk dropdown

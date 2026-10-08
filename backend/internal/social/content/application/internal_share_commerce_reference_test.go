@@ -19,9 +19,11 @@ import (
 // isActiveAccountChecker allows all callers for test isolation.
 type isActiveAccountChecker struct{}
 
-func (isActiveAccountChecker) EnsureActive(context.Context, uuid.UUID) error  { return nil }
-func (isActiveAccountChecker) GetStatus(context.Context, uuid.UUID) (string, error) { return "active", nil }
-func (isActiveAccountChecker) IsBanned(context.Context, uuid.UUID) (bool, error)     { return false, nil }
+func (isActiveAccountChecker) EnsureActive(context.Context, uuid.UUID) error { return nil }
+func (isActiveAccountChecker) GetStatus(context.Context, uuid.UUID) (string, error) {
+	return "active", nil
+}
+func (isActiveAccountChecker) IsBanned(context.Context, uuid.UUID) (bool, error) { return false, nil }
 
 // stubCommerceValidator records calls and returns a configurable error.
 type stubCommerceValidator struct {
@@ -243,10 +245,10 @@ func TestInternalShare_Auction_NotFound_Rejected(t *testing.T) {
 }
 
 // TestInternalShare_ForSale_NonDisplayable_Rejected proves:
-// Internal Share to non-displayable (draft/withdrawn/sold) ForSale → REJECTED.
+// Internal Share to non-displayable (withdrawn/sold) ForSale → REJECTED.
 func TestInternalShare_ForSale_NonDisplayable_Rejected(t *testing.T) {
 	validator := &stubCommerceValidator{
-		returnErr: fmt.Errorf("cannot share for_sale in status \"draft\""),
+		returnErr: fmt.Errorf("cannot share for_sale in status \"withdrawn\""),
 	}
 	svc, repo := newInternalShareTestService(validator)
 
@@ -256,7 +258,7 @@ func TestInternalShare_ForSale_NonDisplayable_Rejected(t *testing.T) {
 		ActorID:    uuid.New(),
 		TargetType: entity.ShareTargetTypeForSale,
 		TargetID:   forSaleID.String(),
-		Caption:    "Share draft listing",
+		Caption:    "Share withdrawn listing",
 	})
 
 	if err == nil {
@@ -271,10 +273,10 @@ func TestInternalShare_ForSale_NonDisplayable_Rejected(t *testing.T) {
 }
 
 // TestInternalShare_Auction_NonDisplayable_Rejected proves:
-// Internal Share to non-displayable (draft/ended/cancelled) Auction → REJECTED.
+// Internal Share to non-displayable (lapsed/ended/cancelled) Auction → REJECTED.
 func TestInternalShare_Auction_NonDisplayable_Rejected(t *testing.T) {
 	validator := &stubCommerceValidator{
-		returnErr: fmt.Errorf("cannot share auction in status \"draft\""),
+		returnErr: fmt.Errorf("cannot share auction in status \"lapsed\""),
 	}
 	svc, repo := newInternalShareTestService(validator)
 
@@ -284,7 +286,7 @@ func TestInternalShare_Auction_NonDisplayable_Rejected(t *testing.T) {
 		ActorID:    uuid.New(),
 		TargetType: entity.ShareTargetTypeAuction,
 		TargetID:   auctionID.String(),
-		Caption:    "Share draft auction",
+		Caption:    "Share lapsed auction",
 	})
 
 	if err == nil {

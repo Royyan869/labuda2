@@ -39,8 +39,6 @@ export 'widgets/seller_identity_view.dart'; // ⭐ Seller identity composite (pr
 export 'widgets/seller_avatar.dart'; // ⭐ Seller-aware avatar composite + online badge
 export 'widgets/follow_button.dart'; // ⭐ Follow button component
 export 'widgets/app_text_field.dart'; // ⭐ Modern text fields
-export 'widgets/app_dropdown.dart'; // ⭐ Modern dropdown fields
-export 'widgets/app_date_picker.dart'; // ⭐ Modern date picker
 export 'widgets/count_badge.dart'; // ⭐ THE count badge renderer (app-bar counters)
 export 'widgets/password_strength_indicator.dart'; // ⭐ Password validation
 export 'widgets/shipping_address_card.dart'; // ⭐ Canonical shipping-address card + empty prompt
@@ -49,9 +47,8 @@ export 'widgets/app_logo.dart'; // ⭐ Logo component
 export 'widgets/app_back_button.dart'; // ⭐ Navigation
 export 'widgets/app_bar_custom.dart'; // ⭐ Custom AppBar
 export 'widgets/app_snackbar.dart'; // ⭐ Notifications
-export 'widgets/base_card.dart'; // ⭐ Base card component
 export 'widgets/loading_indicator.dart'; // ⭐ Loading states
-export 'widgets/error_widget.dart'; // ⭐ Error handling
+export 'widgets/page_error_state.dart'; // ⭐ Canonical page-level error state (the dead error widget is purged)
 export 'widgets/app_image.dart'; // ⭐ Image component
 export 'widgets/keyboard_dismiss_wrapper.dart'; // ⭐ Global keyboard dismiss
 // export 'widgets/presence_auth_sync.dart';    // ✅ Removed - migrated to API-based presence
@@ -59,9 +56,12 @@ export 'widgets/keyboard_dismiss_wrapper.dart'; // ⭐ Global keyboard dismiss
 // export 'widgets/quick_create_bar.dart';     // ✅ Removed - using bottom nav + icon instead
 export 'widgets/language_selector.dart'; // ⭐ Language selection
 export 'widgets/theme_selector.dart'; // ⭐ Theme selection
-export 'widgets/action_buttons.dart'; // ⭐ Action buttons
+export 'widgets/bottom_action_bar.dart'; // ⭐ THE bottom action bar authority
+export 'payment/payment_method_trigger.dart'; // THE canonical payment-method selection trigger/field
+export 'payment/payment_method_visuals.dart'; // ⭐ THE canonical payment-method visual authority
+export 'payment/payment_method_logo.dart'; // ⭐ THE canonical payment-method logo renderer
 export 'widgets/avatar_editor_widget.dart'; // ⭐ Avatar editor
-export 'widgets/app_modal.dart'; // ⭐ Reusable modal dialogs
+export 'widgets/app_dialog.dart'; // ⭐ THE dialog authority (confirm/info)
 export 'widgets/app_bottom_sheet.dart'; // ⭐ Professional bottom sheets
 // export 'widgets/upload_post_bottom_sheet.dart'; // ✅ Moved to respective feature modules
 // export 'widgets/upload_request_bottom_sheet.dart'; // ✅ Moved to respective feature modules
@@ -70,13 +70,11 @@ export 'widgets/app_bottom_sheet.dart'; // ⭐ Professional bottom sheets
 // export 'widgets/creation_modals.dart'; // ✅ Removed - creation module deleted
 export 'widgets/wilayah_dropdown.dart'; // ⭐ Wilayah dropdown
 export 'widgets/village_dropdown.dart'; // ⭐ Village dropdown
-export 'widgets/village_search_dropdown.dart'; // ⭐ Village search dropdown
 // export 'widgets/area_search_field.dart';       // ❌ Removed - too complex
 // export 'widgets/universal_feed_card.dart';    // ❌ Removed - use modular cards from respective modules
 // export 'widgets/home_screen.dart';        // ❌ Removed - home logic belongs to features/home module
 // export 'widgets/firebase_test_widget.dart'; // ❌ Removed - Firebase debug widget deleted
 export 'widgets/create_content_bottom_sheet.dart'; // ⭐ Create content modal
-export 'widgets/link_picker_modal.dart'; // ⭐ Link picker modal for attachments
 export 'widgets/attachment_widget.dart'; // ⭐ Universal attachment widget
 export 'widgets/repost_attribution_bar.dart'; // ⭐ SHARE CONTRACT V1: Repost attribution widget
 export 'widgets/media_carousel_widget.dart'; // ⭐ Media carousel component
@@ -85,9 +83,12 @@ export 'widgets/media_preview.dart'; // ⭐ Media preview for creation forms (mo
 export 'widgets/time_ago_widget.dart'; // ⭐ Time ago component
 export 'widgets/wizard_progress_indicator.dart'; // ⭐ Reusable wizard progress indicator
 export 'widgets/interactive_map_picker_bottom_sheet.dart'; // ⭐ Interactive map picker with draggable pin
+export 'widgets/address_location_view.dart'; // ⭐ THE Address/Location horizontal composition authority (compact/detail)
+export 'widgets/metadata_view.dart'; // ⭐ THE Metadata horizontal composition authority (compact/detail)
 export 'widgets/clickable_location_widget.dart'; // ⭐ Clickable location widget that opens Google Maps
 export 'widgets/coordinate_preview_modal.dart'; // ⭐ Coordinate preview modal with Edit & View Maps options
-export 'widgets/permission_guard.dart'; // ⭐ Auth & Role guard widgets
+// PURGED: permission_guard.dart — zero consumers; router redirect is the guard authority
+ // ⭐ Auth & Role guard widgets
 export 'widgets/blocked_user_banner.dart'; // ⭐ Blocked user banner widget
 export 'widgets/external_link_interstitial.dart'; // ⭐ External link safety interstitial
 
@@ -107,7 +108,6 @@ export 'widgets/popup_more_options_button.dart'; // ⭐ Popup 3 dots menu
 export 'src/widgets/expandable_text_widget.dart'; // ⭐ Expandable text widget like Facebook
 export 'src/widgets/expandable_mention_text_widget.dart'; // ⭐ Expandable text with clickable mentions
 // export 'ui/src/widgets/action_button_widget.dart'; // ✅ Removed - using PostCardActions in respective modules
-
 
 export 'ui/src/helpers/media_picker_helper.dart'; // ⭐ Media picker helper for gallery selection
 export 'ui/src/screens/custom_camera_screen.dart'; // ⭐ Custom camera screen
@@ -132,8 +132,8 @@ export 'src/providers/upload_progress_provider.dart'; // ⭐ Upload progress sta
 // Helper exports — user_initials_helper removed (converged to user_identity_formatter)
 
 // Utils exports
-export 'utils/currency_input_formatter.dart'; // ⭐ Currency input formatter for Rupiah
 export 'utils/currency_utils.dart'; // ⭐ Centralized currency formatting utility
+export 'utils/money_input_formatter.dart'; // ⭐ Canonical money-input mask (Rupiah grouping while typing)
 export 'utils/app_formatters.dart'; // ⭐ Centralized formatting utility (currency + date)
 
 // ============================================================================
@@ -142,11 +142,11 @@ export 'utils/app_formatters.dart'; // ⭐ Centralized formatting utility (curre
 // These are platform-level infrastructure services that are genuinely reusable
 // across all features. NOT domain-specific business logic.
 export 'services/local_storage_service.dart';
-export 'services/validation_service.dart'; // PLATFORM_INFRA: Generic validation primitives
 export 'services/logger_service.dart';
-export 'services/local_wilayah_service.dart'; // Local Wilayah service (offline-first)
-export 'services/firebase_wilayah_service.dart'; // Firebase Wilayah service
-export 'services/postal_code_service.dart'; // Postal code lookup service
+// Geography is served exclusively by the canonical Geography API
+// (services/geography_api_service.dart); no local wilayah/postal dataset
+// exists.
+export 'services/geography_api_service.dart';
 export 'services/places_autocomplete_service.dart'; // Google Places autocomplete
 export 'services/location_service.dart'; // GPS location service with accuracy tracking
 
@@ -170,4 +170,3 @@ export 'services/location_service.dart'; // GPS location service with accuracy t
 // ✅ REMOVED (R2.3): user_search_api_service.dart
 //    -> Migrated to domains/user/profile/data/services/user_lookup_service.dart
 //
-

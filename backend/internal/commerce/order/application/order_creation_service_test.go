@@ -8,7 +8,7 @@ package application
 // OrderCreationService and drove CreateFromSaleSurface / CreateFromAuction
 // end-to-end — every existing test exercised a small private helper
 // (validateSaleSurfaceForCheckout, idempotentOrderRecovery,
-// validateShippingQuoteForOrder) with a minimal fake. That is a real gap:
+// shipping-quote consumption) with a minimal fake. That is a real gap:
 // the finalization pipeline (snapshot integrity check, order + item
 // persistence, outbox events, audit log) extracted into
 // finalizeOrderCreationTx during the PHASE 2 refactor had never been
@@ -55,9 +55,9 @@ import (
 
 	forsaleentity "github.com/labuda/backend/internal/commerce/forsale/entity"
 	forsalerepo "github.com/labuda/backend/internal/commerce/forsale/repository"
-	productentity "github.com/labuda/backend/internal/commerce/product/entity"
 	orderentity "github.com/labuda/backend/internal/commerce/order/entity"
 	orderrepository "github.com/labuda/backend/internal/commerce/order/repository"
+	productentity "github.com/labuda/backend/internal/commerce/product/entity"
 
 	shippingApp "github.com/labuda/backend/internal/commerce/shipping/application"
 	shippingentity "github.com/labuda/backend/internal/commerce/shipping/entity"
@@ -161,13 +161,13 @@ func (r *happyPathCoverageRepo) GetByOptionAndProvince(_ context.Context, _ db.T
 }
 
 // happyPathAddressRepo backs OrderCreationService.addressRepo (used by
-// getFarmAddressSnapshot to resolve the seller's shipping origin).
+// getSellerOriginSnapshot to resolve the seller's primary-address origin).
 type happyPathAddressRepo struct {
 	addressrepo.AddressRepository
 	farmAddress *addressentity.Address
 }
 
-func (r *happyPathAddressRepo) GetByID(context.Context, db.Tx, uuid.UUID) (*addressentity.Address, error) {
+func (r *happyPathAddressRepo) GetPrimaryByUserID(context.Context, db.Tx, uuid.UUID) (*addressentity.Address, error) {
 	return r.farmAddress, nil
 }
 
@@ -270,7 +270,6 @@ func newHappyPathFixtures(_ *testing.T) (*OrderCreationService, CreateFromSaleSu
 		Product: &productentity.Product{
 			ID:              productID,
 			Title:           "Kohaku Premium 40cm",
-			FarmAddressID:   &farmAddressID,
 			PreparationTime: string(forsaleentity.PreparationTime1To3Days),
 		},
 	}
@@ -283,9 +282,9 @@ func newHappyPathFixtures(_ *testing.T) (*OrderCreationService, CreateFromSaleSu
 	}
 
 	farmAddress := &addressentity.Address{
-		ID:     farmAddressID,
-		UserID: sellerID,
-		Tags:   []addressentity.AddressTag{addressentity.TagSender},
+		ID:        farmAddressID,
+		UserID:    sellerID,
+		IsPrimary: true,
 	}
 
 	shippingSetup := &shippingentity.ShippingSetup{
@@ -328,7 +327,7 @@ func newHappyPathFixtures(_ *testing.T) (*OrderCreationService, CreateFromSaleSu
 		actorResolver:        happyPathActorResolver{},
 		outboxRepo:           realOutboxRepo,
 		commentRepo:          happyPathCommentRepo{},
-		// auditService, auctionRepo, negotiationRepo, shippingQuoteRepo,
+		// auditService, auctionRepo, negotiationRepo, shippingQuoteAuthority,
 		// discountService, coinsService, configService,
 		// ownership: left nil. CreateFromSaleSurface's happy path either
 		// guards these with a nil check or never reaches them (no
@@ -351,15 +350,17 @@ func newHappyPathFixtures(_ *testing.T) (*OrderCreationService, CreateFromSaleSu
 		PaymentMethod:      PaymentMethodInstant,
 	}
 
+	methodCode := "bank_transfer"
 	input := CreateFromSaleSurfaceInput{
-		ProductID:       productID,
-		SourceType:      orderentity.OrderSourceForSale,
-		SourceID:        listingID,
-		BuyerID:         buyerID,
-		Quantity:        1,
-		AddressID:       buyerAddressID,
-		ShippingSetupID: shippingSetupID,
-		PricingSnapshot: snapshot,
+		ProductID:         productID,
+		SourceType:        orderentity.OrderSourceForSale,
+		SourceID:          listingID,
+		BuyerID:           buyerID,
+		Quantity:          1,
+		AddressID:         buyerAddressID,
+		ShippingSetupID:   shippingSetupID,
+		PricingSnapshot:   snapshot,
+		PaymentMethodCode: &methodCode,
 	}
 
 	return svc, input, orderRepo, coinsRepo
@@ -388,6 +389,13 @@ func TestCreateFromSaleSurface_HappyPath(t *testing.T) {
 	require.Equal(t, input.BuyerID, order.BuyerID)
 	require.Equal(t, orderentity.StatusPending, order.Status)
 	require.Equal(t, orderentity.EscrowStatusHolding, order.EscrowStatus)
+
+	// --- Payment method identity is bound to the order (Phase 2 follow-up) ---
+	require.NotNil(t, order.PaymentMethodCode, "order must carry the selected method")
+	require.Equal(t, "bank_transfer", *order.PaymentMethodCode)
+	require.NotNil(t, orderRepo.lastOrder.PaymentMethodCode)
+	require.Equal(t, "bank_transfer", *orderRepo.lastOrder.PaymentMethodCode,
+		"the persisted order must carry the exact selected method")
 
 	// --- finalizeOrderCreationTx actually ran ---
 	require.Equal(t, 1, orderRepo.createOrderCalls, "CreateOrderTx must run exactly once")

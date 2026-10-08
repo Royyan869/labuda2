@@ -7,7 +7,7 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
+import 'package:labuda/shared/utils/app_formatters.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/domain/entities/resource_projection.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction.dart';
@@ -107,7 +107,9 @@ class AuctionBidPositionIndicator extends StatelessWidget {
             label: 'Anda Menang! 🎉',
             icon: Icons.emoji_events,
             color: context.statusColors.success,
-            backgroundColor: context.statusColors.success.withValues(alpha: 0.12),
+            backgroundColor: context.statusColors.success.withValues(
+              alpha: 0.12,
+            ),
             message:
                 'Bid Menang: Rp ${formatGroupedAmount(winningBid.round())}',
             deadline: _getClaimDeadline(),
@@ -152,13 +154,14 @@ class AuctionBidPositionIndicator extends StatelessWidget {
 
   /// Get the claim deadline for auction winners.
   /// Canonical derivation: end_at + 24h (backend Auction.SettlementDeadline()).
+  /// Absolute date+time via AppFormatters (id_ID). `.toLocal()` is preserved:
+  /// the backend emits UTC; the user reads wall-clock claim deadline.
   String? _getClaimDeadline() {
     if (!auction.isUserWinner(currentUserId)) {
       return null;
     }
     final deadline = auction.settlementDeadline;
-    final dateFormat = DateFormat('MMM dd, yyyy • HH:mm');
-    return dateFormat.format(deadline.toLocal());
+    return AppFormatters.formatDateTime(deadline.toLocal());
   }
 
   @override
@@ -197,19 +200,17 @@ class AuctionBidPositionIndicator extends StatelessWidget {
               children: [
                 Text(
                   display.label,
-                  style: TextStyle(
+                  style: context.typeRoles.bodyDense.copyWith(
                     fontWeight: FontWeight.bold,
                     color: display.color,
-                    fontSize: AppType.s14,
                   ),
                 ),
                 if (display.message.isNotEmpty) ...[
                   const SizedBox(height: 2),
                   Text(
                     display.message,
-                    style: TextStyle(
+                    style: context.typeRoles.labelMicro.copyWith(
                       color: display.color.withValues(alpha: 0.8),
-                      fontSize: AppType.s12,
                     ),
                   ),
                 ],
@@ -222,10 +223,14 @@ class AuctionBidPositionIndicator extends StatelessWidget {
                       vertical: AppMetrics.p4,
                     ),
                     decoration: BoxDecoration(
-                      color: context.statusColors.warning.withValues(alpha: 0.15),
+                      color: context.statusColors.warning.withValues(
+                        alpha: 0.15,
+                      ),
                       borderRadius: BorderRadius.circular(AppShape.r4),
                       border: Border.all(
-                        color: context.statusColors.warning.withValues(alpha: 0.3),
+                        color: context.statusColors.warning.withValues(
+                          alpha: 0.3,
+                        ),
                         width: 1,
                       ),
                     ),
@@ -240,9 +245,8 @@ class AuctionBidPositionIndicator extends StatelessWidget {
                         const SizedBox(width: 4),
                         Text(
                           'Selesaikan sebelum: ${display.deadline}',
-                          style: TextStyle(
+                          style: context.typeRoles.labelMicro.copyWith(
                             color: context.statusColors.warning,
-                            fontSize: AppType.s12,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -257,16 +261,18 @@ class AuctionBidPositionIndicator extends StatelessWidget {
           if (userBids.isNotEmpty && _bidPosition != BidPosition.notActive) ...[
             const SizedBox(width: 12),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8, vertical: AppMetrics.p4),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppMetrics.p8,
+                vertical: AppMetrics.p4,
+              ),
               decoration: BoxDecoration(
                 color: display.color.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(AppShape.r4),
               ),
               child: Text(
                 'Bid: Rp ${formatGroupedAmount(userBids.map((b) => b.amount).reduce((a, b) => a > b ? a : b).round())}',
-                style: TextStyle(
+                style: context.typeRoles.labelMicro.copyWith(
                   color: display.color,
-                  fontSize: AppType.s12,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -309,7 +315,11 @@ class AuctionBidPositionIndicator extends StatelessWidget {
                   color: display.color.withValues(alpha: 0.15),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(display.icon, color: display.color, size: AppIconSize.action),
+                child: Icon(
+                  display.icon,
+                  color: display.color,
+                  size: AppIconSize.action,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -320,18 +330,16 @@ class AuctionBidPositionIndicator extends StatelessWidget {
                       children: [
                         Text(
                           '🔴 ',
-                          style: TextStyle(
+                          style: context.typeRoles.bodyDense.copyWith(
                             fontWeight: FontWeight.bold,
                             color: display.color,
-                            fontSize: AppType.s14,
                           ),
                         ),
                         Text(
                           display.label,
-                          style: TextStyle(
+                          style: context.typeRoles.bodyDense.copyWith(
                             fontWeight: FontWeight.bold,
                             color: display.color,
-                            fontSize: AppType.s14,
                           ),
                         ),
                       ],
@@ -339,9 +347,8 @@ class AuctionBidPositionIndicator extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       display.message,
-                      style: TextStyle(
+                      style: context.typeRoles.bodyDense.copyWith(
                         color: display.color.withValues(alpha: 0.9),
-                        fontSize: AppType.s14,
                       ),
                     ),
                   ],
@@ -353,16 +360,18 @@ class AuctionBidPositionIndicator extends StatelessWidget {
           if (userBids.isNotEmpty) ...[
             const SizedBox(height: 8),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p8),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppMetrics.p12,
+                vertical: AppMetrics.p8,
+              ),
               decoration: BoxDecoration(
                 color: display.color.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(AppShape.r6),
               ),
               child: Text(
                 'Bid kamu: Rp ${formatGroupedAmount(userHighestBid.round())}',
-                style: TextStyle(
+                style: context.typeRoles.labelMicro.copyWith(
                   color: display.color.withValues(alpha: 0.8),
-                  fontSize: AppType.s12,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -379,9 +388,11 @@ class AuctionBidPositionIndicator extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(vertical: AppMetrics.p12),
                 elevation: AppElevation.none,
               ),
-              child: const Text(
+              child: Text(
                 'Pasang Bid Lagi',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: AppType.s14),
+                style: Theme.of(
+                  context,
+                ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.bold),
               ),
             ),
           ),

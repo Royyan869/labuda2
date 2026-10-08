@@ -1,17 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:labuda/core/src/theme/app_theme.dart';
+import 'package:labuda/shared/utils/app_formatters.dart';
 
 /// Date of birth picker widget
 class DateOfBirthPicker extends StatelessWidget {
   final DateTime? dateOfBirth;
   final VoidCallback onTap;
 
-  const DateOfBirthPicker({
-    super.key,
-    this.dateOfBirth,
-    required this.onTap,
-    
-  });
+  const DateOfBirthPicker({super.key, this.dateOfBirth, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -41,8 +37,7 @@ class DateOfBirthPicker extends StatelessWidget {
                 children: [
                   Text(
                     'Date of Birth (Optional)',
-                    style: TextStyle(
-                      fontSize: AppType.s12,
+                    style: context.typeRoles.labelMicro.copyWith(
                       color: scheme.onSurfaceVariant,
                     ),
                   ),
@@ -50,9 +45,8 @@ class DateOfBirthPicker extends StatelessWidget {
                   Text(
                     dateOfBirth == null
                         ? 'Select your date of birth'
-                        : '${dateOfBirth!.day}/${dateOfBirth!.month}/${dateOfBirth!.year}',
-                    style: TextStyle(
-                      fontSize: AppType.s14,
+                        : AppFormatters.formatShortDate(dateOfBirth!),
+                    style: context.typeRoles.bodyDense.copyWith(
                       fontWeight: dateOfBirth == null
                           ? FontWeight.normal
                           : FontWeight.w500,

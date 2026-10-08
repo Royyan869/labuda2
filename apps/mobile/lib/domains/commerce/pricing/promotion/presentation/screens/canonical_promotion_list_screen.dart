@@ -12,6 +12,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:labuda/core/core.dart';
+import 'package:labuda/shared/widgets/app_dialog.dart';
+import 'package:labuda/shared/widgets/app_snackbar.dart';
 import 'package:labuda/domains/commerce/pricing/promotion/data/dto/promotion_contract_dto.dart';
 import 'package:labuda/domains/commerce/pricing/promotion/data/repositories/promotion_contract_repository.dart';
 import 'package:labuda/domains/commerce/pricing/promotion/presentation/providers/canonical_promotion_providers.dart';
@@ -37,23 +39,35 @@ class CanonicalPromotionListScreen extends ConsumerWidget {
         icon: const Icon(Icons.add),
         label: const Text('Buat Promosi'),
       ),
-      body: promotionsAsync.when(
-        data: (result) {
-          if (result.isSuccess) {
-            final list = result.data!;
-            if (list.contracts.isEmpty) {
-              return _buildEmptyState(context);
+      // SAFE-AREA-37: the body owns the LIVE system bottom inset exactly
+      // once — /seller/canonical-promotions is a FLAT top-level GoRoute
+      // (SellerModule), so no shell bar owns it. The list carries an
+      // EXPLICIT design padding (p16), which disables BoxScrollView's
+      // window-padding auto-consumption, so no other widget in the body can
+      // own the bottom region. `top: false`: the Scaffold AppBar owns the
+      // status-bar region (the body slot's top padding is already removed
+      // for it). The extended FAB is positioned by the Scaffold endFloat
+      // layout — an authority outside this wrapper.
+      body: SafeArea(
+        top: false,
+        child: promotionsAsync.when(
+          data: (result) {
+            if (result.isSuccess) {
+              final list = result.data!;
+              if (list.contracts.isEmpty) {
+                return _buildEmptyState(context);
+              }
+              return _buildList(context, list.contracts);
             }
-            return _buildList(context, list.contracts);
-          }
-          return _buildErrorState(
-            context,
-            ref,
-            result.error ?? 'Gagal memuat promosi',
-          );
-        },
-        loading: () => _buildLoadingState(),
-        error: (error, _) => _buildErrorState(context, ref, error.toString()),
+            return _buildErrorState(
+              context,
+              ref,
+              result.error ?? 'Gagal memuat promosi',
+            );
+          },
+          loading: () => _buildLoadingState(),
+          error: (error, _) => _buildErrorState(context, ref, error.toString()),
+        ),
       ),
     );
   }
@@ -86,8 +100,7 @@ class CanonicalPromotionListScreen extends ConsumerWidget {
             const SizedBox(height: 16),
             Text(
               'Belum ada promosi',
-              style: TextStyle(
-                fontSize: AppType.s20,
+              style: context.typeRoles.titleProminent.copyWith(
                 fontWeight: FontWeight.bold,
                 color: Theme.of(context).colorScheme.onSurface,
               ),
@@ -96,8 +109,7 @@ class CanonicalPromotionListScreen extends ConsumerWidget {
             Text(
               'Promosi canonical Anda akan muncul di sini.',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: AppType.s14,
+              style: context.typeRoles.bodyDense.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
@@ -122,8 +134,7 @@ class CanonicalPromotionListScreen extends ConsumerWidget {
             const SizedBox(height: 16),
             Text(
               'Gagal Memuat Promosi',
-              style: TextStyle(
-                fontSize: AppType.s20,
+              style: context.typeRoles.titleProminent.copyWith(
                 fontWeight: FontWeight.bold,
                 color: Theme.of(context).colorScheme.onSurface,
               ),
@@ -132,8 +143,7 @@ class CanonicalPromotionListScreen extends ConsumerWidget {
             Text(
               message,
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: AppType.s14,
+              style: context.typeRoles.bodyDense.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
@@ -196,41 +206,26 @@ class _PromotionListItemState extends ConsumerState<_PromotionListItem> {
     if (!mounted) return;
     setState(() => _busy = false);
     if (result.isSuccess) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(successMessage)));
+      AppSnackBar.showSuccess(context, successMessage);
       ref.invalidate(myPromotionContractsProvider);
       // Finalization releases unused allocation back to the reusable balance.
       ref.invalidate(promoteBalanceProvider);
     } else {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(result.error ?? 'Aksi gagal')));
+      AppSnackBar.showError(context, result.error ?? 'Aksi gagal');
     }
   }
 
   Future<void> _confirmStop() async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await AppDialog.confirm(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Hentikan promosi?'),
-        content: const Text(
+      title: 'Hentikan promosi?',
+      message:
           'Promosi berhenti sekarang dan sisa anggaran yang belum terpakai '
           'kembali ke saldo promo Anda.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Batal'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Hentikan'),
-          ),
-        ],
-      ),
+      confirmLabel: 'Hentikan',
+      cancelLabel: 'Batal',
     );
-    if (confirmed != true) return;
+    if (!confirmed) return;
     await _run(
       (repo) => repo.finalizeContract(contract.id),
       'Promosi dihentikan',
@@ -255,16 +250,14 @@ class _PromotionListItemState extends ConsumerState<_PromotionListItem> {
               Expanded(
                 child: Text(
                   contract.kind == 'internal' ? 'Internal' : 'Eksternal',
-                  style: const TextStyle(
+                  style: context.typeRoles.titleCompact.copyWith(
                     fontWeight: FontWeight.w700,
-                    fontSize: AppType.s16,
                   ),
                 ),
               ),
               Text(
                 _statusLabel(contract.status),
-                style: TextStyle(
-                  fontSize: AppType.s12,
+                style: context.typeRoles.labelMicro.copyWith(
                   fontWeight: FontWeight.w600,
                   color: _statusColor(context, contract.status),
                 ),
@@ -283,6 +276,27 @@ class _PromotionListItemState extends ConsumerState<_PromotionListItem> {
             'Dibuat: ${AppFormatters.formatDate(DateTime.parse(contract.createdAt))}',
           ),
           const SizedBox(height: 12),
+          // Refill: the rolling product queue can be managed while the
+          // promotion is not finalized (the backend rejects finalized
+          // contracts; this is a UX mirror, not the authority).
+          if (contract.status != 'finalized')
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  context.push(
+                    '${RoutePaths.sellerCanonicalPromotionQueuePath(contract.id)}'
+                    '?kind=${contract.kind}',
+                  );
+                },
+                icon: const Icon(
+                  Icons.inventory_2_outlined,
+                  size: AppIconSize.action,
+                ),
+                label: const Text('Kelola Produk'),
+              ),
+            ),
+          if (contract.status != 'finalized') const SizedBox(height: 8),
           SizedBox(
             width: double.infinity,
             child: OutlinedButton.icon(
@@ -291,7 +305,10 @@ class _PromotionListItemState extends ConsumerState<_PromotionListItem> {
                   RoutePaths.sellerCanonicalPromotionAnalyticsPath(contract.id),
                 );
               },
-              icon: const Icon(Icons.analytics_outlined, size: AppIconSize.action),
+              icon: const Icon(
+                Icons.analytics_outlined,
+                size: AppIconSize.action,
+              ),
               label: const Text('Lihat Analitik'),
             ),
           ),

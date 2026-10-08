@@ -56,7 +56,6 @@ class CreateAuctionDto {
   final String? breeder;
   final String? bloodline;
   final List<String>? certificates;
-  final String? farmAddressId;
 
   /// Preparation-time range the seller needs after checkout (1_3_days /
   /// 4_7_days / 8_15_days). Backend defaults to the 1–3 day range when omitted.
@@ -90,7 +89,6 @@ class CreateAuctionDto {
     this.breeder,
     this.bloodline,
     this.certificates,
-    this.farmAddressId,
     this.preparationTime,
     required this.shippingSetupIds,
     required this.startPrice,
@@ -112,7 +110,6 @@ class CreateAuctionDto {
     if (breeder != null) 'breeder': breeder,
     if (bloodline != null) 'bloodline': bloodline,
     if (certificates != null) 'certificates': certificates,
-    if (farmAddressId != null) 'farm_address_id': farmAddressId,
     if (preparationTime != null) 'preparation_time': preparationTime,
     'shipping_option_ids': shippingSetupIds,
     'start_price': startPrice,
@@ -127,7 +124,7 @@ class CreateAuctionDto {
 
 /// Request to update an auction — CANONICAL UPDATE CONTRACT (F2.2B).
 ///
-/// Draft allowed: title, description, startPrice, bidIncrement, buyNowPrice, startTime, endTime
+/// Create = publish payload fields: title, description, startPrice, bidIncrement, buyNowPrice, startTime, endTime
 /// Scheduled allowed: title, description, startTime, endTime
 ///
 /// Backend persists title/description → products, and pricing/timing → auctions
@@ -247,7 +244,7 @@ class UserBriefDto extends Equatable {
 ///
 /// CANONICAL WIRE (backend auctionToResponseWithSeller):
 /// Only backend-emitted keys are parsed here. Phantom keys that the backend
-/// never emits (total_bids, views_count, settlement_deadline, started_at,
+/// never emits (total_bids, settlement_deadline, started_at,
 /// ended_at, auto_extend*, original_end_time, user_bid, highest_bidder,
 /// category, condition, legacy flat seller/bidder scalars) are PURGED —
 /// parsing them recreated fake truths (always-zero counters, dead state).
@@ -344,10 +341,6 @@ class AuctionDto extends Equatable {
   final List<String> certificates;
   final String? preparationTime;
 
-  /// Product farm address — canonical Product content, mapped into the
-  /// read model (never left as a permanent null placeholder).
-  final String? farmAddressId;
-
   // Canonical numeric read representation: backend emits int64/bigint JSON
   // integer literals (auctionToResponseWithSeller); int is the single
   // canonical representation — no double conversion on this chain.
@@ -362,7 +355,7 @@ class AuctionDto extends Equatable {
   final DateTime startTime;
   final DateTime endTime;
   /// Public phase vocabulary from the backend (Status.PublicPhase()):
-  /// {scheduled, active, waiting_settlement, ended, cancelled}. Raw draft
+  /// {scheduled, active, waiting_settlement, ended, cancelled, lapsed}. Raw legacy draft
   /// never crosses the public boundary — owner workspaces read `seller_status`.
   final String status;
   /// Exact internal state-machine value — owner-only wire slot. Backend emits
@@ -384,7 +377,7 @@ class AuctionDto extends Equatable {
   final String? sellerFarmName;
   final String? sellerAvatarUrl;
 
-  /// Buyer-facing origin summary of the listing's sender address
+  /// Buyer-facing origin summary of the listing's primary address
   /// ("City, Province" — never street/district/phone), emitted on DETAIL
   /// payloads only. Null on discovery payloads.
   final String? publicOriginLine;
@@ -439,7 +432,6 @@ class AuctionDto extends Equatable {
     this.bloodline,
     this.certificates = const [],
     this.preparationTime,
-    this.farmAddressId,
     required this.startPrice,
     required this.bidIncrement,
     this.buyNowPrice,
@@ -514,7 +506,6 @@ class AuctionDto extends Equatable {
           (json['certificates'] as List?)?.whereType<String>().toList() ??
           const [],
       preparationTime: json['preparation_time'] as String?,
-      farmAddressId: json['farm_address_id'] as String?,
       startPrice: (json['start_price'] as num).toInt(),
       bidIncrement: (json['bid_increment'] as num).toInt(),
       buyNowPrice: (json['buy_now_price'] as num?)?.toInt(),
@@ -622,8 +613,7 @@ String? _readAuctionSellerTier(Map<String, dynamic> json) {
 ///
 /// Canonical wire: bidToResponseWithBidderCard — {id, auction_id, bidder_id,
 /// amount, created_at, bidder: UserCard}. Phantom keys the backend never
-/// emits (is_winning, is_outbid, bid_time, bidder_username) are PURGED;
-/// buyer bid-position authority lives in GET /api/v1/bidding, not here.
+/// emits (is_winning, is_outbid, bid_time, bidder_username) are PURGED.
 class BidDto extends Equatable {
   final String id;
   final String auctionId;

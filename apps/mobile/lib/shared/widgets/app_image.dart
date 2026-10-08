@@ -27,6 +27,7 @@ class AppImage extends StatelessWidget {
   final Color? backgroundColor;
   final VoidCallback? onTap;
   final MediaQuality? quality;
+
   /// Downsample target in physical pixels. Set where the display size is
   /// known (feed card, search row, avatar) so a 10MB source is never decoded
   /// at full resolution for a 48px thumbnail. Null = decode as-is.
@@ -247,8 +248,7 @@ class AppImage extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               'Image Error',
-              style: TextStyle(
-                fontSize: AppType.s12,
+              style: context.typeRoles.labelMicro.copyWith(
                 color: scheme.onSurfaceVariant,
               ),
               textAlign: TextAlign.center,

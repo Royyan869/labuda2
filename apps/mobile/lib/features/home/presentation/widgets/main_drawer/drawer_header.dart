@@ -121,18 +121,16 @@ class _MainDrawerHeaderState extends ConsumerState<MainDrawerHeader> {
                         children: [
                           Text(
                             'LABUDA',
-                            style: TextStyle(
+                            style: context.typeRoles.titleSection.copyWith(
                               color: scheme.onSurface,
-                              fontSize: AppType.s20,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                           const SizedBox(height: 2),
                           Text(
                             l10n.koiCommunity,
-                            style: TextStyle(
+                            style: context.typeRoles.labelMicro.copyWith(
                               color: scheme.onSurfaceVariant,
-                              fontSize: AppType.s12,
                             ),
                           ),
                         ],
@@ -153,9 +151,9 @@ class _MainDrawerHeaderState extends ConsumerState<MainDrawerHeader> {
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: AppMetrics.p12),
                         ),
-                        child: const Text(
+                        child: Text(
                           'Sign In',
-                          style: TextStyle(fontSize: AppType.s14),
+                          style: Theme.of(context).textTheme.labelLarge,
                         ),
                       ),
                     ),
@@ -169,9 +167,9 @@ class _MainDrawerHeaderState extends ConsumerState<MainDrawerHeader> {
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: AppMetrics.p12),
                         ),
-                        child: const Text(
+                        child: Text(
                           'Sign Up',
-                          style: TextStyle(fontSize: AppType.s14),
+                          style: Theme.of(context).textTheme.labelLarge,
                         ),
                       ),
                     ),

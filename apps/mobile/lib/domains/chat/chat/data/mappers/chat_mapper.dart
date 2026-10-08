@@ -141,6 +141,14 @@ class ChatMapper {
 
     final attachments = _dtoAttachmentToDomain(dto.attachment);
 
+    // Merge the viewer-scoped Commerce projection onto the shipping quote
+    // attachment. The mapper CARRIES the projection verbatim — it never
+    // recomputes quote lifecycle or buyer eligibility.
+    final shippingQuote = _mergeShippingQuoteProjection(
+      attachments['shippingQuote'] as ShippingQuoteAttachment?,
+      dto.shippingQuoteProjection,
+    );
+
     return Message(
       id: dto.id,
       chatId: dto.chatRoomId,
@@ -155,7 +163,7 @@ class ChatMapper {
       objectReference: attachments['objectReference'] as ShareReference?,
       negotiationProposal:
           attachments['negotiationProposal'] as NegotiationProposalAttachment?,
-      shippingQuote: attachments['shippingQuote'] as ShippingQuoteAttachment?,
+      shippingQuote: shippingQuote,
       location: attachments['location'] as LocationAttachment?,
       createdAt: dto.createdAt,
       status: _stringToMessageStatus(dto.status),
@@ -177,30 +185,6 @@ class ChatMapper {
       // Server-resolved resource representation for the resource this message
       // references. Null when the message carries no occurrence.
       resourceProjection: dto.resourceProjection,
-    );
-  }
-
-  /// Convert Domain Entity to MessageDto
-  static MessageDto messageToDto(Message entity) {
-    return MessageDto(
-      id: entity.id,
-      chatRoomId: entity.chatId,
-      senderId: entity.senderId,
-      senderName: entity.senderName,
-      senderUsername: entity.senderUsername,
-      senderAvatar: entity.senderAvatar,
-      content: entity.content,
-      isHidden: entity.isHidden,
-      type: _messageTypeToString(entity.type),
-      mediaUrls: entity.mediaUrls,
-      attachment: domainAttachmentToDto(entity),
-      status: _messageStatusToString(entity.status),
-      isRead: entity.status == MessageStatus.read,
-      isEdited: entity.isEdited,
-      replyToId: entity.replyToId,
-      mentionedUserIds: entity.mentionedUserIds,
-      createdAt: entity.createdAt,
-      updatedAt: entity.createdAt,
     );
   }
 
@@ -441,6 +425,19 @@ class ChatMapper {
   // Attachment Mapping (Message attachments only)
   // ========================================
 
+  /// Carries the backend-provided shipping quote projection onto the domain
+  /// attachment. Pure read-through: no lifecycle evaluation happens here.
+  static ShippingQuoteAttachment? _mergeShippingQuoteProjection(
+    ShippingQuoteAttachment? attachment,
+    ShippingQuoteProjectionDto? projection,
+  ) {
+    if (attachment == null || projection == null) return attachment;
+    return attachment.copyWith(
+      isCurrent: projection.isCurrent,
+      viewerActionable: projection.viewerActionable,
+    );
+  }
+
   static Map<String, dynamic> _dtoAttachmentToDomain(AttachmentDto? dto) {
     if (dto == null) return {};
 
@@ -512,63 +509,6 @@ class ChatMapper {
     // These should now use ShareReference directly instead of Attachment wrappers
 
     return {};
-  }
-
-  static AttachmentDto? domainAttachmentToDto(Message message) {
-    // Handle a shared object reference (ShareReference)
-    if (message.objectReference != null) {
-      final chatReference = message.objectReference!.asChatReference();
-      if (chatReference == null) {
-        return null;
-      }
-      return ShareReferenceAttachmentDto.fromShareReference(chatReference);
-    }
-
-    // Handle LocationAttachment
-    if (message.location != null) {
-      return LocationAttachmentDto(
-        latitude: message.location!.latitude,
-        longitude: message.location!.longitude,
-        placeName: message.location!.placeName,
-        address: message.location!.address,
-      );
-    }
-
-    // Handle NegotiationProposalAttachment
-    if (message.negotiationProposal != null) {
-      final proposal = message.negotiationProposal!;
-      return NegotiationProposalAttachmentDto(
-        sessionId: proposal.sessionId,
-        proposalSequence: proposal.proposalSequence,
-        price: proposal.price,
-        resourceType: proposal.resourceType,
-        resourceId: proposal.resourceId,
-        note: proposal.note,
-      );
-    }
-
-    // Handle ShippingQuoteAttachment
-    if (message.shippingQuote != null) {
-      final attachment = message.shippingQuote!;
-      return ShippingQuoteAttachmentDto(
-        offerId: attachment.offerId,
-        linkedItemId: attachment.linkedItemId,
-        linkedItemType: attachment.linkedItemType,
-        linkedItemName: attachment.linkedItemName,
-        linkedItemImage: attachment.linkedItemImage,
-        linkedItemPrice: attachment.linkedItemPrice,
-        shippingType: attachment.shippingType,
-        shippingTypeName: attachment.shippingTypeName,
-        shippingTypeEmoji: attachment.shippingTypeEmoji,
-        rate: attachment.rate,
-        notes: attachment.notes,
-        validUntil: attachment.validUntil.toIso8601String(),
-        status: attachment.status,
-        sellerId: attachment.sellerId,
-      );
-    }
-
-    return null;
   }
 
   // ========================================

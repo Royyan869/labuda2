@@ -17,6 +17,16 @@ import 'package:labuda/shared/helpers/canonical_username_validator.dart';
 class UsernameField extends StatefulWidget {
   final TextEditingController controller;
 
+  /// Backend rejection text (USERNAME_TAKEN / RESERVED / INVALID_FORMAT) for
+  /// the LATEST exchange. Rendered through the canonical field error slot so a
+  /// server rejection that belongs to THIS field appears on the field (owner
+  /// decision 2026-10-05). Local format feedback is suppressed while set.
+  final String? errorText;
+
+  /// Locked while the owning form is submitting (owner decision 2026-10-05:
+  /// the whole form locks, not just the action button).
+  final bool enabled;
+
   /// Local format-only result: (isValidFormat, isFilled). Availability is
   /// never claimed here — the second parameter is always false and exists
   /// only to keep existing call sites compiling.
@@ -26,6 +36,8 @@ class UsernameField extends StatefulWidget {
     super.key,
     required this.controller,
     required this.onValidationChanged,
+    this.errorText,
+    this.enabled = true,
   });
 
   @override
@@ -60,8 +72,9 @@ class _UsernameFieldState extends State<UsernameField> {
     final lowered = raw.toLowerCase();
     if (lowered != raw) {
       final offset = widget.controller.selection.baseOffset;
-      final safeOffset =
-          offset < 0 ? lowered.length : offset.clamp(0, lowered.length);
+      final safeOffset = offset < 0
+          ? lowered.length
+          : offset.clamp(0, lowered.length);
       widget.controller.value = TextEditingValue(
         text: lowered,
         selection: TextSelection.collapsed(offset: safeOffset),
@@ -78,7 +91,8 @@ class _UsernameFieldState extends State<UsernameField> {
     }
 
     final canonical = CanonicalUsernameValidator.normalize(raw);
-    final valid = canonical != null && CanonicalUsernameValidator.isValid(canonical);
+    final valid =
+        canonical != null && CanonicalUsernameValidator.isValid(canonical);
 
     if (mounted && valid != _formatValid) {
       setState(() => _formatValid = valid);
@@ -86,17 +100,20 @@ class _UsernameFieldState extends State<UsernameField> {
     widget.onValidationChanged(valid, false);
   }
 
-  Color _getBorderColor(BuildContext context) {
-    if (_formatValid == false) return context.statusColors.error;
-    return Theme.of(context).colorScheme.outlineVariant;
-  }
-
   Widget? get _getSuffixIcon {
     if (_formatValid == true) {
-      return Icon(Icons.check_circle, color: context.statusColors.success, size: AppIconSize.action);
+      return Icon(
+        Icons.check_circle,
+        color: context.statusColors.success,
+        size: AppIconSize.action,
+      );
     }
     if (_formatValid == false) {
-      return Icon(Icons.error, color: context.statusColors.error, size: AppIconSize.action);
+      return Icon(
+        Icons.error,
+        color: context.statusColors.error,
+        size: AppIconSize.action,
+      );
     }
     return null;
   }
@@ -109,20 +126,23 @@ class _UsernameFieldState extends State<UsernameField> {
     return 'Unique username for your profile';
   }
 
-  Color _getHelperTextColor(BuildContext context) {
-    if (_formatValid == false) return context.statusColors.error;
-    return Theme.of(context).colorScheme.onSurfaceVariant;
-  }
-
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    // Backend rejection (field-associated) outranks local format feedback.
+    final error = widget.errorText ??
+        (_formatValid == false ? _getHelperText : null);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
         TextFormField(
           controller: widget.controller,
+          // Border/fill/geometry come from `inputDecorationTheme` (AppTheme) —
+          // the one form-field authority. The username-specific format
+          // feedback stays local: it uses the decoration's canonical
+          // error/helper slots instead of restating colours and borders.
+          enabled: widget.enabled,
           decoration: InputDecoration(
             labelText: 'Username',
             hintText: 'Choose a unique username',
@@ -131,28 +151,8 @@ class _UsernameFieldState extends State<UsernameField> {
               color: scheme.onSurfaceVariant,
             ),
             suffixIcon: _getSuffixIcon,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppShape.r12),
-              borderSide: BorderSide(color: _getBorderColor(context)),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppShape.r12),
-              borderSide: BorderSide(color: _getBorderColor(context)),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppShape.r12),
-              borderSide: BorderSide(color: _getBorderColor(context), width: 2),
-            ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppShape.r12),
-              borderSide: BorderSide(color: scheme.error),
-            ),
-            focusedErrorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppShape.r12),
-              borderSide: BorderSide(color: scheme.error, width: 2),
-            ),
-            filled: true,
-            fillColor: scheme.surfaceContainerHigh,
+            errorText: error,
+            helperText: error == null ? _getHelperText : null,
           ),
           validator: (value) {
             if (value == null || value.isEmpty) {
@@ -167,28 +167,6 @@ class _UsernameFieldState extends State<UsernameField> {
             return null;
           },
         ),
-        // Content-driven: the reserve used to be a hand-summed
-        // `height: 20` around this text (exactly the frozen-budget shape this
-        // lens exists for). The padding above IS the reserve — when the helper
-        // is absent the row disappears entirely, which is what `? 20 : 0`
-        // promised anyway.
-        if (_getHelperText != null)
-          Padding(
-            padding: const EdgeInsets.only(
-              left: AppMetrics.p12,
-              top: AppMetrics.p4,
-            ),
-            child: Text(
-              _getHelperText!,
-              style: TextStyle(
-                fontSize: AppType.s12,
-                color: _getHelperTextColor(context),
-                fontWeight: FontWeight.normal,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
       ],
     );
   }

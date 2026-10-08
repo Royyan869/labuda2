@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:labuda/core/core.dart';
-import 'package:labuda/core/utils/notification_navigation_handler.dart';
 import 'package:labuda/domains/system/notification/services/fcm_action_mapper.dart';
 import 'package:labuda/domains/system/notification/services/fcm_message_handler.dart';
+import 'package:labuda/domains/system/notification/services/notification_navigation_service.dart';
 
 Widget _orderRouteApp() {
   return MaterialApp(
@@ -127,73 +127,56 @@ void main() {
       },
     );
 
-    testWidgets('canonical and legacy tap routing both land on order detail', (
+    testWidgets('order and refund wire types land on order detail directly', (
       tester,
     ) async {
-      await tester.pumpWidget(_routerApp());
-      await tester.pumpAndSettle();
+      final service = NotificationNavigationService.canonical();
 
-      final context = tester.element(find.text('home'));
+      for (final caseEntry in [
+        ('order.created', 'order-123'),
+        ('refund.opened', 'order-456'),
+        ('order.refunded', 'order-789'),
+      ]) {
+        await tester.pumpWidget(_routerApp());
+        await tester.pumpAndSettle();
 
-      final canonicalHandled = NotificationNavigationHandler.navigate(
-        context: context,
-        type: 'order.created',
-        data: {'orderId': 'order-123'},
-      );
-      expect(canonicalHandled, isTrue);
+        await service.handleNotificationPayload(
+          tester.element(find.text('home')),
+          type: caseEntry.$1,
+          data: {'orderId': caseEntry.$2},
+        );
 
-      await tester.pump(const Duration(milliseconds: 700));
-      await tester.pumpAndSettle();
-      expect(find.text('order:order-123'), findsOneWidget);
-
-      await tester.pumpWidget(_routerApp());
-      await tester.pumpAndSettle();
-
-      final refundHandled = NotificationNavigationHandler.navigate(
-        context: tester.element(find.text('home')),
-        type: 'refund.opened',
-        data: {'orderId': 'order-456'},
-      );
-      expect(refundHandled, isTrue);
-
-      await tester.pump(const Duration(milliseconds: 700));
-      await tester.pumpAndSettle();
-      expect(find.text('order:order-456'), findsOneWidget);
-
-      await tester.pumpWidget(_routerApp());
-      await tester.pumpAndSettle();
-
-      final legacyHandled = NotificationNavigationHandler.navigate(
-        context: tester.element(find.text('home')),
-        type: 'refund_requested',
-        data: {'orderId': 'order-789'},
-      );
-      expect(legacyHandled, isTrue);
-
-      await tester.pump(const Duration(milliseconds: 700));
-      await tester.pumpAndSettle();
-      expect(find.text('order:order-789'), findsOneWidget);
+        await tester.pumpAndSettle();
+        expect(
+          find.text('order:${caseEntry.$2}'),
+          findsOneWidget,
+          reason: '${caseEntry.$1} must open the order directly',
+        );
+      }
     });
 
-    test('legacy alias compatibility stays intact for preserved aliases', () {
+    test('purged legacy aliases expose no banner action and no catalog entry', () {
       final mapper = FCMActionMapper();
 
-      expect(
-        mapper.getActionsForType('order_created', {'orderId': 'order-123'}),
-        isNotNull,
-      );
-      expect(
-        mapper.getActionsForType('order_confirmed', {'orderId': 'order-123'}),
-        isNotNull,
-      );
-      expect(
-        mapper.getActionsForType('refund_requested', {'orderId': 'order-123'}),
-        isNotNull,
-      );
-      expect(
-        mapper.getActionsForType('refund_processed', {'orderId': 'order-123'}),
-        isNotNull,
-      );
+      for (final alias in [
+        'order_created',
+        'order_confirmed',
+        'order_shipped',
+        'order_delivered',
+        'refund_requested',
+        'refund_processed',
+      ]) {
+        expect(
+          mapper.getActionsForType(alias, {'orderId': 'order-123'}),
+          isNull,
+          reason: '$alias is not a canonical wire type',
+        );
+        expect(
+          NotificationType.tryFromString(alias),
+          isNull,
+          reason: '$alias must not resolve in the canonical catalog',
+        );
+      }
     });
 
     test('canonical type parser resolves order/refund wire strings', () {

@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"testing"
@@ -69,6 +70,8 @@ func (r *followCountRow) Scan(dest ...any) error {
 		case *sql.NullTime:
 			v.Valid = true
 			v.Time = now
+		case *json.RawMessage:
+			*v = json.RawMessage(`{}`)
 		case *string:
 			*v = "value"
 		default:

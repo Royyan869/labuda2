@@ -2,7 +2,6 @@ import 'package:labuda/core/common/result.dart';
 import 'package:labuda/domains/chat/chat/data/dto/chat_resource_occurrence_request.dart';
 import 'package:labuda/domains/chat/chat/data/dto/chat_room_event_dto.dart';
 import 'package:labuda/domains/chat/chat/domain/entities/chat_entities.dart';
-import 'package:labuda/shared/attachment/entities/share_reference.dart';
 
 /// Chat Repository Interface
 ///
@@ -46,8 +45,9 @@ abstract class ChatRepository {
 
   /// Send message
   ///
-  /// **SOCIAL FIX 1:** Message attachments use ShareReference for object references.
-  /// No generic Attachment parameter - construct Message with proper attachment fields.
+  /// A commerce product attachment travels ONLY as a canonical
+  /// [ChatResourceOccurrenceRequest] (`direct_commerce_insert_chat`); there is
+  /// no object-reference send path and no client attachment snapshot.
   Future<Result<Message>> sendMessage({
     required String chatId,
     required String senderId,
@@ -60,12 +60,7 @@ abstract class ChatRepository {
     List<String> mediaAssetIds,
     String? replyToId,
     List<String> mentionedUserIds,
-    // Attachment fields (ShareReference for object references)
-    ShareReference? objectReference,
-    Map<String, dynamic>?
-    workflowAttachment, // For negotiation/shipping/location
-    // Explicit resource occurrence (composer direct-commerce attach); when
-    // null the repository derives it from objectReference.
+    // Explicit resource occurrence (composer direct-commerce attach).
     ChatResourceOccurrenceRequest? resourceOccurrence,
   });
 

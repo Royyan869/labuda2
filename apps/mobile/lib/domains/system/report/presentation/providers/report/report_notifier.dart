@@ -109,18 +109,21 @@ class ReportListNotifier extends Notifier<ReportListState> {
 
   @override
   ReportListState build() {
-    // Load reports on init
-    Future.microtask(() => loadReports());
+    // The single initial-load trigger lives in the screen's initState
+    // (fires on every mount, including revisits). Fetching here as well
+    // would execute the same request twice on the first mount.
     return const ReportListState(isLoading: true);
   }
 
   ReportRepository get _repository => ref.read(reportRepositoryProvider);
 
-  /// Load user's reports
-  Future<void> loadReports({bool refresh = false}) async {
-    if (refresh) {
-      state = state.copyWith(isLoading: true, error: null);
-    }
+  /// Load user's reports — the single canonical load behind initial load,
+  /// retry, and refresh. Every run transitions through loading with the
+  /// stale error cleared while the existing collection is preserved, so a
+  /// retry never sits frozen on the previous error and a refresh never
+  /// wipes visible data.
+  Future<void> loadReports() async {
+    state = state.copyWith(isLoading: true, error: null);
 
     try {
       final userId = ref.read(reportCurrentUserIdProvider);
@@ -137,8 +140,7 @@ class ReportListNotifier extends Notifier<ReportListState> {
     }
   }
 
-  /// Refresh the list
-  Future<void> refresh() async {
-    await loadReports(refresh: true);
-  }
+  /// Refresh the list — the same canonical load; existing reports stay
+  /// visible and a failure surfaces as an inline refresh error.
+  Future<void> refresh() => loadReports();
 }

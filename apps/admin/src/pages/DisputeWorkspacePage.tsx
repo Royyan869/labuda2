@@ -9,6 +9,7 @@ import { BuyerEvidencePanel } from '@/components/disputes/BuyerEvidencePanel'
 import { SellerEvidencePanel } from '@/components/disputes/SellerEvidencePanel'
 import { TimelinePanel } from '@/components/orders/TimelinePanel'
 import { DecisionPanel } from '@/components/disputes/DecisionPanel'
+import { AdminLoadingState, AdminErrorState, PageHeader } from '@/components/common'
 
 export function DisputeWorkspacePage() {
   const { id } = useParams<{ id: string }>()
@@ -88,27 +89,18 @@ export function DisputeWorkspacePage() {
 
   // Loading state
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[500px]">
-        <div className="text-center">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
-          <p className="mt-4 text-muted-foreground">Loading dispute workspace...</p>
-        </div>
-      </div>
-    )
+    return <AdminLoadingState />
   }
 
   // Error state (no dispute data)
   if (!dispute) {
     return (
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Dispute Workspace</h1>
-        </div>
-        <div className="bg-destructive-bg border border-destructive text-destructive p-4 rounded-lg flex items-center gap-2">
-          <AlertTriangle className="h-5 w-5 flex-shrink-0" />
-          <span className="text-sm">Dispute not found. Please check the dispute ID and try again.</span>
-        </div>
+        <PageHeader title="Dispute Workspace" />
+        <AdminErrorState
+          title="Dispute not found"
+          message="Please check the dispute ID and try again."
+        />
       </div>
     )
   }

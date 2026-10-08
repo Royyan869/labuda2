@@ -6,28 +6,15 @@ import '../domain.dart';
 
 abstract class OrderRepository {
   // Order Preview Operations
-  Future<Result<PreviewOrderResult>> previewOrder(
-    PreviewOrderParams params,
-  );
+  Future<Result<PreviewOrderResult>> previewOrder(PreviewOrderParams params);
 
   // Order CRUD Operations
   Future<Result<Order>> getOrderById(String orderId);
   Future<Result<List<Order>>> getBuyerOrders(GetOrdersParams params);
   Future<Result<List<Order>>> getSellerOrders(GetOrdersParams params);
 
-  // Order Page-based forSale (used by order list pager controllers)
-  Future<Result<OrderPageResult>> getBuyerOrdersPage(
-    GetOrdersParams params,
-  );
-  Future<Result<OrderPageResult>> getSellerOrdersPage(
-    GetOrdersParams params,
-  );
-
   // Order Status Operations
-  Future<Result<Order>> cancelOrder(
-    String orderId,
-    CancelOrderParams params,
-  );
+  Future<Result<Order>> cancelOrder(String orderId, CancelOrderParams params);
 
   // Ship + complete actions.
   //

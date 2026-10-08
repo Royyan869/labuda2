@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:labuda/domains/chat/chat/domain/entities/chat_entities.dart';
 import 'package:labuda/domains/chat/chat/presentation/providers/chat_providers.dart';
 import 'package:labuda/domains/chat/chat/presentation/providers/chat_state.dart';
@@ -10,6 +11,12 @@ import 'package:labuda/shared/providers/block_state_provider.dart';
 import 'package:labuda/shared/providers/auth_status_providers.dart';
 
 void main() {
+  // Message footers render through AppFormatters (intl date symbols).
+  // No assertion below is changed by this setup.
+  setUpAll(() async {
+    await initializeDateFormatting();
+  });
+
   const chatId = '00000000-0000-0000-0000-000000001111';
   const currentUserId = '00000000-0000-0000-0000-000000002222';
   const otherUserId = '00000000-0000-0000-0000-000000003333';

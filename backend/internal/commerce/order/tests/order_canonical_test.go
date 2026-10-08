@@ -14,11 +14,11 @@ import (
 	"github.com/stretchr/testify/require"
 
 	forsaleEntity "github.com/labuda/backend/internal/commerce/forsale/entity"
-	productEntity "github.com/labuda/backend/internal/commerce/product/entity"
-	productInfraRepo "github.com/labuda/backend/internal/commerce/product/infrastructure/repository"
 	forsaleRepo "github.com/labuda/backend/internal/commerce/forsale/infrastructure/repository"
 	orderentity "github.com/labuda/backend/internal/commerce/order/entity"
 	orderinfra "github.com/labuda/backend/internal/commerce/order/infrastructure/repository"
+	productEntity "github.com/labuda/backend/internal/commerce/product/entity"
+	productInfraRepo "github.com/labuda/backend/internal/commerce/product/infrastructure/repository"
 	"github.com/labuda/backend/pkg/db"
 	"github.com/labuda/backend/pkg/money"
 	"github.com/labuda/backend/pkg/testdb"
@@ -79,35 +79,31 @@ func TestDoubleCheckoutProtection(t *testing.T) {
 	var forSaleID uuid.UUID
 	err := testDB.WithTx(ctx, func(tx db.Tx) error {
 		forSale_product := &productEntity.Product{
-	SellerID: sellerID,
-	Title: "Kohaku Koi",
-	Description: "Beautiful Kohaku",
-	MediaURLs: []string{"https://picsum.photos/seed/koi1/800/600"},
-	Variety: "Kohaku",
-	SizeCm: intPtr(30),
-	AgeMonths: intPtr(12),
-	Gender: strPtr("female"),
-	Breeder: nil,
-	Bloodline: nil,
-	Certificates: []string{"global"},
-	FarmAddressID: nil,
-	PreparationTime: string(forsaleEntity.PreparationTime1To3Days),
-	SellingSurface: productEntity.SellingSurfaceForSale,
-}
-	productRepo := productInfraRepo.NewProductRepository()
-	if err := productRepo.Create(ctx, tx, forSale_product); err != nil {
-		return err
-	}
-	forSale, err := forsaleEntity.NewForSaleSurface(sellerID, money.New(500000), 1, false, forsaleEntity.ForSaleVisibilityPublic)
-	forSale.ProductID = forSale_product.ID
-	forSale.Product = forSale_product
+			SellerID:        sellerID,
+			Title:           "Kohaku Koi",
+			Description:     "Beautiful Kohaku",
+			MediaURLs:       []productEntity.ProductMedia{{URL: "https://picsum.photos/seed/koi1/800/600"}},
+			Variety:         "Kohaku",
+			SizeCm:          intPtr(30),
+			AgeMonths:       intPtr(12),
+			Gender:          strPtr("female"),
+			Breeder:         nil,
+			Bloodline:       nil,
+			Certificates:    []string{"global"},
+			PreparationTime: string(forsaleEntity.PreparationTime1To3Days),
+			SellingSurface:  productEntity.SellingSurfaceForSale,
+		}
+		productRepo := productInfraRepo.NewProductRepository()
+		if err := productRepo.Create(ctx, tx, forSale_product); err != nil {
+			return err
+		}
+		forSale, err := forsaleEntity.NewForSaleSurface(sellerID, money.New(500000), 1, false)
+		forSale.ProductID = forSale_product.ID
+		forSale.Product = forSale_product
 		if err != nil {
 			return err
 		}
-		// Publish the forSale (draft -> active)
-		if err := forSale.Publish(); err != nil {
-			return err
-		}
+		// ForSale is born published (create = publish)
 		if err := forSaleRepo.Create(ctx, tx, forSale); err != nil {
 			return err
 		}
@@ -165,10 +161,10 @@ func TestDoubleCheckoutProtection(t *testing.T) {
 					"JNE",
 					"truck",
 					"1_3_days", // preparationTimeSnapshot
-					nil,         // shippingSource
-					nil,         // shippingQuoteID
-					nil,         // shippingQuotePrice
-					nil,         // pricingTokenID
+					nil,        // shippingSource
+					nil,        // shippingQuoteID
+					nil,        // shippingQuotePrice
+					nil,        // pricingTokenID
 					time.Now(),
 				)
 				order.IdempotencyKey = strPtr(fmt.Sprintf("checkout-%d", idx))
@@ -271,32 +267,28 @@ func TestStockRaceCondition(t *testing.T) {
 	var forSaleID uuid.UUID
 	err = testDB.WithTx(ctx, func(tx db.Tx) error {
 		forSale_product := &productEntity.Product{
-	SellerID: sellerID,
-	Title: "Popular Koi",
-	Description: "High demand item",
-	MediaURLs: []string{},
-	Variety: "Showa",
-	SizeCm: intPtr(25),
-	AgeMonths: nil,
-	Gender: nil,
-	Breeder: nil,
-	Bloodline: nil,
-	Certificates: []string{"global"},
-	FarmAddressID: nil,
-	PreparationTime: string(forsaleEntity.PreparationTime1To3Days),
-	SellingSurface: productEntity.SellingSurfaceForSale,
-}
-	productRepo := productInfraRepo.NewProductRepository()
-	if err := productRepo.Create(ctx, tx, forSale_product); err != nil {
-		return err
-	}
-	forSale, err := forsaleEntity.NewForSaleSurface(sellerID, money.New(300000), initialStock, false, forsaleEntity.ForSaleVisibilityPublic)
-	forSale.ProductID = forSale_product.ID
-	forSale.Product = forSale_product
-		if err != nil {
+			SellerID:        sellerID,
+			Title:           "Popular Koi",
+			Description:     "High demand item",
+			MediaURLs:       []productEntity.ProductMedia{},
+			Variety:         "Showa",
+			SizeCm:          intPtr(25),
+			AgeMonths:       nil,
+			Gender:          nil,
+			Breeder:         nil,
+			Bloodline:       nil,
+			Certificates:    []string{"global"},
+			PreparationTime: string(forsaleEntity.PreparationTime1To3Days),
+			SellingSurface:  productEntity.SellingSurfaceForSale,
+		}
+		productRepo := productInfraRepo.NewProductRepository()
+		if err := productRepo.Create(ctx, tx, forSale_product); err != nil {
 			return err
 		}
-		if err := forSale.Publish(); err != nil {
+		forSale, err := forsaleEntity.NewForSaleSurface(sellerID, money.New(300000), initialStock, false)
+		forSale.ProductID = forSale_product.ID
+		forSale.Product = forSale_product
+		if err != nil {
 			return err
 		}
 		if err := forSaleRepo.Create(ctx, tx, forSale); err != nil {
@@ -358,10 +350,10 @@ func TestStockRaceCondition(t *testing.T) {
 					"JNE",
 					"truck",
 					"1_3_days", // preparationTimeSnapshot
-					nil,         // shippingSource
-					nil,         // shippingQuoteID
-					nil,         // shippingQuotePrice
-					nil,         // pricingTokenID
+					nil,        // shippingSource
+					nil,        // shippingQuoteID
+					nil,        // shippingQuotePrice
+					nil,        // pricingTokenID
 					time.Now(),
 				)
 				order.IdempotencyKey = strPtr(fmt.Sprintf("race-%d", buyerIndex))
@@ -434,32 +426,28 @@ func TestOrderCreationIdempotency(t *testing.T) {
 	var forSaleID uuid.UUID
 	err := testDB.WithTx(ctx, func(tx db.Tx) error {
 		forSale_product := &productEntity.Product{
-	SellerID: sellerID,
-	Title: "Test Item",
-	Description: "Description",
-	MediaURLs: []string{},
-	Variety: "Kohaku",
-	SizeCm: nil,
-	AgeMonths: nil,
-	Gender: nil,
-	Breeder: nil,
-	Bloodline: nil,
-	Certificates: []string{"global"},
-	FarmAddressID: nil,
-	PreparationTime: string(forsaleEntity.PreparationTime1To3Days),
-	SellingSurface: productEntity.SellingSurfaceForSale,
-}
-	productRepo := productInfraRepo.NewProductRepository()
-	if err := productRepo.Create(ctx, tx, forSale_product); err != nil {
-		return err
-	}
-	forSale, err := forsaleEntity.NewForSaleSurface(sellerID, money.New(100000), 3, false, forsaleEntity.ForSaleVisibilityPublic)
-	forSale.ProductID = forSale_product.ID
-	forSale.Product = forSale_product
-		if err != nil {
+			SellerID:        sellerID,
+			Title:           "Test Item",
+			Description:     "Description",
+			MediaURLs:       []productEntity.ProductMedia{},
+			Variety:         "Kohaku",
+			SizeCm:          nil,
+			AgeMonths:       nil,
+			Gender:          nil,
+			Breeder:         nil,
+			Bloodline:       nil,
+			Certificates:    []string{"global"},
+			PreparationTime: string(forsaleEntity.PreparationTime1To3Days),
+			SellingSurface:  productEntity.SellingSurfaceForSale,
+		}
+		productRepo := productInfraRepo.NewProductRepository()
+		if err := productRepo.Create(ctx, tx, forSale_product); err != nil {
 			return err
 		}
-		if err := forSale.Publish(); err != nil {
+		forSale, err := forsaleEntity.NewForSaleSurface(sellerID, money.New(100000), 3, false)
+		forSale.ProductID = forSale_product.ID
+		forSale.Product = forSale_product
+		if err != nil {
 			return err
 		}
 		if err := forSaleRepo.Create(ctx, tx, forSale); err != nil {
@@ -503,10 +491,10 @@ func TestOrderCreationIdempotency(t *testing.T) {
 			"JNE",
 			"truck",
 			"1_3_days", // preparationTimeSnapshot
-			nil,         // shippingSource
-			nil,         // shippingQuoteID
-			nil,         // shippingQuotePrice
-			nil,         // pricingTokenID
+			nil,        // shippingSource
+			nil,        // shippingQuoteID
+			nil,        // shippingQuotePrice
+			nil,        // pricingTokenID
 			time.Now(),
 		)
 		order.IdempotencyKey = &idempotencyKey
@@ -572,32 +560,28 @@ func TestDifferentBuyersSameIdempotencyKey(t *testing.T) {
 	var forSaleID uuid.UUID
 	err := testDB.WithTx(ctx, func(tx db.Tx) error {
 		forSale_product := &productEntity.Product{
-	SellerID: sellerID,
-	Title: "Item",
-	Description: "Desc",
-	MediaURLs: []string{},
-	Variety: "Kohaku",
-	SizeCm: nil,
-	AgeMonths: nil,
-	Gender: nil,
-	Breeder: nil,
-	Bloodline: nil,
-	Certificates: []string{"global"},
-	FarmAddressID: nil,
-	PreparationTime: string(forsaleEntity.PreparationTime1To3Days),
-	SellingSurface: productEntity.SellingSurfaceForSale,
-}
-	productRepo := productInfraRepo.NewProductRepository()
-	if err := productRepo.Create(ctx, tx, forSale_product); err != nil {
-		return err
-	}
-	forSale, err := forsaleEntity.NewForSaleSurface(sellerID, money.New(100000), 2, false, forsaleEntity.ForSaleVisibilityPublic)
-	forSale.ProductID = forSale_product.ID
-	forSale.Product = forSale_product
-		if err != nil {
+			SellerID:        sellerID,
+			Title:           "Item",
+			Description:     "Desc",
+			MediaURLs:       []productEntity.ProductMedia{},
+			Variety:         "Kohaku",
+			SizeCm:          nil,
+			AgeMonths:       nil,
+			Gender:          nil,
+			Breeder:         nil,
+			Bloodline:       nil,
+			Certificates:    []string{"global"},
+			PreparationTime: string(forsaleEntity.PreparationTime1To3Days),
+			SellingSurface:  productEntity.SellingSurfaceForSale,
+		}
+		productRepo := productInfraRepo.NewProductRepository()
+		if err := productRepo.Create(ctx, tx, forSale_product); err != nil {
 			return err
 		}
-		if err := forSale.Publish(); err != nil {
+		forSale, err := forsaleEntity.NewForSaleSurface(sellerID, money.New(100000), 2, false)
+		forSale.ProductID = forSale_product.ID
+		forSale.Product = forSale_product
+		if err != nil {
 			return err
 		}
 		if err := forSaleRepo.Create(ctx, tx, forSale); err != nil {
@@ -639,10 +623,10 @@ func TestDifferentBuyersSameIdempotencyKey(t *testing.T) {
 			"JNE",
 			"truck",
 			"1_3_days", // preparationTimeSnapshot
-			nil,         // shippingSource
-			nil,         // shippingQuoteID
-			nil,         // shippingQuotePrice
-			nil,         // pricingTokenID
+			nil,        // shippingSource
+			nil,        // shippingQuoteID
+			nil,        // shippingQuotePrice
+			nil,        // pricingTokenID
 			time.Now(),
 		)
 		order.IdempotencyKey = &sameKey
@@ -689,10 +673,10 @@ func TestDifferentBuyersSameIdempotencyKey(t *testing.T) {
 			"JNE",
 			"truck",
 			"1_3_days", // preparationTimeSnapshot
-			nil,         // shippingSource
-			nil,         // shippingQuoteID
-			nil,         // shippingQuotePrice
-			nil,         // pricingTokenID
+			nil,        // shippingSource
+			nil,        // shippingQuoteID
+			nil,        // shippingQuotePrice
+			nil,        // pricingTokenID
 			time.Now(),
 		)
 		order.IdempotencyKey = &sameKey

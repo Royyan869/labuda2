@@ -21,11 +21,16 @@ import 'package:labuda/domains/commerce/transaction/shipping/presentation/provid
 import 'package:labuda/shared/shared.dart';
 import 'package:labuda/domains/finance/wallet/coins/coins.dart';
 
-/// Callback type for claim action with selected shipping details
+/// Callback type for claim action with selected shipping details.
+///
+/// Exactly one of [shippingSetupId] (normal shipping option) or
+/// [shippingQuoteId] (seller manual shipping quote, conversation-scoped) is set.
 typedef ClaimCallback =
     Future<String?> Function({
       required String addressId,
-      required String shippingSetupId,
+      String? shippingSetupId,
+      String? shippingQuoteId,
+      String? chatId,
       String? discountCode,
       bool useCoins,
     });
@@ -33,29 +38,43 @@ typedef ClaimCallback =
 /// Auction Claim Shipping Modal
 ///
 /// Shows address and delivery option selection for auction claim flow.
+///
+/// When [shippingQuoteId] is provided (buyer reached checkout via the Chat
+/// "Gunakan Ongkir" path), the seller's manual shipping quote replaces normal
+/// shipping: the delivery-option picker is hidden and the quote + originating
+/// [chatId] are forwarded to the claim authority.
 class AuctionClaimShippingModal extends ConsumerStatefulWidget {
   final Auction auction;
   final ClaimCallback onClaim;
+  final String? shippingQuoteId;
+  final String? chatId;
 
   const AuctionClaimShippingModal({
     super.key,
     required this.auction,
     required this.onClaim,
+    this.shippingQuoteId,
+    this.chatId,
   });
 
-  /// Show the modal and return order_id on success, null on cancel/failure
+  /// Open the claim workflow as a FULL SCREEN (substantial workflow; locked UX
+  /// decision) and return order_id on success, null on cancel/failure.
   static Future<String?> show({
     required BuildContext context,
     required Auction auction,
     required ClaimCallback onClaim,
+    String? shippingQuoteId,
+    String? chatId,
   }) {
-    return showModalBottomSheet<String>(
-      context: context,
-      isScrollControlled: true,
-      isDismissible: false,
-      backgroundColor: Colors.transparent,
-      builder: (context) =>
-          AuctionClaimShippingModal(auction: auction, onClaim: onClaim),
+    return Navigator.of(context).push<String>(
+      MaterialPageRoute(
+        builder: (_) => AuctionClaimShippingModal(
+          auction: auction,
+          onClaim: onClaim,
+          shippingQuoteId: shippingQuoteId,
+          chatId: chatId,
+        ),
+      ),
     );
   }
 
@@ -113,9 +132,8 @@ class _AuctionClaimShippingModalState
       }
 
       final addressRepository = ref.read(addressRepositoryProvider);
-      final addressesResult = await addressRepository.getAddressesByTag(
+      final addressesResult = await addressRepository.getAddressesByUserId(
         user.id,
-        AddressTag.shipping,
       );
 
       if (addressesResult.isError) {
@@ -152,6 +170,8 @@ class _AuctionClaimShippingModalState
 
   /// Load available delivery options for selected address
   Future<void> _loadDeliveryOptions() async {
+    // A manual shipping quote replaces normal shipping: no delivery options.
+    if (_hasQuote) return;
     if (_selectedAddress == null) return;
 
     setState(() {
@@ -211,6 +231,10 @@ class _AuctionClaimShippingModalState
     }
   }
 
+  /// True when this claim uses the seller's manual shipping quote.
+  bool get _hasQuote =>
+      widget.shippingQuoteId != null && widget.shippingQuoteId!.isNotEmpty;
+
   /// Handle address selection
   void _onAddressSelected(AddressEntity address) {
     if (_selectedAddress?.id == address.id) return;
@@ -230,6 +254,9 @@ class _AuctionClaimShippingModalState
 
   /// Validate and proceed with claim
   Future<void> _handleClaim() async {
+    final hasQuote =
+        widget.shippingQuoteId != null && widget.shippingQuoteId!.isNotEmpty;
+
     // Validation
     if (_selectedAddress == null) {
       setState(() {
@@ -238,7 +265,7 @@ class _AuctionClaimShippingModalState
       return;
     }
 
-    if (_selectedDeliveryOption == null) {
+    if (!hasQuote && _selectedDeliveryOption == null) {
       setState(() {
         _error = 'Pilih opsi pengiriman terlebih dahulu';
       });
@@ -251,11 +278,13 @@ class _AuctionClaimShippingModalState
     });
 
     try {
-      final shippingSetupId = _selectedDeliveryOption!.shippingSetupId;
-
       final orderId = await widget.onClaim(
         addressId: _selectedAddress!.id,
-        shippingSetupId: shippingSetupId,
+        shippingSetupId: hasQuote
+            ? null
+            : _selectedDeliveryOption!.shippingSetupId,
+        shippingQuoteId: hasQuote ? widget.shippingQuoteId : null,
+        chatId: hasQuote ? widget.chatId : null,
         discountCode: _discountController.text.trim().isEmpty
             ? null
             : _discountController.text.trim(),
@@ -283,108 +312,92 @@ class _AuctionClaimShippingModalState
     }
   }
 
+  /// True once the user has entered/chosen anything worth losing.
+  bool get _hasDraft =>
+      _selectedAddress != null || _selectedDeliveryOption != null;
+
   @override
   Widget build(BuildContext context) {
-    final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(AppShape.r20)),
-      ),
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.85,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Header
-          _buildHeader(context),
-
-          // Content (scrollable)
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p8, AppMetrics.p16, AppMetrics.p16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Error banner
-                  if (_error != null) _buildErrorBanner(),
-
-                  // Address selection
-                  _buildAddressSection(),
-
-                  const SizedBox(height: 24),
-
-                  // Delivery options
-                  _buildDeliveryOptionsSection(),
-
-                  const SizedBox(height: 20),
-
-                  _buildDiscountField(),
-
-                  const SizedBox(height: 20),
-
-                  _buildCoinToggle(),
-
-                  // Bottom padding for keyboard
-                  SizedBox(height: bottomPadding > 0 ? bottomPadding : 16),
-                ],
-              ),
-            ),
+    return PopScope(
+      // Dismissible, but a dirty workflow asks before discarding (locked UX
+      // decision: no permanently locked surface).
+      canPop: !_hasDraft && !_isClaiming,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop || _isClaiming) return;
+        if (!_hasDraft) {
+          if (mounted) Navigator.of(context).pop();
+          return;
+        }
+        final discard = await AppDialog.confirm(
+          context: context,
+          title: 'Batalkan klaim?',
+          message: 'Pilihan pengiriman Anda akan hilang.',
+          confirmLabel: 'Batalkan',
+          cancelLabel: 'Lanjutkan mengisi',
+          intent: AppDialogIntent.destructive,
+        );
+        if (discard && mounted) Navigator.of(context).pop();
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Klaim Lelang'),
+          leading: IconButton(
+            onPressed: _isClaiming
+                ? null
+                : () => Navigator.of(context).maybePop(),
+            icon: const Icon(Icons.close, semanticLabel: 'Tutup'),
           ),
-
-          // Bottom action bar
-          _buildBottomBar(context),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHeader(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p16, AppMetrics.p16, AppMetrics.p8),
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: scheme.outlineVariant, width: 1),
         ),
-      ),
-      child: Column(
-        children: [
-          // Drag handle — ONE authority: `AppDragHandle` beside the bottom-sheet base
-          const AppDragHandle(padding: EdgeInsets.zero),
-          const SizedBox(height: 16),
-          // Title
-          Row(
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(
+            AppMetrics.p16,
+            AppMetrics.p16,
+            AppMetrics.p16,
+            AppMetrics.p16,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Text(
-                  'Pilih Pengiriman',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+              Text(
+                _hasQuote
+                    ? 'Lengkapi alamat untuk melanjutkan klaim dengan ongkir dari penawaran penjual.'
+                    : 'Lengkapi alamat dan pilih opsi pengiriman untuk melanjutkan klaim.',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
-              // Close button
-              if (!_isClaiming)
-                IconButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  icon: const Icon(Icons.close),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                ),
+              const SizedBox(height: AppMetrics.p16),
+
+              // Error banner
+              if (_error != null) _buildErrorBanner(),
+
+              // Address selection
+              _buildAddressSection(),
+
+              const SizedBox(height: 24),
+
+              // Delivery options OR the seller's manual shipping quote.
+              if (_hasQuote)
+                _buildQuoteNotice()
+              else
+                _buildDeliveryOptionsSection(),
+
+              const SizedBox(height: 20),
+
+              _buildDiscountField(),
+
+              const SizedBox(height: 20),
+
+              _buildCoinToggle(),
+
+              // Visual spacing only — the Scaffold (body resize) and
+              // BottomActionBar own keyboard/system inset for this route.
+              const SizedBox(height: AppMetrics.p16),
             ],
           ),
-          const SizedBox(height: 8),
-          // Subtitle
-          Text(
-            'Lengkapi alamat dan pilih opsi pengiriman untuk melanjutkan klaim.',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-          ),
-        ],
+        ),
+        // Bottom action bar
+        bottomNavigationBar: _buildBottomBar(context),
       ),
     );
   }
@@ -401,12 +414,18 @@ class _AuctionClaimShippingModalState
       ),
       child: Row(
         children: [
-          Icon(Icons.error_outline, color: scheme.error, size: AppIconSize.action),
+          Icon(
+            Icons.error_outline,
+            color: scheme.error,
+            size: AppIconSize.action,
+          ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               _error!,
-              style: TextStyle(color: scheme.onSurface, fontSize: AppType.s12),
+              style: context.typeRoles.labelMicro.copyWith(
+                color: scheme.onSurface,
+              ),
             ),
           ),
         ],
@@ -461,9 +480,11 @@ class _AuctionClaimShippingModalState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Opsi Pengiriman',
-          style: TextStyle(fontSize: AppType.s16, fontWeight: FontWeight.bold),
+          style: context.typeRoles.titleSection.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
         ),
         const SizedBox(height: 12),
         if (_isLoadingDeliveryOptions)
@@ -485,17 +506,17 @@ class _AuctionClaimShippingModalState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Kode Promo',
-          style: TextStyle(fontSize: AppType.s16, fontWeight: FontWeight.bold),
+          style: context.typeRoles.titleSection.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
         ),
         const SizedBox(height: 12),
         TextField(
           controller: _discountController,
           textCapitalization: TextCapitalization.characters,
-          decoration: const InputDecoration(
-            labelText: 'Kode promo (opsional)',
-          ),
+          decoration: const InputDecoration(labelText: 'Kode promo (opsional)'),
         ),
       ],
     );
@@ -510,7 +531,10 @@ class _AuctionClaimShippingModalState
     if (coinBalance <= 0) return const SizedBox.shrink();
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p12),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppMetrics.p12,
+        vertical: AppMetrics.p12,
+      ),
       decoration: BoxDecoration(
         border: Border.all(color: scheme.outlineVariant),
         borderRadius: BorderRadius.circular(AppShape.r8),
@@ -521,17 +545,15 @@ class _AuctionClaimShippingModalState
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Gunakan Coins',
-                  style: TextStyle(
-                    fontSize: AppType.s14,
+                  style: context.typeRoles.titleCompact.copyWith(
                     fontWeight: FontWeight.w600,
                   ),
                 ),
                 Text(
                   'Saldo: $coinBalance coins',
-                  style: TextStyle(
-                    fontSize: AppType.s12,
+                  style: context.typeRoles.labelMicro.copyWith(
                     color: scheme.onSurfaceVariant,
                   ),
                 ),
@@ -574,8 +596,7 @@ class _AuctionClaimShippingModalState
               children: [
                 Text(
                   'Tidak ada opsi pengiriman',
-                  style: TextStyle(
-                    fontSize: AppType.s14,
+                  style: context.typeRoles.bodyDense.copyWith(
                     fontWeight: FontWeight.w600,
                     color: scheme.onSurface,
                   ),
@@ -583,12 +604,43 @@ class _AuctionClaimShippingModalState
                 const SizedBox(height: 2),
                 Text(
                   'Penjual belum menyediakan opsi pengiriman ke lokasi Anda.',
-                  style: TextStyle(
-                    fontSize: AppType.s12,
+                  style: context.typeRoles.labelMicro.copyWith(
                     color: scheme.onSurfaceVariant,
                   ),
                 ),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuoteNotice() {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(AppMetrics.p16),
+      decoration: BoxDecoration(
+        color: context.statusColors.success.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(AppShape.r8),
+        border: Border.all(
+          color: context.statusColors.success.withValues(alpha: 0.3),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.local_shipping_outlined,
+            color: context.statusColors.success,
+            size: AppIconSize.action,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'Ongkir dari penawaran penjual akan digunakan untuk pesanan ini.',
+              style: context.typeRoles.bodyDense.copyWith(
+                color: scheme.onSurface,
+              ),
             ),
           ),
         ],
@@ -601,65 +653,75 @@ class _AuctionClaimShippingModalState
         _selectedDeliveryOption?.shippingSetupId == option.shippingSetupId;
     final scheme = Theme.of(context).colorScheme;
 
-    return GestureDetector(
-      onTap: () => _onDeliveryOptionSelected(option),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: AppMetrics.p8),
-        padding: const EdgeInsets.all(AppMetrics.p12),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? scheme.primary.withValues(alpha: 0.08)
-              : scheme.surface,
-          borderRadius: BorderRadius.circular(AppShape.r8),
-          border: Border.all(
-            color: isSelected ? scheme.primary : scheme.outlineVariant,
-            width: isSelected ? 2 : 1,
+    // Legitimate custom visual (card selection), but it is still a single
+    // selection control: a screen reader must hear the selected state and that
+    // the options are mutually exclusive.
+    return Semantics(
+      selected: isSelected,
+      inMutuallyExclusiveGroup: true,
+      button: true,
+      child: GestureDetector(
+        onTap: () => _onDeliveryOptionSelected(option),
+        child: Container(
+          margin: const EdgeInsets.only(bottom: AppMetrics.p8),
+          padding: const EdgeInsets.all(AppMetrics.p12),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? scheme.primary.withValues(alpha: 0.08)
+                : scheme.surface,
+            borderRadius: BorderRadius.circular(AppShape.r8),
+            border: Border.all(
+              color: isSelected ? scheme.primary : scheme.outlineVariant,
+              width: isSelected ? 2 : 1,
+            ),
           ),
-        ),
-        child: Row(
-          children: [
-            // Radio indicator
-            Container(
-              width: AppIconSize.action,
-              height: AppIconSize.action,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: isSelected ? scheme.primary : scheme.outline,
-                  width: 2,
-                ),
-                color: isSelected ? scheme.primary : Colors.transparent,
-              ),
-              child: isSelected
-                  ? Icon(Icons.check, size: AppIconSize.inlineGlyph, color: scheme.onPrimary)
-                  : null,
-            ),
-            const SizedBox(width: 12),
-            // Option details
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    option.displayName,
-                    style: const TextStyle(
-                      fontSize: AppType.s14,
-                      fontWeight: FontWeight.w600,
-                    ),
+          child: Row(
+            children: [
+              // Radio indicator
+              Container(
+                width: AppIconSize.action,
+                height: AppIconSize.action,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: isSelected ? scheme.primary : scheme.outline,
+                    width: 2,
                   ),
-                ],
+                  color: isSelected ? scheme.primary : Colors.transparent,
+                ),
+                child: isSelected
+                    ? Icon(
+                        Icons.check,
+                        size: AppIconSize.inlineGlyph,
+                        color: scheme.onPrimary,
+                      )
+                    : null,
               ),
-            ),
-            // Price
-            Text(
-              AppFormatters.formatCurrency(option.rate),
-              style: TextStyle(
-                fontSize: AppType.s14,
-                fontWeight: FontWeight.bold,
-                color: scheme.primary,
+              const SizedBox(width: 12),
+              // Option details
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      option.displayName,
+                      style: context.typeRoles.titleCompact.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+              // Price
+              Text(
+                AppFormatters.formatCurrency(option.rate),
+                style: context.typeRoles.titleCompact.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: scheme.primary,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -668,69 +730,21 @@ class _AuctionClaimShippingModalState
   Widget _buildBottomBar(BuildContext context) {
     final canClaim =
         _selectedAddress != null &&
-        _selectedDeliveryOption != null &&
+        (_hasQuote || _selectedDeliveryOption != null) &&
         !_isClaiming;
-    final scheme = Theme.of(context).colorScheme;
 
-    return Container(
-      padding: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p12, AppMetrics.p16, AppMetrics.p16),
-      decoration: BoxDecoration(
-        color: scheme.surface,
-        border: Border(
-          top: BorderSide(color: scheme.outlineVariant, width: 1),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: scheme.shadow.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, -2),
-          ),
-        ],
+    // Chrome owned by [BottomActionBar]; this method only decides the
+    // claim readiness gate. Both actions share equal flex (the old 2:1
+    // claim flex was a second button-size contract).
+    return BottomActionBar(
+      secondary: BottomBarAction(
+        label: 'Batal',
+        onPressed: _isClaiming ? null : () => Navigator.of(context).maybePop(),
       ),
-      child: SafeArea(
-        top: false,
-        child: Row(
-          children: [
-            // Cancel button
-            Expanded(
-              child: OutlinedButton(
-                onPressed: _isClaiming
-                    ? null
-                    : () => Navigator.of(context).pop(),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: AppMetrics.p16),
-                  side: BorderSide(color: scheme.outline),
-                ),
-                child: const Text('Batal'),
-              ),
-            ),
-            const SizedBox(width: 12),
-            // Claim button
-            Expanded(
-              flex: 2,
-              child: ElevatedButton(
-                onPressed: canClaim ? _handleClaim : null,
-                style: ElevatedButton.styleFrom(
-                  disabledBackgroundColor: scheme.surfaceContainerHighest,
-                  disabledForegroundColor: scheme.onSurfaceVariant,
-                  padding: const EdgeInsets.symmetric(vertical: AppMetrics.p16),
-                ),
-                child: _isClaiming
-                    ? SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            scheme.onPrimary,
-                          ),
-                        ),
-                      )
-                    : const Text('Klaim & Lanjutkan'),
-              ),
-            ),
-          ],
-        ),
+      primary: BottomBarAction(
+        label: 'Klaim & Lanjutkan',
+        onPressed: canClaim ? _handleClaim : null,
+        isLoading: _isClaiming,
       ),
     );
   }

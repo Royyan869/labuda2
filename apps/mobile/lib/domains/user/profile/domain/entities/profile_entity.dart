@@ -83,7 +83,7 @@ class ProfileEntity extends Equatable {
   final String? location;
   final String? coverPhotoUrl;
 
-  /// Buyer-facing public origin of the user's sender address
+  /// Buyer-facing public origin of the user's primary address
   /// ("City, Province"), rendered by the backend's single redaction rule.
   /// Null hides the line — the client never composes one from raw addresses.
   final String? publicOriginLine;
@@ -201,117 +201,89 @@ class ProfileStats extends Equatable {
 // REMOVED: Achievement class - NO backend support, deleted in PROFILE PURGE
 // REMOVED: AchievementType enum - NO backend support, deleted in PROFILE PURGE
 
-/// Contact information (masked for privacy)
+/// Contact information (masked contact + optional social media handles).
+///
+/// Social media has NO visibility toggle: presence of a handle is the
+/// visibility authority. An absent (null) handle means the account is not
+/// displayed.
 class ContactInfo extends Equatable {
   final String? maskedPhone; // "081234***789"
   final String? maskedEmail; // "user***@email.com"
-  final bool isPhonePublic;
-  final bool isEmailPublic;
 
   // Social Media Links (store handles/usernames only, not full URLs)
   final String? instagramHandle; // "@username" or "username"
   final String? facebookHandle; // "Page Name" or "username"
   final String? tiktokHandle; // "@username" or "username"
   final String? twitterHandle; // "@username" or "username"
-  final bool isSocialMediaPublic; // Single toggle for all social media
 
   const ContactInfo({
     this.maskedPhone,
     this.maskedEmail,
-    required this.isPhonePublic,
-    required this.isEmailPublic,
     this.instagramHandle,
     this.facebookHandle,
     this.tiktokHandle,
     this.twitterHandle,
-    this.isSocialMediaPublic = true, // Default to public
   });
+
+  bool get hasSocialMedia =>
+      instagramHandle != null ||
+      facebookHandle != null ||
+      tiktokHandle != null ||
+      twitterHandle != null;
 
   @override
   List<Object?> get props => [
     maskedPhone,
     maskedEmail,
-    isPhonePublic,
-    isEmailPublic,
     instagramHandle,
     facebookHandle,
     tiktokHandle,
     twitterHandle,
-    isSocialMediaPublic,
   ];
 
   ContactInfo copyWith({
     String? maskedPhone,
     String? maskedEmail,
-    bool? isPhonePublic,
-    bool? isEmailPublic,
     String? instagramHandle,
     String? facebookHandle,
     String? tiktokHandle,
     String? twitterHandle,
-    bool? isSocialMediaPublic,
   }) {
     return ContactInfo(
       maskedPhone: maskedPhone ?? this.maskedPhone,
       maskedEmail: maskedEmail ?? this.maskedEmail,
-      isPhonePublic: isPhonePublic ?? this.isPhonePublic,
-      isEmailPublic: isEmailPublic ?? this.isEmailPublic,
       instagramHandle: instagramHandle ?? this.instagramHandle,
       facebookHandle: facebookHandle ?? this.facebookHandle,
       tiktokHandle: tiktokHandle ?? this.tiktokHandle,
       twitterHandle: twitterHandle ?? this.twitterHandle,
-      isSocialMediaPublic: isSocialMediaPublic ?? this.isSocialMediaPublic,
     );
   }
 }
 
-/// Farm information for sellers (Farm-specific data ONLY)
+/// Farm/seller information for sellers (Farm-specific data ONLY).
+///
+/// Canonical seller surface is exactly: store name + store image. All other
+/// identity facts come from AuthUser/AddressEntity.
 ///
 /// ✅ Single Source of Truth Implementation:
 /// - Email: Use AuthUser.email ❌ NO farmEmail
 /// - Phone: Use AuthUser.phoneNumber ❌ NO farmPhone
 /// - Personal Bio: Use AuthUser.bio (canonical seller/store description too)
-/// - Farm/Sender Address: Use AddressEntity with the sender TAG ❌ NO farmAddress
-///
-/// This class contains ONLY farm-specific data that is NOT in AuthUser or AddressEntity
+/// - Farm/primary address: Use AddressEntity with the sender TAG ❌ NO farmAddress
 class FarmInfo extends Equatable {
   final String farmName; // Farm/store name (different from personal name)
   final String?
   farmPhotoUrl; // Farm/brand logo (different from personal avatar)
-  final String? farmWebsite; // Farm website
-  final List<String>? specialties; // OPTIONAL legacy metadata
-  final DateTime? establishedDate; // Farm established date
 
-  const FarmInfo({
-    required this.farmName,
-    this.farmPhotoUrl,
-    this.farmWebsite,
-    this.specialties, // OPTIONAL now
-    this.establishedDate,
-  });
+  const FarmInfo({required this.farmName, this.farmPhotoUrl});
 
   @override
-  List<Object?> get props => [
-    farmName,
-    farmPhotoUrl,
-    farmWebsite,
-    specialties,
-    establishedDate,
-  ];
+  List<Object?> get props => [farmName, farmPhotoUrl];
 
-  FarmInfo copyWith({
-    String? farmName,
-    String? farmPhotoUrl,
-    String? farmWebsite,
-    List<String>? specialties,
-    DateTime? establishedDate,
-  }) {
+  FarmInfo copyWith({String? farmName, String? farmPhotoUrl}) {
     return FarmInfo(
       farmName: farmName ?? this.farmName,
       farmPhotoUrl: farmPhotoUrl ?? this.farmPhotoUrl,
-      farmWebsite: farmWebsite ?? this.farmWebsite,
-      specialties: specialties ?? this.specialties,
-      establishedDate: establishedDate ?? this.establishedDate,
     );
   }
 }

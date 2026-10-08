@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { Topbar } from './Topbar'
@@ -127,12 +128,59 @@ describe('Topbar authenticated identity presentation', () => {
 
     render(<MemoryRouter><Topbar /></MemoryRouter>)
 
-    // Open dropdown
-    const menuButton = screen.getByRole('button')
+    // Open dropdown via the account menu disclosure (not the mobile trigger)
+    const menuButton = screen.getByRole('button', { name: /admin account menu/i })
     menuButton.click()
 
     // Dropdown should show the same canonical username
     const dropdownUsernames = screen.getAllByText('@canonicaluser')
     expect(dropdownUsernames.length).toBeGreaterThanOrEqual(1)
+  })
+})
+
+// The top bar owns shell chrome only: the mobile navigation trigger and the
+// account menu. It must NOT render a page title — pages own their own h1.
+describe('Topbar shell chrome', () => {
+  beforeEach(() => {
+    useAuthStore.setState({
+      user: null,
+      isLoading: false,
+      error: null,
+      sessionToken: null,
+    })
+  })
+
+  it('does not render a competing page title', () => {
+    render(<MemoryRouter><Topbar /></MemoryRouter>)
+    expect(screen.queryByText('Admin Dashboard')).not.toBeInTheDocument()
+  })
+
+  it('exposes the mobile navigation trigger with expanded state', async () => {
+    const onMenuClick = vi.fn()
+    const { rerender } = render(
+      <MemoryRouter><Topbar onMenuClick={onMenuClick} isNavOpen={false} /></MemoryRouter>
+    )
+
+    const trigger = screen.getByRole('button', { name: /open navigation menu/i })
+    expect(trigger).toHaveAttribute('aria-expanded', 'false')
+    expect(trigger).toHaveAttribute('aria-controls', 'admin-sidebar')
+
+    await userEvent.click(trigger)
+    expect(onMenuClick).toHaveBeenCalledTimes(1)
+
+    rerender(
+      <MemoryRouter><Topbar onMenuClick={onMenuClick} isNavOpen /></MemoryRouter>
+    )
+    expect(screen.getByRole('button', { name: /close navigation menu/i })).toHaveAttribute('aria-expanded', 'true')
+  })
+
+  it('closes the account disclosure on Escape', async () => {
+    render(<MemoryRouter><Topbar /></MemoryRouter>)
+
+    await userEvent.click(screen.getByRole('button', { name: /admin account menu/i }))
+    expect(screen.getByText('Profile')).toBeInTheDocument()
+
+    await userEvent.keyboard('{Escape}')
+    expect(screen.queryByText('Profile')).not.toBeInTheDocument()
   })
 })

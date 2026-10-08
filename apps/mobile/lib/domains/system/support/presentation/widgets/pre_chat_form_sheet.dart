@@ -6,11 +6,14 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:labuda/core/src/router/route_paths.dart';
 import 'package:labuda/shared/widgets/app_bottom_sheet_base.dart';
 import 'package:labuda/shared/widgets/app_snackbar.dart';
 import 'package:labuda/domains/system/support/domain/domain.dart';
 import 'package:labuda/domains/system/support/presentation/providers/support_providers.dart';
-import 'package:labuda/domains/system/support/presentation/screens/support_ticket_thread_screen.dart';
+import 'package:labuda/domains/system/support/presentation/utils/support_category_label.dart';
+import 'package:labuda/core/src/localization/l10n_extension.dart';
 import 'package:labuda/core/src/theme/app_theme.dart';
 
 // ============================================
@@ -124,16 +127,12 @@ class _PreChatFormSheetRefactoredState
         widget.onChatCreated?.call();
 
         // Navigate to ticket thread screen (email-like, not chat)
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (context) => SupportTicketThreadScreen(ticketId: ticketId),
-          ),
-        );
+        context.push(RoutePaths.supportTicketThreadPath(ticketId));
 
         // Show success message
         AppSnackBar.showSuccess(
           context,
-          'Support ticket created. We\'ll respond shortly!',
+          'Tiket dukungan dibuat. Kami akan segera merespons!',
           duration: const Duration(seconds: 3),
         );
       } else {
@@ -141,7 +140,7 @@ class _PreChatFormSheetRefactoredState
 
         AppSnackBar.showError(
           context,
-          result.error ?? 'Failed to create support chat',
+          result.error ?? 'Gagal membuat chat dukungan',
           duration: const Duration(seconds: 4),
         );
       }
@@ -162,30 +161,14 @@ class _PreChatFormSheetRefactoredState
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.scaffoldBackgroundColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(AppShape.r20)),
-      ),
-      child: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(AppMetrics.p24),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Handle bar — ONE authority: `AppDragHandle` beside the bottom-sheet
-                // base (this sheet keeps its larger `bottom p24` breath).
-                const Center(
-                  child: AppDragHandle(
-                    padding: EdgeInsets.only(bottom: AppMetrics.p24),
-                  ),
-                ),
-
-                // Header
-                Text(
+    return Form(
+      key: _formKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Header
+          Text(
                   'Create Support Ticket',
                   style: theme.textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.bold,
@@ -223,13 +206,11 @@ class _PreChatFormSheetRefactoredState
                   controller: _descriptionController,
                   maxLines: 3,
                   maxLength: 500,
-                  decoration: InputDecoration(
+                  // Border/fill come from
+                  // `inputDecorationTheme` (AppTheme) — the one form-field
+                  // authority (fill = surfaceContainerHigh).
+                  decoration: const InputDecoration(
                     hintText: 'Briefly describe your issue...',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(AppShape.r12),
-                    ),
-                    filled: true,
-                    fillColor: Theme.of(context).colorScheme.surfaceContainer,
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -239,13 +220,22 @@ class _PreChatFormSheetRefactoredState
                   Container(
                     padding: const EdgeInsets.all(AppMetrics.p12),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.08),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.secondary.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(AppShape.r12),
-                      border: Border.all(color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.35)),
+                      border: Border.all(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.secondary.withValues(alpha: 0.35),
+                      ),
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.link, color: Theme.of(context).colorScheme.secondary),
+                        Icon(
+                          Icons.link,
+                          color: Theme.of(context).colorScheme.secondary,
+                        ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
@@ -257,7 +247,11 @@ class _PreChatFormSheetRefactoredState
                           ),
                         ),
                         IconButton(
-                          icon: const Icon(Icons.close, size: AppIconSize.action),
+                          icon: const Icon(
+                            Icons.close,
+                            size: AppIconSize.action,
+                           semanticLabel: 'Tutup',
+                           ),
                           onPressed: () {
                             setState(() => _linkedOrderId = null);
                           },
@@ -275,9 +269,9 @@ class _PreChatFormSheetRefactoredState
                       ? null
                       : _submitForm,
                   style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: AppMetrics.p16),
-                    disabledBackgroundColor: Theme.of(context).colorScheme.onSurfaceVariant,
-                    disabledForegroundColor: Theme.of(context).colorScheme.onSurfaceVariant,
+                    padding: const EdgeInsets.symmetric(
+                      vertical: AppMetrics.p16,
+                    ),
                   ),
                   child: _isLoading
                       ? SizedBox(
@@ -286,16 +280,14 @@ class _PreChatFormSheetRefactoredState
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
                             valueColor: AlwaysStoppedAnimation<Color>(
-                              Theme.of(context).colorScheme.onPrimary,
+                              Theme.of(context).colorScheme.onSurfaceVariant,
                             ),
                           ),
                         )
-                      : const Text(
+                      : Text(
                           'Create Ticket',
-                          style: TextStyle(
-                            fontSize: AppType.s16,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: Theme.of(context).textTheme.labelLarge
+                              ?.copyWith(fontWeight: FontWeight.bold),
                         ),
                 ),
                 const SizedBox(height: 12),
@@ -307,9 +299,6 @@ class _PreChatFormSheetRefactoredState
                 ),
               ],
             ),
-          ),
-        ),
-      ),
     );
   }
 
@@ -327,7 +316,7 @@ class _PreChatFormSheetRefactoredState
             children: [
               Text(config.icon),
               const SizedBox(width: 6),
-              Text(config.nameId),
+              Text(category.label(context.l10n)),
             ],
           ),
           selected: isSelected,
@@ -366,11 +355,9 @@ void showPreChatFormRefactored(
   String? linkedOrderId,
   VoidCallback? onChatCreated,
 }) {
-  showModalBottomSheet(
+  AppBottomSheetBase.show<void>(
     context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    builder: (context) => PreChatFormSheetRefactored(
+    content: PreChatFormSheetRefactored(
       userId: userId,
       userName: userName,
       userAvatar: userAvatar,

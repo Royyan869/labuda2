@@ -49,7 +49,7 @@ class _StubNegotiationNotifier extends NegotiationNotifier {
   }
 }
 
-Negotiation _session({required int round, required String lastOfferBy}) {
+Negotiation _session({required int round, required bool viewerCanAct}) {
   return Negotiation(
     id: 'session-1',
     chatId: 'room-1',
@@ -61,7 +61,7 @@ Negotiation _session({required int round, required String lastOfferBy}) {
     sellerId: 'seller-1',
     status: NegotiationStatus.active,
     currentOfferPrice: 250000,
-    lastOfferBy: lastOfferBy,
+    viewerCanAct: viewerCanAct,
     round: round,
     createdAt: DateTime.utc(2026, 9, 30),
     updatedAt: DateTime.utc(2026, 9, 30),
@@ -118,7 +118,7 @@ void main() {
     final stub = await _pumpCard(
       tester,
       viewerId: 'buyer-1',
-      session: _session(round: 2, lastOfferBy: 'seller'),
+      session: _session(round: 2, viewerCanAct: true),
       sequence: 2,
       isFromCurrentUser: false,
       onDealBuy: () => dealBuyCalls++,
@@ -148,7 +148,7 @@ void main() {
     await _pumpCard(
       tester,
       viewerId: 'buyer-1',
-      session: _session(round: 2, lastOfferBy: 'seller'),
+      session: _session(round: 2, viewerCanAct: true),
       sequence: 2,
       isFromCurrentUser: true,
     );
@@ -166,7 +166,7 @@ void main() {
     await _pumpCard(
       tester,
       viewerId: 'buyer-1',
-      session: _session(round: 2, lastOfferBy: 'seller'),
+      session: _session(round: 2, viewerCanAct: true),
       sequence: 1,
       isFromCurrentUser: false,
     );
@@ -185,7 +185,7 @@ void main() {
     await _pumpCard(
       tester,
       viewerId: 'seller-1',
-      session: _session(round: 3, lastOfferBy: 'buyer'),
+      session: _session(round: 3, viewerCanAct: true),
       sequence: 3,
       isFromCurrentUser: false,
     );

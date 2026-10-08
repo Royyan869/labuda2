@@ -41,7 +41,13 @@ class _OTPInputFieldState extends ConsumerState<OTPInputField> {
     super.dispose();
   }
 
-  void _verifyOTP() async {
+  Future<void> _verifyOTP() async {
+    // RE-ENTRY GUARD: the auto-submit fires on every edit while all six boxes
+    // hold a digit. `isVerifying` is set synchronously by the provider before
+    // its own await, so a verification already in flight cannot be joined by a
+    // second concurrent request.
+    if (ref.read(phoneVerificationProvider).isVerifying) return;
+
     final otp = _otpControllers.map((c) => c.text).join();
 
     if (otp.length != 6) {
@@ -93,12 +99,14 @@ class _OTPInputFieldState extends ConsumerState<OTPInputField> {
                   child: TextFormField(
                     controller: _otpControllers[index],
                     focusNode: _otpFocusNodes[index],
+                    // SUBMISSION LOCK: the boxes are locked while a verification
+                    // is in flight so a digit edit cannot start a concurrent one.
+                    enabled: !state.isVerifying,
                     keyboardType: TextInputType.number,
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: AppType.s14,
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                       fontWeight: FontWeight.bold,
-                       color: scheme.onSurface,
+                      color: scheme.onSurface,
                     ),
                     inputFormatters: [
                       LengthLimitingTextInputFormatter(1),
@@ -107,25 +115,21 @@ class _OTPInputFieldState extends ConsumerState<OTPInputField> {
                     decoration: InputDecoration(
                       contentPadding: EdgeInsets.zero,
                       filled: true,
-                       fillColor: scheme.surfaceContainerHigh,
+                      fillColor: scheme.surfaceContainerHigh,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(AppShape.r6),
-                        borderSide: BorderSide(
-                           color: scheme.outlineVariant,
-                        ),
+                        borderSide: BorderSide(color: scheme.outlineVariant),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(AppShape.r6),
-                        borderSide: BorderSide(
-                           color: scheme.outlineVariant,
-                        ),
+                        borderSide: BorderSide(color: scheme.outlineVariant),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(AppShape.r6),
-                         borderSide: BorderSide(
-                           color: scheme.primary,
-                           width: 1.5,
-                         ),
+                        borderSide: BorderSide(
+                          color: scheme.primary,
+                          width: 1.5,
+                        ),
                       ),
                       errorBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(AppShape.r6),
@@ -162,17 +166,15 @@ class _OTPInputFieldState extends ConsumerState<OTPInputField> {
           children: [
             Text(
               'Tidak terima?',
-              style: TextStyle(
-                fontSize: AppType.s12,
-                 color: scheme.onSurfaceVariant,
+              style: context.typeRoles.labelMicro.copyWith(
+                color: scheme.onSurfaceVariant,
               ),
             ),
             if (state.resendCountdown > 0)
               Text(
                 'Tunggu ${state.resendCountdown}d',
-                style: TextStyle(
-                  fontSize: AppType.s12,
-                   color: scheme.onSurfaceVariant,
+                style: context.typeRoles.labelMicro.copyWith(
+                  color: scheme.onSurfaceVariant,
                 ),
               )
             else
@@ -188,8 +190,7 @@ class _OTPInputFieldState extends ConsumerState<OTPInputField> {
                       },
                 child: Text(
                   state.isResending ? 'Sending...' : 'Resend',
-                  style: TextStyle(
-                    fontSize: AppType.s12,
+                  style: context.typeRoles.labelMicro.copyWith(
                     color: scheme.primary,
                     fontWeight: FontWeight.w600,
                   ),

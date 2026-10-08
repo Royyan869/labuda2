@@ -3,6 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Modal } from '@/components/ui/Modal'
+import { Checkbox } from '@/components/ui/Checkbox'
+import { Input } from '@/components/ui/Input'
+import { Select } from '@/components/ui/Select'
+import { Textarea } from '@/components/ui/Textarea'
 import {
   getPaymentMethods,
   updatePaymentMethod,
@@ -18,6 +22,7 @@ import type {
 import { ALLOWED_MIDTRANS_CHANNELS } from '@/types/payment-methods'
 import { useAuth } from '@/hooks/useAuth'
 import { hasCapability } from '@/lib/permissions'
+import { AdminLoadingState, AdminErrorState, AdminEmptyState, PageHeader } from '@/components/common'
 import { RefreshCw, AlertTriangle, CreditCard, Edit2, X, Check, ShieldAlert, PlayCircle } from 'lucide-react'
 
 // ============================================================================
@@ -174,112 +179,96 @@ function PaymentMethodEditModal({ method, onClose, onSaved }: EditModalProps) {
 
         {/* Basic fields */}
         <div className="grid grid-cols-2 gap-4">
-          <div className="col-span-2">
-            <label className="block text-sm font-medium text-foreground mb-1">Display Name</label>
-            <input
-              type="text"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              className="w-full border border-border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-info"
-            />
-          </div>
+          <Input
+            type="text"
+            label="Display Name"
+            containerClassName="col-span-2"
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
+          />
 
           <div className="flex items-end pb-2">
-            <label className="flex items-center gap-2 text-sm font-medium text-foreground cursor-pointer">
-              <input
-                type="checkbox"
-                checked={enabled}
-                onChange={(e) => setEnabled(e.target.checked)}
-                className="h-4 w-4 rounded border-border text-info focus:ring-info"
-              />
-              Enabled
-            </label>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-1">Sort Order</label>
-            <input
-              type="number"
-              value={sortOrder}
-              onChange={(e) => setSortOrder(e.target.value)}
-              className="w-full border border-border rounded px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-info"
+            <Checkbox
+              label="Enabled"
+              checked={enabled}
+              onChange={(e) => setEnabled(e.target.checked)}
             />
           </div>
 
-          <div className="col-span-2">
-            <label className="block text-sm font-medium text-foreground mb-1">Fee Type</label>
-            <select
-              value={feeType}
-              onChange={(e) => setFeeType(e.target.value as PaymentMethodFeeType)}
-              className="w-full border border-border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-info"
-            >
-              <option value="flat">Flat</option>
-              <option value="percent">Percent</option>
-              <option value="percent_plus_flat">Percent + Flat</option>
-            </select>
-          </div>
+          <Input
+            type="number"
+            label="Sort Order"
+            className="font-mono"
+            value={sortOrder}
+            onChange={(e) => setSortOrder(e.target.value)}
+          />
+
+          <Select
+            label="Fee Type"
+            containerClassName="col-span-2"
+            value={feeType}
+            onChange={(e) => setFeeType(e.target.value as PaymentMethodFeeType)}
+          >
+            <option value="flat">Flat</option>
+            <option value="percent">Percent</option>
+            <option value="percent_plus_flat">Percent + Flat</option>
+          </Select>
 
           {(feeType === 'flat' || feeType === 'percent_plus_flat') && (
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1">Flat Amount (Rupiah)</label>
-              <input
-                type="number"
-                min={0}
-                value={flatAmount}
-                onChange={(e) => setFlatAmount(e.target.value)}
-                className="w-full border border-border rounded px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-info"
-                placeholder="e.g. 4000"
-              />
-            </div>
+            <Input
+              type="number"
+              label="Flat Amount (Rupiah)"
+              className="font-mono"
+              min={0}
+              value={flatAmount}
+              onChange={(e) => setFlatAmount(e.target.value)}
+              placeholder="e.g. 4000"
+            />
           )}
 
           {(feeType === 'percent' || feeType === 'percent_plus_flat') && (
             <div>
-              <label className="block text-sm font-medium text-foreground mb-1">Percent (basis points)</label>
-              <input
+              <Input
                 type="number"
+                label="Percent (basis points)"
+                className="font-mono"
                 min={0}
                 max={2000}
                 value={percentBps}
                 onChange={(e) => setPercentBps(e.target.value)}
-                className="w-full border border-border rounded px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-info"
                 placeholder="e.g. 70 = 0.7%"
               />
               {percentBps && !isNaN(parseInt(percentBps)) && (
-                <p className="mt-1 text-xs text-muted-foreground">= {formatBps(parseInt(percentBps))}</p>
+                <p className="mt-1 type-caption">= {formatBps(parseInt(percentBps))}</p>
               )}
             </div>
           )}
 
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-1">Min Fee (Rupiah, optional)</label>
-            <input
-              type="number"
-              min={0}
-              value={minFee}
-              onChange={(e) => setMinFee(e.target.value)}
-              className="w-full border border-border rounded px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-info"
-              placeholder="none"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-1">Max Fee (Rupiah, optional)</label>
-            <input
-              type="number"
-              min={0}
-              value={maxFee}
-              onChange={(e) => setMaxFee(e.target.value)}
-              className="w-full border border-border rounded px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-info"
-              placeholder="none"
-            />
-          </div>
+          <Input
+            type="number"
+            label="Min Fee (Rupiah, optional)"
+            className="font-mono"
+            min={0}
+            value={minFee}
+            onChange={(e) => setMinFee(e.target.value)}
+            placeholder="none"
+          />
+          <Input
+            type="number"
+            label="Max Fee (Rupiah, optional)"
+            className="font-mono"
+            min={0}
+            value={maxFee}
+            onChange={(e) => setMaxFee(e.target.value)}
+            placeholder="none"
+          />
         </div>
 
         {/* Midtrans channels */}
         <div>
-          <label className="block text-sm font-medium text-foreground mb-1">
+          <span className="block type-label mb-1">
             Midtrans Channels {enabled && <span className="text-destructive">(required when enabled)</span>}
-          </label>
+          </span>
           <div className="flex flex-wrap gap-2">
             {ALLOWED_MIDTRANS_CHANNELS.map((ch) => (
               <button
@@ -300,37 +289,26 @@ function PaymentMethodEditModal({ method, onClose, onSaved }: EditModalProps) {
 
         {/* Rate source (PASS_19A) */}
         <div className="border border-border rounded-lg p-3 space-y-3 bg-surface-muted">
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-1">Rate Source</label>
-            <select
-              value={rateSource}
-              onChange={(e) => setRateSource(e.target.value as PaymentMethodRateSource)}
-              className="w-full border border-border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-info"
-            >
-              <option value="public_baseline">Public Baseline</option>
-              <option value="merchant_verified">Merchant Verified</option>
-              <option value="manual_override">Manual Override</option>
-            </select>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Public baseline bukan rate kontrak merchant Labuda. Jika Anda mengubah nilai fee dari
-              baseline tanpa memilih &quot;Merchant Verified&quot;, backend otomatis akan menandainya
-              sebagai &quot;Manual Override&quot;.
-            </p>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-1">
-              Rate Source Note {rateSource === 'merchant_verified' && <span className="text-destructive">(wajib diisi)</span>}
-            </label>
-            <textarea
-              value={rateSourceNote}
-              onChange={(e) => setRateSourceNote(e.target.value)}
-              rows={2}
-              className="w-full border border-border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-info"
-              placeholder="mis. Dikonfirmasi dari dashboard merchant Midtrans tanggal ..."
-            />
-          </div>
+          <Select
+            label="Rate Source"
+            value={rateSource}
+            onChange={(e) => setRateSource(e.target.value as PaymentMethodRateSource)}
+            help={'Public baseline bukan rate kontrak merchant Labuda. Jika Anda mengubah nilai fee dari baseline tanpa memilih "Merchant Verified", backend otomatis akan menandainya sebagai "Manual Override".'}
+          >
+            <option value="public_baseline">Public Baseline</option>
+            <option value="merchant_verified">Merchant Verified</option>
+            <option value="manual_override">Manual Override</option>
+          </Select>
+          <Textarea
+            label={<>Rate Source Note {rateSource === 'merchant_verified' && <span className="text-destructive">(wajib diisi)</span>}</>}
+            required={rateSource === 'merchant_verified'}
+            value={rateSourceNote}
+            onChange={(e) => setRateSourceNote(e.target.value)}
+            rows={2}
+            placeholder="mis. Dikonfirmasi dari dashboard merchant Midtrans tanggal ..."
+          />
           {method.merchant_verified_at && (
-            <p className="text-xs text-muted-foreground">
+            <p className="type-caption">
               Terakhir diverifikasi merchant: {new Date(method.merchant_verified_at).toLocaleString('id-ID')}
             </p>
           )}
@@ -338,16 +316,17 @@ function PaymentMethodEditModal({ method, onClose, onSaved }: EditModalProps) {
 
         {/* Preview simulation */}
         <div className="border border-border rounded-lg p-3 space-y-2 bg-surface-muted">
-          <p className="text-sm font-medium text-foreground flex items-center gap-1">
+          <p className="type-label flex items-center gap-1">
             <PlayCircle className="h-4 w-4" /> Preview Simulation
           </p>
-          <div className="flex items-center gap-2">
-            <input
+          <div className="flex items-end gap-2">
+            <Input
               type="number"
+              size="compact"
               min={1}
               value={previewBase}
               onChange={(e) => setPreviewBase(e.target.value)}
-              className="border border-border rounded px-3 py-1.5 text-sm font-mono w-40 focus:outline-none focus:ring-2 focus:ring-info"
+              className="w-40 font-mono"
               placeholder="Base amount (Rupiah)"
             />
             <Button size="sm" variant="secondary" onClick={handlePreview} disabled={previewing}>
@@ -412,25 +391,25 @@ function MethodRow({ method, canEdit, onEdit }: RowProps) {
   return (
     <tr className="hover:bg-surface-muted">
       <td className="px-6 py-3 font-mono text-xs text-foreground font-medium">{method.method_code}</td>
-      <td className="px-6 py-3 text-sm text-foreground">{method.display_name}</td>
+      <td className="px-6 py-3 type-body">{method.display_name}</td>
       <td className="px-6 py-3">
         <Badge variant={method.enabled ? 'success' : 'default'}>
           {method.enabled ? 'Enabled' : 'Disabled'}
         </Badge>
       </td>
-      <td className="px-6 py-3 text-sm text-foreground">{FEE_TYPE_LABELS[method.fee_type]}</td>
-      <td className="px-6 py-3 font-mono text-sm text-foreground">{formulaSummary(method)}</td>
+      <td className="px-6 py-3 type-body">{FEE_TYPE_LABELS[method.fee_type]}</td>
+      <td className="px-6 py-3 font-mono type-body">{formulaSummary(method)}</td>
       <td className="px-6 py-3">
         <RateSourceBadge rateSource={method.rate_source} />
       </td>
-      <td className="px-6 py-3 font-mono text-xs text-muted-foreground">
+      <td className="px-6 py-3 font-mono type-caption">
         {method.min_fee_rupiah != null || method.max_fee_rupiah != null
           ? `${method.min_fee_rupiah != null ? formatIdr(method.min_fee_rupiah) : '—'} / ${
               method.max_fee_rupiah != null ? formatIdr(method.max_fee_rupiah) : '—'
             }`
           : '—'}
       </td>
-      <td className="px-6 py-3 text-xs text-muted-foreground">{method.sort_order}</td>
+      <td className="px-6 py-3 type-caption">{method.sort_order}</td>
       <td className="px-6 py-3">
         {canEdit ? (
           <Button variant="ghost" size="sm" onClick={onEdit}>
@@ -438,7 +417,7 @@ function MethodRow({ method, canEdit, onEdit }: RowProps) {
             Edit
           </Button>
         ) : (
-          <span className="text-xs text-muted-foreground italic">Requires manage capability</span>
+          <span className="type-caption italic">Requires manage capability</span>
         )}
       </td>
     </tr>
@@ -482,23 +461,23 @@ export function PaymentMethodsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
-            <CreditCard className="h-7 w-7" />
-            Payment Methods
-          </h1>
-          <p className="text-muted-foreground mt-1">
+      <PageHeader
+        title="Payment Methods"
+        icon={<CreditCard className="h-7 w-7" />}
+        description={
+          <>
             Buyer payment method fee configuration. Fee dihitung backend saat buyer membuat
             pembayaran; perubahan di sini hanya berlaku untuk payment baru.
             {!canEdit && ' (View only.)'}
-          </p>
-        </div>
-        <Button variant="ghost" size="sm" onClick={fetchMethods} disabled={loading}>
-          <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
-        </Button>
-      </div>
+          </>
+        }
+        actions={
+          <Button variant="ghost" size="sm" onClick={fetchMethods} disabled={loading}>
+            <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+        }
+      />
 
       {noneMerchantVerified && (
         <div className="flex items-start gap-3 p-4 bg-warning-bg border border-warning rounded-lg">
@@ -522,39 +501,23 @@ export function PaymentMethodsPage() {
       )}
 
       {error && (
-        <Card>
-          <CardContent className="p-8 text-center">
-            <AlertTriangle className="h-10 w-10 text-destructive mx-auto mb-3" />
-            <p className="text-foreground font-medium">Failed to load payment methods</p>
-            <p className="text-muted-foreground text-sm mt-1">{error}</p>
-            <Button variant="secondary" size="sm" onClick={fetchMethods} className="mt-4">
-              Retry
-            </Button>
-          </CardContent>
-        </Card>
+        <AdminErrorState
+          title="Failed to load payment methods"
+          message={error}
+          onRetry={fetchMethods}
+        />
       )}
 
-      {loading && methods.length === 0 && !error && (
-        <Card>
-          <CardContent className="p-8">
-            <div className="space-y-4">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="animate-pulse flex items-center gap-4">
-                  <div className="h-4 bg-border rounded w-40" />
-                  <div className="h-4 bg-border rounded flex-1" />
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {loading && methods.length === 0 && !error && <AdminLoadingState rows={3} />}
 
       {!loading && !error && methods.length === 0 && (
         <Card>
-          <CardContent className="p-12 text-center">
-            <CreditCard className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h2 className="text-lg font-semibold text-foreground">No Payment Methods</h2>
-            <p className="text-muted-foreground mt-1">No canonical payment methods are configured.</p>
+          <CardContent>
+            <AdminEmptyState
+              icon={CreditCard}
+              title="No Payment Methods"
+              description="No canonical payment methods are configured."
+            />
           </CardContent>
         </Card>
       )}
@@ -580,7 +543,7 @@ export function PaymentMethodsPage() {
                     <th className="px-6 py-3 text-left font-medium text-muted-foreground">Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[hsl(var(--border))]">
+                <tbody className="divide-y divide-border">
                   {methods.map((m) => (
                     <MethodRow
                       key={m.method_code}

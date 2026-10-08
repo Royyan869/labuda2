@@ -105,13 +105,14 @@ class _SellerRefundDecisionDialogState
         widget.onDecisionComplete?.call();
       }
     } catch (e) {
+      debugPrint('refund.decision failed: $e');
       if (mounted) {
         setState(() => _isSubmitting = false);
         AppSnackBar.showError(
           context,
           _isApprove
-              ? 'Gagal menyetujui refund: ${e.toString()}'
-              : 'Gagal menolak refund: ${e.toString()}',
+              ? 'Gagal menyetujui refund. Coba lagi.'
+              : 'Gagal menolak refund. Coba lagi.',
         );
       }
     }
@@ -136,7 +137,9 @@ class _SellerRefundDecisionDialogState
           Expanded(
             child: Text(
               _isApprove ? 'Setujui Refund' : 'Tolak Refund',
-              style: const TextStyle(fontSize: core.AppType.s20, fontWeight: FontWeight.w600),
+              style: context.typeRoles.titleSection.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ],
@@ -195,14 +198,12 @@ class _SellerRefundDecisionDialogState
                 controller: _notesController,
                 maxLines: 3,
                 maxLength: 500,
+                // Border/fill/geometry come from `inputDecorationTheme`
+                // (AppTheme) — the one form-field authority.
                 decoration: InputDecoration(
                   hintText: _isApprove
                       ? 'Tambahkan catatan...'
                       : 'Jelaskan alasan penolakan...',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(core.AppShape.r8),
-                  ),
-                  contentPadding: const EdgeInsets.all(core.AppMetrics.p12),
                 ),
                 onChanged: (_) => setState(() {}),
               ),
@@ -217,19 +218,19 @@ class _SellerRefundDecisionDialogState
         ),
         ElevatedButton(
           onPressed: _canSubmit ? _submit : null,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: _isApprove
-                ? context.statusColors.success
-                : context.statusColors.error,
-            disabledBackgroundColor: colorScheme.surfaceContainerHighest,
-          ),
+          style: _isApprove
+              ? null
+              : ElevatedButton.styleFrom(
+                  backgroundColor: colorScheme.error,
+                  foregroundColor: colorScheme.onError,
+                ),
           child: _isSubmitting
               ? SizedBox(
                   width: 16,
                   height: 16,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    color: colorScheme.onPrimary,
+                    color: colorScheme.onSurfaceVariant,
                   ),
                 )
               : Text(_isApprove ? 'Setujui' : 'Tolak'),
@@ -320,8 +321,7 @@ class _InfoBanner extends StatelessWidget {
           Expanded(
             child: Text(
               message,
-              style: TextStyle(
-                fontSize: core.AppType.s12,
+              style: context.typeRoles.bodyDense.copyWith(
                 color: Theme.of(context).colorScheme.onSurface,
               ),
             ),

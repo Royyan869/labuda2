@@ -4,11 +4,13 @@ import { Modal, ModalFooter } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
+import { Input } from '@/components/ui/Input'
 import { useOrderDetail } from '@/hooks/useOrders'
 import { useAuth } from '@/hooks/useAuth'
 import { hasCapability } from '@/lib/permissions'
 import { initiateGatewayRefund } from '@/lib/api'
 import { formatDate, formatRupiah } from '@/lib/utils'
+import { AdminLoadingState } from '@/components/common'
 import type {
   OrderListItem,
   OrderStatus,
@@ -99,9 +101,7 @@ export function OrderDetailModal({ isOpen, onClose, orderData }: OrderDetailModa
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Order Details" size="xl">
       {loading ? (
-        <div className="flex items-center justify-center py-12">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
-        </div>
+        <AdminLoadingState embedded label="Loading order details" />
       ) : (
         <div className="space-y-6">
           {/* Error Message */}
@@ -133,7 +133,7 @@ export function OrderDetailModal({ isOpen, onClose, orderData }: OrderDetailModa
                   {order.order_number}
                 </span>
               )}
-              <span className="text-xs text-muted-foreground font-mono" title={displayData.id}>
+              <span className="type-caption font-mono" title={displayData.id}>
                 {displayData.id.slice(0, 8)}…
               </span>
               <button
@@ -161,7 +161,7 @@ export function OrderDetailModal({ isOpen, onClose, orderData }: OrderDetailModa
               <div className="grid grid-cols-2 gap-6">
                 {/* Buyer */}
                 <div className="space-y-2">
-                  <p className="text-sm text-muted-foreground">Buyer</p>
+                  <p className="type-secondary">Buyer</p>
                   <div className="flex items-center gap-3">
                     {displayData.buyer_avatar ? (
                       <img
@@ -170,20 +170,20 @@ export function OrderDetailModal({ isOpen, onClose, orderData }: OrderDetailModa
                         className="w-10 h-10 rounded-full object-cover"
                       />
                     ) : (
-                      <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+                      <div className="w-10 h-10 rounded-full bg-surface-muted flex items-center justify-center">
                         <User className="h-5 w-5 text-muted-foreground" />
                       </div>
                     )}
                     <div>
                       <p className="font-medium">{buyerIdentity}</p>
-                      <p className="font-mono text-xs text-muted-foreground">{displayData.buyer_id}</p>
+                      <p className="font-mono type-caption">{displayData.buyer_id}</p>
                     </div>
                   </div>
                 </div>
 
                 {/* Seller */}
                 <div className="space-y-2">
-                  <p className="text-sm text-muted-foreground">Seller</p>
+                  <p className="type-secondary">Seller</p>
                   <div className="flex items-center gap-3">
                     {displayData.seller_avatar ? (
                       <img
@@ -192,16 +192,16 @@ export function OrderDetailModal({ isOpen, onClose, orderData }: OrderDetailModa
                         className="w-10 h-10 rounded-full object-cover"
                       />
                     ) : (
-                      <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+                      <div className="w-10 h-10 rounded-full bg-surface-muted flex items-center justify-center">
                         <User className="h-5 w-5 text-muted-foreground" />
                       </div>
                     )}
                     <div>
                       <p className="font-medium">{sellerIdentity}</p>
                       {displayData.seller_farm_name && (
-                        <p className="text-sm text-muted-foreground">{displayData.seller_farm_name}</p>
+                        <p className="type-secondary">{displayData.seller_farm_name}</p>
                       )}
-                      <p className="font-mono text-xs text-muted-foreground">{displayData.seller_id}</p>
+                      <p className="font-mono type-caption">{displayData.seller_id}</p>
                     </div>
                   </div>
                 </div>
@@ -211,32 +211,32 @@ export function OrderDetailModal({ isOpen, onClose, orderData }: OrderDetailModa
               {order && (
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 pt-4 border-t border-border">
                   <div>
-                    <p className="text-sm text-muted-foreground">Source Type</p>
+                    <p className="type-secondary">Source Type</p>
                     <p className="text-sm font-medium">
                       {sourceTypeLabels[order.source_type] || order.source_type}
                     </p>
                     {order.source_id && (
-                      <p className="font-mono text-xs text-muted-foreground mt-0.5 truncate" title={order.source_id}>
+                      <p className="font-mono type-caption mt-0.5 truncate" title={order.source_id}>
                         {order.source_id.slice(0, 8)}…
                       </p>
                     )}
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground mb-1">Source Status</p>
+                    <p className="type-secondary mb-1">Source Status</p>
                     {order.source_status ? (
                       <Badge variant={sourceStatusVariants[order.source_status] || 'default'}>
                         {sourceStatusLabels[order.source_status] || order.source_status}
                       </Badge>
                     ) : (
-                      <span className="text-xs text-muted-foreground">—</span>
+                      <span className="type-caption">—</span>
                     )}
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Created At</p>
+                    <p className="type-secondary">Created At</p>
                     <p className="text-sm">{formatDate(order.created_at)}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Updated At</p>
+                    <p className="type-secondary">Updated At</p>
                     <p className="text-sm">{formatDate(order.updated_at)}</p>
                   </div>
                 </div>
@@ -256,7 +256,7 @@ export function OrderDetailModal({ isOpen, onClose, orderData }: OrderDetailModa
               <CardContent>
                 <div className="space-y-4">
                   {order.items.map((item, index) => (
-                    <div key={index} className="flex items-center gap-4 p-3 bg-muted rounded-lg">
+                    <div key={index} className="flex items-center gap-4 p-3 bg-surface-muted rounded-lg">
                       {item.snapshot_image_url ? (
                         <img
                           src={item.snapshot_image_url}
@@ -264,13 +264,13 @@ export function OrderDetailModal({ isOpen, onClose, orderData }: OrderDetailModa
                           className="w-16 h-16 rounded object-cover"
                         />
                       ) : (
-                        <div className="w-16 h-16 rounded bg-muted flex items-center justify-center">
+                        <div className="w-16 h-16 rounded bg-surface-muted flex items-center justify-center">
                           <Package className="h-8 w-8 text-muted-foreground" />
                         </div>
                       )}
                       <div className="flex-1 min-w-0">
                         <p className="font-medium truncate">{item.product_title}</p>
-                        <p className="text-sm text-muted-foreground">Qty: {item.quantity} × {formatRupiah(item.unit_price)}</p>
+                        <p className="type-secondary">Qty: {item.quantity} × {formatRupiah(item.unit_price)}</p>
                       </div>
                       <div className="text-right">
                         <p className="font-medium">{formatRupiah(item.subtotal)}</p>
@@ -343,16 +343,16 @@ export function OrderDetailModal({ isOpen, onClose, orderData }: OrderDetailModa
               <CardContent>
                 <div className="space-y-1">
                   <p className="font-medium">{order.shipping_address.recipient_name}</p>
-                  <p className="text-sm text-muted-foreground">{order.shipping_address.phone}</p>
-                  <p className="text-sm text-muted-foreground">{order.shipping_address.address}</p>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="type-secondary">{order.shipping_address.phone}</p>
+                  <p className="type-secondary">{order.shipping_address.address}</p>
+                  <p className="type-secondary">
                     {order.shipping_address.city}, {order.shipping_address.province} {order.shipping_address.postal_code}
                   </p>
                 </div>
                 {order.tracking_number && (
                   <div className="mt-3 p-2 bg-primary/10 rounded">
-                    <p className="text-sm text-muted-foreground">Shipping Option: {order.shipping_option || 'Standard'}</p>
-                    <p className="text-sm text-muted-foreground">Tracking: {order.tracking_number}</p>
+                    <p className="type-secondary">Shipping Option: {order.shipping_option || 'Standard'}</p>
+                    <p className="type-secondary">Tracking: {order.tracking_number}</p>
                   </div>
                 )}
               </CardContent>
@@ -374,9 +374,9 @@ export function OrderDetailModal({ isOpen, onClose, orderData }: OrderDetailModa
               <CardContent>
                 <div className="space-y-1">
                   <p className="font-medium">{order.shipping_origin.recipient_name}</p>
-                  <p className="text-sm text-muted-foreground">{order.shipping_origin.phone}</p>
-                  <p className="text-sm text-muted-foreground">{order.shipping_origin.address}</p>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="type-secondary">{order.shipping_origin.phone}</p>
+                  <p className="type-secondary">{order.shipping_origin.address}</p>
+                  <p className="type-secondary">
                     {order.shipping_origin.city}, {order.shipping_origin.province} {order.shipping_origin.postal_code}
                   </p>
                 </div>
@@ -393,30 +393,30 @@ export function OrderDetailModal({ isOpen, onClose, orderData }: OrderDetailModa
               <CardContent>
                 <div className="space-y-2">
                   <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Dispute ID</span>
+                    <span className="type-secondary">Dispute ID</span>
                     <span className="font-mono text-sm">{order.dispute.id}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Reason</span>
+                    <span className="type-secondary">Reason</span>
                     <span className="text-sm">{order.dispute.reason}</span>
                   </div>
                   {order.dispute.description && (
                     <div>
-                      <p className="text-sm text-muted-foreground mb-1">Description</p>
-                      <p className="text-sm bg-muted p-2 rounded">{order.dispute.description}</p>
+                      <p className="type-secondary mb-1">Description</p>
+                      <p className="text-sm bg-surface-muted p-2 rounded">{order.dispute.description}</p>
                     </div>
                   )}
                   <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Status</span>
+                    <span className="type-secondary">Status</span>
                     <span className="text-sm">{order.dispute.status}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Opened</span>
+                    <span className="type-secondary">Opened</span>
                     <span className="text-sm">{formatDate(order.dispute.opened_at)}</span>
                   </div>
                   {order.dispute.resolved_at && (
                     <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Resolved</span>
+                      <span className="type-secondary">Resolved</span>
                       <span className="text-sm">{formatDate(order.dispute.resolved_at)}</span>
                     </div>
                   )}
@@ -502,26 +502,22 @@ export function OrderDetailModal({ isOpen, onClose, orderData }: OrderDetailModa
                             <p className="text-xs text-warning">This may re-attempt refund processing via the payment gateway. An idempotency key is generated automatically to prevent double-dispatch.</p>
                           </div>
                           <div className="space-y-2">
-                            <div>
-                              <label className="block text-xs font-medium text-foreground mb-1">Amount (IDR, smallest unit)</label>
-                              <input
-                                type="number"
-                                className="w-full border border-border rounded px-2 py-1 text-sm"
-                                value={gatewayRetryAmount}
-                                onChange={e => setGatewayRetryAmount(e.target.value)}
-                                min={1}
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-xs font-medium text-foreground mb-1">Reason</label>
-                              <input
-                                type="text"
-                                className="w-full border border-border rounded px-2 py-1 text-sm"
-                                value={gatewayRetryReason}
-                                onChange={e => setGatewayRetryReason(e.target.value)}
-                                placeholder="e.g. admin_retry"
-                              />
-                            </div>
+                            <Input
+                              type="number"
+                              label="Amount (IDR, smallest unit)"
+                              size="compact"
+                              value={gatewayRetryAmount}
+                              onChange={e => setGatewayRetryAmount(e.target.value)}
+                              min={1}
+                            />
+                            <Input
+                              type="text"
+                              label="Reason"
+                              size="compact"
+                              value={gatewayRetryReason}
+                              onChange={e => setGatewayRetryReason(e.target.value)}
+                              placeholder="e.g. admin_retry"
+                            />
                           </div>
                           {gatewayRetryError && (
                             <div className="bg-destructive-bg border border-destructive text-destructive p-2 rounded text-xs">
@@ -580,14 +576,14 @@ export function OrderDetailModal({ isOpen, onClose, orderData }: OrderDetailModa
                       <div className="flex flex-col items-center">
                         <div className="w-2 h-2 rounded-full bg-primary" />
                         {index < order.timeline!.length - 1 && (
-                          <div className="w-0.5 flex-1 bg-muted min-h-[40px]" />
+                          <div className="w-0.5 flex-1 bg-surface-muted min-h-[40px]" />
                         )}
                       </div>
                       <div className="flex-1 pb-4">
                         <p className="text-sm font-medium">{event.event}</p>
-                        <p className="text-xs text-muted-foreground">{formatDate(event.timestamp)}</p>
+                        <p className="type-caption">{formatDate(event.timestamp)}</p>
                         {event.actor_name && (
-                          <p className="text-xs text-muted-foreground">by {event.actor_name}</p>
+                          <p className="type-caption">by {event.actor_name}</p>
                         )}
                       </div>
                     </div>

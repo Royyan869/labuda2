@@ -11,8 +11,12 @@ import 'package:flutter/material.dart' hide ConnectionState;
 import 'package:flutter/material.dart' as flutter show ConnectionState;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/core/core.dart';
+import 'package:labuda/domains/system/shared/domain/services/time_format_service.dart';
 import 'package:labuda/domains/system/support/domain/domain.dart';
 import 'package:labuda/domains/system/support/presentation/providers/support_providers.dart';
+import 'package:labuda/domains/system/support/presentation/utils/support_category_label.dart';
+import 'package:labuda/domains/system/support/presentation/utils/support_status_label.dart';
+import 'package:labuda/domains/system/support/presentation/widgets/support_activity_timeline.dart';
 import 'package:labuda/shared/shared.dart';
 import 'package:labuda/shared/widgets/composer_action_buttons.dart';
 
@@ -78,11 +82,7 @@ class _SupportTicketThreadScreenState
     setState(() => _isSending = false);
 
     if (result.isError) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(result.error ?? 'Gagal mengirim pesan'),
-        ),
-      );
+      AppSnackBar.showError(context, result.error ?? 'Gagal mengirim pesan');
       return;
     }
 
@@ -109,6 +109,10 @@ class _SupportTicketThreadScreenState
             loading: () => const SizedBox.shrink(),
             error: (_, _) => const SizedBox.shrink(),
           ),
+
+          // Read-only activity timeline: the canonical ticket event history
+          // from the owner-only Support events contract.
+          SupportActivityTimeline(ticketId: widget.ticketId),
 
           // Messages List
           Expanded(child: _buildMessagesList(ticketAsync)),
@@ -142,13 +146,13 @@ class _SupportTicketThreadScreenState
             children: [
               _buildHeaderBadge(
                 icon: statusConfig.icon,
-                label: statusConfig.labelId,
+                label: ticket.status.label(context.l10n),
                 colorValue: statusConfig.colorValue,
               ),
               const SizedBox(width: 8),
               _buildHeaderBadge(
                 icon: categoryConfig.icon,
-                label: categoryConfig.nameId,
+                label: ticket.category.label(context.l10n),
                 colorValue: categoryConfig.colorValue,
               ),
             ],
@@ -159,11 +163,17 @@ class _SupportTicketThreadScreenState
             const SizedBox(height: 8),
             Row(
               children: [
-                Icon(Icons.link, size: AppIconSize.inlineGlyph, color: Theme.of(context).colorScheme.secondary),
+                Icon(
+                  Icons.link,
+                  size: AppIconSize.inlineGlyph,
+                  color: Theme.of(context).colorScheme.secondary,
+                ),
                 const SizedBox(width: 4),
                 Text(
                   'Order #${ticket.linkedOrderId!.substring(0, 8)}...',
-                  style: TextStyle(fontSize: AppType.s12, color: Theme.of(context).colorScheme.secondary),
+                  style: context.typeRoles.labelMicro.copyWith(
+                    color: Theme.of(context).colorScheme.secondary,
+                  ),
                 ),
               ],
             ),
@@ -172,9 +182,8 @@ class _SupportTicketThreadScreenState
           // Created date
           const SizedBox(height: 8),
           Text(
-            'Created ${SupportUtils.formatTimeAgo(ticket.createdAt)}',
-            style: TextStyle(
-              fontSize: AppType.s12,
+            'Created ${const TimeFormatService().formatTimeAgo(ticket.createdAt)}',
+            style: context.typeRoles.labelMicro.copyWith(
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
@@ -189,7 +198,10 @@ class _SupportTicketThreadScreenState
     required int colorValue,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p4),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppMetrics.p12,
+        vertical: AppMetrics.p4,
+      ),
       decoration: BoxDecoration(
         color: Color(colorValue).withAlpha(40),
         borderRadius: BorderRadius.circular(AppShape.r12),
@@ -198,12 +210,11 @@ class _SupportTicketThreadScreenState
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(icon, style: const TextStyle(fontSize: AppType.s12)),
+          Text(icon, style: context.typeRoles.labelMicro),
           const SizedBox(width: 4),
           Text(
             label,
-            style: TextStyle(
-              fontSize: AppType.s12,
+            style: context.typeRoles.labelMicro.copyWith(
               fontWeight: FontWeight.bold,
               color: Color(colorValue),
             ),
@@ -291,12 +302,15 @@ class _SupportTicketThreadScreenState
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.mail_outline, size: AppIconSize.display, color: Theme.of(context).colorScheme.onSurfaceVariant),
+          Icon(
+            Icons.mail_outline,
+            size: AppIconSize.display,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
           const SizedBox(height: 16),
           Text(
             'Ticket berhasil dibuat',
-            style: TextStyle(
-              fontSize: AppType.s20,
+            style: context.typeRoles.titleProminent.copyWith(
               fontWeight: FontWeight.bold,
               color: Theme.of(context).colorScheme.onSurface,
             ),
@@ -305,7 +319,9 @@ class _SupportTicketThreadScreenState
           Text(
             'Tim support kami akan segera merespon',
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: AppType.s14, color: Theme.of(context).colorScheme.onSurfaceVariant),
+            style: context.typeRoles.bodyDense.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
         ],
       ),
@@ -313,43 +329,53 @@ class _SupportTicketThreadScreenState
   }
 
   /// Composer: posts the user's reply into the ticket conversation.
+  ///
+  /// SAFE-AREA-14: the composer touches the bottom edge, so this `SafeArea`
+  /// is THE live system-bottom-inset authority — the same contract as the
+  /// chat (`ChatInputArea`) and comment (`CommentInputWithCommerceReference`)
+  /// composers. The keyboard stays with `Scaffold.resizeToAvoidBottomInset`
+  /// (body resize), never with hand-rolled inset arithmetic here.
   Widget _buildComposer() {
-
     return Container(
-      padding: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p12, AppMetrics.p16, AppMetrics.p16),
+      padding: const EdgeInsets.fromLTRB(
+        AppMetrics.p16,
+        AppMetrics.p12,
+        AppMetrics.p16,
+        AppMetrics.p16,
+      ),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surfaceContainer,
         border: Border(
-          top: BorderSide(
-            color: Theme.of(context).colorScheme.outlineVariant,
-          ),
+          top: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
         ),
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          Expanded(
-            child: TextField(
-              controller: _messageController,
-              minLines: 1,
-              maxLines: 4,
-              textInputAction: TextInputAction.newline,
-              decoration: AppTheme.composerDecoration(
-                Theme.of(context).colorScheme,
-                hintText: 'Tulis balasan...',
+      child: SafeArea(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _messageController,
+                minLines: 1,
+                maxLines: 4,
+                textInputAction: TextInputAction.newline,
+                decoration: AppTheme.composerDecoration(
+                  Theme.of(context).colorScheme,
+                  hintText: 'Tulis balasan...',
+                ),
               ),
             ),
-          ),
-          const SizedBox(width: 8),
-          // Canonical action row: send always visible — disabled while the
-          // draft is empty, spinner while the send is in flight.
-          ComposerSendButton(
-            loading: _isSending,
-            onPressed: _messageController.text.trim().isNotEmpty
-                ? _sendMessage
-                : null,
-          ),
-        ],
+            const SizedBox(width: 8),
+            // Canonical action row: send always visible — disabled while the
+            // draft is empty, spinner while the send is in flight.
+            ComposerSendButton(
+              loading: _isSending,
+              onPressed: _messageController.text.trim().isNotEmpty
+                  ? _sendMessage
+                  : null,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -367,15 +393,12 @@ class _ThreadMessageCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
     return Card(
       margin: const EdgeInsets.only(bottom: AppMetrics.p16),
       elevation: AppElevation.none,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppShape.r12),
-        side: BorderSide(
-          color: Theme.of(context).colorScheme.outlineVariant,
-        ),
+        side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
       ),
       child: Padding(
         padding: const EdgeInsets.all(AppMetrics.p16),
@@ -393,8 +416,7 @@ class _ThreadMessageCard extends StatelessWidget {
                       : Theme.of(context).colorScheme.primary,
                   child: Text(
                     isFromUser ? 'Y' : 'S',
-                    style: TextStyle(
-                      fontSize: AppType.s12,
+                    style: context.typeRoles.labelMicro.copyWith(
                       fontWeight: FontWeight.bold,
                       color: Theme.of(context).colorScheme.onPrimary,
                     ),
@@ -409,16 +431,14 @@ class _ThreadMessageCard extends StatelessWidget {
                     children: [
                       Text(
                         isFromUser ? 'You' : 'Support Team',
-                        style: TextStyle(
-                          fontSize: AppType.s14,
+                        style: context.typeRoles.bodyDense.copyWith(
                           fontWeight: FontWeight.bold,
                           color: Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
                       Text(
                         _getSenderTypeLabel(),
-                        style: TextStyle(
-                          fontSize: AppType.s12,
+                        style: context.typeRoles.labelMicro.copyWith(
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),
@@ -426,11 +446,13 @@ class _ThreadMessageCard extends StatelessWidget {
                   ),
                 ),
 
-                // Timestamp
+                // Timestamp — canonical relative-time authority
+                // (TimeFormatService). Message age follows the same Indonesian
+                // product locale as the ticket-created header and support
+                // list/card surfaces.
                 Text(
-                  _formatTimestamp(message.createdAt),
-                  style: TextStyle(
-                    fontSize: AppType.s12,
+                  const TimeFormatService().formatTimeAgo(message.createdAt),
+                  style: context.typeRoles.labelMicro.copyWith(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
@@ -442,8 +464,7 @@ class _ThreadMessageCard extends StatelessWidget {
             // Message Body
             Text(
               message.displayText,
-              style: TextStyle(
-                fontSize: AppType.s14,
+              style: context.typeRoles.bodyDense.copyWith(
                 height: 1.5,
                 color: Theme.of(context).colorScheme.onSurface,
               ),
@@ -462,23 +483,6 @@ class _ThreadMessageCard extends StatelessWidget {
         return 'Support Agent';
       case SupportSenderType.system:
         return 'System';
-    }
-  }
-
-  String _formatTimestamp(DateTime dateTime) {
-    final now = DateTime.now();
-    final difference = now.difference(dateTime);
-
-    if (difference.inMinutes < 1) {
-      return 'Just now';
-    } else if (difference.inHours < 1) {
-      return '${difference.inMinutes}m ago';
-    } else if (difference.inDays < 1) {
-      return '${difference.inHours}h ago';
-    } else if (difference.inDays < 7) {
-      return '${difference.inDays}d ago';
-    } else {
-      return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
     }
   }
 }

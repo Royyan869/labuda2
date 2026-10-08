@@ -298,11 +298,11 @@ class AuctionAttachmentStatusData {
           checkedAt: DateTime.now(),
         );
 
-      case AuctionStatus.draft:
+      case AuctionStatus.lapsed:
         return AuctionAttachmentStatusData(
-          status: AuctionAttachmentStatus.scheduled,
-          label: 'Draft',
-          message: 'Lelang belum dipublikasikan',
+          status: AuctionAttachmentStatus.ended,
+          label: 'Kadaluarsa',
+          message: 'Lelang kadaluarsa sebelum tayang — bisa dijadwalkan ulang',
           checkedAt: DateTime.now(),
         );
 

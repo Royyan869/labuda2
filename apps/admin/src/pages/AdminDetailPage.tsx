@@ -4,12 +4,14 @@ import { ArrowLeft, Shield, RefreshCw, AlertTriangle, Check, X, Users, UserCog }
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
+import { Checkbox } from '@/components/ui/Checkbox'
 import { useUserDetail, useUserActions } from '@/hooks/useUsers'
 import { useCapabilities, useUserCapabilities, useCapabilityActions } from '@/hooks/useCapabilities'
 import { groupCapabilitiesByCategory, capabilityGroupDescription } from '@/types/capability'
 import { formatDate } from '@/lib/utils'
 import { hasCapability } from '@/lib/permissions'
 import { useAuth } from '@/hooks/useAuth'
+import { AdminLoadingState, AdminErrorState, PageHeader } from '@/components/common'
 
 export function AdminDetailPage() {
   const { id: userId } = useParams<{ id: string }>()
@@ -35,6 +37,7 @@ export function AdminDetailPage() {
   const hasCapabilityAssignPermission = hasCapability(currentUser?.capabilities, 'governance.capability.assign')
   const hasRoleAssignPermission = hasCapability(currentUser?.capabilities, 'governance.role.assign')
   const isSelf = currentUser?.id === userId
+  const isReadOnly = !hasCapabilityAssignPermission
 
   // Get user's capability strings for quick lookup
   const userCapabilitySet = new Set(userCapabilities.map(uc => uc.capability))
@@ -89,32 +92,27 @@ export function AdminDetailPage() {
   const isLoading = userLoading || capsLoading || userCapsLoading
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
-          <p className="mt-4 text-muted-foreground">Loading admin details...</p>
-        </div>
-      </div>
-    )
+    return <AdminLoadingState />
   }
 
   if (userError || !user) {
     return (
       <div className="space-y-6">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" onClick={() => navigate(-1)} className="gap-2">
-            <ArrowLeft className="h-4 w-4" />
-            Back
-          </Button>
-        </div>
-        <Card>
-          <CardContent className="p-6">
-            <div className="text-center text-destructive">
-              <p>Error loading admin: {userError?.message || 'Admin not found'}</p>
-            </div>
-          </CardContent>
-        </Card>
+        <PageHeader
+          title="Admin Management"
+          description={isReadOnly ? 'Viewing capabilities' : 'Manage capabilities'}
+          leading={
+            <Button variant="ghost" onClick={() => navigate(-1)} className="gap-2">
+              <ArrowLeft className="h-4 w-4" />
+              Back
+            </Button>
+          }
+        />
+        <AdminErrorState
+          title="Failed to load admin"
+          message={userError?.message || 'Admin not found'}
+          onRetry={refetchUser}
+        />
       </div>
     )
   }
@@ -124,7 +122,6 @@ export function AdminDetailPage() {
   // cluster can be hidden by a stale frontend list.
   const groupedCapabilities = groupCapabilitiesByCategory(capabilities)
 
-  const isReadOnly = !hasCapabilityAssignPermission
   const isOwnProfile = currentUser?.id === userId
 
   const handleSetRole = async (next: 'user' | 'admin') => {
@@ -140,28 +137,22 @@ export function AdminDetailPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <PageHeader
+        title="Admin Management"
+        description={isReadOnly ? 'Viewing capabilities' : 'Manage capabilities'}
+        leading={
           <Button variant="ghost" onClick={() => navigate(-1)} className="gap-2">
             <ArrowLeft className="h-4 w-4" />
             Back
           </Button>
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">Admin Management</h1>
-            <p className="text-muted-foreground mt-1">
-              {isReadOnly ? 'Viewing capabilities' : 'Manage capabilities'}
-            </p>
-          </div>
-        </div>
-        <Button
-          variant="secondary"
-          onClick={() => refetchUserCaps()}
-          className="gap-2"
-        >
-          <RefreshCw className="h-4 w-4" />
-          Refresh
-        </Button>
-      </div>
+        }
+        actions={
+          <Button variant="secondary" onClick={() => refetchUserCaps()} className="gap-2">
+            <RefreshCw className="h-4 w-4" />
+            Refresh
+          </Button>
+        }
+      />
 
       {/* Main Layout: 3 Columns */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -194,13 +185,13 @@ export function AdminDetailPage() {
 
               {/* Email */}
               <div className="border-t pt-4">
-                <p className="text-sm text-muted-foreground">Email</p>
+                <p className="type-secondary">Email</p>
                 <p className="text-sm font-mono text-foreground break-all">{user.email}</p>
               </div>
 
               {/* Status */}
               <div className="border-t pt-4">
-                <p className="text-sm text-muted-foreground">Status</p>
+                <p className="type-secondary">Status</p>
                 <Badge variant={
                   user.account_status === 'active' ? 'success' :
                   user.account_status === 'suspended' ? 'warning' :
@@ -214,12 +205,12 @@ export function AdminDetailPage() {
               {/* Dates */}
               <div className="border-t pt-4 space-y-2">
                 <div>
-                  <p className="text-sm text-muted-foreground">Joined</p>
-                  <p className="text-sm text-foreground">{formatDate(user.created_at)}</p>
+                  <p className="type-secondary">Joined</p>
+                  <p className="type-body">{formatDate(user.created_at)}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Last Active</p>
-                  <p className="text-sm text-foreground">{user.last_active_at ? formatDate(user.last_active_at) : 'Never'}</p>
+                  <p className="type-secondary">Last Active</p>
+                  <p className="type-body">{user.last_active_at ? formatDate(user.last_active_at) : 'Never'}</p>
                 </div>
               </div>
             </CardContent>
@@ -232,20 +223,20 @@ export function AdminDetailPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <p className="text-sm text-muted-foreground">Role</p>
+                <p className="type-secondary">Role</p>
                 <Badge variant={role === 'admin' ? 'info' : 'default'} className="mt-1">
                   {role === 'admin' ? 'Admin' : 'User'}
                 </Badge>
               </div>
 
               <div className="border-t pt-4">
-                <p className="text-sm text-muted-foreground">Full access</p>
+                <p className="type-secondary">Full access</p>
                 {fullAccess ? (
                   <Badge variant="success" className="mt-1">Full access</Badge>
                 ) : (
                   <div className="mt-1">
                     <Badge variant="warning">Not full access</Badge>
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <p className="type-caption mt-1">
                       {role !== 'admin'
                         ? 'Requires admin membership.'
                         : `${missingCapabilities.length} capability${missingCapabilities.length === 1 ? '' : 'ies'} not granted.`}
@@ -284,7 +275,7 @@ export function AdminDetailPage() {
                       Promote to Admin
                     </Button>
                   )}
-                  <p className="text-xs text-muted-foreground">
+                  <p className="type-caption">
                     Promoting grants admin membership only. Grant capabilities separately — a new admin starts with
                     none.
                   </p>
@@ -359,7 +350,7 @@ export function AdminDetailPage() {
                   <Shield className="h-5 w-5" />
                   {category}
                 </CardTitle>
-                <p className="text-sm text-muted-foreground">
+                <p className="type-secondary">
                   {capabilityGroupDescription(category)}
                 </p>
               </CardHeader>
@@ -374,18 +365,15 @@ export function AdminDetailPage() {
                     <div
                       key={cap.capability}
                       className={`flex items-start gap-3 p-3 rounded-lg border transition-colors ${
-                        isDisabled ? 'bg-surface-muted border-border' : 'bg-white border-border hover:border-border'
+                        isDisabled ? 'bg-surface-muted border-border' : 'bg-surface border-border hover:border-border'
                       }`}
                     >
-                      <input
-                        type="checkbox"
+                      <Checkbox
                         id={cap.capability}
                         checked={isAssigned}
                         onChange={() => handleToggleCapability(cap.capability)}
                         disabled={isDisabled || isOwnLastCritical}
-                        className={`mt-0.5 h-4 w-4 rounded border-border ${
-                          cap.critical ? 'text-warning focus:ring-warning' : 'text-primary focus:ring-primary'
-                        } ${isDisabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
+                        className="mt-0.5"
                       />
                       <div className="flex-1 min-w-0">
                         <label
@@ -401,7 +389,7 @@ export function AdminDetailPage() {
                             </Badge>
                           )}
                         </label>
-                        <p className="text-xs text-muted-foreground mt-1">{cap.description}</p>
+                        <p className="type-caption mt-1">{cap.description}</p>
                         {isOwnLastCritical && (
                           <p className="text-xs text-warning mt-1 flex items-center gap-1">
                             <AlertTriangle className="h-3 w-3" />
@@ -432,14 +420,14 @@ export function AdminDetailPage() {
             <CardContent className="space-y-4">
               {/* Total Capabilities */}
               <div>
-                <p className="text-sm text-muted-foreground">Total Capabilities</p>
-                <p className="text-2xl font-bold text-primary">{total}</p>
+                <p className="type-secondary">Total Capabilities</p>
+                <p className="type-metric text-primary">{total}</p>
               </div>
 
               {/* Critical Capabilities */}
               <div className="border-t pt-4">
-                <p className="text-sm text-muted-foreground">Critical Capabilities</p>
-                <p className="text-2xl font-bold text-warning">
+                <p className="type-secondary">Critical Capabilities</p>
+                <p className="type-metric text-warning">
                   {userCapabilities.filter(uc => {
                     const def = capabilities.find(c => c.capability === uc.capability)
                     return def?.critical
@@ -450,8 +438,8 @@ export function AdminDetailPage() {
               {/* Last Updated */}
               {userCapabilities.length > 0 && (
                 <div className="border-t pt-4">
-                  <p className="text-sm text-muted-foreground">Last Updated</p>
-                  <p className="text-sm text-foreground">
+                  <p className="type-secondary">Last Updated</p>
+                  <p className="type-body">
                     {formatDate(userCapabilities[userCapabilities.length - 1].granted_at)}
                   </p>
                 </div>
@@ -485,8 +473,8 @@ export function AdminDetailPage() {
                 const total = categoryCaps.length
                 return (
                   <div key={category} className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">{category}</span>
-                    <span className="text-sm font-medium text-foreground">
+                    <span className="type-secondary">{category}</span>
+                    <span className="type-label">
                       {assigned} / {total}
                     </span>
                   </div>

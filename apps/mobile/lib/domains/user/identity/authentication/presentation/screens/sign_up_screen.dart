@@ -4,6 +4,7 @@ import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/shared.dart';
 import 'package:labuda/shared/helpers/canonical_email_validator.dart';
 import 'package:labuda/shared/helpers/canonical_password_policy.dart';
+import 'package:labuda/shared/helpers/canonical_password_match.dart';
 import 'package:labuda/domains/user/identity/authentication/presentation/shared/shared.dart';
 import '../widgets/username_field.dart';
 
@@ -11,7 +12,7 @@ import '../widgets/username_field.dart';
 ///
 /// Features:
 /// - Uses AuthFormController for state management (no local booleans)
-/// - Uses shared widgets (AuthTextField, AuthPasswordField, etc.)
+/// - Uses shared widgets (AppTextField, AuthPasswordField, etc.)
 /// - Async validation stays at widget level (UsernameField)
 /// - Password strength indicator as inline widget
 /// - Clean separation: UI state in controller, field validation in widgets
@@ -138,9 +139,10 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
     final hasPassword = CanonicalPasswordPolicy.isValid(
       _passwordController.text.trim(),
     );
-    final passwordsMatch =
-        _confirmPasswordController.text.trim() ==
-        _passwordController.text.trim();
+    final passwordsMatch = CanonicalPasswordMatch.matches(
+      _confirmPasswordController.text,
+      _passwordController.text,
+    );
     final agreedToTerms = _controller.agreeToTerms;
 
     return hasValidUsername &&
@@ -215,7 +217,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
       if (parkedState is AuthStatePendingEmailVerification) {
         AppSnackBar.showSuccess(
           context,
-          'Account created! Verification email sent.',
+          'Akun dibuat! Email verifikasi terkirim.',
         );
         return;
       }
@@ -245,7 +247,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
       await ref.read(authControllerProvider.notifier).signUpWithGoogle();
 
       if (mounted) {
-        AppSnackBar.showSuccess(context, 'Signed up with Google!');
+        AppSnackBar.showSuccess(context, 'Berhasil mendaftar dengan Google!');
       }
       // Router akan menangani redirect ketika AuthStateAuthenticated tercapai
     } catch (e) {
@@ -350,43 +352,29 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
   Widget _buildForm() {
     return Column(
       children: [
-        // Username field - has async validation at widget level
+        // Username field - has async validation at widget level.
+        // A backend rejection (USERNAME_TAKEN / RESERVED) is a FIELD error and
+        // rides the canonical error slot (owner decision 2026-10-05).
         UsernameField(
           controller: _usernameController,
           onValidationChanged: _onUsernameValidationChanged,
+          errorText: _backendUsernameError,
+          enabled: !_controller.isLoading,
         ),
-
-        // Canonical backend rejection — inline, same message mapping as the
-        // complete-profile screen (one language, one authority).
-        if (_backendUsernameError != null)
-          Padding(
-            padding: const EdgeInsets.only(top: AppMetrics.p8),
-            child: Text(
-              _backendUsernameError!,
-              style: TextStyle(
-                color: context.statusColors.error,
-                fontSize: AppType.s12,
-              ),
-            ),
-          ),
 
         const SizedBox(height: 16),
 
         // Email field — clears stale duplicate-email rejection on edit.
-        AuthTextField.email(
+        // A backend "email already registered" rejection is a FIELD error
+        // (owner decision 2026-10-05) and rides the canonical error slot.
+        AppTextField.email(
           controller: _emailController,
           onChanged: (_) => _onEmailChanged(),
+          errorText: _backendEmailError,
+          enabled: !_controller.isLoading,
           validator: (value) =>
               CanonicalEmailValidator.validationMessage(value),
         ),
-        if (_backendEmailError != null)
-          Padding(
-            padding: const EdgeInsets.only(top: AppMetrics.p8),
-            child: Text(
-              _backendEmailError!,
-              style: TextStyle(color: context.statusColors.error, fontSize: AppType.s12),
-            ),
-          ),
 
         const SizedBox(height: 16),
 
@@ -395,6 +383,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
           controller: _passwordController,
           labelText: 'Password',
           hintText: 'Create a strong password',
+          enabled: !_controller.isLoading,
           isPasswordVisible: _controller.isPasswordVisible,
           onToggleVisibility: _controller.togglePasswordVisibility,
           strengthIndicator: PasswordStrengthIndicator(
@@ -416,17 +405,13 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
         AuthConfirmPasswordField(
           controller: _confirmPasswordController,
           passwordController: _passwordController,
+          enabled: !_controller.isLoading,
           isVisible: _controller.isConfirmPasswordVisible,
           onToggleVisibility: _controller.toggleConfirmPasswordVisibility,
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Please confirm your password';
-            }
-            if (value != _passwordController.text) {
-              return 'Passwords do not match';
-            }
-            return null;
-          },
+          validator: (value) => CanonicalPasswordMatch.validationMessage(
+            value,
+            _passwordController.text,
+          ),
         ),
 
         const SizedBox(height: 24),
@@ -474,19 +459,18 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
+            MergeSemantics(
+              child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Checkbox(
                   value: _controller.agreeToTerms,
-                  onChanged: (value) {
-                    _controller.setAgreeToTerms(value ?? false);
-                    formFieldState.didChange(value);
-                  },
-                  activeColor: scheme.primary,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppShape.r4),
-                  ),
+                  onChanged: _controller.isLoading
+                      ? null
+                      : (value) {
+                          _controller.setAgreeToTerms(value ?? false);
+                          formFieldState.didChange(value);
+                        },
                 ),
                 Expanded(
                   child: Padding(
@@ -494,8 +478,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
                     child: Text.rich(
                       TextSpan(
                         text: 'I agree with ',
-                        style: TextStyle(
-                          fontSize: AppType.s14,
+                        style: context.typeRoles.bodyDense.copyWith(
                           color: scheme.onSurface,
                         ),
                         children: [
@@ -514,12 +497,18 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
                 ),
               ],
             ),
+            ),
             if (formFieldState.hasError)
               Padding(
-                padding: const EdgeInsets.only(left: AppMetrics.p12, top: AppMetrics.p8),
+                padding: const EdgeInsets.only(
+                  left: AppMetrics.p12,
+                  top: AppMetrics.p8,
+                ),
                 child: Text(
                   formFieldState.errorText!,
-                  style: TextStyle(color: context.statusColors.error, fontSize: AppType.s12),
+                  style: context.typeRoles.labelMicro.copyWith(
+                    color: context.statusColors.error,
+                  ),
                 ),
               ),
           ],
@@ -536,9 +525,9 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
       children: [
         Text(
           'Already have an account? ',
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: scheme.onSurfaceVariant,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
         ),
         TextButton(
           onPressed: _navigateToSignIn,

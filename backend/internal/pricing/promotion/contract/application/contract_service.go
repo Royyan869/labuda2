@@ -45,11 +45,40 @@ import (
 // this bound are overflow guards, never a product duration maximum.
 const maxContractDurationDays = math.MaxInt64 / int64(24*time.Hour)
 
+// maxInternalPromotionDurationDays is the Owner-locked business maximum
+// duration for an internal promotion (For Sale / Auction subjects). External
+// promotions have no 30-day business maximum and remain bounded only by the
+// technical representation guard above.
+const maxInternalPromotionDurationDays = 30
+
+// validateContractDuration is the single duration-validation authority shared
+// by Create and PreviewFunding (and therefore by the pre-payment funding gate
+// via CreateFundingIntent). It enforces the technical representation bound for
+// every kind and the Owner-locked 30-day maximum for internal promotions.
+// External promotions are never subject to the 30-day maximum.
+func validateContractDuration(kind entity.Kind, durationDays int64) error {
+	if durationDays <= 0 || durationDays > maxContractDurationDays {
+		return ErrPromotionDurationInvalid
+	}
+	if kind == entity.KindInternal && durationDays > maxInternalPromotionDurationDays {
+		return ErrPromotionDurationInvalid
+	}
+	return nil
+}
+
 // SellerEligibilityGate is the seller governance authority the contract
 // domain defers to at creation. The concrete wiring (active account, seller
 // capability, subscription) is provided by the delivery/boot layer.
 type SellerEligibilityGate interface {
 	EnsureCanPromote(ctx context.Context, tx db.Tx, sellerID uuid.UUID) error
+}
+
+// PromotionTargetInput identifies one product/target for the promotion queue
+// supplied as part of the promotion configuration. It is the same
+// (target_type, target_id) pair the canonical AddTarget path validates.
+type PromotionTargetInput struct {
+	TargetType string
+	TargetID   uuid.UUID
 }
 
 // CreatePromotionInput captures the canonical seller inputs for a new
@@ -58,8 +87,14 @@ type CreatePromotionInput struct {
 	SellerID     uuid.UUID
 	Kind         entity.Kind
 	BudgetRupiah int64
-	DurationDays int64  // pacing boundary length in whole days
+	DurationDays int64    // pacing boundary length in whole days
 	CityIDs      []string // geographic targeting: empty = nationwide, otherwise arbitrary set of city_id
+	// Targets is the initial product queue. It MUST contain at least one valid
+	// entry: the queue is part of the promotion configuration and is persisted
+	// atomically with contract creation, so a promotion can never be funded or
+	// activated without a known queue (Owner canonical flow: queue before
+	// payment). Refill after activation still uses the canonical AddTarget path.
+	Targets []PromotionTargetInput
 }
 
 // FundingPreview is the canonical read-only projection of promotion funding
@@ -89,6 +124,13 @@ type FundingPreview struct {
 	// PaymentRequired is true when the seller must pay before allocation.
 	// Equivalent to Shortage > 0.
 	PaymentRequired bool `json:"payment_required"`
+
+	// EstimatedImpressions is the informational estimate of how many Qualified
+	// Impressions the budget can approximately buy at the current platform CPM,
+	// computed by the single canonical authority
+	// finance.PromotionEstimatedImpressions (no second formula). It is NOT a
+	// guarantee and NOT a financial authority.
+	EstimatedImpressions int64 `json:"estimated_impressions"`
 }
 
 // PausePromotionInput targets an explicit seller-initiated pause.
@@ -256,8 +298,19 @@ func (s *PromotionContractService) Create(
 	if input.BudgetRupiah <= 0 {
 		return nil, ErrPromotionBudgetInvalid
 	}
-	if input.DurationDays <= 0 || input.DurationDays > maxContractDurationDays {
-		return nil, ErrPromotionDurationInvalid
+	if err := validateContractDuration(input.Kind, input.DurationDays); err != nil {
+		return nil, err
+	}
+	// The product queue is part of the promotion configuration: a promotion can
+	// never be funded or activated without at least one target (queue before
+	// payment). Max/duplicate/eligibility are enforced by appendTargetTx inside
+	// the transaction; empty and over-limit are rejected here, before any money
+	// movement.
+	if len(input.Targets) == 0 {
+		return nil, ErrQueueEmpty
+	}
+	if len(input.Targets) > entity.MaxTargetsPerContract {
+		return nil, ErrQueueFull
 	}
 
 	var created *entity.Contract
@@ -348,6 +401,16 @@ func (s *PromotionContractService) Create(
 			return fmt.Errorf("create promotion contract row: %w", err)
 		}
 
+		// Seed the initial product queue atomically with the contract through the
+		// single queue authority (kind match, ownership, operability, duplicate,
+		// max 10). Any failure rolls back contract + allocation + ledger together,
+		// so there is no state where a funded/active promotion has no queue.
+		for _, tgt := range input.Targets {
+			if _, err := s.appendTargetTx(ctx, tx, contract, tgt.TargetType, tgt.TargetID); err != nil {
+				return err
+			}
+		}
+
 		// Persist geography rows atomically in same Tx — empty = nationwide (0 rows)
 		if len(geos) > 0 {
 			// assign contractID to each snapshot
@@ -407,8 +470,13 @@ func (s *PromotionContractService) PreviewFunding(
 	if input.BudgetRupiah <= 0 {
 		return nil, ErrPromotionBudgetInvalid
 	}
-	if input.DurationDays <= 0 || input.DurationDays > maxContractDurationDays {
-		return nil, ErrPromotionDurationInvalid
+	if err := validateContractDuration(input.Kind, input.DurationDays); err != nil {
+		return nil, err
+	}
+	// Pre-payment queue gate: the promotion configuration must already contain
+	// a valid queue before any funding obligation is computed.
+	if err := s.validateQueueConfig(ctx, input.SellerID, input.Kind, input.Targets); err != nil {
+		return nil, err
 	}
 
 	var preview *FundingPreview
@@ -448,11 +516,17 @@ func (s *PromotionContractService) PreviewFunding(
 			shortage = 0
 		}
 
+		// Estimated impressions from the single canonical calculator, using the
+		// same platform CPM authority Create snapshots. No second formula.
+		cpm := s.config.GetPromotionCPM(ctx, tx)
+		estimatedImpressions, _ := finance.PromotionEstimatedImpressions(requiredCost, cpm)
+
 		preview = &FundingPreview{
-			RequiredCost:     requiredCost,
-			AvailableFunding: availableFunding,
-			Shortage:         shortage,
-			PaymentRequired:  shortage > 0,
+			RequiredCost:         requiredCost,
+			AvailableFunding:     availableFunding,
+			Shortage:             shortage,
+			PaymentRequired:      shortage > 0,
+			EstimatedImpressions: estimatedImpressions,
 		}
 		return nil
 	})
@@ -791,12 +865,125 @@ func (s *PromotionContractService) GetGeographyCityIDs(ctx context.Context, cont
 // ============================================================================
 
 var (
+	ErrQueueEmpty            = errors.New("promotion queue must contain at least one target")
 	ErrQueueFull             = errors.New("promotion target queue is full (max 10)")
 	ErrQueueDuplicate        = errors.New("target already in promotion queue")
 	ErrQueueNotInternal      = errors.New("target queue only for internal promotions")
 	ErrQueueExternalMismatch = errors.New("external promotion target type mismatch")
 	ErrQueueContractNotFound = errors.New("promotion contract not found for queue operation")
 )
+
+// validateTargetKind enforces the contract-kind ↔ target-type authority: an
+// internal promotion may queue For Sale / Auction targets; an external
+// promotion may queue external_product targets.
+func validateTargetKind(kind entity.Kind, targetType string) error {
+	switch kind {
+	case entity.KindInternal:
+		if targetType != "for_sale" && targetType != "auction" {
+			return ErrQueueExternalMismatch
+		}
+	case entity.KindExternal:
+		if targetType != "external_product" {
+			return ErrQueueExternalMismatch
+		}
+	default:
+		return ErrPromotionKindInvalid
+	}
+	return nil
+}
+
+// validateTargetEligibility defers to the canonical commerce operability
+// authority (ownership + eligibility). A nil adapter skips the check, exactly
+// like the existing AddTarget path used by narrowly-scoped composition wiring.
+func (s *PromotionContractService) validateTargetEligibility(ctx context.Context, sellerID uuid.UUID, targetType string, targetID uuid.UUID) error {
+	if s.operability == nil {
+		return nil
+	}
+	if err := s.operability.ValidateOwnership(ctx, sellerID, targetType, &targetID); err != nil {
+		return fmt.Errorf("target ownership: %w", err)
+	}
+	operable, reason, err := s.operability.CheckOperability(ctx, targetType, &targetID)
+	if err != nil {
+		return err
+	}
+	if !operable {
+		return fmt.Errorf("target not operable: %s", reason)
+	}
+	return nil
+}
+
+// validateQueueConfig validates a candidate promotion queue BEFORE any funding
+// or payment: non-empty, at most MaxTargetsPerContract, kind-matched,
+// duplicate-free, and each target canonically eligible. It is the single queue
+// validation authority, shared by PreviewFunding (the funding gate) and, via
+// appendTargetTx, by Create and AddTarget.
+func (s *PromotionContractService) validateQueueConfig(ctx context.Context, sellerID uuid.UUID, kind entity.Kind, targets []PromotionTargetInput) error {
+	if len(targets) == 0 {
+		return ErrQueueEmpty
+	}
+	if len(targets) > entity.MaxTargetsPerContract {
+		return ErrQueueFull
+	}
+	seen := make(map[uuid.UUID]struct{}, len(targets))
+	for _, tgt := range targets {
+		if tgt.TargetType == "" || tgt.TargetID == uuid.Nil {
+			return fmt.Errorf("target_type and target_id are required for every queue entry")
+		}
+		if err := validateTargetKind(kind, tgt.TargetType); err != nil {
+			return err
+		}
+		if _, dup := seen[tgt.TargetID]; dup {
+			return ErrQueueDuplicate
+		}
+		seen[tgt.TargetID] = struct{}{}
+		if err := s.validateTargetEligibility(ctx, sellerID, tgt.TargetType, tgt.TargetID); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// appendTargetTx validates and inserts one queue entry at the next position
+// inside an existing contract transaction. It is the single insert path used by
+// both Create (initial queue) and AddTarget (refill); the caller must hold the
+// contract row FOR UPDATE.
+func (s *PromotionContractService) appendTargetTx(ctx context.Context, tx db.Tx, c *entity.Contract, targetType string, targetID uuid.UUID) (*entity.ContractTarget, error) {
+	if targetType == "" {
+		return nil, fmt.Errorf("AddTarget: target_type required")
+	}
+	if err := validateTargetKind(c.Kind, targetType); err != nil {
+		return nil, err
+	}
+	if err := s.validateTargetEligibility(ctx, c.SellerID, targetType, targetID); err != nil {
+		return nil, err
+	}
+	n, err := s.targets.CountTargets(ctx, tx, c.ID)
+	if err != nil {
+		return nil, err
+	}
+	if n >= entity.MaxTargetsPerContract {
+		return nil, ErrQueueFull
+	}
+	now, err := s.repo.GetDBTime(ctx, tx)
+	if err != nil {
+		return nil, err
+	}
+	ct := &entity.ContractTarget{
+		ID:         uuid.New(),
+		ContractID: c.ID,
+		TargetType: promoEntityTargetType(targetType),
+		TargetID:   targetID,
+		Position:   n,
+		AddedAt:    now,
+	}
+	if err := s.targets.AddTarget(ctx, tx, ct); err != nil {
+		if isQueueDuplicateViolation(err) {
+			return nil, ErrQueueDuplicate
+		}
+		return nil, err
+	}
+	return ct, nil
+}
 
 type AddTargetInput struct {
 	SellerID   uuid.UUID
@@ -824,59 +1011,8 @@ func (s *PromotionContractService) AddTarget(ctx context.Context, input AddTarge
 		if c.Status.IsFinalized() {
 			return ErrPromotionAlreadyFinalized
 		}
-		// Internal vs External kind check. The queue target enum
-		// (promotion_target_type_enum, migration 000066) is the DB authority:
-		// for_sale / auction for internal, external_product for external. The
-		// external_product entity is the only external subject that exists in
-		// this codebase (event/business subjects have no entity yet).
-		if c.Kind == entity.KindInternal {
-			if input.TargetType != "for_sale" && input.TargetType != "auction" {
-				return ErrQueueExternalMismatch
-			}
-		} else if c.Kind == entity.KindExternal {
-			if input.TargetType != "external_product" {
-				return ErrQueueExternalMismatch
-			}
-		} else {
-			return ErrPromotionKindInvalid
-		}
-		// Seller ownership validation.
-		if s.operability != nil {
-			if err := s.operability.ValidateOwnership(ctx, input.SellerID, input.TargetType, &input.TargetID); err != nil {
-				return fmt.Errorf("target ownership: %w", err)
-			}
-			operable, reason, err := s.operability.CheckOperability(ctx, input.TargetType, &input.TargetID)
-			if err != nil {
-				return err
-			}
-			if !operable {
-				return fmt.Errorf("target not operable: %s", reason)
-			}
-		}
-		n, err := s.targets.CountTargets(ctx, tx, c.ID)
+		ct, err := s.appendTargetTx(ctx, tx, c, input.TargetType, input.TargetID)
 		if err != nil {
-			return err
-		}
-		if n >= entity.MaxTargetsPerContract {
-			return ErrQueueFull
-		}
-		// Duplicate prevention is also enforced by DB UNIQUE(contract_id, target_id).
-		now, err := s.repo.GetDBTime(ctx, tx)
-		if err != nil {
-			return err
-		}
-		ct := &entity.ContractTarget{
-			ID:         uuid.New(),
-			ContractID: c.ID,
-			TargetType: promoEntityTargetType(input.TargetType),
-			TargetID:   input.TargetID,
-			Position:   n,
-			AddedAt:    now,
-		}
-		if err := s.targets.AddTarget(ctx, tx, ct); err != nil {
-			if isQueueDuplicateViolation(err) {
-				return ErrQueueDuplicate
-			}
 			return err
 		}
 		created = ct
@@ -994,7 +1130,10 @@ func (s *PromotionContractService) canonicalizeCityIDs(ctx context.Context, tx d
 		}
 		seen[cid] = struct{}{}
 		var cityName, provinceID string
-		err := tx.QueryRow(ctx, `SELECT city_name, province_id FROM canonical_geographies WHERE city_id = $1`, cid).Scan(&cityName, &provinceID)
+		err := tx.QueryRow(ctx,
+			`SELECT name, parent_code FROM canonical_geographies WHERE code = $1 AND level = 'regency'`,
+			cid,
+		).Scan(&cityName, &provinceID)
 		if err != nil {
 			return nil, fmt.Errorf("invalid city_id %s: not in canonical geography vocabulary", cid)
 		}

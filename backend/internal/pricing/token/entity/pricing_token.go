@@ -43,6 +43,12 @@ type PricingToken struct {
 	// When set, shipping cost comes from ShippingQuote instead of ShippingSetup
 	ShippingQuoteID *uuid.UUID // Set when using manual shipping quote from seller
 
+	// ChatID is the canonical conversation this token was generated from. It is
+	// set for chat-scoped checkouts (manual shipping quote) and lets Commerce
+	// enforce that the quote is consumed only in the conversation that produced
+	// it. Nil for non-chat checkouts.
+	ChatID *uuid.UUID
+
 	// Pricing snapshot (immutable, calculated at token creation)
 	UnitPrice          money.Money
 	Subtotal           money.Money // quantity × unit_price
@@ -70,8 +76,8 @@ type PricingToken struct {
 	OrderValueForCoins int64 // Pre-calculated for coins service: discounted product value (PD)
 
 	// Shipping option snapshot
-	ShippingSetupID      uuid.UUID
-	ShippingSetupName    string
+	ShippingSetupID       uuid.UUID
+	ShippingSetupName     string
 	ShippingTransportType string
 
 	// Address snapshot
@@ -214,41 +220,41 @@ func NewPricingToken(
 	now := time.Now()
 
 	return &PricingToken{
-		ID:                     uuid.New(),
-		Token:                  uuid.New(),
-		UserID:                 userID,
-		ProductID:              productID,
-		SourceType:             sourceType,
-		SourceID:               sourceID,
-		Quantity:               quantity,
-		UnitPrice:              unitPrice,
-		Subtotal:               money.New(int64(quantity) * unitPrice.Int64()),
-		ShippingTotal:          shippingTotal,
-		CommissionPercent:      commissionPercent,
-		CommissionAmount:       commissionAmount,
-		EscrowAmount:           escrowAmount,
-		ServiceFeeAmount:       serviceFeeAmount,
-		TotalPayableAmount:     escrowAmount.Add(serviceFeeAmount),
+		ID:                    uuid.New(),
+		Token:                 uuid.New(),
+		UserID:                userID,
+		ProductID:             productID,
+		SourceType:            sourceType,
+		SourceID:              sourceID,
+		Quantity:              quantity,
+		UnitPrice:             unitPrice,
+		Subtotal:              money.New(int64(quantity) * unitPrice.Int64()),
+		ShippingTotal:         shippingTotal,
+		CommissionPercent:     commissionPercent,
+		CommissionAmount:      commissionAmount,
+		EscrowAmount:          escrowAmount,
+		ServiceFeeAmount:      serviceFeeAmount,
+		TotalPayableAmount:    escrowAmount.Add(serviceFeeAmount),
 		ShippingSetupID:       shippingSetupID,
 		ShippingSetupName:     shippingSetupName,
-		ShippingTransportType:  shippingTransportType,
-		AddressID:              addressID,
-		AddressSnapshot:        addressSnapshot,
-		DiscountID:             discountID,
-		DiscountCode:           discountCode,
-		DiscountType:           discountType,
-		DiscountValue:          discountValue,
-		DiscountAmount:         discountAmount,
-		ShippingQuoteID:        shippingQuoteID,    // Store shipping quote reference
-		CoinsUsed:              coinsUsed,          // Coins applied (0 for new tokens)
-		MaxCoinsAllowed:        maxCoinsAllowed,    // Max coins allowed
-		OrderValueForCoins:     orderValueForCoins, // Pre-calculated for coins service
-		IsUsed:                 false,
-		UsedAt:                 nil,
-		OrderID:                nil,
-		ExpiresAt:              now.Add(DefaultTokenExpiration),
-		CreatedAt:              now,
-		UpdatedAt:              now,
+		ShippingTransportType: shippingTransportType,
+		AddressID:             addressID,
+		AddressSnapshot:       addressSnapshot,
+		DiscountID:            discountID,
+		DiscountCode:          discountCode,
+		DiscountType:          discountType,
+		DiscountValue:         discountValue,
+		DiscountAmount:        discountAmount,
+		ShippingQuoteID:       shippingQuoteID,    // Store shipping quote reference
+		CoinsUsed:             coinsUsed,          // Coins applied (0 for new tokens)
+		MaxCoinsAllowed:       maxCoinsAllowed,    // Max coins allowed
+		OrderValueForCoins:    orderValueForCoins, // Pre-calculated for coins service
+		IsUsed:                false,
+		UsedAt:                nil,
+		OrderID:               nil,
+		ExpiresAt:             now.Add(DefaultTokenExpiration),
+		CreatedAt:             now,
+		UpdatedAt:             now,
 	}
 }
 
@@ -297,43 +303,43 @@ func NewPricingTokenFromNegotiation(
 	now := time.Now()
 
 	return &PricingToken{
-		ID:                     uuid.New(),
-		Token:                  uuid.New(),
-		UserID:                 userID,
-		ProductID:              productID,
-		SourceType:             "negotiation",
-		SourceID:               negotiationID,
-		NegotiationID:          &negotiationID,
-		AuctionID:              nil,
-		Quantity:               quantity,
-		UnitPrice:              unitPrice,
-		Subtotal:               money.New(int64(quantity) * unitPrice.Int64()),
-		ShippingTotal:          shippingTotal,
-		CommissionPercent:      commissionPercent,
-		CommissionAmount:       commissionAmount,
-		EscrowAmount:           escrowAmount,
-		ServiceFeeAmount:       serviceFeeAmount,
-		TotalPayableAmount:     escrowAmount.Add(serviceFeeAmount),
+		ID:                    uuid.New(),
+		Token:                 uuid.New(),
+		UserID:                userID,
+		ProductID:             productID,
+		SourceType:            "negotiation",
+		SourceID:              negotiationID,
+		NegotiationID:         &negotiationID,
+		AuctionID:             nil,
+		Quantity:              quantity,
+		UnitPrice:             unitPrice,
+		Subtotal:              money.New(int64(quantity) * unitPrice.Int64()),
+		ShippingTotal:         shippingTotal,
+		CommissionPercent:     commissionPercent,
+		CommissionAmount:      commissionAmount,
+		EscrowAmount:          escrowAmount,
+		ServiceFeeAmount:      serviceFeeAmount,
+		TotalPayableAmount:    escrowAmount.Add(serviceFeeAmount),
 		ShippingSetupID:       shippingSetupID,
 		ShippingSetupName:     shippingSetupName,
-		ShippingTransportType:  shippingTransportType,
-		AddressID:              addressID,
-		AddressSnapshot:        addressSnapshot,
-		DiscountID:             discountID,
-		DiscountCode:           discountCode,
-		DiscountType:           discountType,
-		DiscountValue:          discountValue,
-		DiscountAmount:         discountAmount,
-		CoinsUsed:              coinsUsed,          // Coins applied (0 for new tokens)
-		MaxCoinsAllowed:        maxCoinsAllowed,    // Max coins allowed
-		OrderValueForCoins:     orderValueForCoins, // Pre-calculated for coins service
-		ShippingQuoteID:        shippingQuoteID,    // N3 convergence: quote authority for negotiation
-		IsUsed:                 false,
-		UsedAt:                 nil,
-		OrderID:                nil,
-		ExpiresAt:              now.Add(DefaultTokenExpiration),
-		CreatedAt:              now,
-		UpdatedAt:              now,
+		ShippingTransportType: shippingTransportType,
+		AddressID:             addressID,
+		AddressSnapshot:       addressSnapshot,
+		DiscountID:            discountID,
+		DiscountCode:          discountCode,
+		DiscountType:          discountType,
+		DiscountValue:         discountValue,
+		DiscountAmount:        discountAmount,
+		CoinsUsed:             coinsUsed,          // Coins applied (0 for new tokens)
+		MaxCoinsAllowed:       maxCoinsAllowed,    // Max coins allowed
+		OrderValueForCoins:    orderValueForCoins, // Pre-calculated for coins service
+		ShippingQuoteID:       shippingQuoteID,    // N3 convergence: quote authority for negotiation
+		IsUsed:                false,
+		UsedAt:                nil,
+		OrderID:               nil,
+		ExpiresAt:             now.Add(DefaultTokenExpiration),
+		CreatedAt:             now,
+		UpdatedAt:             now,
 	}
 }
 
@@ -385,42 +391,42 @@ func NewPricingTokenFromAuction(
 	now := time.Now()
 
 	return &PricingToken{
-		ID:                     uuid.New(),
-		Token:                  uuid.New(),
-		UserID:                 userID,
-		ProductID:              productID,
-		SourceType:             "auction",
-		SourceID:               auctionID,
-		NegotiationID:          nil,
-		AuctionID:              &auctionID,
-		Quantity:               quantity,
-		UnitPrice:              unitPrice,
-		Subtotal:               money.New(int64(quantity) * unitPrice.Int64()),
-		ShippingTotal:          shippingTotal,
-		CommissionPercent:      commissionPercent,
-		CommissionAmount:       commissionAmount,
-		EscrowAmount:           escrowAmount,
-		ServiceFeeAmount:       serviceFeeAmount,
-		TotalPayableAmount:     escrowAmount.Add(serviceFeeAmount),
+		ID:                    uuid.New(),
+		Token:                 uuid.New(),
+		UserID:                userID,
+		ProductID:             productID,
+		SourceType:            "auction",
+		SourceID:              auctionID,
+		NegotiationID:         nil,
+		AuctionID:             &auctionID,
+		Quantity:              quantity,
+		UnitPrice:             unitPrice,
+		Subtotal:              money.New(int64(quantity) * unitPrice.Int64()),
+		ShippingTotal:         shippingTotal,
+		CommissionPercent:     commissionPercent,
+		CommissionAmount:      commissionAmount,
+		EscrowAmount:          escrowAmount,
+		ServiceFeeAmount:      serviceFeeAmount,
+		TotalPayableAmount:    escrowAmount.Add(serviceFeeAmount),
 		ShippingSetupID:       shippingSetupID,
 		ShippingSetupName:     shippingSetupName,
-		ShippingTransportType:  shippingTransportType,
-		AddressID:              addressID,
-		AddressSnapshot:        addressSnapshot,
-		DiscountID:             discountID,
-		DiscountCode:           discountCode,
-		DiscountType:           discountType,
-		DiscountValue:          discountValue,
-		DiscountAmount:         discountAmount,
-		CoinsUsed:              coinsUsed,          // Coins applied (0 for new tokens)
-		MaxCoinsAllowed:        maxCoinsAllowed,    // Max coins allowed
-		OrderValueForCoins:     orderValueForCoins, // Pre-calculated for coins service
-		IsUsed:                 false,
-		UsedAt:                 nil,
-		OrderID:                nil,
-		ExpiresAt:              now.Add(DefaultTokenExpiration),
-		CreatedAt:              now,
-		UpdatedAt:              now,
+		ShippingTransportType: shippingTransportType,
+		AddressID:             addressID,
+		AddressSnapshot:       addressSnapshot,
+		DiscountID:            discountID,
+		DiscountCode:          discountCode,
+		DiscountType:          discountType,
+		DiscountValue:         discountValue,
+		DiscountAmount:        discountAmount,
+		CoinsUsed:             coinsUsed,          // Coins applied (0 for new tokens)
+		MaxCoinsAllowed:       maxCoinsAllowed,    // Max coins allowed
+		OrderValueForCoins:    orderValueForCoins, // Pre-calculated for coins service
+		IsUsed:                false,
+		UsedAt:                nil,
+		OrderID:               nil,
+		ExpiresAt:             now.Add(DefaultTokenExpiration),
+		CreatedAt:             now,
+		UpdatedAt:             now,
 	}
 }
 

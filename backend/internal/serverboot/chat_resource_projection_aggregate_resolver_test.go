@@ -216,7 +216,6 @@ func mustProfileLiveProjection(t *testing.T, resourceID uuid.UUID) *chatApp.Reso
 			CanInteract:        false,
 			BlockedByTombstone: false,
 		},
-		nil,
 	)
 	require.NoError(t, err)
 	return &proj
@@ -246,7 +245,6 @@ func mustContentLiveProjection(t *testing.T, resourceID uuid.UUID) *chatApp.Reso
 			CanInteract:        false,
 			BlockedByTombstone: false,
 		},
-		nil,
 	)
 	require.NoError(t, err)
 	return &proj
@@ -272,23 +270,17 @@ func mustForSaleLiveProjection(t *testing.T, resourceID uuid.UUID) *chatApp.Reso
 		commerceshared.ProjectionResourceTypeForSale,
 		resourceID,
 		commerceshared.ForSaleLivePayload{
-			Title:             "sale-" + resourceID.String()[:8],
-			Price:             commerceshared.LivePrice{Amount: 1000, Currency: commerceshared.LivePriceCurrencyIDR},
-			Status:            "active",
-			Seller:            seller,
-			QuantityAvailable: 1,
+			Title:              "sale-" + resourceID.String()[:8],
+			Price:              commerceshared.LivePrice{Amount: 1000, Currency: commerceshared.LivePriceCurrencyIDR},
+			Status:             "active",
+			Seller:             seller,
+			QuantityAvailable:  1,
+			NegotiationEnabled: true,
 		},
 		chatApp.ProjectionViewerCapabilities{
 			CanView:            true,
 			CanInteract:        true,
 			BlockedByTombstone: false,
-		},
-		&chatApp.CommerceActionCapabilities{
-			CanChat:      true,
-			CanNegotiate: true,
-			CanBuy:       true,
-			CanBid:       false,
-			CanManage:    false,
 		},
 	)
 	require.NoError(t, err)
@@ -319,13 +311,6 @@ func mustAuctionLiveProjection(t *testing.T, resourceID uuid.UUID) *chatApp.Reso
 			CanView:            true,
 			CanInteract:        true,
 			BlockedByTombstone: false,
-		},
-		&chatApp.CommerceActionCapabilities{
-			CanChat:      true,
-			CanNegotiate: false,
-			CanBuy:       false,
-			CanBid:       true,
-			CanManage:    false,
 		},
 	)
 	require.NoError(t, err)
@@ -369,7 +354,6 @@ func assertProjectionMatchesOccurrence(
 		require.Nil(t, projection.Content)
 		require.Nil(t, projection.ForSale)
 		require.Nil(t, projection.Auction)
-		require.Nil(t, projection.CommerceActions)
 		require.False(t, projection.ViewerCapabilities.CanView)
 		require.False(t, projection.ViewerCapabilities.CanInteract)
 		require.True(t, projection.ViewerCapabilities.BlockedByTombstone)

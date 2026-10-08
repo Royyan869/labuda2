@@ -38,9 +38,11 @@ class _DiscountSection extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Header
-        const Text(
+        Text(
           'Kode Promo',
-          style: TextStyle(fontSize: AppType.s16, fontWeight: FontWeight.w600),
+          style: context.typeRoles.titleSection.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
         ),
         const SizedBox(height: 12),
 
@@ -87,8 +89,7 @@ class _DiscountSection extends ConsumerWidget {
                     children: [
                       Text(
                         'Kode "${appliedDiscount!.code}" berhasil diterapkan',
-                        style: TextStyle(
-                          fontSize: AppType.s14,
+                        style: context.typeRoles.bodyDense.copyWith(
                           fontWeight: FontWeight.w600,
                           color: context.statusColors.success,
                         ),
@@ -96,8 +97,7 @@ class _DiscountSection extends ConsumerWidget {
                       const SizedBox(height: 4),
                       Text(
                         _getDiscountDescription(appliedDiscount!),
-                        style: TextStyle(
-                          fontSize: AppType.s12,
+                        style: context.typeRoles.labelMicro.copyWith(
                           color: colorScheme.onSurfaceVariant,
                         ),
                       ),

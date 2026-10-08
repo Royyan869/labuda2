@@ -21,6 +21,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/labuda/backend/internal/config"
+	"github.com/labuda/backend/internal/platform/geography"
 	"github.com/labuda/backend/pkg/migration"
 )
 
@@ -47,6 +48,16 @@ func main() {
 		log.Fatalf("failed to reach database: %v", err)
 	}
 	log.Printf("database: %s:%s/%s", cfg.Database.Host, cfg.Database.Port, cfg.Database.Name)
+
+	// Bootstrap the ledger before reading the applied version: CurrentVersion
+	// queries public.schema_migrations, which does not exist on a freshly
+	// created database. EnsureSchemaMigrationsTable creates it when missing
+	// (and fails closed on a legacy ledger) so this CLI can migrate an empty
+	// database, not only one that has been migrated before. Run() calls it
+	// again internally; the call is idempotent.
+	if err := migration.EnsureSchemaMigrationsTable(ctx, pool); err != nil {
+		log.Fatalf("failed to prepare the schema_migrations ledger: %v", err)
+	}
 
 	dir := *dirFlag
 	if dir == "" {
@@ -80,6 +91,13 @@ func main() {
 
 	if err := migration.Run(ctx, pool, dir); err != nil {
 		log.Fatalf("migration run failed: %v", err)
+	}
+
+	// Seed the ONE canonical Geography Master. Idempotent: a master that is
+	// already populated is left untouched. This is seed input only — the
+	// embedded dataset never serves as a runtime geography authority.
+	if err := geography.Seed(ctx, pool); err != nil {
+		log.Fatalf("geography seed failed: %v", err)
 	}
 
 	after, err := migration.CurrentVersion(ctx, pool)

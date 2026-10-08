@@ -8,6 +8,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:labuda/core/core.dart';
+import 'package:labuda/domains/system/shared/domain/services/time_format_service.dart';
+import 'package:labuda/shared/widgets/app_dialog.dart';
 import 'package:labuda/shared/widgets/app_snackbar.dart';
 import 'package:labuda/domains/user/preference/seller/domain/entities/seller_earnings.dart';
 import 'package:labuda/domains/user/preference/seller/seller_di.dart';
@@ -48,9 +50,24 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Penghasilan'),
+        // Canonical Page Info trigger: the page owns the action, the surface
+        // is the shared AppDialog.info authority.
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.help_outline),
+            tooltip: 'Bantuan',
+            onPressed: () => _showSellerInfo(earningsAsync.value),
+          ),
+        ],
       ),
+      // Canonical body-level bottom-inset authority (SAFE-AREA-23): the ONE
+      // `SafeArea` consumes the live system bottom inset for the CTA-bearing
+      // data body. The scroll view's explicit `p16` padding is DESIGN spacing
+      // only — an explicit scroll padding never inherits MediaQuery padding —
+      // and the loading/error branches have no bottom content.
       body: earningsAsync.when(
-        data: (earnings) => _buildEarningsContent(earnings, sellerId),
+        data: (earnings) =>
+            SafeArea(child: _buildEarningsContent(earnings, sellerId)),
         loading: () => _buildLoading(),
         error: (e, _) => _buildError('Gagal memuat penghasilan: $e'),
       ),
@@ -129,18 +146,8 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
 
             const SizedBox(height: 24),
 
-            // Info Section
-            _buildInfoSection(),
-
-            const SizedBox(height: 16),
-
             // Bank Account — required for withdrawal.
             _buildManageBankAccountCard(context),
-
-            const SizedBox(height: 16),
-
-            // PHASE 3 HARDENING: Contextual Help for Withdrawal Issues
-            _buildWithdrawalHelpSection(context),
 
             const SizedBox(height: 24),
 
@@ -167,7 +174,9 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
     VoidCallback? onTap,
   }) {
     return Card(
-      elevation: AppElevation.card,
+      // Canonical card direction is flat — emphasis comes from colour,
+      // never from shadow. Matches every other balance card on this screen.
+      elevation: AppElevation.none,
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(AppShape.r12),
@@ -191,24 +200,21 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
                   children: [
                     Text(
                       title,
-                      style: TextStyle(
-                        fontSize: AppType.s12,
+                      style: context.typeRoles.labelMicro.copyWith(
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       AppFormatters.formatCurrency(amount),
-                      style: TextStyle(
-                        fontSize: AppType.s20,
+                      style: context.typeRoles.titleSection.copyWith(
                         fontWeight: FontWeight.bold,
                         color: color,
                       ),
                     ),
                     Text(
                       subtitle,
-                      style: TextStyle(
-                        fontSize: AppType.s12,
+                      style: context.typeRoles.labelMicro.copyWith(
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
@@ -223,57 +229,6 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
                 ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildInfoSection() {
-    return Card(
-      elevation: AppElevation.raised,
-      child: Padding(
-        padding: const EdgeInsets.all(AppMetrics.p16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  Icons.info_outline,
-                  size: AppIconSize.action,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'Tentang Penghasilan',
-                  style: TextStyle(
-                    fontSize: AppType.s16,
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.onSurface,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            _buildInfoItem(
-              'Saldo Tersedia',
-              'Dana yang sudah jatuh tempo dan siap ditarik',
-            ),
-            const Divider(height: 16),
-            _buildInfoItem(
-              'Saldo Tertahan',
-              'Dana dari pesanan terkirim ditahan dalam eskrow '
-                  'sampai pengiriman dikonfirmasi',
-            ),
-            const Divider(height: 16),
-            _buildInfoItem(
-              'Penarikan Minimum',
-              // The minimum is owned by WithdrawRequest.minAmount — a copy
-              // literal here once drifted from the enforced value.
-              'Jumlah penarikan minimum '
-                  'Rp ${formatGroupedAmount(WithdrawRequest.minAmount.round())}',
-            ),
-          ],
         ),
       ),
     );
@@ -301,8 +256,7 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
                   children: [
                     Text(
                       'Bank Account for Withdrawals',
-                      style: TextStyle(
-                        fontSize: AppType.s14,
+                      style: context.typeRoles.bodyDense.copyWith(
                         fontWeight: FontWeight.w600,
                         color: Theme.of(context).colorScheme.onSurface,
                       ),
@@ -310,8 +264,7 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
                     const SizedBox(height: 2),
                     Text(
                       'Add or manage bank accounts used to receive payouts',
-                      style: TextStyle(
-                        fontSize: AppType.s12,
+                      style: context.typeRoles.labelMicro.copyWith(
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
@@ -330,30 +283,6 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
     );
   }
 
-  Widget _buildInfoItem(String title, String description) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: TextStyle(
-            fontSize: AppType.s14,
-            fontWeight: FontWeight.w500,
-            color: Theme.of(context).colorScheme.onSurface,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          description,
-          style: TextStyle(
-            fontSize: AppType.s12,
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildWithdrawButton(
     double availableBalance, {
     required double withdrawalFeeAmount,
@@ -368,9 +297,11 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
         style: ElevatedButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: AppMetrics.p16),
         ),
-        child: const Text(
+        child: Text(
           'Tarik Dana',
-          style: TextStyle(fontSize: AppType.s16, fontWeight: FontWeight.bold),
+          style: Theme.of(
+            context,
+          ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.bold),
         ),
       ),
     );
@@ -390,7 +321,9 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
             Expanded(
               child: Text(
                 'Minimum penarikan Rp 10.000. Biaya penarikan ${AppFormatters.formatCurrency(withdrawalFeeAmount)} dipotong dari jumlah yang diminta.',
-                style: TextStyle(fontSize: AppType.s14, color: scheme.onSurfaceVariant),
+                style: context.typeRoles.bodyDense.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
               ),
             ),
           ],
@@ -418,8 +351,7 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
             const SizedBox(height: 16),
             Text(
               'Error Loading Earnings',
-              style: TextStyle(
-                fontSize: AppType.s20,
+              style: context.typeRoles.titleSection.copyWith(
                 fontWeight: FontWeight.bold,
                 color: Theme.of(context).colorScheme.onSurface,
               ),
@@ -427,8 +359,7 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
             const SizedBox(height: 8),
             Text(
               message,
-              style: TextStyle(
-                fontSize: AppType.s14,
+              style: context.typeRoles.bodyDense.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
               textAlign: TextAlign.center,
@@ -475,113 +406,6 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
     }
   }
 
-  /// PHASE 3 HARDENING: Contextual help section for withdrawal issues
-  /// Provides direct access to help articles and support escalation
-  Widget _buildWithdrawalHelpSection(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final authState = ref.read(authControllerProvider);
-    final userId = authState is AuthStateAuthenticated
-        ? authState.user.id
-        : null;
-    final userName = authState is AuthStateAuthenticated
-        ? authState.user.username
-        : null;
-    final userAvatar = authState is AuthStateAuthenticated
-        ? authState.user.avatarUrl
-        : null;
-
-    return Container(
-      padding: const EdgeInsets.all(AppMetrics.p16),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            scheme.secondary.withValues(alpha: 0.1),
-            scheme.secondary.withValues(alpha: 0.05),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(AppShape.r12),
-        border: Border.all(color: scheme.secondary.withValues(alpha: 0.3)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.help_outline, color: scheme.secondary, size: AppIconSize.action),
-              const SizedBox(width: 8),
-              Text(
-                'Butuh Bantuan Penarikan?',
-                style: TextStyle(
-                  fontSize: AppType.s14,
-                  fontWeight: FontWeight.w600,
-                  color: scheme.onSurface,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Cara menarik dana, solusi masalah pencairan, dan info batas minimum.',
-            style: TextStyle(fontSize: AppType.s12, color: scheme.onSurfaceVariant),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => HelpCenterScreen(
-                          userId: userId,
-                          userName: userName,
-                          userAvatar: userAvatar,
-                        ),
-                      ),
-                    );
-                  },
-                  icon: const Icon(Icons.article_outlined, size: AppIconSize.inlineGlyph),
-                  label: const Text('Panduan Penarikan'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: scheme.secondary,
-                    padding: const EdgeInsets.symmetric(vertical: AppMetrics.p8),
-                    textStyle: const TextStyle(fontSize: AppType.s12),
-                    side: BorderSide(
-                      color: scheme.secondary.withValues(alpha: 0.5),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: userId != null
-                      ? () {
-                          showPreChatFormRefactored(
-                            context,
-                            userId: userId,
-                            userName: userName ?? 'User',
-                            userAvatar: userAvatar,
-                          );
-                        }
-                      : null,
-                  icon: const Icon(Icons.support_agent, size: AppIconSize.inlineGlyph),
-                  label: const Text('Hubungi Support'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: scheme.secondary,
-                    foregroundColor: scheme.onSecondary,
-                    padding: const EdgeInsets.symmetric(vertical: AppMetrics.p8),
-                    textStyle: const TextStyle(fontSize: AppType.s12),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
   /// Withdrawal History Section
   ///
   /// Shows seller's transaction/withdrawal history with:
@@ -603,29 +427,36 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: [
-                    Icon(
-                      Icons.history,
-                      size: AppIconSize.action,
-                      color: scheme.onSurfaceVariant,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Riwayat Penarikan',
-                      style: TextStyle(
-                        fontSize: AppType.s16,
-                        fontWeight: FontWeight.bold,
-                        color: scheme.onSurface,
+                Flexible(
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.history,
+                        size: AppIconSize.action,
+                        color: scheme.onSurfaceVariant,
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          'Riwayat Penarikan',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: context.typeRoles.titleCompact.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: scheme.onSurface,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                TextButton(
-                  onPressed: () {
-                    ref.invalidate(withdrawalHistoryProvider);
-                  },
-                  child: const Text('Refresh'),
+                Flexible(
+                  child: TextButton(
+                    onPressed: () {
+                      ref.invalidate(withdrawalHistoryProvider);
+                    },
+                    child: const Text('Refresh'),
+                  ),
                 ),
               ],
             ),
@@ -634,7 +465,9 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
               data: (withdrawals) {
                 if (withdrawals.isEmpty) {
                   return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: AppMetrics.p24),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: AppMetrics.p24,
+                    ),
                     child: Center(
                       child: Column(
                         children: [
@@ -646,8 +479,7 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
                           const SizedBox(height: 12),
                           Text(
                             'Belum ada riwayat penarikan',
-                            style: TextStyle(
-                              fontSize: AppType.s14,
+                            style: context.typeRoles.bodyDense.copyWith(
                               color: scheme.onSurfaceVariant,
                             ),
                           ),
@@ -671,8 +503,7 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
                 padding: const EdgeInsets.symmetric(vertical: AppMetrics.p16),
                 child: Text(
                   'Gagal memuat riwayat penarikan',
-                  style: TextStyle(
-                    fontSize: AppType.s14,
+                  style: context.typeRoles.bodyDense.copyWith(
                     color: scheme.onSurfaceVariant,
                   ),
                 ),
@@ -704,35 +535,45 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  AppFormatters.formatCurrency(withdrawal.amount),
-                  style: TextStyle(
-                    fontSize: AppType.s16,
-                    fontWeight: FontWeight.bold,
-                    color: scheme.onSurface,
+                Flexible(
+                  child: Text(
+                    AppFormatters.formatCurrency(withdrawal.amount),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: context.typeRoles.titleCompact.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: scheme.onSurface,
+                    ),
                   ),
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppMetrics.p8,
-                    vertical: AppMetrics.p4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: statusColor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(AppShape.r4),
-                  ),
-                  child: Text(
-                    statusLabel,
-                    style: TextStyle(
-                      fontSize: AppType.s12,
-                      fontWeight: FontWeight.w600,
-                      color: statusColor,
+                Flexible(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppMetrics.p8,
+                      vertical: AppMetrics.p4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: statusColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(AppShape.r4),
+                    ),
+                    child: Text(
+                      statusLabel,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: context.typeRoles.labelMicro.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: statusColor,
+                      ),
                     ),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 8),
+            // Relative withdrawal timestamp + optional bank snapshot.
+            // Timestamp is secondary metadata: Flexible + single-line
+            // ellipsis. Bank body stays Expanded (soft ellipsis).
+            // Formatter authority remains TimeFormatService.
             Row(
               children: [
                 Icon(
@@ -741,11 +582,16 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
                   color: scheme.onSurfaceVariant,
                 ),
                 const SizedBox(width: 4),
-                Text(
-                  _formatDate(withdrawal.createdAt),
-                  style: TextStyle(
-                    fontSize: AppType.s12,
-                    color: scheme.onSurfaceVariant,
+                Flexible(
+                  child: Text(
+                    const TimeFormatService().formatTimeAgo(
+                      withdrawal.createdAt,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: context.typeRoles.labelMicro.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
                   ),
                 ),
                 if (withdrawal.bankNameSnapshot != null) ...[
@@ -759,8 +605,7 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
                   Expanded(
                     child: Text(
                       withdrawal.bankNameSnapshot!,
-                      style: TextStyle(
-                        fontSize: AppType.s12,
+                      style: context.typeRoles.labelMicro.copyWith(
                         color: scheme.onSurfaceVariant,
                       ),
                       maxLines: 1,
@@ -776,11 +621,14 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
                 child: Row(
                   children: [
                     const SizedBox(width: 18),
-                    Text(
-                      '**** ${withdrawal.accountNumberSnapshot!.substring(withdrawal.accountNumberSnapshot!.length - 4)}',
-                      style: TextStyle(
-                        fontSize: AppType.s12,
-                        color: scheme.onSurfaceVariant,
+                    Flexible(
+                      child: Text(
+                        '**** ${withdrawal.accountNumberSnapshot!.substring(withdrawal.accountNumberSnapshot!.length - 4)}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: context.typeRoles.labelMicro.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
                       ),
                     ),
                   ],
@@ -839,20 +687,149 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
     }
   }
 
-  String _formatDate(DateTime date) {
-    final now = DateTime.now();
-    final diff = now.difference(date);
+  /// Canonical Page Info / Help surface for the earnings page.
+  ///
+  /// The page owns the trigger; the surface is the shared `AppDialog.info`.
+  /// This consolidates the detailed balance definitions, the withdrawal
+  /// minimum/fee explanation, and the withdrawal help actions that used to
+  /// occupy inline cards. Financial truth comes from the existing authorities
+  /// ([WithdrawRequest.minAmount] and the backend-provided fee) — no new rule
+  /// is introduced.
+  void _showSellerInfo(SellerEarnings? earnings) {
+    final feeAmount = earnings?.withdrawalFeeAmount ?? 0.0;
+    AppDialog.info(
+      context: context,
+      title: 'Tentang Penghasilan & Penarikan',
+      content: _buildSellerInfoContent(context, feeAmount),
+      closeLabel: 'Tutup',
+    );
+  }
 
-    if (diff.inDays == 0) {
-      return 'Hari ini';
-    } else if (diff.inDays == 1) {
-      return 'Kemarin';
-    } else if (diff.inDays < 7) {
-      return '${diff.inDays} hari lalu';
-    } else if (diff.inDays < 30) {
-      return '${(diff.inDays / 7).floor()} minggu lalu';
-    } else {
-      return '${date.day}/${date.month}/${date.year}';
-    }
+  Widget _buildSellerInfoContent(BuildContext context, double feeAmount) {
+    final scheme = Theme.of(context).colorScheme;
+    final authState = ref.read(authControllerProvider);
+    final userId = authState is AuthStateAuthenticated
+        ? authState.user.id
+        : null;
+    final userName = authState is AuthStateAuthenticated
+        ? authState.user.username
+        : null;
+    final userAvatar = authState is AuthStateAuthenticated
+        ? authState.user.avatarUrl
+        : null;
+
+    final minimum = formatGroupedAmount(WithdrawRequest.minAmount.round());
+    final feeCopy = feeAmount > 0
+        ? ' Biaya penarikan ${AppFormatters.formatCurrency(feeAmount)} '
+              'dipotong dari jumlah yang diminta.'
+        : '';
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSellerInfoSection(
+          context,
+          title: 'Saldo Tersedia',
+          body: 'Dana yang sudah jatuh tempo dan siap ditarik.',
+        ),
+        const SizedBox(height: 12),
+        _buildSellerInfoSection(
+          context,
+          title: 'Saldo Tertahan',
+          body:
+              'Dana dari pesanan terkirim ditahan dalam eskrow sampai '
+              'pengiriman dikonfirmasi. Karena masih ditahan, saldo ini belum '
+              'bisa ditarik.',
+        ),
+        const SizedBox(height: 12),
+        _buildSellerInfoSection(
+          context,
+          title: 'Penarikan',
+          body: 'Minimum penarikan Rp $minimum.$feeCopy',
+        ),
+        const SizedBox(height: 16),
+        Text(
+          'Bantuan Penarikan',
+          style: context.typeRoles.titleCompact.copyWith(
+            fontWeight: FontWeight.bold,
+            color: scheme.onSurface,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Cara menarik dana, solusi masalah pencairan, dan info batas minimum.',
+          style: context.typeRoles.bodyDense.copyWith(
+            height: 1.5,
+            color: scheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Builder(
+          builder: (dialogContext) => Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.of(dialogContext).pop();
+                  context.push(RoutePaths.helpCenter);
+                },
+                icon: const Icon(
+                  Icons.article_outlined,
+                  size: AppIconSize.inlineGlyph,
+                ),
+                label: const Text('Panduan Penarikan'),
+              ),
+              const SizedBox(height: 8),
+              ElevatedButton.icon(
+                onPressed: userId != null
+                    ? () {
+                        Navigator.of(dialogContext).pop();
+                        showPreChatFormRefactored(
+                          context,
+                          userId: userId,
+                          userName: userName ?? 'User',
+                          userAvatar: userAvatar,
+                        );
+                      }
+                    : null,
+                icon: const Icon(
+                  Icons.support_agent,
+                  size: AppIconSize.inlineGlyph,
+                ),
+                label: const Text('Hubungi Support'),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSellerInfoSection(
+    BuildContext context, {
+    required String title,
+    required String body,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: context.typeRoles.bodyDense.copyWith(
+            fontWeight: FontWeight.w600,
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          body,
+          style: context.typeRoles.bodyDense.copyWith(
+            height: 1.5,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
+      ],
+    );
   }
 }

@@ -110,7 +110,6 @@ func insertLinkageTestForSale(
 		Breeder:         nil,
 		Bloodline:       nil,
 		Certificates:    []string{"global"},
-		FarmAddressID:   nil,
 		PreparationTime: string(forsaleEntity.PreparationTime1To3Days),
 		SellingSurface:  productEntity.SellingSurfaceForSale,
 	}
@@ -118,15 +117,11 @@ func insertLinkageTestForSale(
 	if err := productRepo.Create(ctx, tx, sale_product); err != nil {
 		t.Fatalf("productRepo.Create: %v", err)
 	}
-	sale, err := forsaleEntity.NewForSaleSurface(sellerID, money.New(500000), 1, true, // negotiationEnabled
-		forsaleEntity.ForSaleVisibilityPublic)
+	sale, err := forsaleEntity.NewForSaleSurface(sellerID, money.New(500000), 1, true) // negotiationEnabled
 	sale.ProductID = sale_product.ID
 	sale.Product = sale_product
 	if err != nil {
 		t.Fatalf("NewForSale: %v", err)
-	}
-	if err := sale.Publish(); err != nil {
-		t.Fatalf("Publish: %v", err)
 	}
 	if err := repo.Create(ctx, tx, sale); err != nil {
 		t.Fatalf("forSaleRepo.Create: %v", err)

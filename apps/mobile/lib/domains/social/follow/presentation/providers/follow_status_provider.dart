@@ -2,7 +2,6 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:labuda/domains/social/follow/data/follow_providers.dart';
 import 'package:labuda/domains/social/follow/domain/use_cases/providers/use_case_providers.dart';
 import 'package:labuda/domains/social/follow/presentation/providers/follow_stream_provider.dart';
-import 'package:labuda/domains/social/follow/presentation/providers/follow_lists_provider.dart';
 import 'package:labuda/domains/user/identity/authentication/authentication.dart';
 
 part 'follow_status_provider.g.dart';
@@ -123,10 +122,7 @@ class FollowStatusNotifier extends _$FollowStatusNotifier {
 
     result.fold(
       (error) {
-        state = state.copyWith(
-          isFollowProcessing: false,
-          error: error,
-        );
+        state = state.copyWith(isFollowProcessing: false, error: error);
       },
       (success) {
         if (success) {
@@ -140,8 +136,6 @@ class FollowStatusNotifier extends _$FollowStatusNotifier {
           ref.invalidate(followersStreamProvider(followingId));
           ref.invalidate(followingStreamProvider(followerId));
           ref.invalidate(followingStreamProvider(followingId));
-          // Invalidate lists provider to refresh the list
-          ref.invalidate(followListsProvider);
         }
         state = state.copyWith(isFollowProcessing: false);
       },
@@ -165,10 +159,7 @@ class FollowStatusNotifier extends _$FollowStatusNotifier {
 
     result.fold(
       (error) {
-        state = state.copyWith(
-          isFollowProcessing: false,
-          error: error,
-        );
+        state = state.copyWith(isFollowProcessing: false, error: error);
       },
       (success) {
         if (success) {
@@ -182,8 +173,6 @@ class FollowStatusNotifier extends _$FollowStatusNotifier {
           ref.invalidate(followersStreamProvider(followingId));
           ref.invalidate(followingStreamProvider(followerId));
           ref.invalidate(followingStreamProvider(followingId));
-          // Invalidate lists provider to refresh the list
-          ref.invalidate(followListsProvider);
         }
         state = state.copyWith(isFollowProcessing: false);
       },

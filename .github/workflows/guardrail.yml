@@ -222,6 +222,31 @@ jobs:
             echo "❌ FAIL: raw error.toString() in Text() widget"
             exit 1
           fi
+          # STRENGTHENED (page-level error foundation): multiline raw technical
+          # error as a widget argument — e.g.
+          #   Text(\r\n    error.toString(),\r\n  )
+          # The single-line patterns above miss this shape. The four allowlisted
+          # files are KNOWN out-of-scope residue (chat detail, promotion create,
+          # notification list, blocked users) — ratchet: no NEW sites, do not
+          # grow the allowlist; purge in the next bounded scope.
+          if grep -rnE '^[[:space:]]*(error|e|err|exception|ex)\.toString\(\),' apps/mobile/lib/ --include="*.dart" \
+            | grep -vE '(new_chat_screen|canonical_promotion_create_screen|notification_list_screen|blocked_users_screen)\.dart'; then
+            echo "❌ FAIL: multiline raw error.toString() as widget argument"
+            exit 1
+          fi
+          # STRENGTHENED: raw exception variable interpolated into a single-line
+          # Text(...) literal — the old [^)]* pattern missed Text('...$e').
+          # Known residue (seller_renewal_screen) is allowlisted — ratchet only.
+          if grep -rnE 'Text\(.*[$]([{]?e[}]?)[^a-zA-Z0-9_]' apps/mobile/lib/ --include="*.dart" \
+            | grep -v 'seller_renewal_screen.dart'; then
+            echo "❌ FAIL: raw exception variable interpolated in Text() widget"
+            exit 1
+          fi
+          # STRENGTHENED: bare error variable passed straight to Text(...).
+          if grep -rnE 'Text\((state\.)?error!?\)' apps/mobile/lib/ --include="*.dart"; then
+            echo "❌ FAIL: raw error variable in Text() widget"
+            exit 1
+          fi
           echo "✅ Raw error UI guard passed"
 
       - name: Mobile — flutter analyze (info-only findings accepted)

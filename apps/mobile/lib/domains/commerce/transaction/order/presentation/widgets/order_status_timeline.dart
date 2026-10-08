@@ -1,82 +1,5 @@
 part of 'order_widgets_impl.dart';
 
-class SellerActionRequiredBanner extends StatelessWidget {
-  final Order order;
-  final VoidCallback onTapReview;
-
-  const SellerActionRequiredBanner({
-    super.key,
-    required this.order,
-    required this.onTapReview,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: core.AppMetrics.p16),
-      padding: const EdgeInsets.all(core.AppMetrics.p16),
-      decoration: BoxDecoration(
-        color: context.statusColors.warning.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(core.AppShape.r12),
-        border: Border.all(
-          color: context.statusColors.warning.withValues(alpha: 0.3),
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: context.statusColors.warning.withValues(alpha: 0.2),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.notification_important,
-              color: context.statusColors.warning,
-              size: AppIconSize.action,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Tindakan Diperlukan',
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: context.statusColors.warning,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  _getActionMessage(),
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _getActionMessage() {
-    switch (order.status) {
-      case OrderStatus.pending:
-        return 'Pesanan baru - Terima atau tolak pesanan ini';
-      default:
-        return 'Mohon periksa pesanan ini';
-    }
-  }
-}
-
 // =============================================================================
 // OrderStatusTimeline - Order Status Timeline Widget
 // =============================================================================
@@ -103,10 +26,7 @@ class _TimelineStep {
 class OrderStatusTimeline extends StatelessWidget {
   final Order order;
 
-  const OrderStatusTimeline({
-    super.key,
-    required this.order,
-  });
+  const OrderStatusTimeline({super.key, required this.order});
 
   @override
   Widget build(BuildContext context) {
@@ -132,10 +52,7 @@ class OrderStatusTimeline extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           ...steps.map(
-            (step) => _TimelineStepTile(
-              step: step,
-              isLast: steps.last == step,
-            ),
+            (step) => _TimelineStepTile(step: step, isLast: steps.last == step),
           ),
         ],
       ),
@@ -181,11 +98,14 @@ class OrderStatusTimeline extends StatelessWidget {
       return steps;
     }
 
-    // Normal progression steps
+    // Normal progression steps.
+    // `pending_payment` = awaiting BUYER payment (directly payable). There is no
+    // seller-confirmation step, so the sublabel is the canonical payment CTA and
+    // is shown only while the order is actually awaiting payment.
     steps.add(
       _TimelineStep(
         label: 'Pesanan Dibuat',
-        sublabel: 'Menunggu konfirmasi penjual',
+        sublabel: isPending ? 'Segera selesaikan pembayaran' : null,
         icon: Icons.shopping_cart_outlined,
         isActive: isPending,
         isCompleted: !isPending,
@@ -249,7 +169,7 @@ class OrderStatusTimeline extends StatelessWidget {
   String _getStatusLabel(OrderStatus status) {
     switch (status) {
       case OrderStatus.pending:
-        return 'Menunggu Konfirmasi';
+        return 'Menunggu Pembayaran';
       case OrderStatus.paid:
         return 'Pembayaran Berhasil'; // P11 aligned: state='paid' → label reflects payment success
       case OrderStatus.shipped:
@@ -296,10 +216,7 @@ class _TimelineStepTile extends StatelessWidget {
   final _TimelineStep step;
   final bool isLast;
 
-  const _TimelineStepTile({
-    required this.step,
-    required this.isLast,
-  });
+  const _TimelineStepTile({required this.step, required this.isLast});
 
   @override
   Widget build(BuildContext context) {
@@ -338,7 +255,11 @@ class _TimelineStepTile extends StatelessWidget {
                 color: iconBgColor,
                 shape: BoxShape.circle,
               ),
-              child: Icon(step.icon, color: iconColor, size: AppIconSize.action),
+              child: Icon(
+                step.icon,
+                color: iconColor,
+                size: AppIconSize.action,
+              ),
             ),
             if (!isLast)
               Container(

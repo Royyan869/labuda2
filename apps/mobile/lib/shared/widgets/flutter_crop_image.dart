@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:crop_your_image/crop_your_image.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:labuda/core/core.dart';
+import 'package:labuda/shared/widgets/app_snackbar.dart';
 
 /// Flutter Image Cropper - Pure Flutter Implementation
 ///
@@ -104,13 +105,14 @@ class _FlutterImageCropperState extends State<FlutterImageCropper> {
                         Navigator.of(context).pop();
                         widget.onCropped(croppedImage);
                       case CropFailure(:final cause):
+                        // Technical cause stays in the debug log; the user only
+                        // sees safe, actionable copy.
+                        debugPrint('FlutterImageCropper: crop failed - $cause');
                         if (context.mounted) {
                           Navigator.of(context).pop();
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Crop failed: $cause'),
-                              duration: const Duration(seconds: 4),
-                            ),
+                          AppSnackBar.showError(
+                            context,
+                            'Gagal memotong gambar. Coba lagi.',
                           );
                         }
                     }
@@ -148,14 +150,14 @@ class _FlutterImageCropperState extends State<FlutterImageCropper> {
                           icon: Icon(
                             Icons.close,
                             color: Theme.of(context).colorScheme.onPrimary,
-                          ),
+                           semanticLabel: 'Tutup',
+                           ),
                           onPressed: () => Navigator.of(context).pop(),
                         ),
                         Text(
                           widget.title,
-                          style: TextStyle(
+                          style: context.typeRoles.titleSection.copyWith(
                             color: Theme.of(context).colorScheme.onPrimary,
-                            fontSize: AppType.s20,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -163,7 +165,8 @@ class _FlutterImageCropperState extends State<FlutterImageCropper> {
                           icon: Icon(
                             Icons.check,
                             color: context.statusColors.success,
-                          ),
+                           semanticLabel: 'Simpan',
+                           ),
                           onPressed: _crop,
                         ),
                       ],
@@ -177,7 +180,9 @@ class _FlutterImageCropperState extends State<FlutterImageCropper> {
                   left: 0,
                   right: 0,
                   child: Container(
-                    margin: const EdgeInsets.symmetric(horizontal: AppMetrics.p24),
+                    margin: const EdgeInsets.symmetric(
+                      horizontal: AppMetrics.p24,
+                    ),
                     padding: const EdgeInsets.all(AppMetrics.p12),
                     decoration: BoxDecoration(
                       color: Theme.of(
@@ -188,9 +193,8 @@ class _FlutterImageCropperState extends State<FlutterImageCropper> {
                     child: Text(
                       'Pinch to zoom • Drag to move',
                       textAlign: TextAlign.center,
-                      style: TextStyle(
+                      style: context.typeRoles.bodyDense.copyWith(
                         color: Theme.of(context).colorScheme.onPrimary,
-                        fontSize: AppType.s14,
                       ),
                     ),
                   ),

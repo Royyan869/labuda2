@@ -30,11 +30,14 @@ void main() {
   );
 
   group('Edit Profile username immutability', () {
-    test('username field is not editable (read-only display)', () {
-      // The username AppTextField is rendered read-only and wrapped in an
-      // AbsorbPointer so it cannot receive input.
-      expect(personalSection.contains('enabled: false'), isTrue);
-      expect(personalSection.contains('AbsorbPointer'), isTrue);
+    test('username field is read-only, not disabled (business read-only)', () {
+      // Owner decision 2026-10-05: a read-only field shows its value with the
+      // enabled look and blocks editing; the DISABLED look is reserved for a
+      // field the user must not interact with at all. The immutable username
+      // is read-only, never disabled, and needs no AbsorbPointer.
+      expect(personalSection.contains('readOnly: true'), isTrue);
+      expect(personalSection.contains('enabled: false'), isFalse);
+      expect(personalSection.contains('AbsorbPointer'), isFalse);
       // It no longer registers a validator for username input (no edit path).
       expect(personalSection.contains('validator:'), isFalse);
     });
@@ -81,8 +84,8 @@ void main() {
       // `username:` write in the update call. (Bio still legitimately has a
       // hintText; only the username field is read-only.)
       expect(saveHandler.contains('username: usernameController'), isFalse);
-      // The read-only username field specifically disables editing.
-      expect(personalSection.contains('enabled: false'), isTrue);
+      // The read-only username field blocks editing without the disabled look.
+      expect(personalSection.contains('readOnly: true'), isTrue);
     });
   });
 }

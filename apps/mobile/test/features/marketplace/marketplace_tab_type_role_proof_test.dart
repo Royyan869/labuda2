@@ -7,8 +7,8 @@ import 'package:labuda/features/marketplace/marketplace.dart';
 // ============================================================================
 // TYPOGRAPHY MIGRATION — IRISAN 2 RESOLVER PROOF (plan Tahap 2).
 //
-// The marketplace tab labels used to state a size (`fontSize: AppType.s14`).
-// They now take their metrics from the theme's `labelLarge` role, with only
+// The marketplace tab labels used to state a raw size. They now take their
+// metrics from the theme's `labelLarge` role, with only
 // the selected/unselected weight decided at the call site. An analyzer cannot
 // see the difference between a role and a literal that happens to match today;
 // this test pumps the REAL screen with the REAL theme and asserts the RENDERED
@@ -46,7 +46,11 @@ void main() {
     ).style;
 
     final selected = rendered('For Sale');
-    expect(selected.fontSize, role.fontSize, reason: 'size comes from the role');
+    expect(
+      selected.fontSize,
+      role.fontSize,
+      reason: 'size comes from the role',
+    );
     expect(selected.height, role.height, reason: 'line height from the role');
     expect(selected.letterSpacing, role.letterSpacing);
     expect(selected.fontWeight, FontWeight.w600, reason: "call site's weight");
@@ -54,6 +58,10 @@ void main() {
     final unselected = rendered('Auction');
     expect(unselected.fontSize, role.fontSize);
     expect(unselected.height, role.height);
-    expect(unselected.fontWeight, FontWeight.w400, reason: "call site's weight");
+    expect(
+      unselected.fontWeight,
+      FontWeight.w400,
+      reason: "call site's weight",
+    );
   });
 }

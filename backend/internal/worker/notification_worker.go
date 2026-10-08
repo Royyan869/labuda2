@@ -442,10 +442,6 @@ func (h *NotificationEventHandler) Handle(ctx context.Context, event platformeve
 		info, err = h.handleAuctionEndedNoWinner(ctx, event.Payload)
 	case "auction.settlement_failed":
 		info, err = h.handleAuctionSettlementFailed(ctx, event.Payload)
-	case "auction.cancelled":
-		// Scope B: seller notification routed by entity.CancelReason authority
-		// (only subscription_expired notifies; other reasons are silent no-ops).
-		info, err = h.handleAuctionCancelled(ctx, event.Payload)
 
 	// =============================================================================
 	// EXTERNAL PRODUCT REVIEW DECISION EVENTS — owner-facing review notifications
@@ -737,10 +733,6 @@ func (w *OutboxWorker) SetupNotificationHandlers(
 		// SetupPromotionHandlers composes a fanout so promotion auto-stop also fires.
 		// ORDERING: SetupPromotionHandlers must run AFTER this registration.
 		"auction.ended",
-		// auction.cancelled — Scope B: seller notification for system-initiated
-		// auto-cancel (subscription expired). Routing by entity.CancelReason
-		// inside the handler; other cancel reasons are silent no-ops here.
-		"auction.cancelled",
 	}, handler)
 
 	// =============================================================================

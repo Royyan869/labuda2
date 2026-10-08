@@ -5,6 +5,8 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:labuda/core/src/router/route_paths.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction.dart';
 import 'package:labuda/shared/utils/media_extensions.dart';
 import 'package:labuda/shared/widgets/app_image.dart';
@@ -65,7 +67,9 @@ class AuctionRecommendationsSection extends StatelessWidget {
       children: [
         Text(
           title,
-          style: const TextStyle(fontSize: AppType.s16, fontWeight: FontWeight.bold),
+          style: context.typeRoles.titleSection.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
         ),
         const SizedBox(height: 8),
         SizedBox(
@@ -82,11 +86,12 @@ class AuctionRecommendationsSection extends StatelessWidget {
                 child: Card(
                   clipBehavior: Clip.antiAlias,
                   child: InkWell(
-                    onTap: () {
-                      // Navigation handled by parent via AuctionDetailScreen
-                      // Recommendations are display-only; tapping a card
-                      // would require navigation context - future enhancement
-                    },
+                    // Canonical discovery behavior: a recommendation opens
+                    // its auction detail — the same contract as every other
+                    // auction card. The itemBuilder context carries the
+                    // router, so no parent plumbing is required.
+                    onTap: () =>
+                        context.push(RoutePaths.auctionDetail(auction.id)),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -99,8 +104,7 @@ class AuctionRecommendationsSection extends StatelessWidget {
                               backgroundColor:
                                   colorScheme.surfaceContainerHighest,
                               errorWidget: Container(
-                                color:
-                                    colorScheme.surfaceContainerHighest,
+                                color: colorScheme.surfaceContainerHighest,
                                 child: Icon(
                                   Icons.image,
                                   color: colorScheme.onSurfaceVariant,
@@ -111,8 +115,7 @@ class AuctionRecommendationsSection extends StatelessWidget {
                         else
                           Expanded(
                             child: Container(
-                              color:
-                                  colorScheme.surfaceContainerHighest,
+                              color: colorScheme.surfaceContainerHighest,
                               child: Icon(
                                 Icons.image,
                                 color: colorScheme.onSurfaceVariant,
@@ -125,7 +128,7 @@ class AuctionRecommendationsSection extends StatelessWidget {
                             auction.title,
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontSize: AppType.s12),
+                            style: context.typeRoles.titleCompact,
                           ),
                         ),
                       ],

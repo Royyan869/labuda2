@@ -70,16 +70,19 @@ class ObjectPreviewCard extends StatelessWidget {
                         // documented mapping (AppTheme). The w600 and the brand
                         // colour are the call site's own decisions, so they
                         // stay here instead of being baked into the role.
-                        style:
-                            Theme.of(context).textTheme.labelSmall?.copyWith(
-                              color: scheme.primary,
-                              fontWeight: FontWeight.w600,
-                            ),
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: scheme.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     const SizedBox(height: AppMetrics.p4),
                     Text(
                       reference.preview.title,
-                      style: const TextStyle(fontWeight: FontWeight.w600),
+                      // Ambient role + call-site weight: identical pixels to
+                      // the old raw literal, without restating a TextStyle.
+                      style: DefaultTextStyle.of(
+                        context,
+                      ).style.copyWith(fontWeight: FontWeight.w600),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),

@@ -75,9 +75,10 @@ class CommerceDetailAppBarActionButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final enabled = onPressed != null && !isLoading;
+    // Owner decision A: a disabled icon-only action uses the canonical neutral
+    // disabled ink (`onSurfaceVariant`), never an arbitrary local opacity.
     final resolvedColor = !enabled
-        ? (disabledColor ??
-              theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.38))
+        ? (disabledColor ?? theme.colorScheme.onSurfaceVariant)
         : isActive
         ? (activeColor ?? theme.colorScheme.primary)
         : (inactiveColor ?? theme.colorScheme.onSurfaceVariant);

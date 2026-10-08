@@ -323,7 +323,7 @@ class _HonestShippingReferenceRow extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(getIcon(), size: 16, color: colorScheme.onSurfaceVariant),
+        Icon(getIcon(), size: AppIconSize.inlineGlyph, color: colorScheme.onSurfaceVariant),
         const SizedBox(width: 8),
         SizedBox(
           width: 92,

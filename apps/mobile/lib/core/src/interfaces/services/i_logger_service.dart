@@ -30,38 +30,6 @@ abstract class ILoggerService {
     StackTrace? stackTrace,
   });
 
-  /// Log user action untuk analytics
-  Future<Result<void>> logUserAction(
-    String action, {
-    String? userId,
-    Map<String, dynamic>? parameters,
-  });
-
-  /// Log performance metrics
-  Future<Result<void>> logPerformance(
-    String operation, {
-    required Duration duration,
-    Map<String, dynamic>? metrics,
-  });
-
-  /// Log security events (anti-circumvention, authentication, etc)
-  Future<Result<void>> logSecurityEvent(
-    String event, {
-    String? userId,
-    String? severity,
-    Map<String, dynamic>? details,
-  });
-
-  /// Log API calls untuk monitoring
-  Future<Result<void>> logApiCall(
-    String endpoint, {
-    required String method,
-    required int statusCode,
-    required Duration duration,
-    Map<String, dynamic>? requestData,
-    Map<String, dynamic>? responseData,
-  });
-
   /// Set log level
   Future<Result<void>> setLogLevel(LogLevel level);
 

@@ -8,9 +8,6 @@ part 'address_notifier.g.dart';
 
 /// Address Notifier - Application Layer Orchestrator
 ///
-/// Phase 5: Replaces old address providers with Riverpod Notifier
-/// Using @riverpod annotation for code generation (pure Riverpod, no get_it)
-///
 /// Responsibilities:
 /// - Orchestrate address CRUD operations
 /// - Manage loading/error states
@@ -26,19 +23,42 @@ class AddressNotifier extends _$AddressNotifier {
   @override
   AddressState build() {
     // Repository is injected via ref.watch() - no get_it!
-    return const AddressState();
+    // The single canonical load (`loadAddresses`) is triggered by each
+    // consuming surface (Address List mount, checkout section mount), so the
+    // notifier starts in loading with no data rather than an empty result.
+    return const AddressState(addresses: AsyncValue.loading());
   }
 
-  /// Load all addresses for a user
+  /// Load the account's address book — the single canonical operation behind
+  /// initial load, retry, refresh, and post-mutation reload.
+  ///
+  /// - No data yet → full loading (first-load state).
+  /// - Data present → the last-known-good collection stays visible while the
+  ///   load runs (refresh), and a failure keeps it with [AddressState.refreshError]
+  ///   set. A refresh failure is never allowed to become a full-page error or
+  ///   a silent empty list.
   Future<void> loadAddresses(String userId) async {
     final repository = ref.read(addressRepositoryProvider);
+    final previous = state.addresses;
+    final hasPrevious = previous.hasValue;
 
-    state = const AddressState(addresses: AsyncValue.loading());
+    state = state.copyWith(
+      addresses: hasPrevious ? previous : const AsyncValue.loading(),
+      isRefreshing: hasPrevious,
+      isSaving: false,
+      isDeleting: false,
+      errorMessage: null,
+      refreshError: null,
+    );
 
     final result = await repository.getAddressesByUserId(userId);
 
     result.fold(
       (error) {
+        if (hasPrevious) {
+          state = state.copyWith(isRefreshing: false, refreshError: error);
+          return;
+        }
         state = AddressState(
           addresses: AsyncValue.error(error, StackTrace.current),
           primaryAddress: const AsyncValue.data(null),
@@ -47,43 +67,19 @@ class AddressNotifier extends _$AddressNotifier {
       (data) {
         state = AddressState(
           addresses: AsyncValue.data(data),
-          primaryAddress: const AsyncValue.data(null),
+          primaryAddress: AsyncValue.data(
+            data.where((a) => a.isPrimary).firstOrNull,
+          ),
         );
       },
     );
   }
 
-  /// Load addresses carrying [tag] (shipping/sender)
-  Future<void> loadAddressesByTag(
-    String userId,
-    AddressTag tag,
-  ) async {
+  /// Load the account's primary address
+  Future<void> loadPrimaryAddress(String userId) async {
     final repository = ref.read(addressRepositoryProvider);
 
-    state = const AddressState(addresses: AsyncValue.loading());
-
-    final result = await repository.getAddressesByTag(userId, tag);
-
-    result.fold(
-      (error) {
-        state = AddressState(
-          addresses: AsyncValue.error(error, StackTrace.current),
-        );
-      },
-      (data) {
-        state = AddressState(addresses: AsyncValue.data(data));
-      },
-    );
-  }
-
-  /// Load primary address (optionally narrowed to [tag])
-  Future<void> loadPrimaryAddress(
-    String userId, {
-    AddressTag? tag,
-  }) async {
-    final repository = ref.read(addressRepositoryProvider);
-
-    final result = await repository.getPrimaryAddress(userId, tag: tag);
+    final result = await repository.getPrimaryAddress(userId);
 
     result.fold(
       (error) {
@@ -97,87 +93,98 @@ class AddressNotifier extends _$AddressNotifier {
     );
   }
 
-  /// Add new address
-  Future<void> addAddress(AddressEntity address) async {
+  /// Add a new address through the canonical authority. Reloads the shared
+  /// collection on success; returns false (and keeps the collection intact)
+  /// on failure. The caller renders a controlled message from
+  /// [AddressState.errorMessage] — never the raw backend text.
+  Future<bool> addAddress(AddressEntity address) async {
     final repository = ref.read(addressRepositoryProvider);
 
-    state = state.copyWith(isSaving: true);
+    state = state.copyWith(
+      isSaving: true,
+      errorMessage: null,
+      refreshError: null,
+    );
 
     final result = await repository.addAddress(address);
 
-    result.fold(
-      (error) {
-        state = state.copyWith(isSaving: false, errorMessage: error);
-      },
-      (_) {
-        // Refresh addresses after add
-        loadAddresses(address.userId);
-      },
-    );
+    if (result.isError) {
+      state = state.copyWith(isSaving: false, errorMessage: result.error);
+      return false;
+    }
+
+    await loadAddresses(address.userId);
+    return true;
   }
 
-  /// Update existing address
-  Future<void> updateAddress(AddressEntity address) async {
+  /// Update an address through the canonical authority.
+  Future<bool> updateAddress(AddressEntity address) async {
     final repository = ref.read(addressRepositoryProvider);
 
-    state = state.copyWith(isSaving: true);
+    state = state.copyWith(
+      isSaving: true,
+      errorMessage: null,
+      refreshError: null,
+    );
 
     final result = await repository.updateAddress(address);
 
-    result.fold(
-      (error) {
-        state = state.copyWith(isSaving: false, errorMessage: error);
-      },
-      (_) {
-        // Refresh addresses after update
-        loadAddresses(address.userId);
-      },
-    );
+    if (result.isError) {
+      state = state.copyWith(isSaving: false, errorMessage: result.error);
+      return false;
+    }
+
+    await loadAddresses(address.userId);
+    return true;
   }
 
-  /// Delete address
-  Future<void> deleteAddress(String addressId, String userId) async {
+  /// Delete an address through the canonical authority.
+  Future<bool> deleteAddress(String addressId, String userId) async {
     final repository = ref.read(addressRepositoryProvider);
 
-    state = state.copyWith(isDeleting: true);
+    state = state.copyWith(
+      isDeleting: true,
+      errorMessage: null,
+      refreshError: null,
+    );
 
     final result = await repository.deleteAddress(addressId);
 
-    result.fold(
-      (error) {
-        state = state.copyWith(isDeleting: false, errorMessage: error);
-      },
-      (_) {
-        // Refresh addresses after delete
-        loadAddresses(userId);
-      },
-    );
+    if (result.isError) {
+      state = state.copyWith(isDeleting: false, errorMessage: result.error);
+      return false;
+    }
+
+    await loadAddresses(userId);
+    return true;
   }
 
-  /// Set address as primary
-  Future<void> setPrimaryAddress(String addressId, String userId) async {
+  /// Set an address as primary through the canonical authority.
+  Future<bool> setPrimaryAddress(String addressId, String userId) async {
     final repository = ref.read(addressRepositoryProvider);
 
-    state = state.copyWith(isSaving: true);
+    state = state.copyWith(
+      isSaving: true,
+      errorMessage: null,
+      refreshError: null,
+    );
 
     final result = await repository.setPrimaryAddress(addressId, userId);
 
-    result.fold(
-      (error) {
-        state = state.copyWith(isSaving: false, errorMessage: error);
-      },
-      (_) {
-        // Refresh addresses after setting primary
-        loadAddresses(userId);
-      },
-    );
+    if (result.isError) {
+      state = state.copyWith(isSaving: false, errorMessage: result.error);
+      return false;
+    }
+
+    await loadAddresses(userId);
+    return true;
   }
 
   /// Get address count
-  Future<int> getAddressCount(String userId, {AddressTag? tag}) async {
+  Future<int> getAddressCount(String userId) async {
     final repository = ref.read(addressRepositoryProvider);
 
-    final result = await repository.countAddresses(userId, tag: tag);
+    final result = await repository.countAddresses(userId);
 
     return result.fold((error) => 0, (count) => count);
   }
@@ -192,7 +199,3 @@ class AddressNotifier extends _$AddressNotifier {
     state = const AddressState();
   }
 }
-
-// Alias for backward compatibility
-// The generated provider name is 'addressProvider', but code expects 'addressNotifierProvider'
-final addressNotifierProvider = addressProvider;

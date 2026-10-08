@@ -1,124 +1,119 @@
 import 'package:flutter/material.dart';
 import 'package:labuda/core/core.dart';
 
-/// Empty State Widget
-///
-/// Reusable empty state component with consistent styling.
-/// Supports different types of empty states with icons and messages.
+/// Semantic marker for the empty-state family. One value only: a successful
+/// zero-item result is the ONLY thing this foundation renders.
 enum EmptyStateType {
   noData,
-  noResults,
-  noItems,
-  noNotifications,
-  noMessages,
-  noFavorites,
-  error,
-  loading,
-  custom,
 }
 
+/// Empty State Widget — the SINGLE visual authority for empty states.
+///
+/// CANONICAL scope: a **successful** request whose result has zero items.
+/// Never Loading (data still fetching) and Never Error (the request failed) —
+/// those live in `LoadingIndicator` and `PageErrorState`. The widget takes no
+/// retry behavior and no technical error input.
+///
+/// SEMANTIC FAMILIES share this one renderer; the family shows up as copy +
+/// at most ONE primary action:
+/// - Collection empty — title/subtitle/icon, no action.
+/// - Search / filter empty — "no match" copy plus a reset action whose
+///   callback clears the active query/filter. Only pass an action when the
+///   screen really can be reset.
+/// - First-use empty — copy that invites the user to start, plus one primary
+///   action (create / explore). Never two primary actions.
+///
+/// SCOPE: full-page / page-body empty. Section-bounded empty keeps its own
+/// specialized widget when the layout is genuinely different (card, info
+/// note, badge). Not for inline validation, not-found, or unavailable states.
 class EmptyState extends StatelessWidget {
-  final String title;
-  final String? subtitle;
-  final IconData? icon;
-  final EmptyStateType type;
-  final VoidCallback? onRetry;
-  final Widget? customIcon;
-  final String? actionLabel;
-  final VoidCallback? onAction;
-  final bool showIcon;
-
   const EmptyState({
     super.key,
     required this.title,
     this.subtitle,
     this.icon,
     this.type = EmptyStateType.noData,
-    this.onRetry,
-    this.customIcon,
     this.actionLabel,
     this.onAction,
-    this.showIcon = true,
   });
+
+  /// Headline of the empty state (localized copy).
+  final String title;
+
+  /// Supporting explanation (localized copy).
+  final String? subtitle;
+
+  /// Domain glyph; falls back to the canonical empty icon for [type].
+  final IconData? icon;
+
+  final EmptyStateType type;
+
+  /// The ONE primary action label (localized). Requires [onAction].
+  final String? actionLabel;
+
+  /// The ONE primary action callback: reset, create or explore.
+  final VoidCallback? onAction;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final hasAction = actionLabel != null && onAction != null;
 
-    return Padding(
-      padding: const EdgeInsets.all(AppMetrics.p48),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // Icon
-          if (showIcon) ...[
-            _buildIcon(context),
-            const SizedBox(height: 24),
-          ],
-          // Title
-          Text(
-            title,
-            // Type role, not a second ladder: empty-state title = screen-title
-            // role, emphasis kept as a weight override.
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              color: scheme.onSurface,
-              fontWeight: FontWeight.w600,
+    // One semantic container so a screen reader announces the whole state;
+    // no live region — an empty state is static, not an announcement.
+    return Semantics(
+      container: true,
+      child: Padding(
+        padding: const EdgeInsets.all(AppMetrics.p48),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Icon is decorative: the text below carries the meaning.
+            ExcludeSemantics(
+              child: _buildIcon(context, scheme),
             ),
-            textAlign: TextAlign.center,
-          ),
-          // Subtitle
-          if (subtitle != null) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: 24),
             Text(
-              subtitle!,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: scheme.onSurfaceVariant,
+              title,
+              style: context.typeRoles.titleProminent.copyWith(
+                fontWeight: FontWeight.w600,
+                color: scheme.onSurface,
               ),
               textAlign: TextAlign.center,
             ),
+            if (subtitle != null) ...[
+              const SizedBox(height: 12),
+              Text(
+                subtitle!,
+                style: context.typeRoles.bodyDense.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+            if (hasAction) ...[
+              const SizedBox(height: 32),
+              SizedBox(
+                width: AppContentSize.actionWidth,
+                child: FilledButton(
+                  onPressed: onAction,
+                  child: Text(actionLabel!),
+                ),
+              ),
+            ],
           ],
-          // Action button (retry or custom action)
-          if (onRetry != null || onAction != null) ...[
-            const SizedBox(height: 32),
-            if (onRetry != null)
-              ElevatedButton.icon(
-                icon: const Icon(Icons.refresh),
-                label: const Text('Try Again'),
-                onPressed: onRetry,
-              )
-            else if (onAction != null && actionLabel != null)
-              FilledButton(onPressed: onAction, child: Text(actionLabel!)),
-          ],
-        ],
+        ),
       ),
     );
   }
 
-  Widget _buildIcon(BuildContext context) {
-    if (customIcon != null) {
-      return SizedBox(width: 80, height: 80, child: customIcon!);
-    }
-
-    // One rule: error type uses the error role, everything else the
-    // neutral variant ink. The old per-type switch produced the same gray
-    // in 8 branches — duplicate authority, killed.
-    final scheme = Theme.of(context).colorScheme;
-    final IconData iconData =
-        icon ??
-        const {
-          EmptyStateType.noData: Icons.inbox_outlined,
-          EmptyStateType.noResults: Icons.search_off_outlined,
-          EmptyStateType.noItems: Icons.inventory_2_outlined,
-          EmptyStateType.noNotifications: Icons.notifications_none_outlined,
-          EmptyStateType.noMessages: Icons.message_outlined,
-          EmptyStateType.noFavorites: Icons.favorite_border,
-          EmptyStateType.error: Icons.error_outline,
-          EmptyStateType.loading: Icons.hourglass_empty_outlined,
-          EmptyStateType.custom: Icons.inbox_outlined,
-        }[type]!;
-    final Color iconColor = type == EmptyStateType.error
-        ? scheme.error
-        : scheme.onSurfaceVariant;
+  Widget _buildIcon(BuildContext context, ColorScheme scheme) {
+    // Empty is never the error role: neutral variant ink, canonical size.
+    final IconData iconData = icon ?? switch (type) {
+      EmptyStateType.noData => Icons.inbox_outlined,
+    };
+    final Color iconColor = scheme.onSurfaceVariant;
 
     return Container(
       width: 80,
@@ -128,81 +123,6 @@ class EmptyState extends StatelessWidget {
         shape: BoxShape.circle,
       ),
       child: Icon(iconData, size: AppIconSize.display, color: iconColor),
-    );
-  }
-
-  // Named constructors for common empty states
-  factory EmptyState.noData({
-    required String title,
-    String? subtitle,
-    VoidCallback? onRetry,
-  }) {
-    return EmptyState(
-      title: title,
-      subtitle: subtitle,
-      type: EmptyStateType.noData,
-      onRetry: onRetry,
-    );
-  }
-
-  factory EmptyState.noResults({
-    required String title,
-    String? subtitle,
-    VoidCallback? onRetry,
-  }) {
-    return EmptyState(
-      title: title,
-      subtitle: subtitle,
-      type: EmptyStateType.noResults,
-      onRetry: onRetry,
-    );
-  }
-
-  factory EmptyState.noNotifications({
-    required String title,
-    String? subtitle,
-    VoidCallback? onRetry,
-  }) {
-    return EmptyState(
-      title: title,
-      subtitle: subtitle,
-      type: EmptyStateType.noNotifications,
-      onRetry: onRetry,
-    );
-  }
-
-  factory EmptyState.noMessages({
-    required String title,
-    String? subtitle,
-    VoidCallback? onRetry,
-  }) {
-    return EmptyState(
-      title: title,
-      subtitle: subtitle,
-      type: EmptyStateType.noMessages,
-      onRetry: onRetry,
-    );
-  }
-
-  factory EmptyState.error({
-    required String title,
-    String? subtitle,
-    VoidCallback? onRetry,
-  }) {
-    return EmptyState(
-      title: title,
-      subtitle: subtitle,
-      type: EmptyStateType.error,
-      onRetry: onRetry,
-    );
-  }
-
-  factory EmptyState.loading({required String title, String? subtitle}) {
-    return EmptyState(
-      title: title,
-      subtitle: subtitle,
-      type: EmptyStateType.loading,
-      showIcon: false,
     );
   }
 }

@@ -2,11 +2,11 @@ import 'package:labuda/core/common/result.dart';
 import 'package:labuda/domains/chat/chat/domain/entities/chat_entities.dart';
 import 'package:labuda/domains/chat/chat/data/dto/chat_resource_occurrence_request.dart';
 import 'package:labuda/domains/chat/chat/domain/repositories/chat_repository.dart';
-import 'package:labuda/shared/attachment/entities/share_reference.dart';
 
 /// Use Case: Send Message
 ///
-/// Sends a message in a chat. Supports text messages and object attachments.
+/// Sends a message in a chat. A commerce product attachment travels as a
+/// canonical [ChatResourceOccurrenceRequest] (`direct_commerce_insert_chat`).
 class SendMessageUseCase {
   final ChatRepository _repository;
 
@@ -19,9 +19,7 @@ class SendMessageUseCase {
     required String content,
     MessageType type = MessageType.text,
     List<String> mediaAssetIds = const [],
-    ShareReference? objectReference,
     ChatResourceOccurrenceRequest? resourceOccurrence,
-    Map<String, dynamic>? workflowAttachment,
   }) async {
     try {
       final result = await _repository.sendMessage(
@@ -31,9 +29,7 @@ class SendMessageUseCase {
         content: content,
         type: type,
         mediaAssetIds: mediaAssetIds,
-        objectReference: objectReference,
         resourceOccurrence: resourceOccurrence,
-        workflowAttachment: workflowAttachment,
       );
       return result;
     } catch (e) {

@@ -69,17 +69,6 @@ func TestValidateReference_ForSale_Active_Passes(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestValidateReference_ForSale_Draft_Fails(t *testing.T) {
-	fpsID := uuid.New()
-	v := response.NewValidator(
-		&stubFPSGetter{fps: map[uuid.UUID]stubForSale{fpsID: {status: forSaleEntity.ForSaleStatusDraft}}},
-		&stubAuctionGetter{},
-	)
-
-	err := v.ValidateReference(context.Background(), nil, response.ResourceTypeForSale, fpsID)
-	require.ErrorIs(t, err, response.ErrResourceNotDisplayable)
-}
-
 func TestValidateReference_ForSale_Sold_Fails(t *testing.T) {
 	fpsID := uuid.New()
 	v := response.NewValidator(
@@ -136,17 +125,6 @@ func TestValidateReference_Auction_Active_Passes(t *testing.T) {
 
 	err := v.ValidateReference(context.Background(), nil, response.ResourceTypeAuction, auctionID)
 	require.NoError(t, err)
-}
-
-func TestValidateReference_Auction_Draft_Fails(t *testing.T) {
-	auctionID := uuid.New()
-	v := response.NewValidator(
-		&stubFPSGetter{},
-		&stubAuctionGetter{auctions: map[uuid.UUID]stubAuction{auctionID: {status: auctionEntity.StatusDraft}}},
-	)
-
-	err := v.ValidateReference(context.Background(), nil, response.ResourceTypeAuction, auctionID)
-	require.ErrorIs(t, err, response.ErrResourceNotDisplayable)
 }
 
 func TestValidateReference_Auction_Ended_Fails(t *testing.T) {
@@ -322,27 +300,28 @@ func TestCounterfactual_NonExistentAuction_Rejected(t *testing.T) {
 }
 
 // TestCounterfactual_NonDisplayableForSale_Rejected locks:
-// Referencing a draft ForSale → REJECTED with ErrResourceNotDisplayable.
+// Referencing a non-active ForSale → REJECTED with ErrResourceNotDisplayable.
 func TestCounterfactual_NonDisplayableForSale_Rejected(t *testing.T) {
 	fpsID := uuid.New()
 	v := response.NewValidator(
-		&stubFPSGetter{fps: map[uuid.UUID]stubForSale{fpsID: {status: forSaleEntity.ForSaleStatusDraft}}},
+		&stubFPSGetter{fps: map[uuid.UUID]stubForSale{fpsID: {status: forSaleEntity.ForSaleStatusWithdrawn}}},
 		&stubAuctionGetter{},
 	)
 
 	err := v.ValidateReference(context.Background(), nil, response.ResourceTypeForSale, fpsID)
-	require.ErrorIs(t, err, response.ErrResourceNotDisplayable, "draft ForSale MUST be rejected (not displayable)")
+	require.ErrorIs(t, err, response.ErrResourceNotDisplayable, "withdrawn ForSale MUST be rejected (not displayable)")
 }
 
 // TestCounterfactual_NonDisplayableAuction_Rejected locks:
-// Referencing a draft Auction → REJECTED with ErrResourceNotDisplayable.
+// Referencing a non-discoverable Auction (e.g. lapsed, which never went
+// live) → REJECTED with ErrResourceNotDisplayable.
 func TestCounterfactual_NonDisplayableAuction_Rejected(t *testing.T) {
 	auctionID := uuid.New()
 	v := response.NewValidator(
 		&stubFPSGetter{},
-		&stubAuctionGetter{auctions: map[uuid.UUID]stubAuction{auctionID: {status: auctionEntity.StatusDraft}}},
+		&stubAuctionGetter{auctions: map[uuid.UUID]stubAuction{auctionID: {status: auctionEntity.StatusLapsed}}},
 	)
 
 	err := v.ValidateReference(context.Background(), nil, response.ResourceTypeAuction, auctionID)
-	require.ErrorIs(t, err, response.ErrResourceNotDisplayable, "draft Auction MUST be rejected (not displayable)")
+	require.ErrorIs(t, err, response.ErrResourceNotDisplayable, "lapsed Auction MUST be rejected (not displayable)")
 }

@@ -103,8 +103,7 @@ class SuggestedMessagesWidgetRefactored extends StatelessWidget {
                 const SizedBox(width: 6),
                 Text(
                   'Suggested Messages',
-                  style: TextStyle(
-                    fontSize: AppType.s12,
+                  style: context.typeRoles.labelMicro.copyWith(
                     fontWeight: FontWeight.w600,
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
@@ -132,15 +131,15 @@ class SuggestedMessagesWidgetRefactored extends StatelessWidget {
     );
   }
 
-  Widget _buildMessageChip(
-    BuildContext context,
-    SuggestedMessage message,
-  ) {
+  Widget _buildMessageChip(BuildContext context, SuggestedMessage message) {
     return InkWell(
       onTap: () => onMessageSelected(message.text),
       borderRadius: BorderRadius.circular(AppShape.r20),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p12),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppMetrics.p16,
+          vertical: AppMetrics.p12,
+        ),
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(AppShape.r20),
@@ -158,8 +157,7 @@ class SuggestedMessagesWidgetRefactored extends StatelessWidget {
               constraints: const BoxConstraints(maxWidth: 280),
               child: Text(
                 message.text,
-                style: TextStyle(
-                  fontSize: AppType.s14,
+                style: context.typeRoles.bodyDense.copyWith(
                   color: Theme.of(context).colorScheme.onSurface,
                 ),
                 maxLines: 2,

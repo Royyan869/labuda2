@@ -61,18 +61,16 @@ class _CoinToggleSection extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Gunakan Koin Labuda',
-                      style: TextStyle(
-                        fontSize: AppType.s16,
+                      style: context.typeRoles.titleSection.copyWith(
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       'Koin tersedia: $currentBalance',
-                      style: TextStyle(
-                        fontSize: AppType.s14,
+                      style: context.typeRoles.bodyDense.copyWith(
                         color: AppColors.coinSecondary,
                         fontWeight: FontWeight.w500,
                       ),
@@ -108,8 +106,7 @@ class _CoinToggleSection extends ConsumerWidget {
                   Expanded(
                     child: Text(
                       'Anda akan menggunakan $currentBalance koin untuk diskon',
-                      style: TextStyle(
-                        fontSize: AppType.s12,
+                      style: context.typeRoles.bodyDense.copyWith(
                         color: AppColors.coinSecondary,
                       ),
                     ),

@@ -49,6 +49,11 @@ class MessageDto extends Equatable {
   /// resource occurrence. Chat renders this; it never derives Commerce truth.
   final ResourceProjection? resourceProjection;
 
+  /// Viewer-scoped shipping quote projection (`shipping_quote_projection`),
+  /// present on messages carrying a shipping quote. Commerce owns the values;
+  /// the conversation only reads them.
+  final ShippingQuoteProjectionDto? shippingQuoteProjection;
+
   const MessageDto({
     required this.id,
     required this.chatRoomId,
@@ -73,6 +78,7 @@ class MessageDto extends Equatable {
     this.senderLifecycle,
     this.attachmentSellerTrustLifecycle,
     this.resourceProjection,
+    this.shippingQuoteProjection,
   });
 
   factory MessageDto.fromJson(Map<String, dynamic> json) {
@@ -134,6 +140,7 @@ class MessageDto extends Equatable {
       senderLifecycle: _readSenderLifecycle(json),
       attachmentSellerTrustLifecycle: _readAttachmentSellerTrustLifecycle(json),
       resourceProjection: _readResourceProjection(json),
+      shippingQuoteProjection: _readShippingQuoteProjection(json),
     );
   }
 
@@ -257,6 +264,47 @@ ResourceProjection? _readResourceProjection(Map<String, dynamic> json) {
   }
 }
 
+/// Parse the optional server-projected shipping quote actionability envelope.
+///
+/// A malformed projection is dropped rather than failing the whole message:
+/// the projection is display decoration, not message authority. Absent → null.
+ShippingQuoteProjectionDto? _readShippingQuoteProjection(
+  Map<String, dynamic> json,
+) {
+  final raw = json['shipping_quote_projection'];
+  if (raw is! Map<String, dynamic>) return null;
+  try {
+    return ShippingQuoteProjectionDto.fromJson(raw);
+  } on FormatException {
+    return null;
+  }
+}
+
+/// Viewer-scoped shipping quote actionability projection.
+///
+/// Produced by the Shipping commerce authority and carried on the shipping
+/// quote message. The conversation renders these values verbatim and must never
+/// recompute quote lifecycle or buyer eligibility.
+class ShippingQuoteProjectionDto extends Equatable {
+  final bool isCurrent;
+  final bool viewerActionable;
+
+  const ShippingQuoteProjectionDto({
+    required this.isCurrent,
+    required this.viewerActionable,
+  });
+
+  factory ShippingQuoteProjectionDto.fromJson(Map<String, dynamic> json) {
+    return ShippingQuoteProjectionDto(
+      isCurrent: json['is_current'] as bool,
+      viewerActionable: json['viewer_actionable'] as bool,
+    );
+  }
+
+  @override
+  List<Object?> get props => [isCurrent, viewerActionable];
+}
+
 /// Reply Preview DTO
 class ReplyPreviewDto extends Equatable {
   final String content;
@@ -297,7 +345,6 @@ class SendMessageDto {
   /// atomically with the message — a message never carries raw media urls, so
   /// media can never bypass asset validation, ownership or the pending window.
   final List<String>? mediaAssetIds;
-  final AttachmentDto? attachment;
   final String? replyToId;
   final List<String>? mentionedUserIds;
   final String idempotencyKey;
@@ -311,7 +358,6 @@ class SendMessageDto {
     required this.messageType,
     required this.idempotencyKey,
     this.mediaAssetIds,
-    this.attachment,
     this.replyToId,
     this.mentionedUserIds,
     this.resourceOccurrence,
@@ -323,7 +369,6 @@ class SendMessageDto {
     'idempotency_key': idempotencyKey,
     if (mediaAssetIds != null && mediaAssetIds!.isNotEmpty)
       'media_asset_ids': mediaAssetIds,
-    if (attachment != null) 'attachment_json': attachment!.toJson(),
     if (replyToId != null) 'reply_to_id': replyToId,
     if (mentionedUserIds != null) 'mentioned_user_ids': mentionedUserIds,
     if (resourceOccurrence != null)

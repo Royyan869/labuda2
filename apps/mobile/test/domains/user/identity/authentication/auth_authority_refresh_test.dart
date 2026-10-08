@@ -8,7 +8,7 @@
 // sellerTier) can all change without `role` ever changing — e.g. a seller
 // subscription expiring mid-session flips hasMarketAuthority from true to
 // false while `role` stays UserRole.user — so the stale cached AuthUser
-// kept being read by SellerGuard/the router's seller guard until the next
+// kept being read by the router's seller guard until the next
 // full login sync (up to the full 5-minute periodic-validation window).
 //
 // The fix compares the whole fresh AuthUser against the cached one

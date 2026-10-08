@@ -5,9 +5,7 @@ import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/commerce/transaction/order/order.dart';
 import 'package:labuda/shared/utils/app_formatters.dart';
 import 'package:labuda/shared/widgets/app_image.dart';
-import 'package:labuda/domains/system/support/presentation/screens/help_center_screen.dart';
 import 'package:labuda/domains/chat/chat/presentation/providers/chat_providers.dart';
-import 'package:labuda/domains/chat/chat/presentation/screens/chat_list_screen.dart';
 import 'package:labuda/domains/user/preference/seller/domain/entities/seller_state.dart';
 import 'package:labuda/domains/user/preference/seller/presentation/providers/current_seller_provider.dart';
 import 'package:labuda/domains/user/preference/seller/presentation/widgets/operational_action_queue_section.dart';
@@ -21,7 +19,7 @@ import 'package:labuda/domains/user/preference/seller/presentation/widgets/opera
 /// - This allows expired sellers to manage their business and renew subscription
 ///
 /// Minimum viable seller dashboard with:
-/// - Order statistics (pending, processing, completed)
+/// - Order statistics (pending, paid, shipped, completed)
 /// - Quick actions (view orders)
 /// - Empty state when no data
 class SellerDashboardScreen extends ConsumerStatefulWidget {
@@ -66,21 +64,25 @@ class _SellerDashboardScreenState extends ConsumerState<SellerDashboardScreen> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
-      body: CustomScrollView(
-        slivers: [
-          // App Bar — flat surface chrome from appBarTheme. No collapsing
-          // FlexibleSpaceBar: the growing title/gradient was rejected as a
-          // second visual dialect.
-          const SliverAppBar(
-            pinned: true,
-            title: Text('Dashboard Penjual'),
-          ),
+      // SAFE-AREA-34: the scroll body owns the LIVE system bottom inset —
+      // /seller/dashboard is a FLAT top-level GoRoute (SellerModule), so no
+      // shell bar owns it. `top: false` keeps the status-bar padding flowing
+      // to the pinned SliverAppBar: with Scaffold.appBar null, the in-scroll
+      // bar (its embedded AppBar, primary:true) is the top-inset authority
+      // and must keep claiming it itself.
+      body: SafeArea(
+        top: false,
+        child: CustomScrollView(
+          slivers: [
+            // App Bar — flat surface chrome from appBarTheme. No collapsing
+            // FlexibleSpaceBar: the growing title/gradient was rejected as a
+            // second visual dialect.
+            const SliverAppBar(pinned: true, title: Text('Dashboard Penjual')),
 
-          // Content
-          SliverToBoxAdapter(
-            child: _buildContent(context, sellerId),
-          ),
-        ],
+            // Content
+            SliverToBoxAdapter(child: _buildContent(context, sellerId)),
+          ],
+        ),
       ),
     );
   }
@@ -97,9 +99,11 @@ class _SellerDashboardScreenState extends ConsumerState<SellerDashboardScreen> {
               color: Theme.of(context).colorScheme.primary,
             ),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'Login Diperlukan',
-              style: TextStyle(fontSize: AppType.s20, fontWeight: FontWeight.bold),
+              style: context.typeRoles.titleSection.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 8),
             const Text('Silakan login untuk mengakses dashboard penjual'),
@@ -112,9 +116,7 @@ class _SellerDashboardScreenState extends ConsumerState<SellerDashboardScreen> {
   Widget _buildSellerProfileRequired(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
-      appBar: AppBar(
-        title: const Text('Seller Profile Required'),
-      ),
+      appBar: AppBar(title: const Text('Seller Profile Required')),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(AppMetrics.p32),
@@ -136,8 +138,7 @@ class _SellerDashboardScreenState extends ConsumerState<SellerDashboardScreen> {
               const SizedBox(height: 32),
               Text(
                 'Profil Penjual Diperlukan',
-                style: TextStyle(
-                  fontSize: AppType.s20,
+                style: context.typeRoles.titleSection.copyWith(
                   fontWeight: FontWeight.bold,
                   color: Theme.of(context).colorScheme.onSurface,
                 ),
@@ -145,8 +146,7 @@ class _SellerDashboardScreenState extends ConsumerState<SellerDashboardScreen> {
               const SizedBox(height: 16),
               Text(
                 'Anda perlu membuat profil penjual untuk mulai berjualan di Labuda.',
-                style: TextStyle(
-                  fontSize: AppType.s14,
+                style: context.typeRoles.bodyDense.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
                 textAlign: TextAlign.center,
@@ -172,8 +172,7 @@ class _SellerDashboardScreenState extends ConsumerState<SellerDashboardScreen> {
                         const SizedBox(width: 8),
                         Text(
                           'Langkah-langkah:',
-                          style: TextStyle(
-                            fontSize: AppType.s14,
+                          style: context.typeRoles.bodyDense.copyWith(
                             fontWeight: FontWeight.bold,
                             color: Theme.of(context).colorScheme.onSurface,
                           ),
@@ -199,7 +198,10 @@ class _SellerDashboardScreenState extends ConsumerState<SellerDashboardScreen> {
                 children: [
                   OutlinedButton.icon(
                     onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(Icons.arrow_back, size: AppIconSize.action),
+                    icon: const Icon(
+                      Icons.arrow_back,
+                      size: AppIconSize.action,
+                    ),
                     label: const Text('Kembali'),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(
@@ -213,7 +215,10 @@ class _SellerDashboardScreenState extends ConsumerState<SellerDashboardScreen> {
                     onPressed: () {
                       context.push(RoutePaths.sellerUpgrade);
                     },
-                    icon: const Icon(Icons.storefront, size: AppIconSize.action),
+                    icon: const Icon(
+                      Icons.storefront,
+                      size: AppIconSize.action,
+                    ),
                     label: const Text('Mulai Jualan'),
                   ),
                 ],
@@ -242,8 +247,7 @@ class _SellerDashboardScreenState extends ConsumerState<SellerDashboardScreen> {
               const SizedBox(height: 16),
               Text(
                 'Memuat status seller...',
-                style: TextStyle(
-                  fontSize: AppType.s16,
+                style: context.typeRoles.titleCompact.copyWith(
                   fontWeight: FontWeight.w600,
                   color: Theme.of(context).colorScheme.onSurface,
                 ),
@@ -251,8 +255,7 @@ class _SellerDashboardScreenState extends ConsumerState<SellerDashboardScreen> {
               const SizedBox(height: 8),
               Text(
                 'Menunggu identitas dan kapabilitas dari backend.',
-                style: TextStyle(
-                  fontSize: AppType.s14,
+                style: context.typeRoles.bodyDense.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
                 textAlign: TextAlign.center,
@@ -273,14 +276,15 @@ class _SellerDashboardScreenState extends ConsumerState<SellerDashboardScreen> {
             width: AppContentSize.badge,
             height: AppContentSize.badge,
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.1),
+              color: Theme.of(
+                context,
+              ).colorScheme.secondary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(AppShape.r4),
             ),
             child: Center(
               child: Text(
                 number,
-                style: TextStyle(
-                  fontSize: AppType.s12,
+                style: context.typeRoles.labelMicro.copyWith(
                   fontWeight: FontWeight.bold,
                   color: Theme.of(context).colorScheme.secondary,
                 ),
@@ -291,8 +295,7 @@ class _SellerDashboardScreenState extends ConsumerState<SellerDashboardScreen> {
           Expanded(
             child: Text(
               text,
-              style: TextStyle(
-                fontSize: AppType.s14,
+              style: context.typeRoles.bodyDense.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
@@ -346,7 +349,6 @@ class _SellerDashboardScreenState extends ConsumerState<SellerDashboardScreen> {
 
           // Recent Orders Preview
           _RecentOrdersSection(sellerId: sellerId),
-
         ],
       ),
     );
@@ -368,7 +370,6 @@ class _SellerDashboardScreenState extends ConsumerState<SellerDashboardScreen> {
 ///
 /// Shown only when `sellerSubscriptionStatus == 'expired'`.
 class _SubscriptionExpiryBanner extends ConsumerWidget {
-
   const _SubscriptionExpiryBanner();
 
   @override
@@ -404,7 +405,9 @@ class _SubscriptionExpiryBanner extends ConsumerWidget {
                   Container(
                     padding: const EdgeInsets.all(AppMetrics.p8),
                     decoration: BoxDecoration(
-                      color: context.statusColors.warning.withValues(alpha: 0.2),
+                      color: context.statusColors.warning.withValues(
+                        alpha: 0.2,
+                      ),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
@@ -420,17 +423,17 @@ class _SubscriptionExpiryBanner extends ConsumerWidget {
                       children: [
                         Text(
                           'Langganan Kedaluwarsa',
-                          style: TextStyle(
-                            fontSize: AppType.s16,
+                          style: context.typeRoles.titleCompact.copyWith(
                             fontWeight: FontWeight.bold,
                             color: Theme.of(context).colorScheme.onSurface,
                           ),
                         ),
                         Text(
                           'Langganan Anda telah berakhir. Perbarui untuk memulihkan akses pasar.',
-                          style: TextStyle(
-                            fontSize: AppType.s12,
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          style: context.typeRoles.labelMicro.copyWith(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
                           ),
                         ),
                       ],
@@ -441,10 +444,12 @@ class _SubscriptionExpiryBanner extends ConsumerWidget {
               const SizedBox(height: 12),
               ElevatedButton.icon(
                 onPressed: () => context.push(RoutePaths.sellerRenewal),
-                icon: const Icon(Icons.refresh_outlined, size: AppIconSize.action),
+                icon: const Icon(
+                  Icons.refresh_outlined,
+                  size: AppIconSize.action,
+                ),
                 label: const Text('Perpanjang Langganan'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: context.statusColors.warning,
                   minimumSize: const Size(double.infinity, 44),
                 ),
               ),
@@ -506,7 +511,9 @@ class _SellerChatWorkspaceSection extends ConsumerWidget {
                 Container(
                   padding: const EdgeInsets.all(AppMetrics.p12),
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.2),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.secondary.withValues(alpha: 0.2),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
@@ -536,9 +543,8 @@ class _SellerChatWorkspaceSection extends ConsumerWidget {
                       constraints: const BoxConstraints(minWidth: 18),
                       child: Text(
                         totalUnread > 99 ? '99+' : totalUnread.toString(),
-                        style: TextStyle(
+                        style: context.typeRoles.labelMicro.copyWith(
                           color: Theme.of(context).colorScheme.onPrimary,
-                          fontSize: AppType.s12,
                           fontWeight: FontWeight.bold,
                           height: 1.1,
                         ),
@@ -556,8 +562,7 @@ class _SellerChatWorkspaceSection extends ConsumerWidget {
                 children: [
                   Text(
                     'Pesan Pembeli',
-                    style: TextStyle(
-                      fontSize: AppType.s16,
+                    style: context.typeRoles.titleCompact.copyWith(
                       fontWeight: FontWeight.bold,
                       color: Theme.of(context).colorScheme.onSurface,
                     ),
@@ -565,8 +570,7 @@ class _SellerChatWorkspaceSection extends ConsumerWidget {
                   const SizedBox(height: 3),
                   Text(
                     _getChatMessage(totalUnread),
-                    style: TextStyle(
-                      fontSize: AppType.s14,
+                    style: context.typeRoles.bodyDense.copyWith(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
@@ -598,10 +602,7 @@ class _SellerChatWorkspaceSection extends ConsumerWidget {
   }
 
   void _navigateToChatList(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const ChatListScreen()),
-    );
+    context.push(RoutePaths.chat);
   }
 }
 
@@ -733,9 +734,10 @@ class _OrderStatsSection extends ConsumerWidget {
                         const SizedBox(height: 4),
                         Text(
                           'Pesanan masuk akan muncul di sini',
-                          style: TextStyle(
-                            fontSize: AppType.s12,
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          style: context.typeRoles.labelMicro.copyWith(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
                           ),
                         ),
                       ],
@@ -770,9 +772,7 @@ class _StatCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(AppShape.r12),
-        border: Border.all(
-          color: Theme.of(context).colorScheme.outlineVariant,
-        ),
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -810,7 +810,6 @@ class _StatCard extends StatelessWidget {
 // =============================================================================
 
 class _QuickActionsSection extends ConsumerWidget {
-
   const _QuickActionsSection();
 
   @override
@@ -839,7 +838,7 @@ class _QuickActionsSection extends ConsumerWidget {
             Expanded(
               child: _QuickActionCard(
                 icon: Icons.view_list_outlined,
-                label: 'ForSale Saya',
+                label: 'For Sale Saya',
                 color: context.statusColors.success,
                 onTap: () => _navigateToForSales(context),
               ),
@@ -880,9 +879,42 @@ class _QuickActionsSection extends ConsumerWidget {
                 onTap: () => context.push(RoutePaths.sellerEarnings),
               ),
             ),
+            const SizedBox(width: AppMetrics.p12),
+            Expanded(
+              child: _QuickActionCard(
+                key: const Key('seller-quick-action-auctions'),
+                icon: Icons.gavel_outlined,
+                label: 'Lelang Saya',
+                color: context.statusColors.warning,
+                onTap: () => context.push(RoutePaths.sellerAuctions),
+              ),
+            ),
           ],
         ),
-
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _QuickActionCard(
+                key: const Key('seller-quick-action-analytics'),
+                icon: Icons.bar_chart_outlined,
+                label: 'Analitik',
+                color: Theme.of(context).colorScheme.secondary,
+                onTap: () => context.push(RoutePaths.sellerAnalytics),
+              ),
+            ),
+            const SizedBox(width: AppMetrics.p12),
+            Expanded(
+              child: _QuickActionCard(
+                key: const Key('seller-quick-action-performance'),
+                icon: Icons.workspace_premium_outlined,
+                label: 'Performa',
+                color: context.statusColors.info,
+                onTap: () => context.push(RoutePaths.sellerPerformance),
+              ),
+            ),
+          ],
+        ),
       ],
     );
   }
@@ -896,12 +928,7 @@ class _QuickActionsSection extends ConsumerWidget {
   }
 
   void _navigateToOrders(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const OrderListScreen(isSeller: true),
-      ),
-    );
+    context.push(RoutePaths.sellerOrders);
   }
 
   void _navigateToForSales(BuildContext context) {
@@ -974,32 +1001,15 @@ class _SellerHelpSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final authState = ref.watch(authControllerProvider);
-    final userId =
-        authState is AuthStateAuthenticated ? authState.user.id : null;
-    final userName =
-        authState is AuthStateAuthenticated ? authState.user.username : null;
-    final userAvatar =
-        authState is AuthStateAuthenticated ? authState.user.avatarUrl : null;
-
     // ONE help door: the old 3-tile gradient block spent prime dashboard
     // space on entries that all land in the same Help Center anyway
-    // (contact support lives inside it).
+    // (contact support lives inside it). The route resolves the reader
+    // identity from the session, so no user data is read here.
     return _HelpTile(
       icon: Icons.support_agent,
       title: 'Bantuan & Support Penjual',
       description: 'Pusat bantuan dan kontak tim kami',
-      onTap: () {
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (context) => HelpCenterScreen(
-              userId: userId,
-              userName: userName,
-              userAvatar: userAvatar,
-            ),
-          ),
-        );
-      },
+      onTap: () => context.push(RoutePaths.helpCenter),
     );
   }
 }
@@ -1036,7 +1046,11 @@ class _HelpTile extends StatelessWidget {
                 color: context.statusColors.success.withValues(alpha: 0.15),
                 shape: BoxShape.circle,
               ),
-              child: Icon(icon, color: context.statusColors.success, size: AppIconSize.inlineGlyph),
+              child: Icon(
+                icon,
+                color: context.statusColors.success,
+                size: AppIconSize.inlineGlyph,
+              ),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -1045,16 +1059,14 @@ class _HelpTile extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: TextStyle(
-                      fontSize: AppType.s14,
+                    style: context.typeRoles.bodyDense.copyWith(
                       fontWeight: FontWeight.w600,
                       color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                   Text(
                     description,
-                    style: TextStyle(
-                      fontSize: AppType.s12,
+                    style: context.typeRoles.labelMicro.copyWith(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
@@ -1099,14 +1111,7 @@ class _RecentOrdersSection extends ConsumerWidget {
               ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
             TextButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const OrderListScreen(isSeller: true),
-                  ),
-                );
-              },
+              onPressed: () => context.push(RoutePaths.sellerOrders),
               child: const Text('Lihat Semua'),
             ),
           ],
@@ -1149,21 +1154,23 @@ class _RecentOrdersSection extends ConsumerWidget {
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(AppShape.r12),
-        border: Border.all(
-          color: Theme.of(context).colorScheme.outlineVariant,
-        ),
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Belum ada pesanan',
-            style: TextStyle(fontSize: AppType.s14, fontWeight: FontWeight.bold),
+            style: context.typeRoles.bodyDense.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(height: 4),
           Text(
             'Pesanan terbaru akan muncul di sini setelah ada pembelian.',
-            style: TextStyle(fontSize: AppType.s12, color: Theme.of(context).colorScheme.onSurfaceVariant),
+            style: context.typeRoles.labelMicro.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
         ],
       ),
@@ -1181,15 +1188,16 @@ class _RecentOrdersSection extends ConsumerWidget {
       decoration: BoxDecoration(
         color: context.statusColors.error.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(AppShape.r12),
-        border: Border.all(color: context.statusColors.error.withValues(alpha: 0.3)),
+        border: Border.all(
+          color: context.statusColors.error.withValues(alpha: 0.3),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             'Gagal memuat pesanan terbaru',
-            style: TextStyle(
-              fontSize: AppType.s14,
+            style: context.typeRoles.bodyDense.copyWith(
               fontWeight: FontWeight.bold,
               color: context.statusColors.error,
             ),
@@ -1197,7 +1205,9 @@ class _RecentOrdersSection extends ConsumerWidget {
           const SizedBox(height: 4),
           Text(
             message,
-            style: TextStyle(fontSize: AppType.s12, color: Theme.of(context).colorScheme.onSurfaceVariant),
+            style: context.typeRoles.labelMicro.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
           const SizedBox(height: 12),
           TextButton(
@@ -1211,12 +1221,7 @@ class _RecentOrdersSection extends ConsumerWidget {
   }
 
   void _navigateToOrderDetail(BuildContext context, String orderId) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => OrderDetailScreen(orderId: orderId),
-      ),
-    );
+    context.push(RoutePaths.orderDetailPath(orderId));
   }
 }
 
@@ -1224,10 +1229,7 @@ class _OrderTile extends StatelessWidget {
   final Order order;
   final VoidCallback onTap;
 
-  const _OrderTile({
-    required this.order,
-    required this.onTap,
-  });
+  const _OrderTile({required this.order, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -1258,12 +1260,17 @@ class _OrderTile extends StatelessWidget {
                 width: 48,
                 height: 48,
                 fit: BoxFit.cover,
-                backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                backgroundColor: Theme.of(
+                  context,
+                ).colorScheme.surfaceContainerHighest,
                 errorWidget: Container(
                   width: AppIconSize.display,
                   height: AppIconSize.display,
                   color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                  child: const Icon(Icons.image_not_supported, size: AppIconSize.action),
+                  child: const Icon(
+                    Icons.image_not_supported,
+                    size: AppIconSize.action,
+                  ),
                 ),
               ),
             ),
@@ -1274,8 +1281,7 @@ class _OrderTile extends StatelessWidget {
                 children: [
                   Text(
                     order.id.substring(0, 8).toUpperCase(),
-                    style: TextStyle(
-                      fontSize: AppType.s12,
+                    style: context.typeRoles.labelMicro.copyWith(
                       fontFamily: 'monospace',
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
@@ -1360,16 +1366,18 @@ class _StatusBadge extends StatelessWidget {
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8, vertical: AppMetrics.p4),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppMetrics.p8,
+        vertical: AppMetrics.p4,
+      ),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(AppShape.r8),
       ),
       child: Text(
         label,
-        style: TextStyle(
+        style: context.typeRoles.labelMicro.copyWith(
           color: color,
-          fontSize: AppType.s12,
           fontWeight: FontWeight.w600,
         ),
       ),

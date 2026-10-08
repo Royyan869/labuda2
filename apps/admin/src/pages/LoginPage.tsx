@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 import { api, ApiError, setAuthToken } from "@/lib/api";
 import { auth, googleProvider } from "@/lib/firebase";
 import { useAuthStore } from "@/store/authStore";
@@ -157,7 +158,7 @@ export function LoginPage() {
         </div>
 
         {/* Login Card */}
-        <div className="bg-white rounded-lg shadow-lg border border-border p-8">
+        <div className="bg-surface rounded-lg shadow-lg border border-border p-8">
           <h2 className="text-2xl font-bold text-foreground mb-6">Sign In</h2>
 
           {error && (
@@ -167,39 +168,25 @@ export function LoginPage() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Email */}
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-foreground mb-1">
-                Email
-              </label>
-              <input
-                type="email"
-                id="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                disabled={anyLoading}
-                className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:opacity-50"
-                placeholder="admin@labuda.com"
-              />
-            </div>
+            <Input
+              type="email"
+              label="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              disabled={anyLoading}
+              placeholder="admin@labuda.com"
+            />
 
-            {/* Password */}
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-foreground mb-1">
-                Password
-              </label>
-              <input
-                type="password"
-                id="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                disabled={anyLoading}
-                className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:opacity-50"
-                placeholder="••••••••"
-              />
-            </div>
+            <Input
+              type="password"
+              label="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              disabled={anyLoading}
+              placeholder="••••••••"
+            />
 
             {/* Submit Button */}
             <Button type="submit" className="w-full" isLoading={isLoading} disabled={anyLoading}>
@@ -210,7 +197,7 @@ export function LoginPage() {
           {/* Divider */}
           <div className="flex items-center my-5">
             <div className="flex-1 border-t border-border" />
-            <span className="px-3 text-xs text-muted-foreground">atau</span>
+            <span className="px-3 type-caption">atau</span>
             <div className="flex-1 border-t border-border" />
           </div>
 
@@ -248,12 +235,12 @@ export function LoginPage() {
 
           {/* Footer */}
           <div className="mt-6 text-center">
-            <p className="text-xs text-muted-foreground">Admin access only. Contact your administrator if you need access.</p>
+            <p className="type-caption">Admin access only. Contact your administrator if you need access.</p>
           </div>
         </div>
 
         {/* Version Info */}
-        <p className="text-center text-sm text-muted-foreground mt-6">LABUDA Admin Dashboard v1.0.0</p>
+        <p className="text-center type-secondary mt-6">LABUDA Admin Dashboard v1.0.0</p>
       </div>
     </div>
   );

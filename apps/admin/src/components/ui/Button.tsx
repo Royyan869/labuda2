@@ -9,18 +9,18 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = 'primary', size = 'md', isLoading, children, disabled, ...props }, ref) => {
-    const baseStyles = 'inline-flex items-center justify-center rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[hsl(var(--ring))] disabled:opacity-50 disabled:cursor-not-allowed'
+    const baseStyles = 'inline-flex items-center justify-center rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed'
 
     const variants = {
       primary: 'bg-primary text-white hover:bg-primary-hover',
-      secondary: 'bg-[hsl(var(--surface-muted))] text-[hsl(var(--foreground))] hover:bg-[hsl(var(--border))]',
-      danger: 'bg-[hsl(var(--destructive))] text-white hover:opacity-90',
-      ghost: 'bg-transparent hover:bg-[hsl(var(--surface-muted))] text-[hsl(var(--foreground))]',
-      warning: 'bg-[hsl(var(--warning))] text-white hover:opacity-90',
-      info: 'bg-[hsl(var(--info))] text-white hover:opacity-90',
-      pending: 'bg-[hsl(var(--muted-foreground))] text-white hover:opacity-90',
-      success: 'bg-[hsl(var(--success))] text-white hover:opacity-90',
-      error: 'bg-[hsl(var(--destructive))] text-white hover:opacity-90',
+      secondary: 'bg-surface-muted text-foreground hover:bg-border',
+      danger: 'bg-destructive text-white hover:opacity-90',
+      ghost: 'bg-transparent hover:bg-surface-muted text-foreground',
+      warning: 'bg-warning text-white hover:opacity-90',
+      info: 'bg-info text-white hover:opacity-90',
+      pending: 'bg-muted-foreground text-white hover:opacity-90',
+      success: 'bg-success text-white hover:opacity-90',
+      error: 'bg-destructive text-white hover:opacity-90',
     }
 
     const variantStyles = variants[variant] || variants.primary

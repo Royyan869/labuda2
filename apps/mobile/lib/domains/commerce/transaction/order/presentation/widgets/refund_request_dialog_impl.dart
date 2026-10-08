@@ -88,11 +88,14 @@ class _RefundRequestDialogState extends State<RefundRequestDialog> {
 
     setState(() => _isSubmitting = true);
 
+    // SUBMISSION SNAPSHOT: the caller uploads the video, then iterates the
+    // photos. Hand it a value copy so removing a photo while the upload is in
+    // flight cannot mutate the refund request.
     widget.onSubmit(
       _selectedReason!,
       _descController.text.trim().isEmpty ? null : _descController.text.trim(),
       _unboxingVideo,
-      _evidencePhotos,
+      List<XFile>.of(_evidencePhotos),
     );
   }
 
@@ -101,7 +104,9 @@ class _RefundRequestDialogState extends State<RefundRequestDialog> {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppShape.r16)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppShape.r16),
+      ),
       child: Container(
         constraints: const BoxConstraints(maxWidth: 500, maxHeight: 700),
         decoration: BoxDecoration(
@@ -167,16 +172,14 @@ class _RefundRequestDialogState extends State<RefundRequestDialog> {
               children: [
                 Text(
                   'Ajukan Refund',
-                  style: TextStyle(
-                    fontSize: AppType.s20,
+                  style: context.typeRoles.titleSection.copyWith(
                     fontWeight: FontWeight.bold,
                     color: colorScheme.onSurface,
                   ),
                 ),
                 Text(
                   'Order #${widget.orderId.substring(0, 8)}...',
-                  style: TextStyle(
-                    fontSize: AppType.s12,
+                  style: context.typeRoles.labelMicro.copyWith(
                     color: colorScheme.onSurfaceVariant,
                   ),
                 ),
@@ -184,7 +187,7 @@ class _RefundRequestDialogState extends State<RefundRequestDialog> {
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.close),
+            icon: const Icon(Icons.close, semanticLabel: 'Tutup'),
             onPressed: widget.onCancel,
             color: colorScheme.onSurfaceVariant,
           ),
@@ -201,15 +204,16 @@ class _RefundRequestDialogState extends State<RefundRequestDialog> {
           children: [
             Text(
               'Alasan Refund',
-              style: TextStyle(
-                fontSize: AppType.s16,
+              style: context.typeRoles.titleCompact.copyWith(
                 fontWeight: FontWeight.w600,
                 color: colorScheme.onSurface,
               ),
             ),
             Text(
               ' *',
-              style: TextStyle(color: colorScheme.error, fontSize: AppType.s16),
+              style: context.typeRoles.titleCompact.copyWith(
+                color: colorScheme.error,
+              ),
             ),
           ],
         ),
@@ -251,8 +255,7 @@ class _RefundRequestDialogState extends State<RefundRequestDialog> {
       children: [
         Text(
           'Deskripsi Tambahan',
-          style: TextStyle(
-            fontSize: AppType.s16,
+          style: context.typeRoles.titleCompact.copyWith(
             fontWeight: FontWeight.w600,
             color: colorScheme.onSurface,
           ),
@@ -263,12 +266,12 @@ class _RefundRequestDialogState extends State<RefundRequestDialog> {
           maxLines: 3,
           maxLength: 500,
           style: TextStyle(color: colorScheme.onSurface),
+          // Border/fill come from `inputDecorationTheme` (AppTheme) — the
+          // one form-field authority (the fill role is the same
+          // surfaceContainerHigh this site used to restate).
           decoration: InputDecoration(
             hintText: 'Jelaskan detail masalah Anda...',
             hintStyle: TextStyle(color: colorScheme.onSurfaceVariant),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppShape.r12)),
-            filled: true,
-            fillColor: colorScheme.surfaceContainerHigh,
           ),
         ),
       ],
@@ -283,15 +286,16 @@ class _RefundRequestDialogState extends State<RefundRequestDialog> {
           children: [
             Text(
               'Video Unboxing',
-              style: TextStyle(
-                fontSize: AppType.s16,
+              style: context.typeRoles.titleCompact.copyWith(
                 fontWeight: FontWeight.w600,
                 color: colorScheme.onSurface,
               ),
             ),
             Text(
               ' *',
-              style: TextStyle(color: colorScheme.error, fontSize: AppType.s16),
+              style: context.typeRoles.titleCompact.copyWith(
+                color: colorScheme.error,
+              ),
             ),
             const SizedBox(width: 8),
             Icon(
@@ -304,7 +308,9 @@ class _RefundRequestDialogState extends State<RefundRequestDialog> {
         const SizedBox(height: 4),
         Text(
           'Wajib unggah video unboxing untuk bukti',
-          style: TextStyle(fontSize: AppType.s12, color: colorScheme.onSurfaceVariant),
+          style: context.typeRoles.labelMicro.copyWith(
+            color: colorScheme.onSurfaceVariant,
+          ),
         ),
         const SizedBox(height: 12),
 
@@ -327,9 +333,7 @@ class _RefundRequestDialogState extends State<RefundRequestDialog> {
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerHigh,
         borderRadius: BorderRadius.circular(AppShape.r12),
-        border: Border.all(
-          color: colorScheme.secondary.withValues(alpha: 0.3),
-        ),
+        border: Border.all(color: colorScheme.secondary.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
@@ -349,8 +353,7 @@ class _RefundRequestDialogState extends State<RefundRequestDialog> {
               children: [
                 Text(
                   _unboxingVideo!.name.split('/').last,
-                  style: TextStyle(
-                    fontSize: AppType.s14,
+                  style: context.typeRoles.bodyDense.copyWith(
                     fontWeight: FontWeight.w500,
                     color: colorScheme.onSurface,
                   ),
@@ -359,8 +362,7 @@ class _RefundRequestDialogState extends State<RefundRequestDialog> {
                 ),
                 Text(
                   'Video unboxing',
-                  style: TextStyle(
-                    fontSize: AppType.s12,
+                  style: context.typeRoles.labelMicro.copyWith(
                     color: colorScheme.onSurfaceVariant,
                   ),
                 ),
@@ -368,7 +370,7 @@ class _RefundRequestDialogState extends State<RefundRequestDialog> {
             ),
           ),
           IconButton(
-            icon: Icon(Icons.close, color: colorScheme.error),
+              icon: Icon(Icons.close, color: colorScheme.error, semanticLabel: 'Hapus video'),
             onPressed: () => setState(() => _unboxingVideo = null),
           ),
         ],
@@ -384,8 +386,7 @@ class _RefundRequestDialogState extends State<RefundRequestDialog> {
           children: [
             Text(
               'Foto Bukti',
-              style: TextStyle(
-                fontSize: AppType.s16,
+              style: context.typeRoles.titleCompact.copyWith(
                 fontWeight: FontWeight.w600,
                 color: colorScheme.onSurface,
               ),
@@ -393,8 +394,7 @@ class _RefundRequestDialogState extends State<RefundRequestDialog> {
             const SizedBox(width: 8),
             Text(
               '(Opsional)',
-              style: TextStyle(
-                fontSize: AppType.s12,
+              style: context.typeRoles.labelMicro.copyWith(
                 color: colorScheme.onSurfaceVariant,
               ),
             ),
@@ -457,6 +457,7 @@ class _RefundRequestDialogState extends State<RefundRequestDialog> {
                 Icons.close,
                 color: colorScheme.onPrimary,
                 size: AppIconSize.inlineGlyph,
+                semanticLabel: 'Hapus foto',
               ),
             ),
           ),
@@ -532,8 +533,6 @@ class _RefundRequestDialogState extends State<RefundRequestDialog> {
               child: ElevatedButton(
                 onPressed: _canSubmit ? _handleSubmit : null,
                 style: ElevatedButton.styleFrom(
-                  disabledBackgroundColor:
-                      colorScheme.surfaceContainerHighest,
                   padding: const EdgeInsets.symmetric(vertical: AppMetrics.p16),
                 ),
                 child: _isSubmitting
@@ -543,7 +542,7 @@ class _RefundRequestDialogState extends State<RefundRequestDialog> {
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
                           valueColor: AlwaysStoppedAnimation<Color>(
-                            colorScheme.onPrimary,
+                            colorScheme.onSurfaceVariant,
                           ),
                         ),
                       )

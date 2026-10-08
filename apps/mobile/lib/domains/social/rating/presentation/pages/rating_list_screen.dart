@@ -55,7 +55,7 @@ class _RatingListScreenState extends ConsumerState<RatingListScreen> {
         appBar: AppBar(
           title: Text(widget.isReceived ? 'Reviews Received' : 'Reviews Given'),
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
+            icon: const Icon(Icons.arrow_back, semanticLabel: 'Kembali'),
             onPressed: () {
               if (Navigator.of(context).canPop()) {
                 Navigator.of(context).pop();

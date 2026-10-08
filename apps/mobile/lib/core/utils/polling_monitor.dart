@@ -9,58 +9,6 @@ import 'dart:math';
 
 import 'package:labuda/core/src/interfaces/services/i_logger_service.dart';
 
-// ==============================================================================
-// TASK C: CORRELATION FIELDS
-// ==============================================================================
-
-/// Device correlation context for log enrichment
-/// These fields help identify patterns across devices, versions, and networks
-class PollingCorrelationContext {
-  /// Unique device identifier (UUID)
-  final String? deviceId;
-
-  /// Application version (e.g., "1.2.3+42")
-  final String? appVersion;
-
-  /// Network type (wifi, mobile, ethernet, none, other)
-  final String? networkType;
-
-  /// OS version (e.g., "iOS 17.2", "Android 14")
-  final String? osVersion;
-
-  const PollingCorrelationContext({
-    this.deviceId,
-    this.appVersion,
-    this.networkType,
-    this.osVersion,
-  });
-
-  /// Convert to map for logging
-  Map<String, dynamic> toMap() {
-    return {
-      if (deviceId != null) 'device_id': deviceId,
-      if (appVersion != null) 'app_version': appVersion,
-      if (networkType != null) 'network_type': networkType,
-      if (osVersion != null) 'os_version': osVersion,
-    };
-  }
-
-  /// Empty context (when correlation data not available)
-  static const empty = PollingCorrelationContext();
-
-  /// Global correlation context (set once at app startup)
-  static PollingCorrelationContext _globalContext =
-      const PollingCorrelationContext();
-
-  /// Set the global correlation context
-  static void setGlobalContext(PollingCorrelationContext context) {
-    _globalContext = context;
-  }
-
-  /// Get the global correlation context
-  static PollingCorrelationContext get globalContext => _globalContext;
-}
-
 /// Polling domain for categorization
 enum PollingDomain {
   /// Subscription status polling
@@ -117,9 +65,6 @@ class PollingMetrics {
   /// Current backoff interval in seconds
   final int? backoffIntervalSeconds;
 
-  /// Correlation context (device info, app version, etc.)
-  final PollingCorrelationContext? correlation;
-
   const PollingMetrics({
     required this.domain,
     this.operationId,
@@ -127,12 +72,11 @@ class PollingMetrics {
     this.error,
     this.consecutiveErrors = 0,
     this.backoffIntervalSeconds,
-    this.correlation,
   });
 
-  /// Convert to map for logging (includes correlation fields)
+  /// Convert to map for logging
   Map<String, dynamic> toMap() {
-    final baseMap = {
+    return {
       'event': 'polling',
       'domain': domain.value,
       if (operationId != null) 'operation_id': operationId,
@@ -142,19 +86,6 @@ class PollingMetrics {
       if (backoffIntervalSeconds != null)
         'backoff_interval_s': backoffIntervalSeconds,
     };
-
-    // Add correlation fields if available
-    if (correlation != null) {
-      return {...baseMap, ...correlation!.toMap()};
-    }
-
-    // Otherwise try to use global context
-    final globalCorr = PollingCorrelationContext.globalContext;
-    if (globalCorr != PollingCorrelationContext.empty) {
-      return {...baseMap, ...globalCorr.toMap()};
-    }
-
-    return baseMap;
   }
 }
 
@@ -388,23 +319,6 @@ class PollingMonitor {
       logError(e.toString(), latencyMs: latencyMs);
       rethrow;
     }
-  }
-
-  /// Check if polling is in degraded state (many consecutive errors)
-  bool get isDegraded => _backoffState.consecutiveErrors >= 3;
-
-  /// Get status summary for UI
-  Map<String, dynamic> getStatusSummary() {
-    return {
-      'domain': _domain.value,
-      if (_operationId != null) 'operation_id': _operationId,
-      'consecutive_errors': _backoffState.consecutiveErrors,
-      'is_degraded': isDegraded,
-      'current_interval_s': _backoffState.getCurrentInterval(_config),
-      'last_success_at': _backoffState.lastSuccessAt?.toIso8601String(),
-      'last_error_at': _backoffState.lastErrorAt?.toIso8601String(),
-      'last_error': _backoffState.lastError,
-    };
   }
 }
 

@@ -35,4 +35,4 @@ export 'presentation/providers/seller_verification_v2_provider.dart'
 // Legacy redirect-only VerificationScreen removed. The canonical
 // seller-verification UI lives in
 // `domains/user/preference/seller/presentation/screens/seller_verification_screen.dart`
-// and is wired to `/verification` and `/verification/seller` by the router.
+// and is wired to the canonical `/verification/seller` route by the router.

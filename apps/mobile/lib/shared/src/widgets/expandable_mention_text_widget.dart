@@ -107,9 +107,9 @@ class _ExpandableMentionTextWidgetState
               _isExpanded
                   ? (widget.seeLessText ?? 'Lebih sedikit')
                   : (widget.seeMoreText ?? 'Selengkapnya'),
-              style: TextStyle(
+              style: context.typeRoles.bodyDense.copyWith(
                 color: effectiveLinkColor,
-                fontSize: widget.style?.fontSize ?? AppType.s14,
+                fontSize: widget.style?.fontSize,
                 fontWeight: FontWeight.w500,
               ),
             ),

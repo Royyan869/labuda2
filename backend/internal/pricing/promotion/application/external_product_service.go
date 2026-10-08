@@ -390,6 +390,17 @@ func (s *PromotionService) ListExternalProductsForReview(
 	return s.repo.ListForReview(ctx, tx, filters)
 }
 
+// CountExternalProductsForReview returns the truthful total number of products
+// matching the admin review-queue filters (same predicate as
+// ListExternalProductsForReview).
+func (s *PromotionService) CountExternalProductsForReview(
+	ctx context.Context,
+	tx db.Tx,
+	filters promotionRepo.ExternalProductAdminListFilters,
+) (int, error) {
+	return s.repo.CountForReview(ctx, tx, filters)
+}
+
 // ListExternalProductReviewHistory retrieves a product's review history.
 func (s *PromotionService) ListExternalProductReviewHistory(
 	ctx context.Context,

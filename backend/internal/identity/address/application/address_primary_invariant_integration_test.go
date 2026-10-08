@@ -11,7 +11,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgconn"
-	addressEntity "github.com/labuda/backend/internal/identity/address/entity"
 	addressRepo "github.com/labuda/backend/internal/identity/address/infrastructure/repository"
 	"github.com/labuda/backend/pkg/db"
 	"github.com/labuda/backend/pkg/testdb"
@@ -60,7 +59,7 @@ func seedPrimaryInvariantAddress(
 
 	_, err := tx.Exec(ctx, `
 		INSERT INTO addresses (
-			id, user_id, tags, nickname,
+			id, user_id, nickname,
 			recipient_name, phone,
 			province_id, province_name,
 			city_id, city_name,
@@ -72,7 +71,7 @@ func seedPrimaryInvariantAddress(
 			created_at, updated_at
 		)
 		VALUES (
-			$1, $2, ARRAY['sender'], $3,
+			$1, $2, $3,
 			'Koikoi Farm', '08123456789',
 			'33', 'Jawa Tengah',
 			'3301', 'Kabupaten Demak',
@@ -208,7 +207,6 @@ func currentUserIDs(t *testing.T, ctx context.Context, tx db.Tx) map[uuid.UUID]u
 func newSenderAddressInput(userID uuid.UUID, nickname string, isPrimary bool) CreateAddressInput {
 	return CreateAddressInput{
 		UserID:        userID,
-		Tags:         []string{string(addressEntity.TagSender)},
 		Nickname:      nickname,
 		RecipientName: "Koikoi Farm",
 		Phone:         "08123456789",
@@ -367,7 +365,7 @@ func TestPrimaryAddressUniqueIndex_RejectsSecondActivePrimary(t *testing.T) {
 		seedPrimaryInvariantAddress(t, ctx, tx, uuid.New(), userID, time.Date(2026, 7, 1, 10, 0, 0, 0, time.UTC), true, true, "Farm A")
 		_, insertErr := tx.Exec(ctx, `
 			INSERT INTO addresses (
-				id, user_id, tags, nickname,
+				id, user_id, nickname,
 				recipient_name, phone,
 				province_id, province_name,
 				city_id, city_name,
@@ -379,7 +377,7 @@ func TestPrimaryAddressUniqueIndex_RejectsSecondActivePrimary(t *testing.T) {
 				created_at, updated_at
 			)
 			VALUES (
-				$1, $2, ARRAY['sender'], 'Farm B',
+				$1, $2, 'Farm B',
 				'Koikoi Farm', '08123456789',
 				'33', 'Jawa Tengah',
 				'3301', 'Kabupaten Demak',
@@ -418,7 +416,7 @@ func TestPrimaryAddressUniqueIndex_SoftDeletedPrimaryDoesNotBlockActivePrimary(t
 	err = tdb.WithTx(ctx, func(tx db.Tx) error {
 		_, insertErr := tx.Exec(ctx, `
 			INSERT INTO addresses (
-				id, user_id, tags, nickname,
+				id, user_id, nickname,
 				recipient_name, phone,
 				province_id, province_name,
 				city_id, city_name,
@@ -430,7 +428,7 @@ func TestPrimaryAddressUniqueIndex_SoftDeletedPrimaryDoesNotBlockActivePrimary(t
 				created_at, updated_at
 			)
 			VALUES (
-				$1, $2, ARRAY['sender'], 'New Primary',
+				$1, $2, 'New Primary',
 				'Koikoi Farm', '08123456789',
 				'33', 'Jawa Tengah',
 				'3301', 'Kabupaten Demak',

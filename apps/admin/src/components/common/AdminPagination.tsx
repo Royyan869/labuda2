@@ -31,7 +31,7 @@ export function AdminPagination({
       >
         Previous
       </Button>
-      <span className="text-sm text-muted-foreground">
+      <span className="type-secondary">
         Page {page} of {totalPages}
       </span>
       <Button

@@ -165,8 +165,7 @@ class SearchResultExtraInfo extends StatelessWidget {
       ),
       child: Text(
         text,
-        style: TextStyle(
-          fontSize: AppType.s12,
+        style: context.typeRoles.labelMicro.copyWith(
           fontWeight: FontWeight.w600,
           color: color,
         ),
@@ -191,8 +190,7 @@ class SearchResultExtraInfo extends StatelessWidget {
         const SizedBox(width: 2),
         Text(
           text,
-          style: TextStyle(
-            fontSize: AppType.s12,
+          style: context.typeRoles.labelMicro.copyWith(
             color: scheme.onSurfaceVariant,
           ),
         ),

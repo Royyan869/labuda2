@@ -13,6 +13,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/Table'
+import { Select } from '@/components/ui/Select'
+import { AdminLoadingState, AdminErrorState, AdminEmptyState, AdminPagination, PageHeader } from '@/components/common'
 import { useGovernanceCases } from '@/hooks/useGovernance'
 import { formatDate } from '@/lib/utils'
 import {
@@ -39,43 +41,28 @@ export function GovernanceCasesPage() {
     limit: 20,
   })
 
+  // `count` is the server-side total (SELECT COUNT(*), optionally status-filtered);
+  // derive total pages from the existing page size of 20.
+  const totalPages = Math.ceil(count / 20)
+
   const handleViewCase = (caseId: string) => {
     navigate(`/moderation/cases/${caseId}`)
   }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
-          <p className="mt-4 text-muted-foreground">Loading governance cases...</p>
-        </div>
-      </div>
-    )
+  const handleClearFilters = () => {
+    setStatusFilter('')
+    setPage(1)
+  }
+
+  if (loading && cases.length === 0) {
+    return <AdminLoadingState />
   }
 
   if (error) {
     return (
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Governance Cases</h1>
-          <p className="text-muted-foreground mt-1">Review and decide on reported subjects</p>
-        </div>
-        <Card>
-          <CardContent className="p-6">
-            <div className="text-center text-destructive">
-              <p className="font-medium">Error loading cases</p>
-              <p className="text-sm mt-1">{error.message}</p>
-              <Button
-                variant="secondary"
-                className="mt-4"
-                onClick={refetch}
-              >
-                Retry
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <PageHeader title="Governance Cases" description="Review and decide on reported subjects" />
+        <AdminErrorState title="Failed to load cases" message={error.message} onRetry={refetch} />
       </div>
     )
   }
@@ -83,10 +70,7 @@ export function GovernanceCasesPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-foreground">Governance Cases</h1>
-        <p className="text-muted-foreground mt-1">Review and decide on reported subjects</p>
-      </div>
+      <PageHeader title="Governance Cases" description="Review and decide on reported subjects" />
 
       {/* Stats Card */}
       <Card>
@@ -94,7 +78,7 @@ export function GovernanceCasesPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-muted-foreground">Total Cases</p>
-              <p className="text-3xl font-bold text-primary mt-1">{count}</p>
+              <p className="type-metric-lg text-primary mt-1">{count}</p>
             </div>
             <div className="p-4 rounded-lg bg-info-bg">
               <Shield className="h-8 w-8 text-info" />
@@ -108,24 +92,20 @@ export function GovernanceCasesPage() {
         <CardContent className="pt-6">
           <div className="flex items-center gap-4">
             <Filter className="h-5 w-5 text-muted-foreground" />
-            <label htmlFor="status-filter" className="text-sm font-medium text-foreground">
-              Status:
-            </label>
-            <select
-              id="status-filter"
+            <Select
+              label="Status:"
               value={statusFilter}
               onChange={(e) => {
                 setStatusFilter(e.target.value as GovernanceCaseStatus | '')
                 setPage(1)
               }}
-              className="px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             >
               {CASE_FILTERS.map((f) => (
                 <option key={f.value} value={f.value}>
                   {f.label}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
         </CardContent>
       </Card>
@@ -137,13 +117,17 @@ export function GovernanceCasesPage() {
         </CardHeader>
         <CardContent>
           {cases.length === 0 ? (
-            <div className="text-center py-12">
-              <Shield className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-foreground mb-2">No Cases Found</h3>
-              <p className="text-muted-foreground">
-                {statusFilter ? `No ${statusFilter} cases found.` : 'No governance cases yet.'}
-              </p>
-            </div>
+            <AdminEmptyState
+              icon={Shield}
+              title="No Cases Found"
+              description={
+                statusFilter
+                  ? `No ${statusFilter} cases found.`
+                  : 'No governance cases yet.'
+              }
+              filtered={Boolean(statusFilter)}
+              onClearFilters={handleClearFilters}
+            />
           ) : (
             <div className="border border-border rounded-lg overflow-hidden">
               <Table>
@@ -177,10 +161,10 @@ export function GovernanceCasesPage() {
                           {caseStatusLabels[caseItem.status]}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
+                      <TableCell className="type-secondary">
                         {formatDate(caseItem.created_at)}
                       </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
+                      <TableCell className="type-secondary">
                         {formatDate(caseItem.updated_at)}
                       </TableCell>
                       <TableCell className="text-right">
@@ -200,30 +184,14 @@ export function GovernanceCasesPage() {
           )}
 
           {/* Pagination */}
-          {count > 20 && (
-            <div className="flex items-center justify-between mt-4">
-              <p className="text-sm text-muted-foreground">
-                Showing {(page - 1) * 20 + 1}–{Math.min(page * 20, count)} of {count}
-              </p>
-              <div className="flex gap-2">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  disabled={page <= 1}
-                  onClick={() => setPage(p => p - 1)}
-                >
-                  Previous
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  disabled={page * 20 >= count}
-                  onClick={() => setPage(p => p + 1)}
-                >
-                  Next
-                </Button>
-              </div>
-            </div>
+          {totalPages > 1 && (
+            <AdminPagination
+              page={page}
+              totalPages={totalPages}
+              onPageChange={setPage}
+              disabled={loading}
+              className="mt-4"
+            />
           )}
         </CardContent>
       </Card>

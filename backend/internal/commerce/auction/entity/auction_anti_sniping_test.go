@@ -12,7 +12,7 @@ import (
 // TestPlaceBid_AntiSniping_OutsideWindow_NoExtension proves a bid landing
 // well before the closing window leaves EndAt untouched.
 func TestPlaceBid_AntiSniping_OutsideWindow_NoExtension(t *testing.T) {
-	auction := createTestDraftAuction()
+	auction := createTestAuction()
 	auction.Status = StatusActive
 	now := time.Now()
 	auction.EndAt = now.Add(10 * time.Minute) // outside the 5-minute window
@@ -28,7 +28,7 @@ func TestPlaceBid_AntiSniping_OutsideWindow_NoExtension(t *testing.T) {
 // TestPlaceBid_AntiSniping_InsideWindow_Extends proves a bid landing inside
 // the final 5 minutes extends EndAt by exactly 5 minutes.
 func TestPlaceBid_AntiSniping_InsideWindow_Extends(t *testing.T) {
-	auction := createTestDraftAuction()
+	auction := createTestAuction()
 	auction.Status = StatusActive
 	now := time.Now()
 	auction.EndAt = now.Add(2 * time.Minute) // inside the 5-minute window
@@ -44,7 +44,7 @@ func TestPlaceBid_AntiSniping_InsideWindow_Extends(t *testing.T) {
 // TestPlaceBid_AntiSniping_AtExactWindowBoundary_Extends proves the window is
 // inclusive: a bid exactly AntiSnipingWindow before EndAt still extends.
 func TestPlaceBid_AntiSniping_AtExactWindowBoundary_Extends(t *testing.T) {
-	auction := createTestDraftAuction()
+	auction := createTestAuction()
 	auction.Status = StatusActive
 	now := time.Now()
 	auction.EndAt = now.Add(AntiSnipingWindow)
@@ -57,7 +57,7 @@ func TestPlaceBid_AntiSniping_AtExactWindowBoundary_Extends(t *testing.T) {
 // TestPlaceBid_AntiSniping_CapEnforced proves the cumulative extension never
 // exceeds MaxAntiSnipingTotalExtension, regardless of how many late bids land.
 func TestPlaceBid_AntiSniping_CapEnforced(t *testing.T) {
-	auction := createTestDraftAuction()
+	auction := createTestAuction()
 	auction.Status = StatusActive
 	auction.StartPrice = 10000
 	auction.BidIncrement = 1000
@@ -92,7 +92,7 @@ func TestPlaceBid_AntiSniping_CapEnforced(t *testing.T) {
 // feature does not create a loophole around the hard end-time cutoff — a bid
 // at/after the current EndAt is rejected exactly as before.
 func TestPlaceBid_AntiSniping_BidAfterEnd_StillRejected(t *testing.T) {
-	auction := createTestDraftAuction()
+	auction := createTestAuction()
 	auction.Status = StatusActive
 	now := time.Now()
 	auction.EndAt = now.Add(-1 * time.Minute) // already ended
@@ -107,7 +107,7 @@ func TestPlaceBid_AntiSniping_BidAfterEnd_StillRejected(t *testing.T) {
 // reached, further late bids succeed (bidding itself is unaffected) but stop
 // extending EndAt — the auction still ends normally.
 func TestPlaceBid_AntiSniping_ExtendsPastCap_NoOp(t *testing.T) {
-	auction := createTestDraftAuction()
+	auction := createTestAuction()
 	auction.Status = StatusActive
 	auction.StartPrice = 10000
 	auction.BidIncrement = 1000

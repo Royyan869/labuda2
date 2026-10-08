@@ -52,12 +52,14 @@ func (h *FundingIntentHandler) SetPaymentInitiator(fn InitiateBillingPaymentFunc
 }
 
 // CreateFundingIntentRequest captures the promotion creation params for
-// computing the exact shortage payment. The same inputs as CreateContractRequest.
+// computing the exact shortage payment. The same inputs as CreateContractRequest,
+// including the product queue (targets), which is required before any payment.
 type CreateFundingIntentRequest struct {
-	Kind         string   `json:"kind" binding:"required,oneof=internal external"`
-	BudgetRupiah int64    `json:"budget_rupiah" binding:"required,min=1"`
-	DurationDays int64    `json:"duration_days" binding:"required,min=1"`
-	CityIDs      []string `json:"city_ids"`
+	Kind         string                   `json:"kind" binding:"required,oneof=internal external"`
+	BudgetRupiah int64                    `json:"budget_rupiah" binding:"required,min=1"`
+	DurationDays int64                    `json:"duration_days" binding:"required,min=1"`
+	CityIDs      []string                 `json:"city_ids"`
+	Targets      []PromotionTargetRequest `json:"targets" binding:"required,min=1"`
 }
 
 // CreateFundingIntent handles POST /api/v1/promotions/contracts/payment-intent.
@@ -81,6 +83,11 @@ func (h *FundingIntentHandler) CreateFundingIntent(c *gin.Context) {
 		response.BadRequest(c, "Invalid request: "+err.Error())
 		return
 	}
+	targets, err := parsePromotionTargets(req.Targets)
+	if err != nil {
+		response.BadRequest(c, "Invalid request: "+err.Error())
+		return
+	}
 
 	result, err := h.service.CreateFundingIntent(c.Request.Context(), contractApp.CreatePromotionInput{
 		SellerID:     callerID,
@@ -88,6 +95,7 @@ func (h *FundingIntentHandler) CreateFundingIntent(c *gin.Context) {
 		BudgetRupiah: req.BudgetRupiah,
 		DurationDays: req.DurationDays,
 		CityIDs:      req.CityIDs,
+		Targets:      targets,
 	})
 	if err != nil {
 		h.writeError(c, "create funding intent", err)
@@ -262,6 +270,14 @@ func (h *FundingIntentHandler) writeError(c *gin.Context, op string, err error) 
 		response.Error(c, http.StatusBadRequest, "INVALID_PROMOTION_BUDGET", "Promotion budget must be a positive Rupiah integer")
 	case errors.Is(err, contractApp.ErrPromotionDurationInvalid):
 		response.Error(c, http.StatusBadRequest, "INVALID_PROMOTION_DURATION", "Promotion duration is invalid")
+	case errors.Is(err, contractApp.ErrQueueEmpty):
+		response.Error(c, http.StatusBadRequest, "PROMOTION_QUEUE_REQUIRED", "A promotion must have at least one target before funding")
+	case errors.Is(err, contractApp.ErrQueueFull):
+		response.Error(c, http.StatusConflict, "QUEUE_FULL", "Promotion target queue is full (max 10)")
+	case errors.Is(err, contractApp.ErrQueueDuplicate):
+		response.Error(c, http.StatusConflict, "QUEUE_DUPLICATE", "Target already in queue")
+	case errors.Is(err, contractApp.ErrQueueExternalMismatch):
+		response.Error(c, http.StatusBadRequest, "QUEUE_KIND_MISMATCH", "Target type does not match contract kind")
 	default:
 		h.log.Error(op+" failed", zap.Error(err))
 		response.Error(c, http.StatusInternalServerError, "INTERNAL_ERROR", fmt.Sprintf("Failed to %s", op))

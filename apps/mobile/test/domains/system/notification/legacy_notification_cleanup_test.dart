@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:labuda/core/core.dart' hide NotificationEntity;
-import 'package:labuda/core/utils/notification_navigation_handler.dart';
 import 'package:labuda/domains/system/notification/domain/entities/notification_entity.dart';
 import 'package:labuda/domains/system/notification/domain/entities/notification_filter.dart';
 import 'package:labuda/domains/system/notification/domain/services/notification_display_service.dart';
@@ -138,7 +137,7 @@ void main() {
     );
 
     testWidgets(
-      'navigation handler returns no-op for removed strings and collection_recommendation',
+      'removed strings are outside the canonical catalog and never navigate',
       (tester) async {
         await tester.pumpWidget(_routerApp());
         await tester.pumpAndSettle();
@@ -153,15 +152,21 @@ void main() {
           ('login_from_new_device', {'orderId': 'order-1'}),
           ('collection_recommendation', {'forSaleId': 'forSale-1'}),
         ]) {
-          final handled = NotificationNavigationHandler.navigate(
-            context: context,
-            type: caseEntry.$1,
-            data: caseEntry.$2,
+          expect(
+            NotificationType.tryFromString(caseEntry.$1),
+            isNull,
+            reason: '${caseEntry.$1} must not be a canonical notification type',
           );
 
-          expect(handled, isFalse, reason: '${caseEntry.$1} should no-op');
+          await NotificationNavigationService.canonical()
+              .handleNotificationPayload(
+                context,
+                type: caseEntry.$1,
+                data: caseEntry.$2,
+              );
         }
 
+        await tester.pumpAndSettle();
         expect(find.text('home'), findsOneWidget);
         expect(find.textContaining('forSale:'), findsNothing);
         expect(find.textContaining('order:'), findsNothing);
@@ -199,19 +204,16 @@ void main() {
         await tester.pumpWidget(_routerApp());
         await tester.pumpAndSettle();
 
-        final context = tester.element(find.text('home'));
-        final handled = NotificationNavigationHandler.navigate(
-          context: context,
-          type: 'promotion',
-          data: {'contractId': 'contract-9'},
-        );
+      final context = tester.element(find.text('home'));
+      await NotificationNavigationService.canonical().handleNotificationPayload(
+        context,
+        type: 'promotion',
+        data: {'contractId': 'contract-9'},
+      );
 
-        expect(handled, isTrue);
+      await tester.pumpAndSettle();
 
-        await tester.pump(const Duration(milliseconds: 700));
-        await tester.pumpAndSettle();
-
-        expect(find.text('analytics:contract-9'), findsOneWidget);
+      expect(find.text('analytics:contract-9'), findsOneWidget);
       },
     );
 

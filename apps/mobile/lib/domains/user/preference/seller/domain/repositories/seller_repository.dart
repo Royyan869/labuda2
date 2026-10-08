@@ -3,10 +3,9 @@
 /// Pure Dart interface - no Firebase/Flutter dependencies.
 library;
 
-import '../entities/seller_dashboard.dart';
-import '../entities/seller_analytics.dart';
+import '../entities/seller_analytics_read.dart';
+import '../entities/seller_performance.dart';
 import '../entities/seller_earnings.dart';
-import '../entities/seller_activity.dart';
 import '../entities/seller_subscription.dart';
 import '../entities/withdrawal.dart';
 import 'package:labuda/core/common/result.dart';
@@ -16,34 +15,18 @@ import 'package:labuda/core/common/result.dart';
 /// Aggregates all seller-related operations.
 abstract class SellerRepository {
   // ============================================
-  // DASHBOARD STATS
-  // ============================================
-
-  /// Get seller dashboard statistics
-  Future<Result<SellerDashboardStats>> getDashboardStats(
-    String sellerId,
-  );
-
-  // ============================================
   // ANALYTICS
   // ============================================
 
-  /// Get seller analytics for a specific period
-  Future<Result<SellerAnalytics>> getAnalytics({
-    required String sellerId,
-    required AnalyticsPeriod period,
-    required DateTime startDate,
-    required DateTime endDate,
-  });
+  /// Get seller analytics (30-day read projection over Product View + sales).
+  Future<Result<SellerAnalytics>> getAnalytics(String sellerId);
+
+  // ============================================
+  // PERFORMANCE
+  // ============================================
 
   /// Get seller performance metrics
   Future<Result<SellerPerformance>> getPerformance(String sellerId);
-
-  /// Get sales trend data points for charts
-  Future<Result<List<SalesDataPoint>>> getSalesTrendData({
-    required String sellerId,
-    int days = 30,
-  });
 
   // ============================================
   // EARNINGS
@@ -67,30 +50,11 @@ abstract class SellerRepository {
   });
 
   // ============================================
-  // ACTIVITY
-  // ============================================
-
-  /// Get recent activity for seller
-  Future<Result<List<RecentActivityItem>>> getRecentActivity(
-    String sellerId, {
-    int limit = 10,
-  });
-
-  /// Get activity history with optional filter
-  Future<Result<List<RecentActivityItem>>> getActivityHistory(
-    ActivityHistoryParams params, {
-    int limit = 100,
-  });
-
-  // ============================================
   // SUBSCRIPTION
   // ============================================
 
   /// Get seller subscription status
   Future<Result<SellerSubscription>> getSubscription(String sellerId);
-
-  /// Stream seller subscription for real-time updates
-  Stream<SellerSubscription?> watchSubscription(String sellerId);
 
   // ============================================
   // WITHDRAWAL
@@ -98,9 +62,7 @@ abstract class SellerRepository {
 
   /// Request a withdrawal
   /// Returns a WithdrawResult containing the withdrawal ID and status
-  Future<Result<WithdrawResult>> requestWithdraw(
-    WithdrawRequest request,
-  );
+  Future<Result<WithdrawResult>> requestWithdraw(WithdrawRequest request);
 
   /// Get withdrawal history
   ///

@@ -26,7 +26,6 @@ func TestForSaleStatus_IsRepostable(t *testing.T) {
 		repostable bool
 	}{
 		{ForSaleStatusActive, true},
-		{ForSaleStatusDraft, false},
 		{ForSaleStatusSold, false},
 		{ForSaleStatusWithdrawn, false},
 		{ForSaleStatus("unknown"), false},
@@ -81,13 +80,13 @@ func TestForSale_MarkActiveFromModeration_SoldRejected(t *testing.T) {
 	}
 }
 
-// TestForSale_MarkActiveFromModeration_DraftRejected verifies that draft
-// for_sales are not eligible for moderation restoration.
-func TestForSale_MarkActiveFromModeration_DraftRejected(t *testing.T) {
-	l := newTestForSale(ForSaleStatusDraft)
+// TestForSale_MarkActiveFromModeration_UnknownStatusRejected verifies that a
+// non-lifecycle status is not eligible for moderation restoration.
+func TestForSale_MarkActiveFromModeration_UnknownStatusRejected(t *testing.T) {
+	l := newTestForSale(ForSaleStatus("mystery"))
 	err := l.MarkActiveFromModeration()
 	if err == nil {
-		t.Fatal("expected error for draft for_sale restore, got nil")
+		t.Fatal("expected error for unknown-status for_sale restore, got nil")
 	}
 }
 
@@ -112,14 +111,10 @@ func newTestForSale(status ForSaleStatus) *ForSale {
 	return &ForSale{
 		ID:                uuid.New(),
 		SellerID:          uuid.New(),
-		Product: &productEntity.Product{Title: "test"},
+		Product:           &productEntity.Product{Title: "test"},
 		Status:            status,
 		Visibility:        ForSaleVisibilityPrivate,
 		QuantityAvailable: 1,
 		PricePerUnit:      money.New(10000),
 	}
 }
-
-
-
-

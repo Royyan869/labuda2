@@ -54,18 +54,23 @@ class _SellerShippingScreenState extends ConsumerState<SellerShippingScreen> {
     final state = ref.watch(shippingNotifierProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Pengiriman'),
-      ),
+      appBar: AppBar(title: const Text('Pengiriman')),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _openCreateSetup,
         backgroundColor: scheme.primary,
         icon: const Icon(Icons.add),
         label: const Text('Tambah Opsi'),
       ),
-      body: RefreshIndicator(
-        onRefresh: () async => _reload(),
-        child: _buildBody(state),
+      // Canonical bar-less screen (SAFE-AREA-10): `SafeArea` is the LIVE
+      // system-inset authority for this body — the explicit ListView padding
+      // below would otherwise disable ScrollView's automatic MediaQuery
+      // padding. FAB overlay clearance sits ABOVE this inset
+      // (`contentEnd = systemInset + fabClearance`).
+      body: SafeArea(
+        child: RefreshIndicator(
+          onRefresh: () async => _reload(),
+          child: _buildBody(state),
+        ),
       ),
     );
   }
@@ -84,7 +89,15 @@ class _SellerShippingScreenState extends ConsumerState<SellerShippingScreen> {
       }
       return ListView.separated(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p16, AppMetrics.p16, AppMetrics.bottomBarClearance),
+        // Bottom = FAB overlay clearance only (SAFE-AREA-10): the body
+        // `SafeArea` above this list owns the live system inset, so this
+        // constant no longer doubles as an inset stand-in.
+        padding: const EdgeInsets.fromLTRB(
+          AppMetrics.p16,
+          AppMetrics.p16,
+          AppMetrics.p16,
+          AppMetrics.fabClearance,
+        ),
         itemCount: state.options.length + 1,
         separatorBuilder: (_, _) => const SizedBox(height: 8),
         itemBuilder: (context, index) {
@@ -183,7 +196,7 @@ class _SellerShippingScreenState extends ConsumerState<SellerShippingScreen> {
       final msg = s is ShippingSetupsListError
           ? s.message
           : 'Opsi tidak dapat dihapus karena masih ter-link ke listing. '
-              'Matikan opsi ini sebagai gantinya.';
+                'Matikan opsi ini sebagai gantinya.';
       AppSnackBar.showError(context, msg);
     }
   }
@@ -204,9 +217,7 @@ class _HonestyBanner extends StatelessWidget {
       decoration: BoxDecoration(
         color: scheme.secondary.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(AppShape.r12),
-        border: Border.all(
-          color: scheme.secondary.withValues(alpha: 0.25),
-        ),
+        border: Border.all(color: scheme.secondary.withValues(alpha: 0.25)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -223,8 +234,7 @@ class _HonestyBanner extends StatelessWidget {
               children: [
                 Text(
                   ShippingHonestyMessages.sellerManagedShipping,
-                  style: TextStyle(
-                    fontSize: AppType.s14,
+                  style: context.typeRoles.bodyDense.copyWith(
                     fontWeight: FontWeight.w600,
                     color: scheme.onSurface,
                   ),
@@ -234,8 +244,7 @@ class _HonestyBanner extends StatelessWidget {
                   'Tentukan sendiri opsi pengiriman sesuai ekspedisi langganan '
                   'Anda: pilih minimal satu provinsi tujuan beserta tarifnya. '
                   'Input biaya pengiriman beserta biaya packing jika ada.',
-                  style: TextStyle(
-                    fontSize: AppType.s12,
+                  style: context.typeRoles.labelMicro.copyWith(
                     color: scheme.onSurfaceVariant,
                   ),
                 ),
@@ -257,7 +266,14 @@ class _EmptyView extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(AppMetrics.p24, AppMetrics.p48, AppMetrics.p24, AppMetrics.p24),
+      // Same FAB clearance authority as the loaded list — no second
+      // magic bottom value in this screen (SAFE-AREA-10).
+      padding: const EdgeInsets.fromLTRB(
+        AppMetrics.p24,
+        AppMetrics.p48,
+        AppMetrics.p24,
+        AppMetrics.fabClearance,
+      ),
       children: [
         const _HonestyBanner(),
         const SizedBox(height: 32),
@@ -267,10 +283,12 @@ class _EmptyView extends StatelessWidget {
           color: scheme.onSurfaceVariant,
         ),
         const SizedBox(height: 16),
-        const Text(
+        Text(
           'Belum Ada Opsi Pengiriman',
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: AppType.s20, fontWeight: FontWeight.bold),
+          style: context.typeRoles.titleSection.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
         ),
         const SizedBox(height: 8),
         Text(
@@ -279,7 +297,9 @@ class _EmptyView extends StatelessWidget {
           'pribadi untuk Anda. ForSale baru wajib memilih minimal satu opsi '
           'sebelum bisa dipublish.',
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: AppType.s14, color: scheme.onSurfaceVariant),
+          style: context.typeRoles.bodyDense.copyWith(
+            color: scheme.onSurfaceVariant,
+          ),
         ),
         const SizedBox(height: 24),
         ElevatedButton.icon(
@@ -305,21 +325,37 @@ class _ErrorView extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.all(AppMetrics.p24),
+      // L/R/top = visual gutter; bottom = FAB overlay clearance, the SAME
+      // authority as the loaded/empty states (SAFE-AREA-11) — the body
+      // `SafeArea` above owns the live system inset.
+      padding: const EdgeInsets.fromLTRB(
+        AppMetrics.p24,
+        AppMetrics.p24,
+        AppMetrics.p24,
+        AppMetrics.fabClearance,
+      ),
       children: [
         const SizedBox(height: 80),
-        Icon(Icons.error_outline, size: AppIconSize.display, color: context.statusColors.error),
+        Icon(
+          Icons.error_outline,
+          size: AppIconSize.display,
+          color: context.statusColors.error,
+        ),
         const SizedBox(height: 16),
-        const Text(
+        Text(
           'Gagal memuat opsi pengiriman',
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: AppType.s20, fontWeight: FontWeight.bold),
+          style: context.typeRoles.titleSection.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
         ),
         const SizedBox(height: 8),
         Text(
           message,
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: AppType.s14, color: scheme.onSurfaceVariant),
+          style: context.typeRoles.bodyDense.copyWith(
+            color: scheme.onSurfaceVariant,
+          ),
         ),
         const SizedBox(height: 24),
         ElevatedButton(onPressed: onRetry, child: const Text('Coba Lagi')),
@@ -361,13 +397,21 @@ class _OptionRow extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(AppShape.r12),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(AppMetrics.p12, AppMetrics.p12, AppMetrics.p4, AppMetrics.p12),
+          padding: const EdgeInsets.fromLTRB(
+            AppMetrics.p12,
+            AppMetrics.p12,
+            AppMetrics.p4,
+            AppMetrics.p12,
+          ),
           child: Row(
             children: [
               CircleAvatar(
                 radius: 22,
                 backgroundColor: scheme.primary.withValues(alpha: 0.1),
-                child: Text(option.emoji, style: const TextStyle(fontSize: AppType.s24)),
+                child: Text(
+                  option.emoji,
+                  style: context.typeRoles.titleProminent,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -376,8 +420,7 @@ class _OptionRow extends StatelessWidget {
                   children: [
                     Text(
                       option.displayName,
-                      style: const TextStyle(
-                        fontSize: AppType.s16,
+                      style: context.typeRoles.titleCompact.copyWith(
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -385,8 +428,7 @@ class _OptionRow extends StatelessWidget {
                     Text(
                       '${option.type.label}'
                       ' · ${option.coverageAreas.length} provinsi',
-                      style: TextStyle(
-                        fontSize: AppType.s12,
+                      style: context.typeRoles.labelMicro.copyWith(
                         color: scheme.onSurfaceVariant,
                       ),
                     ),
@@ -395,8 +437,7 @@ class _OptionRow extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(
                         'Catatan: $note',
-                        style: TextStyle(
-                          fontSize: AppType.s12,
+                        style: context.typeRoles.labelMicro.copyWith(
                           fontStyle: FontStyle.italic,
                           color: scheme.onSurfaceVariant,
                         ),
@@ -408,7 +449,6 @@ class _OptionRow extends StatelessWidget {
               Switch(
                 value: option.isActive,
                 onChanged: onToggle,
-                activeThumbColor: scheme.primary,
               ),
               PopupMenuButton<String>(
                 itemBuilder: (_) => const [

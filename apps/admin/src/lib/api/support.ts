@@ -38,9 +38,18 @@ export async function listSupportTickets(params: SupportTicketsQueryParams = {})
   const resp = await api.get<{
     data: {
       data: SupportTicketListItem[]
+      total?: number
+      page?: number
+      page_size?: number
+      total_pages?: number
     }
   }>(`/api/v1/admin/support/tickets${query ? `?${query}` : ''}`)
-  return { tickets: resp.data.data ?? [] }
+  return {
+    tickets: resp.data.data ?? [],
+    // Truthful server-side total (never derived from the current page length).
+    total: resp.data.total ?? 0,
+    totalPages: resp.data.total_pages ?? 0,
+  }
 }
 
 export async function getSupportTicket(ticketId: string) {

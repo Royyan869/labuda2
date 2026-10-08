@@ -70,19 +70,6 @@ func TestCheckDangerousDormantGuard_IdempotencyCleanupWorkerNotDangerous(t *test
 	}
 }
 
-// TestCheckDangerousDormantGuard_SellerMetricsWorkerNotDangerous verifies
-// that SELLER_METRICS_WORKER is NOT in the dangerous dormant registry.
-// It only writes seller_monthly_metrics snapshots — no money, tier, or authority mutation.
-func TestCheckDangerousDormantGuard_SellerMetricsWorkerNotDangerous(t *testing.T) {
-	prereq, err := CheckDangerousDormantGuard("SELLER_METRICS_WORKER")
-	if err != nil {
-		t.Fatalf("SELLER_METRICS_WORKER should not be in dangerous registry, got error: %v", err)
-	}
-	if prereq != "" {
-		t.Errorf("prerequisite should be empty, got %q", prereq)
-	}
-}
-
 // TestCheckDangerousDormantGuard_AckValueMustBeExactTrue verifies partial or
 // wrong ack values are rejected.
 func TestCheckDangerousDormantGuard_AckValueMustBeExactTrue(t *testing.T) {

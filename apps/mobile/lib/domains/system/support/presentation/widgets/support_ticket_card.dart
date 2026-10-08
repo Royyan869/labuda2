@@ -7,6 +7,11 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/domains/system/support/domain/domain.dart';
+import 'package:labuda/domains/system/shared/domain/services/time_format_service.dart';
+import 'package:labuda/domains/system/support/presentation/utils/support_category_label.dart';
+import 'package:labuda/domains/system/support/presentation/utils/support_priority_label.dart';
+import 'package:labuda/domains/system/support/presentation/utils/support_status_label.dart';
+import 'package:labuda/core/src/localization/l10n_extension.dart';
 import 'package:labuda/core/src/theme/app_theme.dart';
 
 // ============================================
@@ -34,14 +39,19 @@ class SupportTicketCardRefactored extends ConsumerWidget {
     final priorityConfig = PriorityConfig.get(ticket.priority);
     final statusConfig = StatusConfig.get(ticket.status);
 
-    // Time ago
+    // Time ago — canonical relative-time authority.
     final timeAgo = ticket.lastMessageAt != null
-        ? SupportUtils.formatTimeAgo(ticket.lastMessageAt!)
-        : SupportUtils.formatTimeAgo(ticket.createdAt);
+        ? const TimeFormatService().formatTimeAgo(ticket.lastMessageAt!)
+        : const TimeFormatService().formatTimeAgo(ticket.createdAt);
 
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p8),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppShape.r12)),
+      margin: const EdgeInsets.symmetric(
+        horizontal: AppMetrics.p16,
+        vertical: AppMetrics.p8,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppShape.r12),
+      ),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(AppShape.r12),
@@ -51,13 +61,18 @@ class SupportTicketCardRefactored extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Header: Priority + Category + Time
+              // Relative last-activity timestamp is secondary metadata:
+              // Flexible + single-line ellipsis (same compact strategy as
+              // the canonical support list / notification timestamp rows).
+              // Formatter authority remains TimeFormatService.
               Row(
                 children: [
                   // Priority Badge
                   Flexible(
                     child: _buildBadge(
+                      context,
                       icon: priorityConfig.icon,
-                      label: priorityConfig.labelId,
+                      label: ticket.priority.label(context.l10n),
                       colorValue: priorityConfig.colorValue,
                     ),
                   ),
@@ -66,8 +81,9 @@ class SupportTicketCardRefactored extends ConsumerWidget {
                   // Category Badge
                   Flexible(
                     child: _buildBadge(
+                      context,
                       icon: categoryConfig.icon,
-                      label: categoryConfig.nameId,
+                      label: ticket.category.label(context.l10n),
                       colorValue: categoryConfig.colorValue,
                     ),
                   ),
@@ -75,10 +91,14 @@ class SupportTicketCardRefactored extends ConsumerWidget {
                   const SizedBox(width: 8),
 
                   // Time ago
-                  Text(
-                    timeAgo,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  Flexible(
+                    child: Text(
+                      timeAgo,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ),
                 ],
@@ -127,9 +147,10 @@ class SupportTicketCardRefactored extends ConsumerWidget {
                               Flexible(
                                 child: Text(
                                   'Order #${ticket.linkedOrderId!.substring(0, 8)}...',
-                                  style: TextStyle(
-                                    fontSize: AppType.s12,
-                                    color: Theme.of(context).colorScheme.secondary,
+                                  style: context.typeRoles.labelMicro.copyWith(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.secondary,
                                   ),
                                   overflow: TextOverflow.ellipsis,
                                 ),
@@ -144,8 +165,9 @@ class SupportTicketCardRefactored extends ConsumerWidget {
                   // Status Badge
                   Flexible(
                     child: _buildBadge(
+                      context,
                       icon: statusConfig.icon,
-                      label: statusConfig.labelId,
+                      label: ticket.status.label(context.l10n),
                       colorValue: statusConfig.colorValue,
                     ),
                   ),
@@ -175,13 +197,17 @@ class SupportTicketCardRefactored extends ConsumerWidget {
     );
   }
 
-  Widget _buildBadge({
+  Widget _buildBadge(
+    BuildContext context, {
     required String icon,
     required String label,
     required int colorValue,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8, vertical: AppMetrics.p4),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppMetrics.p8,
+        vertical: AppMetrics.p4,
+      ),
       decoration: BoxDecoration(
         color: Color(colorValue).withAlpha(40),
         borderRadius: BorderRadius.circular(AppShape.r6),
@@ -190,17 +216,17 @@ class SupportTicketCardRefactored extends ConsumerWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(icon, style: const TextStyle(fontSize: AppType.s12)),
+          Text(icon, style: context.typeRoles.labelMicro),
           const SizedBox(width: 4),
           Flexible(
             child: Text(
               label,
-              style: TextStyle(
-                fontSize: AppType.s12,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: context.typeRoles.labelMicro.copyWith(
                 fontWeight: FontWeight.bold,
                 color: Color(colorValue),
               ),
-              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],

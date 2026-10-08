@@ -51,20 +51,19 @@ func (m *mockOnboardingSellerRepo) GetByUserID(
 }
 
 type mockOnboardingAddressRepo struct {
-	addresses []*addressEntity.Address
-	err       error
+	primary *addressEntity.Address
+	err     error
 }
 
-func (m *mockOnboardingAddressRepo) GetByUserIDFiltered(
+func (m *mockOnboardingAddressRepo) GetPrimaryByUserID(
 	_ context.Context,
 	_ db.Tx,
 	_ uuid.UUID,
-	_ string,
-) ([]*addressEntity.Address, error) {
-	return m.addresses, m.err
+) (*addressEntity.Address, error) {
+	return m.primary, m.err
 }
 
-func TestValidateOnboardingWithoutProfile_RequiresStructuredSenderAddress(t *testing.T) {
+func TestValidateOnboardingWithoutProfile_RequiresPrimaryAddress(t *testing.T) {
 	svc := NewSellerOnboardingService(
 		&mockOnboardingUserRepo{
 			user: &userEntity.User{
@@ -82,22 +81,22 @@ func TestValidateOnboardingWithoutProfile_RequiresStructuredSenderAddress(t *tes
 	)
 
 	missing := svc.ValidateOnboardingWithoutProfile(context.Background(), nil, uuid.New())
-	assert.Contains(t, missing, "sender_address")
+	assert.Contains(t, missing, "primary_address")
 	assert.NotContains(t, missing, "location")
 }
 
-func TestValidateOnboardingWithoutProfile_PassesWithSenderAddress(t *testing.T) {
-	senderAddress := &addressEntity.Address{
+func TestValidateOnboardingWithoutProfile_PassesWithPrimaryAddress(t *testing.T) {
+	primaryAddress := &addressEntity.Address{
 		ID:        uuid.New(),
 		UserID:    uuid.New(),
-		Tags:      []addressEntity.AddressTag{addressEntity.TagSender},
+		IsPrimary: true,
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
 	svc := NewSellerOnboardingService(
 		&mockOnboardingUserRepo{
 			user: &userEntity.User{
-				ID:            senderAddress.UserID,
+				ID:            primaryAddress.UserID,
 				EmailVerified: true,
 				PhoneNumber:   strPtr("+628123456789"),
 			},
@@ -107,14 +106,14 @@ func TestValidateOnboardingWithoutProfile_PassesWithSenderAddress(t *testing.T) 
 			},
 		},
 		&mockOnboardingSellerRepo{},
-		&mockOnboardingAddressRepo{addresses: []*addressEntity.Address{senderAddress}},
+		&mockOnboardingAddressRepo{primary: primaryAddress},
 	)
 
-	missing := svc.ValidateOnboardingWithoutProfile(context.Background(), nil, senderAddress.UserID)
+	missing := svc.ValidateOnboardingWithoutProfile(context.Background(), nil, primaryAddress.UserID)
 	require.Empty(t, missing)
 }
 
-func TestValidateOnboarding_RequiresStructuredSenderAddress(t *testing.T) {
+func TestValidateOnboarding_RequiresPrimaryAddress(t *testing.T) {
 	userID := uuid.New()
 	svc := NewSellerOnboardingService(
 		&mockOnboardingUserRepo{
@@ -143,7 +142,7 @@ func TestValidateOnboarding_RequiresStructuredSenderAddress(t *testing.T) {
 
 	var onboardingErr *ErrOnboardingIncomplete
 	require.True(t, errors.As(err, &onboardingErr))
-	assert.Contains(t, onboardingErr.MissingRequirements, "sender_address")
+	assert.Contains(t, onboardingErr.MissingRequirements, "primary_address")
 	assert.NotContains(t, onboardingErr.MissingRequirements, "location")
 }
 

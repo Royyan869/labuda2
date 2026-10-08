@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
+import { Input } from '@/components/ui/Input'
+import { Select } from '@/components/ui/Select'
 import { getReconciliationResults, getLatestReconciliationResult } from '@/lib/api/reconciliation'
 import {
   reconciliationSeverityLabels,
@@ -9,6 +11,7 @@ import {
   type ReconciliationSeverity,
 } from '@/types/reconciliation'
 import { FinanceSummaryPanel } from '@/components/finance/FinanceSummaryPanel'
+import { AdminLoadingState, AdminErrorState, AdminEmptyState, AdminPagination, PageHeader } from '@/components/common'
 import { RefreshCw, AlertTriangle, History, CheckCircle2, ChevronDown, ChevronRight } from 'lucide-react'
 
 const PAGE_SIZE = 50
@@ -55,7 +58,7 @@ function LatestRunCard() {
     <Card>
       <CardContent className="p-4">
         <div className="flex items-center gap-4">
-          <div className={`p-2 rounded-lg ${latest?.severity === 'passed' ? 'bg-success-bg0' : notFound ? 'bg-muted' : 'bg-warning-bg'}`}>
+          <div className={`p-2 rounded-lg ${latest?.severity === 'passed' ? 'bg-success-bg' : notFound ? 'bg-surface-muted' : 'bg-warning-bg'}`}>
             {latest?.severity === 'passed' ? (
               <CheckCircle2 className="h-5 w-5 text-white" />
             ) : (
@@ -63,14 +66,14 @@ function LatestRunCard() {
             )}
           </div>
           <div className="flex-1">
-            <p className="text-sm font-medium text-foreground">
+            <p className="type-label">
               {loading
                 ? 'Checking last reconciliation run...'
                 : notFound
                 ? 'No reconciliation runs yet'
                 : `Last run: ${latest ? new Date(latest.checked_at).toLocaleString() : ''}`}
             </p>
-            <p className="text-xs text-muted-foreground mt-0.5">
+            <p className="type-caption mt-0.5">
               {!loading && !notFound && latest && (
                 <>Worker is alive — most recent run was {reconciliationSeverityLabels[latest.severity].toLowerCase()}</>
               )}
@@ -132,18 +135,16 @@ export function FinanceReconciliationPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Reconciliation</h1>
-          <p className="text-muted-foreground mt-1">
-            Ledger/account balance verification history (read-only — reconciliation never auto-repairs)
-          </p>
-        </div>
-        <Button variant="ghost" size="sm" onClick={fetchResults} disabled={loading}>
-          <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
-        </Button>
-      </div>
+      <PageHeader
+        title="Reconciliation"
+        description="Ledger/account balance verification history (read-only — reconciliation never auto-repairs)"
+        actions={
+          <Button variant="ghost" size="sm" onClick={fetchResults} disabled={loading}>
+            <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+        }
+      />
 
       <FinanceSummaryPanel />
 
@@ -153,39 +154,33 @@ export function FinanceReconciliationPage() {
       <Card>
         <CardContent className="p-4">
           <div className="flex items-center gap-4 flex-wrap">
-            <div>
-              <label className="text-xs font-medium text-muted-foreground block mb-1">Severity</label>
-              <select
-                className="border border-border rounded-md px-3 py-1.5 text-sm"
-                value={severityFilter}
-                onChange={(e) => { setSeverityFilter(e.target.value as ReconciliationSeverity | ''); setOffset(0) }}
-              >
-                <option value="">All</option>
-                <option value="passed">Passed</option>
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-                <option value="critical">Critical</option>
-              </select>
-            </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground block mb-1">From</label>
-              <input
-                type="date"
-                className="border border-border rounded-md px-3 py-1.5 text-sm"
-                value={fromFilter}
-                onChange={(e) => { setFromFilter(e.target.value); setOffset(0) }}
-              />
-            </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground block mb-1">To</label>
-              <input
-                type="date"
-                className="border border-border rounded-md px-3 py-1.5 text-sm"
-                value={toFilter}
-                onChange={(e) => { setToFilter(e.target.value); setOffset(0) }}
-              />
-            </div>
+            <Select
+              label="Severity"
+              size="compact"
+              value={severityFilter}
+              onChange={(e) => { setSeverityFilter(e.target.value as ReconciliationSeverity | ''); setOffset(0) }}
+            >
+              <option value="">All</option>
+              <option value="passed">Passed</option>
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+              <option value="critical">Critical</option>
+            </Select>
+            <Input
+              type="date"
+              label="From"
+              size="compact"
+              value={fromFilter}
+              onChange={(e) => { setFromFilter(e.target.value); setOffset(0) }}
+            />
+            <Input
+              type="date"
+              label="To"
+              size="compact"
+              value={toFilter}
+              onChange={(e) => { setToFilter(e.target.value); setOffset(0) }}
+            />
             {(severityFilter || fromFilter || toFilter) && (
               <div className="self-end">
                 <Button variant="ghost" size="sm" onClick={resetFilters}>
@@ -193,7 +188,7 @@ export function FinanceReconciliationPage() {
                 </Button>
               </div>
             )}
-            <div className="ml-auto text-sm text-muted-foreground">
+            <div className="ml-auto type-secondary">
               {total} run{total !== 1 ? 's' : ''}
             </div>
           </div>
@@ -202,42 +197,31 @@ export function FinanceReconciliationPage() {
 
       {/* Error State */}
       {error && (
-        <Card>
-          <CardContent className="p-8 text-center">
-            <AlertTriangle className="h-10 w-10 text-destructive mx-auto mb-3" />
-            <p className="text-foreground font-medium">Failed to load reconciliation results</p>
-            <p className="text-muted-foreground text-sm mt-1">{error}</p>
-            <Button variant="secondary" size="sm" onClick={fetchResults} className="mt-4">
-              Retry
-            </Button>
-          </CardContent>
-        </Card>
+        <AdminErrorState
+          title="Failed to load reconciliation results"
+          message={error}
+          onRetry={fetchResults}
+        />
       )}
 
       {/* Loading State */}
-      {loading && results.length === 0 && !error && (
-        <Card>
-          <CardContent className="p-8">
-            <div className="space-y-4">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="animate-pulse flex items-center gap-4">
-                  <div className="h-4 bg-border rounded w-32" />
-                  <div className="h-4 bg-border rounded flex-1" />
-                  <div className="h-6 w-20 bg-border rounded-full" />
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {loading && results.length === 0 && !error && <AdminLoadingState />}
 
       {/* Empty State */}
       {!loading && !error && results.length === 0 && (
         <Card>
-          <CardContent className="p-12 text-center">
-            <History className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h2 className="text-lg font-semibold text-foreground">No Reconciliation Runs</h2>
-            <p className="text-muted-foreground mt-1">No runs match the current filters.</p>
+          <CardContent>
+            <AdminEmptyState
+              icon={History}
+              title="No Reconciliation Runs"
+              description={
+                severityFilter || fromFilter || toFilter
+                  ? 'No runs match the current filters.'
+                  : 'No reconciliation runs have been recorded yet.'
+              }
+              filtered={Boolean(severityFilter || fromFilter || toFilter)}
+              onClearFilters={resetFilters}
+            />
           </CardContent>
         </Card>
       )}
@@ -249,7 +233,7 @@ export function FinanceReconciliationPage() {
             <CardTitle>Reconciliation Runs</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="divide-y divide-[hsl(var(--border))]">
+            <div className="divide-y divide-border">
               {results.map((r) => {
                 const expanded = expandedId === r.id
                 const hasDetails = r.details && Object.keys(r.details).length > 0
@@ -259,10 +243,10 @@ export function FinanceReconciliationPage() {
                       <div className="flex flex-col gap-1.5 min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
                           <SeverityBadge severity={r.severity} />
-                          <span className="text-xs text-muted-foreground">action: {r.action_taken}</span>
+                          <span className="type-caption">action: {r.action_taken}</span>
                           {r.auto_repaired && <Badge variant="warning">auto_repaired (historical)</Badge>}
                         </div>
-                        <p className="text-sm text-foreground">
+                        <p className="type-body">
                           {new Date(r.checked_at).toLocaleString()} — {r.mismatched_accounts}/{r.total_accounts} accounts mismatched
                         </p>
                         {hasDetails && (
@@ -293,27 +277,12 @@ export function FinanceReconciliationPage() {
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between">
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => setOffset((o) => Math.max(0, o - PAGE_SIZE))}
-            disabled={offset <= 0}
-          >
-            Previous
-          </Button>
-          <span className="text-sm text-muted-foreground">
-            Page {currentPage} of {totalPages}
-          </span>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => setOffset((o) => o + PAGE_SIZE)}
-            disabled={currentPage >= totalPages}
-          >
-            Next
-          </Button>
-        </div>
+        <AdminPagination
+          page={currentPage}
+          totalPages={totalPages}
+          onPageChange={(newPage) => setOffset((newPage - 1) * PAGE_SIZE)}
+          disabled={loading}
+        />
       )}
     </div>
   )

@@ -67,6 +67,9 @@ func (m *ownershipMockRepo) GetTicketByID(ctx context.Context, tx interface{}, t
 func (m *ownershipMockRepo) ListTickets(ctx context.Context, tx interface{}, filter *supportRepo.TicketFilter, cursorCreatedAt *time.Time, cursorID *uuid.UUID, limit int) ([]*supportEntity.Ticket, error) {
 	return nil, nil
 }
+func (m *ownershipMockRepo) ListTicketsForOrdering(ctx context.Context, tx interface{}, filter *supportRepo.TicketFilter) ([]*supportEntity.Ticket, error) {
+	return nil, nil
+}
 func (m *ownershipMockRepo) CountTickets(ctx context.Context, tx interface{}, filter *supportRepo.TicketFilter) (int64, error) {
 	return 0, nil
 }

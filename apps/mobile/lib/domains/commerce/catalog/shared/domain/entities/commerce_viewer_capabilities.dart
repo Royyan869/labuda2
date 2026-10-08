@@ -38,10 +38,6 @@ class CommerceViewerCapabilities extends Equatable {
       canBid = false,
       canBuyNow = false;
 
-  bool get isOwner => role == 'owner';
-  bool get isBuyer => role == 'buyer';
-  bool get isGuest => role == 'guest';
-
   factory CommerceViewerCapabilities.fromJson(Map<String, dynamic>? json) {
     if (json == null) {
       return const CommerceViewerCapabilities.guest();

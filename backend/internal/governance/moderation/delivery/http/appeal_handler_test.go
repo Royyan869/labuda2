@@ -73,8 +73,8 @@ func (f *fakeAppealRepository) ListByDecisionID(ctx context.Context, tx interfac
 func (f *fakeAppealRepository) ListAll(ctx context.Context, tx interface{}, statusFilter *appealEntity.AppealStatus, limit, offset int) ([]*appealEntity.Appeal, error) {
 	panic("fakeAppealRepository.ListAll: not used by GetAppeal, should not be called")
 }
-func (f *fakeAppealRepository) ListPending(ctx context.Context, tx interface{}, limit, offset int) ([]*appealEntity.Appeal, error) {
-	panic("fakeAppealRepository.ListPending: not used by GetAppeal, should not be called")
+func (f *fakeAppealRepository) CountAll(ctx context.Context, tx interface{}, statusFilter *appealEntity.AppealStatus) (int, error) {
+	panic("fakeAppealRepository.CountAll: not used by GetAppeal, should not be called")
 }
 
 // fakeDecisionRepository is a minimal stub for DecisionRepository.
@@ -174,6 +174,9 @@ func (unusedCommentRepository) GetForUpdate(ctx context.Context, tx db.Tx, id uu
 func (unusedCommentRepository) Update(ctx context.Context, tx db.Tx, comment *contentEntity.Comment) error {
 	panic("unusedCommentRepository.Update: should not be called by GetAppeal")
 }
+func (unusedCommentRepository) UpdateBody(ctx context.Context, tx db.Tx, id uuid.UUID, body string) error {
+	panic("unusedCommentRepository.UpdateBody: should not be called by GetAppeal")
+}
 func (unusedCommentRepository) CreateForSaleReferenceComment(ctx context.Context, tx db.Tx, targetID, sellerID, forSaleID uuid.UUID, body *string) error {
 	panic("unusedCommentRepository.CreateForSaleReferenceComment: should not be called by GetAppeal")
 }
@@ -207,7 +210,7 @@ func (unusedCommentRepository) FindTargetIDByCommerceReference(_ context.Context
 
 // fakeAppealDB implements db.Transactor without a live Postgres connection.
 // AppealRepository.GetByID's tx parameter is untyped (interface{}), so a nil
-tx flowing through is safe here.
+// tx flowing through is safe here.
 type fakeAppealDB struct{}
 
 func (fakeAppealDB) WithTx(ctx context.Context, fn func(tx db.Tx) error) error {

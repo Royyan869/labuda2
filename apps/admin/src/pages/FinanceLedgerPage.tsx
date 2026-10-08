@@ -2,9 +2,11 @@ import { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
+import { Input } from '@/components/ui/Input'
 import { getLedgerTransactions } from '@/lib/api'
 import type { LedgerTransaction } from '@/types/finance'
-import { RefreshCw, AlertTriangle, BookOpen } from 'lucide-react'
+import { RefreshCw, BookOpen } from 'lucide-react'
+import { AdminLoadingState, AdminErrorState, AdminEmptyState, AdminPagination, PageHeader } from '@/components/common'
 
 const PAGE_SIZE = 50
 
@@ -55,49 +57,44 @@ export function FinanceLedgerPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Finance Ledger</h1>
-          <p className="text-muted-foreground mt-1">Ledger transactions (read-only)</p>
-        </div>
-        <Button variant="ghost" size="sm" onClick={fetchLedger} disabled={loading}>
-          <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
-        </Button>
-      </div>
+      <PageHeader
+        title="Finance Ledger"
+        description="Ledger transactions (read-only)"
+        actions={
+          <Button variant="ghost" size="sm" onClick={fetchLedger} disabled={loading}>
+            <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+        }
+      />
 
       {/* Filters */}
       <Card>
         <CardContent className="p-4">
           <div className="flex items-center gap-4 flex-wrap">
-            <div>
-              <label className="text-xs font-medium text-muted-foreground block mb-1">Reference Type</label>
-              <input
-                type="text"
-                placeholder="e.g. ORDER"
-                className="border border-border rounded-md px-3 py-1.5 text-sm w-40"
-                value={referenceTypeFilter}
-                onChange={(e) => { setReferenceTypeFilter(e.target.value); setOffset(0) }}
-              />
-            </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground block mb-1">From</label>
-              <input
-                type="date"
-                className="border border-border rounded-md px-3 py-1.5 text-sm"
-                value={fromFilter}
-                onChange={(e) => { setFromFilter(e.target.value); setOffset(0) }}
-              />
-            </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground block mb-1">To</label>
-              <input
-                type="date"
-                className="border border-border rounded-md px-3 py-1.5 text-sm"
-                value={toFilter}
-                onChange={(e) => { setToFilter(e.target.value); setOffset(0) }}
-              />
-            </div>
+            <Input
+              type="text"
+              label="Reference Type"
+              size="compact"
+              placeholder="e.g. ORDER"
+              className="w-40"
+              value={referenceTypeFilter}
+              onChange={(e) => { setReferenceTypeFilter(e.target.value); setOffset(0) }}
+            />
+            <Input
+              type="date"
+              label="From"
+              size="compact"
+              value={fromFilter}
+              onChange={(e) => { setFromFilter(e.target.value); setOffset(0) }}
+            />
+            <Input
+              type="date"
+              label="To"
+              size="compact"
+              value={toFilter}
+              onChange={(e) => { setToFilter(e.target.value); setOffset(0) }}
+            />
             {(referenceTypeFilter || fromFilter || toFilter) && (
               <div className="self-end">
                 <Button variant="ghost" size="sm" onClick={resetFilters}>
@@ -105,7 +102,7 @@ export function FinanceLedgerPage() {
                 </Button>
               </div>
             )}
-            <div className="ml-auto text-sm text-muted-foreground">
+            <div className="ml-auto type-secondary">
               {total} transaction{total !== 1 ? 's' : ''}
             </div>
           </div>
@@ -114,42 +111,31 @@ export function FinanceLedgerPage() {
 
       {/* Error State */}
       {error && (
-        <Card>
-          <CardContent className="p-8 text-center">
-            <AlertTriangle className="h-10 w-10 text-destructive mx-auto mb-3" />
-            <p className="text-foreground font-medium">Failed to load ledger</p>
-            <p className="text-muted-foreground text-sm mt-1">{error}</p>
-            <Button variant="secondary" size="sm" onClick={fetchLedger} className="mt-4">
-              Retry
-            </Button>
-          </CardContent>
-        </Card>
+        <AdminErrorState
+          title="Failed to load ledger"
+          message={error}
+          onRetry={fetchLedger}
+        />
       )}
 
       {/* Loading State */}
-      {loading && transactions.length === 0 && !error && (
-        <Card>
-          <CardContent className="p-8">
-            <div className="space-y-4">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="animate-pulse flex items-center gap-4">
-                  <div className="h-4 bg-border rounded w-32" />
-                  <div className="h-4 bg-border rounded flex-1" />
-                  <div className="h-6 w-20 bg-border rounded-full" />
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {loading && transactions.length === 0 && !error && <AdminLoadingState />}
 
       {/* Empty State */}
       {!loading && !error && transactions.length === 0 && (
         <Card>
-          <CardContent className="p-12 text-center">
-            <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h2 className="text-lg font-semibold text-foreground">No Ledger Transactions</h2>
-            <p className="text-muted-foreground mt-1">No transactions match the current filters.</p>
+          <CardContent>
+            <AdminEmptyState
+              icon={BookOpen}
+              title="No Ledger Transactions"
+              description={
+                referenceTypeFilter || fromFilter || toFilter
+                  ? 'No transactions match the current filters.'
+                  : 'No ledger transactions have been recorded yet.'
+              }
+              filtered={Boolean(referenceTypeFilter || fromFilter || toFilter)}
+              onClearFilters={resetFilters}
+            />
           </CardContent>
         </Card>
       )}
@@ -172,7 +158,7 @@ export function FinanceLedgerPage() {
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">Created At</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[hsl(var(--border))]">
+                <tbody className="divide-y divide-border">
                   {transactions.map((tx) => (
                     <tr key={tx.id} className="hover:bg-surface-muted align-top">
                       <td className="px-4 py-3 font-mono text-xs text-foreground">
@@ -181,22 +167,22 @@ export function FinanceLedgerPage() {
                       <td className="px-4 py-3">
                         <Badge variant="info">{tx.reference_type}</Badge>
                         {tx.reference_id && (
-                          <div className="font-mono text-xs text-muted-foreground mt-1">
+                          <div className="font-mono type-caption mt-1">
                             {tx.reference_id.slice(0, 8)}...
                           </div>
                         )}
                         {tx.order_id && (
-                          <div className="text-xs text-muted-foreground mt-0.5">
+                          <div className="type-caption mt-0.5">
                             order: {tx.order_id.slice(0, 8)}...
                           </div>
                         )}
                         {tx.payment_id && (
-                          <div className="text-xs text-muted-foreground mt-0.5">
+                          <div className="type-caption mt-0.5">
                             payment: {tx.payment_id.slice(0, 8)}...
                           </div>
                         )}
                       </td>
-                      <td className="px-4 py-3 font-mono text-xs text-muted-foreground max-w-[200px] truncate" title={tx.idempotency_key}>
+                      <td className="px-4 py-3 font-mono type-caption max-w-[200px] truncate" title={tx.idempotency_key}>
                         {tx.idempotency_key}
                       </td>
                       <td className="px-4 py-3">
@@ -222,7 +208,7 @@ export function FinanceLedgerPage() {
                           ))}
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
+                      <td className="px-4 py-3 type-caption whitespace-nowrap">
                         {new Date(tx.created_at).toLocaleString()}
                       </td>
                     </tr>
@@ -236,27 +222,12 @@ export function FinanceLedgerPage() {
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between">
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => setOffset((o) => Math.max(0, o - PAGE_SIZE))}
-            disabled={offset <= 0}
-          >
-            Previous
-          </Button>
-          <span className="text-sm text-muted-foreground">
-            Page {currentPage} of {totalPages}
-          </span>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => setOffset((o) => o + PAGE_SIZE)}
-            disabled={currentPage >= totalPages}
-          >
-            Next
-          </Button>
-        </div>
+        <AdminPagination
+          page={currentPage}
+          totalPages={totalPages}
+          onPageChange={(newPage) => setOffset((newPage - 1) * PAGE_SIZE)}
+          disabled={loading}
+        />
       )}
     </div>
   )

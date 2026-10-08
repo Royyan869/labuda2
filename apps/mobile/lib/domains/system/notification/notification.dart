@@ -39,7 +39,6 @@ export 'presentation/screens/notification_settings_screen.dart';
 // Presentation - Widgets (Public)
 // ============================================================================
 export 'presentation/widgets/notification_badge_widget.dart';
-export 'presentation/widgets/notification_empty_state_widget.dart';
 export 'presentation/widgets/notification_item_widget.dart';
 export 'presentation/widgets/preference_toggle_widget.dart';
 export 'presentation/widgets/notification_initializer.dart';
@@ -56,11 +55,6 @@ export 'presentation/providers/navigation_provider.dart';
 export 'presentation/providers/notification_list_provider.dart';
 export 'presentation/providers/notification_settings_provider.dart';
 export 'presentation/providers/unread_count_provider.dart';
-
-// ============================================================================
-// Handlers & Helpers (Public - untuk notification routing)
-// ============================================================================
-export 'presentation/helpers/notification_dialog_helper.dart';
 
 // ============================================================================
 // Data Layer - Providers (Riverpod)

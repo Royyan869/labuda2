@@ -15,9 +15,8 @@ class MainDrawerFooter extends StatelessWidget {
       padding: const EdgeInsets.all(AppMetrics.p16),
       child: Text(
         'Version 1.0.0',
-        style: TextStyle(
+        style: context.typeRoles.labelMicro.copyWith(
           color: scheme.onSurfaceVariant,
-          fontSize: AppType.s12,
         ),
       ),
     );

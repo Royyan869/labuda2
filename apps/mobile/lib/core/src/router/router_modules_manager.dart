@@ -8,7 +8,6 @@ import 'package:labuda/core/src/router/modules/content_module.dart';
 import 'package:labuda/core/src/router/modules/auction_module.dart';
 import 'package:labuda/core/src/router/modules/order_module.dart';
 import 'package:labuda/core/src/router/modules/coins_module.dart';
-import 'package:labuda/core/src/router/modules/verification_module.dart';
 import 'package:labuda/core/src/router/modules/search_module.dart';
 import 'package:labuda/core/src/router/modules/report_module.dart';
 import 'package:labuda/core/src/router/modules/support_module.dart';
@@ -33,7 +32,6 @@ class RouterModulesManager {
     AuctionModule(), // Auction management
     OrderModule(), // Order management (buyer & seller)
     CoinsModule(), // Labuda Coins (loyalty points system)
-    VerificationModule(), // KYC, Business, and Seller verification
     SearchModule(), // Global & hybrid search functionality
     ReportModule(), // User reports & appeals
     SupportModule(), // Customer support & help

@@ -11,6 +11,7 @@ import 'package:labuda/domains/user/profile/data/services/avatar_cache_service.d
 import 'package:labuda/features/search/search/domain/entities/user_search.dart';
 import 'package:labuda/features/search/search/presentation/providers/mention_providers.dart'
     show mentionUserSearchProvider, MentionSearchParams;
+import 'package:labuda/shared/helpers/canonical_username_validator.dart';
 import 'package:labuda/shared/providers/auth_status_providers.dart'
     show currentUserIdProvider;
 import 'package:labuda/shared/widgets/mentions/mention_suggestion_overlay.dart';
@@ -30,11 +31,11 @@ class _FakeAuthController extends AuthController { _FakeAuthController(this._st)
 AuthUser _au(String id) => AuthUser(id:id, createdAt:DateTime(2025), updatedAt:DateTime(2025),
   email:'$id@t.com', username:id, isEmailVerified:true, roles:const[UserRole.user], provider:AuthProvider.email);
 
-/// Canonical mentionable username regex — mirrors production _isMentionableUsername.
-bool _isMentionable(String u) => RegExp(r'^[a-z0-9_]+$').hasMatch(u);
+/// Mirrors production mention filtering: the ONE username format authority.
+bool _isMentionable(String u) => CanonicalUsernameValidator.isValid(u);
 
 /// Fake that mirrors production mentionUserSearchProvider behavior:
-/// - client-side regex filtering (_isMentionableUsername)
+/// - client-side filtering through CanonicalUsernameValidator
 /// - query contains match
 /// - allowedUserIds filter
 List<UserSearch> _fakeSearch(MentionSearchParams params, List<UserSearch> all) {
@@ -80,15 +81,15 @@ void main() {
       expect(find.text('@alice'), findsAtLeast(1));
     });
     testWidgets('raw @alice', (t) async {
-      // '@' fails _isMentionableUsername regex → filtered out
-      // So return clean 'alice' which passes regex and matches 'ali'
+      // '@' is not a canonical username → filtered out
+      // So return clean 'alice' which passes the canonical rule and matches 'ali'
       await t.pumpWidget(_w(users:[_u('u1','alice')], q:'ali', onSel:(_){}));
       await t.pumpAndSettle();
       expect(find.text('@alice'), findsAtLeast(1));
       expect(find.text('@@alice'), findsNothing);
     });
     testWidgets('multi-@ @@alice', (t) async {
-      // '@@alice' fails _isMentionableUsername regex → filtered out
+      // '@@alice' is never rendered as a handle → filtered out
       await t.pumpWidget(_w(users:[_u('u1','alice')], q:'ali', onSel:(_){}));
       await t.pumpAndSettle();
       expect(find.text('@alice'), findsAtLeast(1));
@@ -101,13 +102,13 @@ void main() {
       expect(find.text('No users found'), findsOneWidget);
     });
     testWidgets('hyphen → no row', (t) async {
-      // 'john-doe' fails _isMentionableUsername (hyphen not in [a-z0-9_])
+      // 'john-doe' fails CanonicalUsernameValidator (hyphen not in [a-z0-9_])
       await t.pumpWidget(_w(users:[_u('u1','john-doe')], q:'john', onSel:(_){}));
       await t.pumpAndSettle();
       expect(find.text('No users found'), findsOneWidget);
     });
     testWidgets('period → no row', (t) async {
-      // 'john.doe' fails _isMentionableUsername (period not in [a-z0-9_])
+      // 'john.doe' fails CanonicalUsernameValidator (period not in [a-z0-9_])
       await t.pumpWidget(_w(users:[_u('u1','john.doe')], q:'john', onSel:(_){}));
       await t.pumpAndSettle();
       expect(find.text('No users found'), findsOneWidget);
@@ -118,13 +119,13 @@ void main() {
       expect(find.text('@12345'), findsAtLeast(1));
     });
     testWidgets('UUID-with-hyphens → no row', (t) async {
-      // UUID contains hyphens → fails _isMentionableUsername
+      // UUID contains hyphens → fails CanonicalUsernameValidator
       await t.pumpWidget(_w(users:[_u('u1','550e8400-e29b-41d4-a716-446655440000')], q:'550e', onSel:(_){}));
       await t.pumpAndSettle();
       expect(find.text('No users found'), findsOneWidget);
     });
     testWidgets('invalid row cannot be tapped', (t) async {
-      // '@' fails _isMentionableUsername → filtered out → no row to tap
+      // '@' fails CanonicalUsernameValidator → filtered out → no row to tap
       await t.pumpWidget(_w(users:[_u('u1','@')], q:'@', onSel:(_){}));
       await t.pumpAndSettle();
       // No valid users rendered — callback never fires

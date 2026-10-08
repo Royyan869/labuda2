@@ -4,7 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:labuda/core/config/seller_upgrade_config_entity.dart';
-import 'package:labuda/core/config/seller_upgrade_config_provider.dart' as config;
+import 'package:labuda/core/config/seller_upgrade_config_provider.dart'
+    as config;
 import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/finance/transaction/payment/domain/entities/payment.dart'
     show PaymentMethodOption;
@@ -31,7 +32,8 @@ class SellerRenewalScreen extends ConsumerStatefulWidget {
   const SellerRenewalScreen({super.key});
 
   @override
-  ConsumerState<SellerRenewalScreen> createState() => _SellerRenewalScreenState();
+  ConsumerState<SellerRenewalScreen> createState() =>
+      _SellerRenewalScreenState();
 }
 
 class _SellerRenewalScreenState extends ConsumerState<SellerRenewalScreen> {
@@ -46,7 +48,10 @@ class _SellerRenewalScreenState extends ConsumerState<SellerRenewalScreen> {
   @override
   void initState() {
     super.initState();
-    _authSub = ref.listenManual<AuthState>(authControllerProvider, (prev, next) {
+    _authSub = ref.listenManual<AuthState>(authControllerProvider, (
+      prev,
+      next,
+    ) {
       final prevId = _principalId(prev);
       final nextId = _principalId(next);
       if (prevId != nextId) {
@@ -88,7 +93,9 @@ class _SellerRenewalScreenState extends ConsumerState<SellerRenewalScreen> {
       _methodsError = null;
     });
     try {
-      final m = await ref.read(sellerRemoteDatasourceProvider).getSubscriptionPaymentMethods();
+      final m = await ref
+          .read(sellerRemoteDatasourceProvider)
+          .getSubscriptionPaymentMethods();
       if (!mounted) return;
       setState(() {
         _methods = m;
@@ -98,7 +105,9 @@ class _SellerRenewalScreenState extends ConsumerState<SellerRenewalScreen> {
       if (!mounted) return;
       setState(() {
         _loadingMethods = false;
-        _methodsError = e.code == 'NO_ACTIVE_CONFIG' ? 'Konfigurasi langganan belum tersedia.' : 'Gagal memuat metode pembayaran.';
+        _methodsError = e.code == 'NO_ACTIVE_CONFIG'
+            ? 'Konfigurasi langganan belum tersedia.'
+            : 'Gagal memuat metode pembayaran.';
       });
     } catch (_) {
       if (!mounted) return;
@@ -113,14 +122,20 @@ class _SellerRenewalScreenState extends ConsumerState<SellerRenewalScreen> {
     final available = _methods?.methods ?? const [];
     if (available.isEmpty) return;
     final options = available
-        .map((m) => PaymentMethodOption(
-              methodCode: m.methodCode,
-              displayName: m.displayName,
-              buyerPaymentFeeAmount: m.serviceFeeAmount,
-              totalPayableAmount: m.grossAmount,
-            ))
+        .map(
+          (m) => PaymentMethodOption(
+            methodCode: m.methodCode,
+            displayName: m.displayName,
+            buyerPaymentFeeAmount: m.serviceFeeAmount,
+            totalPayableAmount: m.grossAmount,
+          ),
+        )
         .toList();
-    final code = await PaymentMethodPickerSheet.show(context, methods: options);
+    final code = await PaymentMethodPickerSheet.show(
+      context,
+      methods: options,
+      selectedMethodCode: _selected?.methodCode,
+    );
     if (!mounted || code == null) return;
     for (final m in available) {
       if (m.methodCode == code) {
@@ -147,17 +162,29 @@ class _SellerRenewalScreenState extends ConsumerState<SellerRenewalScreen> {
     }
     final uid = _currentUserId();
     if (uid == null) {
-      AppSnackBar.showError(context, 'User not authenticated');
+      ref.read(navigationHandlerProvider).navigateToSignIn();
       return;
     }
     setState(() => _submitting = true);
+    // SUBMISSION SNAPSHOT: capture the chosen method before the baseline await
+    // so changing the picker mid-flight cannot switch the method that is paid.
+    final selectedMethod = _selected!;
     final epoch = _principalEpoch;
     final baseline = await _loadBaseline(uid);
     if (!mounted) return;
-    showDialog(context: context, barrierDismissible: false, builder: (_) => const Center(child: CircularProgressIndicator()));
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
     try {
-      final data = await ref.read(sellerRemoteDatasourceProvider).initiateSubscriptionPayment(paymentMethodCode: _selected!.methodCode);
-      if (mounted && Navigator.of(context).canPop()) Navigator.of(context).pop();
+      final data = await ref
+          .read(sellerRemoteDatasourceProvider)
+          .initiateSubscriptionPayment(
+            paymentMethodCode: selectedMethod.methodCode,
+          );
+      if (mounted && Navigator.of(context).canPop())
+        Navigator.of(context).pop();
       if (!mounted) return;
       if (!_isCurrent(epoch, uid)) return;
       final url = data['payment_url'] as String?;
@@ -173,11 +200,13 @@ class _SellerRenewalScreenState extends ConsumerState<SellerRenewalScreen> {
       if (!mounted) return;
       await _showPending(epoch, uid, baseline, paymentId);
     } on ApiException catch (e) {
-      if (mounted && Navigator.of(context).canPop()) Navigator.of(context).pop();
+      if (mounted && Navigator.of(context).canPop())
+        Navigator.of(context).pop();
       if (!mounted) return;
       AppSnackBar.showError(context, e.message);
     } catch (_) {
-      if (mounted && Navigator.of(context).canPop()) Navigator.of(context).pop();
+      if (mounted && Navigator.of(context).canPop())
+        Navigator.of(context).pop();
       if (!mounted) return;
       AppSnackBar.showError(context, 'Gagal memproses pembayaran. Coba lagi.');
     } finally {
@@ -197,7 +226,12 @@ class _SellerRenewalScreenState extends ConsumerState<SellerRenewalScreen> {
     }
   }
 
-  Future<void> _showPending(int epoch, String uid, SellerSubscription? baseline, String? paymentId) async {
+  Future<void> _showPending(
+    int epoch,
+    String uid,
+    SellerSubscription? baseline,
+    String? paymentId,
+  ) async {
     // COPY-AUTHORITY: "Aktivasi" wording is only correct when the seller has
     // NEVER had an interval (baseline null — GET /seller/subscription 404).
     // Expired-interval renewal IS still a renewal ("Perpanjangan"), and early
@@ -220,7 +254,12 @@ class _SellerRenewalScreenState extends ConsumerState<SellerRenewalScreen> {
       } else {
         // Manual re-entry: check backend truth FIRST ("Cek status" must
         // check, not reopen the polling dialog), then offer to poll again.
-        final confirmed = await _checkPaymentConfirmed(epoch, uid, baseline, paymentId);
+        final confirmed = await _checkPaymentConfirmed(
+          epoch,
+          uid,
+          baseline,
+          paymentId,
+        );
         if (successHandled || !mounted || !_isCurrent(epoch, uid)) return;
         if (confirmed) {
           successHandled = true;
@@ -332,27 +371,36 @@ class _SellerRenewalScreenState extends ConsumerState<SellerRenewalScreen> {
     final activationMode = sellerState.isPendingActivation;
     return Scaffold(
       appBar: AppBarCustom(
-        title: activationMode ? 'Aktifkan Langganan Seller' : 'Perpanjang Seller',
-        leading: IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.of(context).pop()),
+        title: activationMode
+            ? 'Aktifkan Langganan Seller'
+            : 'Perpanjang Seller',
+        leading: IconButton(
+          icon: const Icon(Icons.close, semanticLabel: 'Tutup'),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
       ),
+      // Canonical body-level bottom-inset authority (SAFE-AREA-21): the ONE
+      // `SafeArea` consumes the live system bottom inset for the CTA-bearing
+      // data body. The ListView's explicit `p16` padding is DESIGN spacing
+      // only — an explicit scroll padding never inherits MediaQuery padding —
+      // and the loading/error branches have no bottom content.
       body: cfgAsync.when(
-        data: (cfg) => _buildBody(cfg, sellerState),
+        data: (cfg) => SafeArea(child: _buildBody(cfg, sellerState)),
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('Gagal memuat konfigurasi: $e')),
       ),
     );
   }
 
-  Widget _buildBody(
-    SellerUpgradeConfigEntity cfg,
-    SellerState sellerState,
-  ) {
+  Widget _buildBody(SellerUpgradeConfigEntity cfg, SellerState sellerState) {
     final scheme = Theme.of(context).colorScheme;
     final methods = _methods;
+    final availableMethods = methods?.methods ?? const [];
     // COPY-AUTHORITY mirrors build(): "Aktifkan" for sellers who never had an
     // interval, "Perpanjang" for real renewals.
     final activationMode = sellerState.isPendingActivation;
-    final principal = (methods?.principalAmount ?? cfg.yearlyFee.round()).toDouble();
+    final principal = (methods?.principalAmount ?? cfg.yearlyFee.round())
+        .toDouble();
     final sel = _selected;
     final fee = (sel?.serviceFeeAmount ?? 0).toDouble();
     return ListView(
@@ -361,75 +409,147 @@ class _SellerRenewalScreenState extends ConsumerState<SellerRenewalScreen> {
         Container(
           padding: const EdgeInsets.all(AppMetrics.p16),
           decoration: BoxDecoration(
-            gradient: LinearGradient(colors: [context.statusColors.success.withValues(alpha: 0.16), context.statusColors.success.withValues(alpha: 0.05)]),
+            gradient: LinearGradient(
+              colors: [
+                context.statusColors.success.withValues(alpha: 0.16),
+                context.statusColors.success.withValues(alpha: 0.05),
+              ],
+            ),
             borderRadius: BorderRadius.circular(AppShape.r16),
-            border: Border.all(color: context.statusColors.success.withValues(alpha: 0.35)),
+            border: Border.all(
+              color: context.statusColors.success.withValues(alpha: 0.35),
+            ),
           ),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(
-              sellerState.isExpired
-                  ? 'Mode perpanjang'
-                  : activationMode
-                      ? 'Mode aktivasi'
-                      : 'Mode perpanjang dini',
-              style: TextStyle(fontSize: AppType.s14, fontWeight: FontWeight.w700, color: scheme.onSurface),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              sellerState.isExpired
-                  ? 'Profil seller terdeteksi. Perpanjang untuk memulihkan otoritas jualan tanpa membuat identitas baru.'
-                  : activationMode
-                      ? 'Profil seller terdeteksi. Aktifkan langganan untuk mulai jual dan lelang — identitas seller Anda tetap dipakai.'
-                      : 'Profil seller terdeteksi. Perpanjang dini menjaga identitas seller Anda tetap utuh.',
-              style: TextStyle(fontSize: AppType.s14, color: scheme.onSurfaceVariant),
-            ),
-          ]),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                sellerState.isExpired
+                    ? 'Mode perpanjang'
+                    : activationMode
+                    ? 'Mode aktivasi'
+                    : 'Mode perpanjang dini',
+                style: context.typeRoles.bodyDense.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: scheme.onSurface,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                sellerState.isExpired
+                    ? 'Profil seller terdeteksi. Perpanjang untuk memulihkan otoritas jualan tanpa membuat identitas baru.'
+                    : activationMode
+                    ? 'Profil seller terdeteksi. Aktifkan langganan untuk mulai jual dan lelang — identitas seller Anda tetap dipakai.'
+                    : 'Profil seller terdeteksi. Perpanjang dini menjaga identitas seller Anda tetap utuh.',
+                style: context.typeRoles.bodyDense.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: 16),
         Container(
           padding: const EdgeInsets.all(AppMetrics.p16),
-          decoration: BoxDecoration(color: scheme.surface, borderRadius: BorderRadius.circular(AppShape.r12), border: Border.all(color: scheme.outlineVariant)),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('Seller Payment Summary', style: TextStyle(fontSize: AppType.s16, fontWeight: FontWeight.bold, color: scheme.onSurface)),
-            const SizedBox(height: 16),
-            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text('Yearly subscription', style: TextStyle(fontSize: AppType.s14, color: scheme.onSurfaceVariant)), Text(AppFormatters.formatCurrency(principal), style: const TextStyle(fontWeight: FontWeight.w600))]),
-            const SizedBox(height: 12),
-            _buildMethodSelector(context),
-            if (sel != null) ...[
+          decoration: BoxDecoration(
+            color: scheme.surface,
+            borderRadius: BorderRadius.circular(AppShape.r12),
+            border: Border.all(color: scheme.outlineVariant),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Seller Payment Summary',
+                style: context.typeRoles.titleCompact.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: scheme.onSurface,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Yearly subscription',
+                    style: context.typeRoles.bodyDense.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                  Text(
+                    AppFormatters.formatCurrency(principal),
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
               const SizedBox(height: 12),
-              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text('Payment method fee', style: TextStyle(fontSize: AppType.s14, color: scheme.onSurfaceVariant)), Text(AppFormatters.formatCurrency(fee))]),
+              PaymentMethodTrigger(
+                selectedMethodCode: sel?.methodCode,
+                selectedMethodDisplayName: sel?.displayName,
+                isLoading: _loadingMethods,
+                hasMethods: availableMethods.isNotEmpty,
+                errorMessage: _methodsError,
+                onTap: availableMethods.isEmpty
+                    ? () => unawaited(_loadMethods())
+                    : () => unawaited(_pickMethod()),
+                onRetry: () => unawaited(_loadMethods()),
+              ),
+              if (sel != null) ...[
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Payment method fee',
+                      style: context.typeRoles.bodyDense.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                    Text(AppFormatters.formatCurrency(fee)),
+                  ],
+                ),
+              ],
+              const Divider(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Total',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  Text(
+                    sel == null
+                        ? 'Belum dipilih'
+                        : AppFormatters.formatCurrency(
+                            sel.grossAmount.toDouble(),
+                          ),
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
             ],
-            const Divider(height: 24),
-            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text('Total', style: const TextStyle(fontWeight: FontWeight.bold)), Text(sel == null ? 'Belum dipilih' : AppFormatters.formatCurrency(sel.grossAmount.toDouble()), style: const TextStyle(fontWeight: FontWeight.bold))]),
-          ]),
+          ),
         ),
         const SizedBox(height: 24),
-        SizedBox(width: double.infinity, child: ElevatedButton(onPressed: _submitting ? null : _submit, child: _submitting ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2)) : Text(activationMode ? 'Bayar & Aktifkan' : 'Bayar & Perpanjang'))),
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            onPressed: _submitting ? null : _submit,
+            child: _submitting
+                ? const SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Text(
+                    activationMode ? 'Bayar & Aktifkan' : 'Bayar & Perpanjang',
+                  ),
+          ),
+        ),
       ],
     );
   }
 
-  Widget _buildMethodSelector(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final methods = _methods?.methods ?? const [];
-    final sel = _selected;
-    final loading = _loadingMethods;
-    final err = _methodsError;
-    final label = loading ? 'Memuat metode pembayaran...' : methods.isEmpty ? (err ?? 'Tidak ada metode pembayaran tersedia') : (sel?.displayName ?? 'Pilih metode pembayaran');
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text('Payment method', style: TextStyle(fontSize: AppType.s14, fontWeight: FontWeight.w600, color: scheme.onSurfaceVariant)),
-      const SizedBox(height: 6),
-      InkWell(
-        onTap: loading ? null : methods.isEmpty ? () => _loadMethods() : () => _pickMethod(),
-        borderRadius: BorderRadius.circular(AppShape.r8),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p12),
-          decoration: BoxDecoration(borderRadius: BorderRadius.circular(AppShape.r8), border: Border.all(color: scheme.outlineVariant)),
-          child: Row(children: [Expanded(child: Text(label, style: TextStyle(fontSize: AppType.s14, color: methods.isEmpty && !loading ? context.statusColors.error : scheme.onSurface))), if (!loading) Icon(Icons.chevron_right, size: AppIconSize.action, color: scheme.onSurfaceVariant)]),
-        ),
-      ),
-    ]);
-  }
 }
 
 class _RenewalPendingDialog extends ConsumerStatefulWidget {
@@ -439,9 +559,17 @@ class _RenewalPendingDialog extends ConsumerStatefulWidget {
   final String? paymentId;
   final bool Function() isCurrent;
   final Future<void> Function() onSuccess;
-  const _RenewalPendingDialog({required this.epoch, required this.uid, required this.baseline, required this.paymentId, required this.isCurrent, required this.onSuccess});
+  const _RenewalPendingDialog({
+    required this.epoch,
+    required this.uid,
+    required this.baseline,
+    required this.paymentId,
+    required this.isCurrent,
+    required this.onSuccess,
+  });
   @override
-  ConsumerState<_RenewalPendingDialog> createState() => _RenewalPendingDialogState();
+  ConsumerState<_RenewalPendingDialog> createState() =>
+      _RenewalPendingDialogState();
 }
 
 class _RenewalPendingDialogState extends ConsumerState<_RenewalPendingDialog>
@@ -475,19 +603,40 @@ class _RenewalPendingDialogState extends ConsumerState<_RenewalPendingDialog>
     // Refresh once per resume; the periodic poll handles the rest.
     ref.read(authControllerProvider.notifier).forceRefreshAuthState();
   }
+
   Future<void> _start() async {
     _timer = Timer.periodic(const Duration(seconds: 3), (t) async {
-      if (!mounted) { t.cancel(); return; }
-      if (_attempts >= 20) { t.cancel(); setState(() => _timedOut = true); return; }
-      if (!widget.isCurrent()) { t.cancel(); if (mounted && Navigator.of(context).canPop()) Navigator.of(context).pop(); return; }
+      if (!mounted) {
+        t.cancel();
+        return;
+      }
+      if (_attempts >= 20) {
+        t.cancel();
+        setState(() => _timedOut = true);
+        return;
+      }
+      if (!widget.isCurrent()) {
+        t.cancel();
+        if (mounted && Navigator.of(context).canPop())
+          Navigator.of(context).pop();
+        return;
+      }
       _attempts++;
       // PAYMENT_SYNC_ON_DEMAND: actively sync gateway truth for THIS payment
       // before re-reading the auth snapshot (webhook cannot reach a non-public
       // backend; the discovery worker enforces an inquiry eligibility age).
       await _syncPaymentTracked();
       await ref.read(authControllerProvider.notifier).forceRefreshAuthState();
-      if (!mounted) { t.cancel(); return; }
-      if (!widget.isCurrent()) { t.cancel(); if (mounted && Navigator.of(context).canPop()) Navigator.of(context).pop(); return; }
+      if (!mounted) {
+        t.cancel();
+        return;
+      }
+      if (!widget.isCurrent()) {
+        t.cancel();
+        if (mounted && Navigator.of(context).canPop())
+          Navigator.of(context).pop();
+        return;
+      }
       final s = ref.read(authControllerProvider);
       if (s is AuthStateAuthenticated && s.user.hasMarketAuthority == true) {
         // CANONICAL SUCCESS DETECTION — first activation (P1 fix):
@@ -508,12 +657,24 @@ class _RenewalPendingDialogState extends ConsumerState<_RenewalPendingDialog>
         // Renewal (baseline existed — active or expired): confirm the
         // interval window actually moved forward.
         final cur = await _refresh();
-        if (!mounted) { t.cancel(); return; }
-        if (!widget.isCurrent()) { t.cancel(); if (mounted && Navigator.of(context).canPop()) Navigator.of(context).pop(); return; }
-        if (cur != null && cur.expiryDate.isAfter(baseline.expiryDate)) { t.cancel(); await widget.onSuccess(); }
+        if (!mounted) {
+          t.cancel();
+          return;
+        }
+        if (!widget.isCurrent()) {
+          t.cancel();
+          if (mounted && Navigator.of(context).canPop())
+            Navigator.of(context).pop();
+          return;
+        }
+        if (cur != null && cur.expiryDate.isAfter(baseline.expiryDate)) {
+          t.cancel();
+          await widget.onSuccess();
+        }
       }
     });
   }
+
   /// Best-effort on-demand sync; failures fall back to the auth re-read.
   Future<void> _syncPaymentTracked() async {
     final paymentId = widget.paymentId;
@@ -527,31 +688,40 @@ class _RenewalPendingDialogState extends ConsumerState<_RenewalPendingDialog>
 
   Future<SellerSubscription?> _refresh() async {
     try {
-      final r = await ref.read(sellerRepositoryProvider).getSubscription(widget.uid);
+      final r = await ref
+          .read(sellerRepositoryProvider)
+          .getSubscription(widget.uid);
       if (r.isSuccess && r.data != null) return r.data;
     } catch (_) {}
     return null;
   }
+
   @override
   Widget build(BuildContext context) => AlertDialog(
-        title: const Text('Memproses pembayaran'),
-        content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const LinearProgressIndicator(),
-          const SizedBox(height: 16),
-          Text(_timedOut
+    title: const Text('Memproses pembayaran'),
+    content: Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const LinearProgressIndicator(),
+        const SizedBox(height: 16),
+        Text(
+          _timedOut
               ? 'Pembayaran masih diproses. Anda bisa menutup dialog ini dan memeriksa lagi nanti.'
-              : 'Kami menunggu konfirmasi pembayaran dan aktivasi seller Anda.'),
-        ]),
-        actions: [
-          // Batch 2: manual re-entry point. Settlement can outlive the polling
-          // window (VA can take minutes-hours), so the user must never be
-          // left without a way to close this dialog and re-check. Closing
-          // keeps the renewal screen open for a fresh initiate (the backend
-          // reuses the same pending payment idempotently).
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cek status pembayaran'),
-          ),
-        ],
-      );
+              : 'Kami menunggu konfirmasi pembayaran dan aktivasi seller Anda.',
+        ),
+      ],
+    ),
+    actions: [
+      // Batch 2: manual re-entry point. Settlement can outlive the polling
+      // window (VA can take minutes-hours), so the user must never be
+      // left without a way to close this dialog and re-check. Closing
+      // keeps the renewal screen open for a fresh initiate (the backend
+      // reuses the same pending payment idempotently).
+      TextButton(
+        onPressed: () => Navigator.of(context).pop(),
+        child: const Text('Cek status pembayaran'),
+      ),
+    ],
+  );
 }

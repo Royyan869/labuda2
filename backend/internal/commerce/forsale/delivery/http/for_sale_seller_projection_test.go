@@ -440,27 +440,6 @@ func TestBuildForSaleViewerCapabilities_CanonicalCases(t *testing.T) {
 			},
 		},
 		{
-			name: "owner draft management",
-			for_sale: func() (*entity.ForSale, *uuid.UUID) {
-				ownerID := uuid.New()
-				l := testForSale(ownerID)
-				l.Status = entity.ForSaleStatusDraft
-				return l, &ownerID
-			},
-			seller: sellerInfoActive,
-			want: commerceshared.ViewerCapabilities{
-				Role:         "owner",
-				CanManage:    true,
-				CanEdit:      true,
-				CanPromote:   false,
-				CanChat:      false,
-				CanNegotiate: false,
-				CanBuy:       false,
-				CanBid:       false,
-				CanBuyNow:    false,
-			},
-		},
-		{
 			name: "owner active promotion",
 			for_sale: func() (*entity.ForSale, *uuid.UUID) {
 				ownerID := uuid.New()
@@ -551,7 +530,7 @@ func testForSale(sellerID uuid.UUID) *entity.ForSale {
 			SellerID:     sellerID,
 			Title:        "Showa Koi 30cm",
 			Description:  "Premium showa",
-			MediaURLs:       []productEntity.ProductMedia{{URL: "https://example.com/thumb.jpg"}},
+			MediaURLs:    []productEntity.ProductMedia{{URL: "https://example.com/thumb.jpg"}},
 			Variety:      "Showa",
 			Certificates: []string{"cert-1"},
 			CreatedAt:    now,
@@ -577,7 +556,7 @@ func TestForSaleToDetailResponseWithViewerCapabilities(t *testing.T) {
 		SellerID:    for_sale.SellerID,
 		Title:       "Showa Koi 30cm",
 		Description: "Premium showa",
-		MediaURLs:       []productEntity.ProductMedia{{URL: "https://example.com/thumb.jpg"}},
+		MediaURLs:   []productEntity.ProductMedia{{URL: "https://example.com/thumb.jpg"}},
 	}
 	sellerInfo := sellerdisplay.Info{
 		Username:           "seller_user",

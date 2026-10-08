@@ -1,9 +1,11 @@
 import { useState } from 'react'
-import { ChevronLeft, ChevronRight, DollarSign, Eye, Filter, RefreshCw, Wallet } from 'lucide-react'
+import { DollarSign, Eye, Filter, RefreshCw, Wallet } from 'lucide-react'
+import { AdminLoadingState, AdminErrorState, AdminEmptyState, AdminPagination, PageHeader } from '@/components/common'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/Table'
+import { Select } from '@/components/ui/Select'
 import { WithdrawalDetailModal } from '@/components/finance/WithdrawalDetailModal'
 import { useWithdrawals } from '@/hooks/useWithdrawals'
 import { formatDate, formatRupiah } from '@/lib/utils'
@@ -63,6 +65,11 @@ export function WithdrawalsPage() {
     refetch()
   }
 
+  const handleClearFilters = () => {
+    setStatusFilter('')
+    setPage(1)
+  }
+
   // Calculate pending amount for summary
   const pendingAmount = withdrawals
     .filter(w => w.status === 'REQUESTED')
@@ -76,7 +83,7 @@ export function WithdrawalsPage() {
       return (
         <div className="text-sm">
           <p className="font-medium">@{username}</p>
-          {farmName && <p className="text-xs text-muted-foreground">{farmName}</p>}
+          {farmName && <p className="type-caption">{farmName}</p>}
         </div>
       )
     }
@@ -88,31 +95,15 @@ export function WithdrawalsPage() {
     )
   }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
-          <p className="mt-4 text-muted-foreground">Loading withdrawals...</p>
-        </div>
-      </div>
-    )
+  if (loading && withdrawals.length === 0) {
+    return <AdminLoadingState />
   }
 
   if (error) {
     return (
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Withdrawals</h1>
-          <p className="text-muted-foreground mt-1">Manage seller withdrawal requests</p>
-        </div>
-        <Card>
-          <CardContent className="p-6">
-            <div className="text-center text-destructive">
-              <p>Error loading withdrawals: {error.message}</p>
-            </div>
-          </CardContent>
-        </Card>
+        <PageHeader title="Withdrawals" description="Manage seller withdrawal requests" />
+        <AdminErrorState title="Failed to load withdrawals" message={error.message} onRetry={refetch} />
       </div>
     )
   }
@@ -120,20 +111,16 @@ export function WithdrawalsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Withdrawals</h1>
-          <p className="text-muted-foreground mt-1">Manage seller withdrawal requests</p>
-        </div>
-        <Button
-          variant="secondary"
-          onClick={refetch}
-          className="gap-2"
-        >
-          <RefreshCw className="h-4 w-4" />
-          Refresh
-        </Button>
-      </div>
+      <PageHeader
+        title="Withdrawals"
+        description="Manage seller withdrawal requests"
+        actions={
+          <Button variant="secondary" onClick={refetch} className="gap-2">
+            <RefreshCw className="h-4 w-4" />
+            Refresh
+          </Button>
+        }
+      />
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -142,7 +129,7 @@ export function WithdrawalsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Requests</p>
-                <p className="text-3xl font-bold text-primary mt-1">{total}</p>
+                <p className="type-metric-lg text-primary mt-1">{total}</p>
               </div>
               <div className="p-4 rounded-lg bg-info-bg">
                 <Wallet className="h-8 w-8 text-info" />
@@ -155,7 +142,7 @@ export function WithdrawalsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Pending Amount</p>
-                <p className="text-3xl font-bold text-warning mt-1">{formatRupiah(pendingAmount)}</p>
+                <p className="type-metric-lg text-warning mt-1">{formatRupiah(pendingAmount)}</p>
               </div>
               <div className="p-4 rounded-lg bg-warning-bg">
                 <DollarSign className="h-8 w-8 text-warning" />
@@ -169,23 +156,19 @@ export function WithdrawalsPage() {
       <Card>
         <CardContent className="pt-6">
           <div className="flex items-center gap-6 flex-wrap">
-            <div className="flex items-center gap-4">
-              <Filter className="h-5 w-5 text-muted-foreground" />
-              <label htmlFor="status-filter" className="text-sm font-medium text-foreground">
-                Status:
-              </label>
-              <select
-                id="status-filter"
+            <div className="flex items-end gap-4">
+              <Filter className="h-5 w-5 text-muted-foreground mb-2" />
+              <Select
+                label="Status:"
                 value={statusFilter}
                 onChange={(e) => handleStatusChange(e.target.value as WithdrawalStatus | '')}
-                className="px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 {WITHDRAWAL_STATUSES.map((status) => (
                   <option key={status.value} value={status.value}>
                     {status.label}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
           </div>
         </CardContent>
@@ -198,15 +181,17 @@ export function WithdrawalsPage() {
         </CardHeader>
         <CardContent>
           {withdrawals.length === 0 ? (
-            <div className="text-center py-12">
-              <Wallet className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-foreground mb-2">No Withdrawals Found</h3>
-              <p className="text-muted-foreground">
-                {statusFilter
+            <AdminEmptyState
+              icon={Wallet}
+              title="No Withdrawals Found"
+              description={
+                statusFilter
                   ? 'No withdrawals match the current filter.'
-                  : 'No withdrawal requests in the system.'}
-              </p>
-            </div>
+                  : 'No withdrawal requests in the system.'
+              }
+              filtered={Boolean(statusFilter)}
+              onClearFilters={handleClearFilters}
+            />
           ) : (
             <div className="border border-border rounded-lg overflow-hidden">
               <Table>
@@ -257,7 +242,7 @@ export function WithdrawalsPage() {
                           {withdrawalStatusLabels[withdrawal.status] || withdrawal.status}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
+                      <TableCell className="type-secondary">
                         {formatDate(withdrawal.created_at)}
                       </TableCell>
                       <TableCell className="text-right">
@@ -280,29 +265,12 @@ export function WithdrawalsPage() {
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-4">
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => setPage(p => p - 1)}
-            disabled={page <= 1 || loading}
-          >
-            <ChevronLeft className="h-4 w-4 mr-1" />
-            Previous
-          </Button>
-          <span className="text-sm text-muted-foreground font-medium">
-            Page {page} of {totalPages}
-          </span>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => setPage(p => p + 1)}
-            disabled={page >= totalPages || loading}
-          >
-            Next
-            <ChevronRight className="h-4 w-4 ml-1" />
-          </Button>
-        </div>
+        <AdminPagination
+          page={page}
+          totalPages={totalPages}
+          onPageChange={setPage}
+          disabled={loading}
+        />
       )}
 
       {/* Withdrawal Detail Modal */}

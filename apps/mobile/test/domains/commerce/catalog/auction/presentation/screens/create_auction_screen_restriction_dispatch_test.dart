@@ -175,7 +175,16 @@ Future<void> _enterFieldByLabel(
   String labelText,
   String value,
 ) async {
-  final labelFinder = find.text(labelText, skipOffstage: false);
+  // The canonical AppTextField renders labels ending in " *" as a two-span
+  // RichText (styled red asterisk), which plain find.text does not match.
+  var labelFinder = find.text(labelText, skipOffstage: false);
+  if (labelFinder.evaluate().isEmpty) {
+    labelFinder = find.text(
+      labelText,
+      findRichText: true,
+      skipOffstage: false,
+    );
+  }
   if (labelFinder.evaluate().isEmpty) {
     fail('Could not find TextFormField with label "$labelText"');
   }
@@ -370,7 +379,6 @@ void main() {
       expect(source, contains('_durationHours != null'));
       expect(source, contains('_scheduledStartTime != null'));
       expect(source, contains('_selectedShippingSetupIds.isNotEmpty'));
-      expect(source, contains('senderAddressIdProvider'));
 
       // Prerequisite bug fixed: Ukuran & Usia write through setState, and the
       // text controllers notify so the gate re-evaluates while typing.

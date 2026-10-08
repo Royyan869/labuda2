@@ -5,6 +5,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:labuda/shared/widgets/app_snackbar.dart';
 import 'package:labuda/domains/social/comment/domain/entities/comment.dart';
 import 'package:labuda/domains/social/like/domain/entities/like.dart';
 import 'package:labuda/domains/social/like/presentation/providers/like_notifier.dart';
@@ -61,9 +62,7 @@ class CommentLikeHandlers {
       repository.pushOptimisticLikeStats(currentStats);
     }
     if (context.mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Gagal menyukai komentar')));
+      AppSnackBar.showError(context, 'Gagal menyukai komentar');
     }
   }
 }

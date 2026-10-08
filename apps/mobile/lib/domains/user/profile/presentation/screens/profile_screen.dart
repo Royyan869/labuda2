@@ -16,7 +16,6 @@ import 'package:labuda/domains/user/profile/presentation/providers/profile_about
     show normalizeProfileLocation;
 import 'package:labuda/domains/user/profile/presentation/providers/profile_view_provider.dart';
 import 'package:labuda/domains/user/profile/presentation/providers/user_data_provider.dart';
-import 'package:labuda/domains/user/profile/presentation/screens/settings_screen.dart';
 import 'package:labuda/domains/user/profile/presentation/screens/unified_edit_profile_screen.dart';
 import 'package:labuda/domains/user/profile/presentation/utils/profile_lifecycle_redaction.dart';
 import 'package:labuda/domains/user/profile/presentation/widgets/profile_actions.dart';
@@ -28,14 +27,12 @@ import 'package:labuda/domains/user/profile/presentation/widgets/profile_reviews
 import 'package:labuda/domains/user/profile/presentation/widgets/profile_stats.dart';
 import 'package:labuda/domains/user/profile/presentation/screens/profile_screen/profile_about_tab.dart';
 import 'package:labuda/domains/system/report/domain/entities/entities.dart';
-import 'package:labuda/domains/system/report/presentation/screens/report_screen.dart';
 import 'package:labuda/domains/user/preference/seller/seller.dart';
 import 'package:labuda/domains/social/share/share.dart';
 import 'package:labuda/domains/user/profile/presentation/screens/profile_screen/profile_share_builder.dart';
 import 'package:labuda/shared/shared.dart';
 import 'package:labuda/shared/governance/seller_tier_badge.dart';
 import 'package:labuda/shared/providers/block_state_provider.dart';
-import 'package:labuda/shared/widgets/block_confirmation_dialog.dart';
 
 /// Profile Screen dengan Facebook-style collapsing header
 ///
@@ -71,6 +68,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
 
   // Avatar sizes for flying animation
   static const double _avatarCollapsedSize = 40.0;
+
+  // DECODE IDENTITY for the flying avatar: computed ONCE from the expanded
+  // (largest) visual size — never from the per-frame animated size.
+  //
+  // While the header collapses the avatar scales 96 → 40. If the decode
+  // target followed that scale, every frame would produce a new ResizeImage
+  // cache key, re-instate the `Image` state (frame == null) and flash the
+  // placeholder over a photo that is already on disk — the observed
+  // foto → placeholder → foto loop. Layout keeps animating; the image
+  // provider stays the SAME object for the whole animation.
+  static final int _avatarDecodeWidth = (_avatarSize * 2).round();
 
   @override
   void initState() {
@@ -375,10 +383,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
             SliverPersistentHeader(
               pinned: true,
               delegate: _SliverTabBarDelegate(
-                TabBar(
-                  controller: _tabController,
-                  tabs: _getTabs(isSeller),
-                ),
+                TabBar(controller: _tabController, tabs: _getTabs(isSeller)),
                 scheme: scheme,
               ),
             ),
@@ -390,7 +395,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                 delegate: _SliverSubTabBarDelegate(
                   TabBar(
                     controller: _subTabController,
-                    labelPadding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16),
+                    labelPadding: const EdgeInsets.symmetric(
+                      horizontal: AppMetrics.p16,
+                    ),
                     tabs: const [
                       Tab(text: 'Dijual', height: 40),
                       Tab(text: 'Lelang', height: 40),
@@ -413,11 +420,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
   }
 
   Widget _buildViewedProfileLoadingState() {
+    // CANONICAL loading presentation: LoadingIndicator. Loading is its own
+    // semantic state — it never borrows the empty-state surface.
     return Scaffold(
       body: SafeArea(
-        child: EmptyState.loading(
-          title: 'Memuat profil',
-          subtitle: 'Mengambil identitas pengguna tujuan',
+        child: const Center(
+          child: LoadingIndicator(size: LoadingSize.large),
         ),
       ),
     );
@@ -427,11 +435,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     required String userId,
     required Object error,
   }) {
+    // Technical detail is logged, never rendered: PageErrorState takes no
+    // copy input, so `error` cannot reach the screen.
+    _logProfileLoadError(error, userId: userId);
     return Scaffold(
       body: SafeArea(
-        child: EmptyState.error(
-          title: 'Profil belum bisa dimuat',
-          subtitle: _sanitizeProfileLoadError(error, userId: userId),
+        child: PageErrorState(
           onRetry: () => ref.invalidate(userDataProvider(userId)),
         ),
       ),
@@ -451,41 +460,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     );
   }
 
-  /// Full error detail goes to the logger; the UI only ever receives the
-  /// first line of the message, hard-capped. Raw `error.toString()` (which
-  /// can embed provider/stack dumps hundreds of thousands of characters
-  /// long) must never reach a `Text` inside a non-scrollable Column —
-  /// that caused a 146k-pixel RenderFlex overflow.
-  String _sanitizeProfileLoadError(Object error, {String? userId}) {
-    final raw = error.toString().trim();
+  /// Full error detail belongs to logging only: the page-level error
+  /// surface ([PageErrorState]) renders localized copy and takes no
+  /// technical input, so raw `error.toString()` (which can embed
+  /// provider/stack dumps hundreds of thousands of characters long) can
+  /// never reach a `Text`.
+  void _logProfileLoadError(Object error, {String? userId}) {
     LoggerService.instance.error(
       'ProfileScreen: load error${userId != null ? ' for userId=$userId' : ''}',
-      extra: {'error': raw},
+      extra: {'error': error.toString().trim()},
     );
-
-    if (raw.isEmpty) {
-      return 'Profil belum bisa dimuat. Coba lagi.';
-    }
-
-    var message = raw;
-    if (message.startsWith('Exception: ')) {
-      final stripped = message.substring('Exception: '.length).trim();
-      if (stripped.isNotEmpty) {
-        message = stripped;
-      }
-    }
-
-    // First line only — the remainder is stack-trace noise.
-    final firstLine = message.split('\n').first.trim();
-    if (firstLine.isEmpty) {
-      return 'Profil belum bisa dimuat. Coba lagi.';
-    }
-
-    const maxUserFacingLength = 200;
-    if (firstLine.length <= maxUserFacingLength) {
-      return firstLine;
-    }
-    return '${firstLine.substring(0, maxUserFacingLength)}…';
   }
 
   Widget _buildBackButton(ColorScheme scheme) {
@@ -504,7 +488,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
               ? scheme.onPrimary
               : (scheme.onSurface),
           size: AppIconSize.action,
-        ),
+         semanticLabel: 'Kembali',
+         ),
       ),
       onPressed: () {
         if (Navigator.of(context).canPop()) Navigator.of(context).pop();
@@ -540,7 +525,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
           icon: Container(
             padding: const EdgeInsets.all(AppMetrics.p8),
             decoration: BoxDecoration(color: bgColor, shape: BoxShape.circle),
-            child: Icon(Icons.settings_outlined, color: iconColor, size: AppIconSize.action),
+            child: Icon(
+              Icons.settings_outlined,
+              color: iconColor,
+              size: AppIconSize.action,
+            ),
           ),
           onPressed: () => _navigateToSettings(context),
           tooltip: 'Settings',
@@ -727,6 +716,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
               storeImageUrl: profileData['farmPhotoUrl'] as String?,
               isSeller: isSeller,
               size: currentAvatarSize,
+              // Visual size animates; decode/cache identity is pinned.
+              cacheWidth: _avatarDecodeWidth,
               onTap: () {},
             ),
           ),
@@ -796,7 +787,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
           // Action buttons (Edit/Share for own profile, Follow/Message for others)
           // E5.2 — lifecycle gates target-user actions for non-own profiles.
           Padding(
-            padding: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p12, AppMetrics.p16, AppMetrics.p12),
+            padding: const EdgeInsets.fromLTRB(
+              AppMetrics.p16,
+              AppMetrics.p12,
+              AppMetrics.p16,
+              AppMetrics.p12,
+            ),
             child: ProfileActions(
               userId: userId,
               isOwnProfile: isOwnProfile,
@@ -813,7 +809,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
           // surface and the data was already prepared but never rendered.
           if (profileData['sellerTier'] != null) ...[
             Padding(
-              padding: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p0, AppMetrics.p16, AppMetrics.p12),
+              padding: const EdgeInsets.fromLTRB(
+                AppMetrics.p16,
+                AppMetrics.p0,
+                AppMetrics.p16,
+                AppMetrics.p12,
+              ),
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: SellerTierBadge(
@@ -839,26 +840,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                   // Location
                   if (profileData['location'] != null &&
                       profileData['location'].toString().isNotEmpty) ...[
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.location_on_outlined,
-                          size: AppIconSize.inlineGlyph,
-color: scheme.onSurfaceVariant,
-                        ),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: Text(
-                            profileData['location'],
-                            style: TextStyle(
-                              fontSize: AppType.s12,
-color: scheme.onSurfaceVariant,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
+                    AddressLocationView(
+                      location: profileData['location'].toString(),
+                      mode: AddressLocationMode.compact,
+                      icon: Icons.location_on_outlined,
+                      iconSize: AppIconSize.inlineGlyph,
+                      spacing: 4,
+                      style: context.typeRoles.labelMicro.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
                     ),
                     const SizedBox(height: 8),
                   ],
@@ -868,9 +858,8 @@ color: scheme.onSurfaceVariant,
                       profileData['bio'].toString().trim().isNotEmpty)
                     Text(
                       profileData['bio'],
-                      style: TextStyle(
-                        fontSize: AppType.s14,
-color: scheme.onSurfaceVariant,
+                      style: context.typeRoles.bodyDense.copyWith(
+                        color: scheme.onSurfaceVariant,
                         height: 1.3,
                       ),
                     ),
@@ -1020,8 +1009,8 @@ color: scheme.onSurfaceVariant,
   }
 
   /// The ONE location value for this page: the backend's public origin line
-  /// (city, province of the user's sender address), falling back to the
-  /// user's own location field when no sender address exists. The client NEVER
+  /// (city, province of the user's primary address), falling back to the
+  /// user's own location field when no primary address exists. The client NEVER
   /// composes a location from raw address records — that rule lives server-side.
   String? _publicLocation(ProfileEntity? profile) {
     if (profile == null) return null;
@@ -1030,9 +1019,7 @@ color: scheme.onSurfaceVariant,
   }
 
   void _navigateToSettings(BuildContext context) {
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (context) => const SettingsScreen()));
+    context.push(RoutePaths.settings);
   }
 
   Future<void> _handleMessageAction(String userId) async {
@@ -1040,7 +1027,7 @@ color: scheme.onSurfaceVariant,
 
     if (authState is! AuthStateAuthenticated) {
       if (mounted) {
-        AppSnackBar.showError(context, 'Please login to send messages');
+        ref.read(navigationHandlerProvider).navigateToSignIn();
       }
       return;
     }
@@ -1051,7 +1038,10 @@ color: scheme.onSurfaceVariant,
     // Don't allow messaging yourself
     if (currentUserId == targetUserId) {
       if (mounted) {
-        AppSnackBar.showError(context, 'Cannot send message to yourself');
+        AppSnackBar.showError(
+          context,
+          'Tidak dapat mengirim pesan ke diri sendiri',
+        );
       }
       return;
     }
@@ -1079,7 +1069,7 @@ color: scheme.onSurfaceVariant,
         final navigation = ref.read(navigationHandlerProvider);
         navigation.navigateToChatConversation(chat.id);
       } else if (mounted && context.mounted) {
-        AppSnackBar.showError(context, 'Failed to create chat');
+        AppSnackBar.showError(context, 'Gagal membuat chat');
       }
     } catch (e) {
       // Hide loading if still showing
@@ -1122,7 +1112,7 @@ color: scheme.onSurfaceVariant,
         );
       },
       error: (error, _) {
-        AppSnackBar.showError(context, 'Failed to load profile data');
+        AppSnackBar.showError(context, 'Gagal memuat data profil');
       },
       loading: () {
         AppSnackBar.showInfo(context, 'Loading profile...');
@@ -1144,7 +1134,7 @@ color: scheme.onSurfaceVariant,
       AppSnackBar.showSuccess(context, '$displayName has been unblocked');
     } else {
       final error = ref.read(blockActionsProvider).error;
-      AppSnackBar.showError(context, error ?? 'Failed to unblock user');
+      AppSnackBar.showError(context, error ?? 'Gagal membuka blokir pengguna');
     }
   }
 
@@ -1158,14 +1148,104 @@ color: scheme.onSurfaceVariant,
         ? userDataAsync.value?.avatarUrl
         : null;
 
-    final confirmed = await BlockConfirmationDialog.show(
-      context,
-      targetUserId: actualUserId,
-      targetDisplayName: displayName,
-      targetAvatarUrl: avatarUrl,
+    final confirmed = await AppDialog.confirm(
+      context: context,
+      title: 'Block $displayName?',
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                Icons.visibility_off_outlined,
+                size: AppIconSize.action,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'You will not see content from this user',
+                  style: context.typeRoles.bodyDense.copyWith(
+                    color: Theme.of(context).colorScheme.onSurface,
+                    height: 1.3,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                Icons.person_off_outlined,
+                size: AppIconSize.action,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'This user will not be able to see your content',
+                  style: context.typeRoles.bodyDense.copyWith(
+                    color: Theme.of(context).colorScheme.onSurface,
+                    height: 1.3,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                Icons.chat_bubble_outline,
+                size: AppIconSize.action,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Chat with this user will be hidden',
+                  style: context.typeRoles.bodyDense.copyWith(
+                    color: Theme.of(context).colorScheme.onSurface,
+                    height: 1.3,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                Icons.people_outline,
+                size: AppIconSize.action,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Follow relationship will be removed',
+                  style: context.typeRoles.bodyDense.copyWith(
+                    color: Theme.of(context).colorScheme.onSurface,
+                    height: 1.3,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+      confirmLabel: 'Block',
+      cancelLabel: 'Cancel',
+      intent: AppDialogIntent.destructive,
     );
 
-    if (confirmed != true || !mounted) return;
+    if (!confirmed || !mounted) return;
 
     final success = await ref
         .read(blockActionsProvider.notifier)
@@ -1182,7 +1262,7 @@ color: scheme.onSurfaceVariant,
       if (Navigator.of(context).canPop()) Navigator.of(context).pop();
     } else {
       final error = ref.read(blockActionsProvider).error;
-      AppSnackBar.showError(context, error ?? 'Failed to block user');
+      AppSnackBar.showError(context, error ?? 'Gagal memblokir pengguna');
     }
   }
 
@@ -1194,7 +1274,7 @@ color: scheme.onSurfaceVariant,
     final authState = ref.read(authControllerProvider);
     if (authState is! AuthStateAuthenticated) {
       if (mounted) {
-        AppSnackBar.showError(context, 'Please login to report users');
+        ref.read(navigationHandlerProvider).navigateToSignIn();
       }
       return;
     }
@@ -1204,20 +1284,18 @@ color: scheme.onSurfaceVariant,
     // Don't allow reporting yourself
     if (actualUserId == authState.user.id) {
       if (mounted) {
-        AppSnackBar.showError(context, 'Cannot report yourself');
+        AppSnackBar.showError(context, 'Tidak dapat melaporkan diri sendiri');
       }
       return;
     }
 
     final displayName = _getUserDisplayName(authState);
 
-    // Navigate to report screen with user context
-    final result = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (context) => ReportScreen(
-          targetType: ReportTargetType.user.name,
-          targetId: actualUserId,
-        ),
+    // Open the canonical report destination with user context.
+    final result = await context.push<bool>(
+      RoutePaths.reportLocation(
+        targetType: ReportTargetType.user.name,
+        targetId: actualUserId,
       ),
     );
 
@@ -1233,9 +1311,9 @@ color: scheme.onSurfaceVariant,
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-icon: Icon(
-           Icons.shield_outlined,
-           color: scheme.primary,
+        icon: Icon(
+          Icons.shield_outlined,
+          color: scheme.primary,
           size: AppIconSize.display,
         ),
         title: const Text('Report Submitted'),
@@ -1283,10 +1361,7 @@ class _SliverTabBarDelegate extends SliverPersistentHeaderDelegate {
       decoration: BoxDecoration(
         color: scheme.surface,
         border: Border(
-          bottom: BorderSide(
-            color: scheme.outlineVariant,
-            width: 1,
-          ),
+          bottom: BorderSide(color: scheme.outlineVariant, width: 1),
         ),
       ),
       child: tabBar,
@@ -1318,10 +1393,7 @@ class _SliverSubTabBarDelegate extends SliverPersistentHeaderDelegate {
     double shrinkOffset,
     bool overlapsContent,
   ) {
-    return Container(
-      color: scheme.surface,
-      child: tabBar,
-    );
+    return Container(color: scheme.surface, child: tabBar);
   }
 
   @override

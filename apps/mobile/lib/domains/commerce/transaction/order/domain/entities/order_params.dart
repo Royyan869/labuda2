@@ -35,6 +35,12 @@ class PreviewOrderParams {
   /// When provided, the preview will use the seller's quoted shipping price
   final String? shippingQuoteId;
 
+  /// Canonical conversation (chat room) the checkout was initiated from.
+  /// REQUIRED when shippingQuoteId is set: a manual shipping quote is scoped to
+  /// the exact conversation that produced it, and the backend rejects checkout
+  /// from any other conversation.
+  final String? chatId;
+
   /// Standard shipping option ID selected by buyer from forSale options.
   /// Mutually exclusive with shippingQuoteId — backend requires exactly one.
   final String? shippingSetupId;
@@ -51,6 +57,7 @@ class PreviewOrderParams {
     this.sourceType,
     this.sourceId,
     this.shippingQuoteId,
+    this.chatId,
     this.shippingSetupId,
   });
 }
@@ -141,23 +148,6 @@ class GetOrdersParams {
     this.limit,
     this.searchQuery,
   });
-
-  Map<String, dynamic> toQueryParams() {
-    final params = <String, dynamic>{};
-    if (userId != null) params['user_id'] = userId;
-    if (status != null) params['status'] = status!.name;
-    if (startDate != null) {
-      params['start_date'] = startDate!.toIso8601String();
-    }
-    if (endDate != null) {
-      params['end_date'] = endDate!.toIso8601String();
-    }
-    if (page != null) params['page'] = page;
-    if (pageSize != null) params['page_size'] = pageSize;
-    if (limit != null) params['limit'] = limit;
-    if (searchQuery != null) params['search'] = searchQuery;
-    return params;
-  }
 }
 
 // ==================== CANCEL ORDER ====================

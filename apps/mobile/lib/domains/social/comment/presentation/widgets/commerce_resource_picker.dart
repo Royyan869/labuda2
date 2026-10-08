@@ -54,13 +54,13 @@ class CommerceResourcePicker extends ConsumerStatefulWidget {
     String? selectedResourceId,
     Future<void> Function()? onCreateNewForSale,
   }) {
-    return showModalBottomSheet<CommerceResourceSelection>(
+    // Presentation authority is the canonical base; this file owns NO
+    // bottom-sheet renderer, no surface, no shape, no handle.
+    return AppBottomSheetBase.show<CommerceResourceSelection>(
       context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppShape.r16)),
-      ),
-      builder: (_) => CommerceResourcePicker(
+      title: 'Pilih Produk',
+      padding: EdgeInsets.zero,
+      content: CommerceResourcePicker(
         sellerId: sellerId,
         selectedResourceId: selectedResourceId,
         onCreateNewForSale: onCreateNewForSale,
@@ -87,16 +87,18 @@ class _CommerceResourcePickerState extends ConsumerState<CommerceResourcePicker>
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: MediaQuery.of(context).size.height * 0.7,
-      padding: const EdgeInsets.only(top: AppMetrics.p8),
+    // Surface, shape, handle, scroll and safe area come from the base.
+    // Body height — a share of the space the sheet ACTUALLY has, asked of the
+    // sheet authority itself ([AppBottomSheetBase.availableHeight]: window
+    // minus the keyboard minus the system top inset). A fraction of the raw
+    // screen height would ignore the live insets, so this body reads the
+    // canonical ceiling instead. The finite box stays here (not in
+    // `Base.show(height:)`): the base scrolls its content, so the
+    // `Expanded > TabBarView` below needs this bounded slot to lay out.
+    return SizedBox(
+      height: AppBottomSheetBase.availableHeight(context) * 0.7,
       child: Column(
         children: [
-          const AppDragHandle(padding: EdgeInsets.only(bottom: AppMetrics.p8)),
-          Text(
-            'Pilih Produk',
-            style: TextStyle(fontSize: AppType.s16, fontWeight: FontWeight.w600),
-          ),
           const SizedBox(height: 8),
           TabBar(
             controller: _tabController,
@@ -150,8 +152,7 @@ class _FPSTab extends ConsumerWidget {
     final pagerState = ref.watch(sellerFPSPagerProvider);
     final active = pagerState.items
         .where(
-          (l) =>
-              l.status == ForSaleStatus.active && l.forSaleId.isNotEmpty,
+          (l) => l.status == ForSaleStatus.active && l.forSaleId.isNotEmpty,
         )
         .toList();
 
@@ -187,10 +188,7 @@ class _FPSTab extends ConsumerWidget {
       itemBuilder: (context, index) {
         if (showCreateNewForSale && index == 0) {
           return ListTile(
-            leading: Icon(
-              Icons.add_circle_outline,
-              color: scheme.primary,
-            ),
+            leading: Icon(Icons.add_circle_outline, color: scheme.primary),
             title: Text(
               'Buat Produk Baru',
               style: TextStyle(color: scheme.primary),
@@ -306,8 +304,7 @@ class _AuctionTabState extends ConsumerState<_AuctionTab> {
                 resourceId: a.id,
               ),
               title: a.title,
-              price: (a.currentBid > 0 ? a.currentBid : a.openingBid)
-                  .round(),
+              price: (a.currentBid > 0 ? a.currentBid : a.openingBid).round(),
               imageUrl: a.media.isNotEmptyUrls ? a.media.firstUrl : null,
             ),
           ),

@@ -29,13 +29,11 @@ class MainBottomNavigation extends StatelessWidget {
       backgroundColor: scheme.surface,
       selectedItemColor: scheme.primary,
       unselectedItemColor: scheme.onSurfaceVariant,
-      selectedLabelStyle: TextStyle(
-        fontSize: AppType.s12,
+      selectedLabelStyle: Theme.of(context).textTheme.labelMedium?.copyWith(
         fontWeight: FontWeight.w600,
         color: scheme.primary,
       ),
-      unselectedLabelStyle: TextStyle(
-        fontSize: AppType.s12,
+      unselectedLabelStyle: Theme.of(context).textTheme.labelMedium?.copyWith(
         fontWeight: FontWeight.w400,
         color: scheme.onSurfaceVariant,
       ),

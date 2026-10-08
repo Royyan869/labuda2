@@ -5,6 +5,7 @@ import 'package:labuda/core/api/exceptions/api_exception.dart';
 import 'package:labuda/core/api/interceptors/auth_interceptor.dart';
 import 'package:labuda/core/api/interceptors/detailed_logging_interceptor.dart';
 import 'package:labuda/core/api/interceptors/error_interceptor.dart';
+import 'package:labuda/core/api/interceptors/performance_interceptor.dart';
 import 'package:labuda/core/src/interfaces/services/i_local_storage_service.dart';
 import 'package:labuda/core/src/interfaces/services/i_logger_service.dart';
 
@@ -47,6 +48,9 @@ class ApiClient {
     final authInterceptor = AuthInterceptor(logger: _logger, localStorage: _localStorage);
     authInterceptor.attachDio(dio);
     dio.interceptors.addAll([
+      // Network performance metrics - canonical API-latency authority. First so
+      // it measures the whole client-side request duration (including auth).
+      PerformanceInterceptor(),
       // Auth interceptor - canonical Labuda JWT authority (Phase 3B) + Phase 3C refresh.
       // Firebase token is NOT used for normal API; exchange & complete-profile
       // are skipAuth and carry their own credentials. Refresh is skipAuth-isolated.

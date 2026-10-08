@@ -25,13 +25,14 @@ class SocialMediaChip extends StatelessWidget {
       onTap: () => _launchUrl(context),
       borderRadius: BorderRadius.circular(AppShape.r8),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p8),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppMetrics.p12,
+          vertical: AppMetrics.p8,
+        ),
         decoration: BoxDecoration(
           color: scheme.surfaceContainerLow,
           borderRadius: BorderRadius.circular(AppShape.r8),
-          border: Border.all(
-            color: scheme.outlineVariant,
-          ),
+          border: Border.all(color: scheme.outlineVariant),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -40,8 +41,7 @@ class SocialMediaChip extends StatelessWidget {
             const SizedBox(width: 8),
             Text(
               label,
-              style: TextStyle(
-                fontSize: AppType.s14,
+              style: context.typeRoles.bodyDense.copyWith(
                 color: scheme.onSurface,
               ),
             ),
@@ -57,7 +57,7 @@ class SocialMediaChip extends StatelessWidget {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     } else {
       if (context.mounted) {
-        AppSnackBar.showError(context, 'Cannot open link');
+        AppSnackBar.showError(context, 'Tidak dapat membuka tautan');
       }
     }
   }

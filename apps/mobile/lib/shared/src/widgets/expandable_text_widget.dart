@@ -120,9 +120,9 @@ class _ExpandableTextWidgetState extends State<ExpandableTextWidget>
               _isExpanded
                   ? (widget.seeLessText ?? 'See less')
                   : (widget.seeMoreText ?? 'See more'),
-              style: TextStyle(
+              style: context.typeRoles.bodyDense.copyWith(
                 color: effectiveLinkColor,
-                fontSize: widget.style?.fontSize ?? AppType.s14,
+                fontSize: widget.style?.fontSize,
                 fontWeight: FontWeight.w500,
               ),
             ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/core/core.dart';
+import 'package:labuda/domains/system/shared/domain/services/time_format_service.dart';
 import 'package:labuda/shared/shared.dart';
 import 'package:labuda/domains/user/profile/presentation/providers/blocked_users_provider.dart';
 
@@ -81,16 +82,14 @@ class BlockedUsersScreen extends ConsumerWidget {
                 const SizedBox(height: 16),
                 Text(
                   'Failed to load blocked users',
-                  style: TextStyle(
-                    fontSize: AppType.s16,
+                  style: context.typeRoles.titleCompact.copyWith(
                     color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   error.toString(),
-                  style: TextStyle(
-                    fontSize: AppType.s12,
+                  style: context.typeRoles.labelMicro.copyWith(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                   textAlign: TextAlign.center,
@@ -119,8 +118,7 @@ class BlockedUsersScreen extends ConsumerWidget {
             const SizedBox(height: 16),
             Text(
               'No Blocked Users',
-              style: TextStyle(
-                fontSize: AppType.s20,
+              style: context.typeRoles.titleSection.copyWith(
                 fontWeight: FontWeight.bold,
                 color: scheme.onSurface,
               ),
@@ -128,8 +126,7 @@ class BlockedUsersScreen extends ConsumerWidget {
             const SizedBox(height: 8),
             Text(
               'Users you block will appear here.\nYou won\'t see their posts or messages.',
-              style: TextStyle(
-                fontSize: AppType.s14,
+              style: context.typeRoles.bodyDense.copyWith(
                 color: scheme.onSurfaceVariant,
                 height: 1.5,
               ),
@@ -164,9 +161,7 @@ class BlockedUsersScreen extends ConsumerWidget {
             onPressed: () => Navigator.of(context).pop(true),
             child: Text(
               'Unblock',
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.primary,
-              ),
+              style: TextStyle(color: Theme.of(context).colorScheme.primary),
             ),
           ),
         ],
@@ -182,7 +177,7 @@ class BlockedUsersScreen extends ConsumerWidget {
               blockedUserId: blockedUserId,
             );
         if (context.mounted) {
-          AppSnackBar.showSuccess(context, 'User unblocked successfully');
+          AppSnackBar.showSuccess(context, 'Blokir pengguna dibuka');
         }
       } catch (e) {
         if (context.mounted) {
@@ -214,61 +209,37 @@ class _BlockedUserTile extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
 
     return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p8),
-      leading: ProfileAvatar(
-        userId: userId,
-        size: 48,
-        imageUrl: avatarUrl,
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: AppMetrics.p16,
+        vertical: AppMetrics.p8,
       ),
+      leading: ProfileAvatar(userId: userId, size: 48, imageUrl: avatarUrl),
       title: Text(
         '@$username',
-        style: TextStyle(
-          fontWeight: FontWeight.w600,
-          color: scheme.onSurface,
-        ),
+        style: TextStyle(fontWeight: FontWeight.w600, color: scheme.onSurface),
       ),
       subtitle: Text(
-        'Blocked ${_formatBlockedDate(blockedAt)}',
-        style: TextStyle(
-          fontSize: AppType.s12,
+        'Blocked ${const TimeFormatService().formatTimeAgo(blockedAt)}',
+        style: context.typeRoles.labelMicro.copyWith(
           color: scheme.onSurfaceVariant,
         ),
       ),
       trailing: OutlinedButton(
         onPressed: onUnblock,
         style: OutlinedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p8),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppMetrics.p16,
+            vertical: AppMetrics.p8,
+          ),
         ),
         child: Text(
           'Unblock',
-          style: TextStyle(
+          style: Theme.of(context).textTheme.labelLarge?.copyWith(
             color: scheme.primary,
-            fontSize: AppType.s14,
             fontWeight: FontWeight.w600,
           ),
         ),
       ),
     );
-  }
-
-  String _formatBlockedDate(DateTime date) {
-    final now = DateTime.now();
-    final difference = now.difference(date);
-
-    if (difference.inDays > 365) {
-      final years = (difference.inDays / 365).floor();
-      return '$years ${years == 1 ? 'year' : 'years'} ago';
-    } else if (difference.inDays > 30) {
-      final months = (difference.inDays / 30).floor();
-      return '$months ${months == 1 ? 'month' : 'months'} ago';
-    } else if (difference.inDays > 0) {
-      return '${difference.inDays} ${difference.inDays == 1 ? 'day' : 'days'} ago';
-    } else if (difference.inHours > 0) {
-      return '${difference.inHours} ${difference.inHours == 1 ? 'hour' : 'hours'} ago';
-    } else if (difference.inMinutes > 0) {
-      return '${difference.inMinutes} ${difference.inMinutes == 1 ? 'minute' : 'minutes'} ago';
-    } else {
-      return 'just now';
-    }
   }
 }

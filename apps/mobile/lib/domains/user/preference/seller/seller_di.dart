@@ -15,50 +15,8 @@ export 'package:labuda/domains/user/preference/seller/data/seller_providers.dart
     show sellerRepositoryProvider;
 
 // ============================================
-// DASHBOARD STATS PROVIDER
-// ============================================
-
-/// FutureProvider for dashboard stats (replaces old sellerDashboardStatsProvider)
-final sellerDashboardStatsProvider =
-    FutureProvider.family<SellerDashboardStats, String>((ref, sellerId) async {
-      final repository = ref.read(sellerRepositoryProvider);
-      final result = await repository.getDashboardStats(sellerId);
-
-      if (result.isSuccess && result.data != null) {
-        return result.data!;
-      }
-      throw Exception(result.error ?? 'Failed to load dashboard stats');
-    });
-
-// ============================================
-// ACTIVITY PROVIDERS
-// ============================================
-
-/// FutureProvider for recent activity (replaces old sellerRecentActivityProvider)
-final sellerRecentActivityProvider =
-    FutureProvider.family<List<RecentActivityItem>, String>((
-      ref,
-      sellerId,
-    ) async {
-      final repository = ref.read(sellerRepositoryProvider);
-      final result = await repository.getRecentActivity(sellerId, limit: 10);
-
-      if (result.isSuccess && result.data != null) {
-        return result.data!;
-      }
-      return [];
-    });
-
-// ============================================
 // SUBSCRIPTION PROVIDERS
 // ============================================
-
-/// StreamProvider for subscription (real-time)
-final sellerSubscriptionProvider =
-    StreamProvider.family<SellerSubscription?, String>((ref, sellerId) {
-      final repository = ref.read(sellerRepositoryProvider);
-      return repository.watchSubscription(sellerId);
-    });
 
 /// FutureProvider for subscription (one-time)
 final sellerSubscriptionFutureProvider =
@@ -71,6 +29,24 @@ final sellerSubscriptionFutureProvider =
       }
       return SellerSubscription.empty();
     });
+
+// ============================================
+// ANALYTICS PROVIDER
+// ============================================
+
+/// FutureProvider for seller analytics (30-day read projection).
+final sellerAnalyticsProvider = FutureProvider.family<SellerAnalytics, String>((
+  ref,
+  sellerId,
+) async {
+  final repository = ref.read(sellerRepositoryProvider);
+  final result = await repository.getAnalytics(sellerId);
+
+  if (result.isSuccess && result.data != null) {
+    return result.data!;
+  }
+  throw Exception(result.error ?? 'Failed to load analytics');
+});
 
 // ============================================
 // EARNINGS PROVIDER
@@ -89,4 +65,23 @@ final sellerEarningsProvider = FutureProvider.family<SellerEarnings, String>((
     return result.data!;
   }
   throw Exception(result.error ?? 'Failed to load earnings');
+});
+
+// ============================================
+// PERFORMANCE PROVIDER
+// ============================================
+
+/// FutureProvider for seller performance (canonical Reputation + Rating
+/// projection). Matches backend GET /api/v1/seller/performance response.
+final sellerPerformanceProvider = FutureProvider.family<SellerPerformance, String>((
+  ref,
+  sellerId,
+) async {
+  final repository = ref.read(sellerRepositoryProvider);
+  final result = await repository.getPerformance(sellerId);
+
+  if (result.isSuccess && result.data != null) {
+    return result.data!;
+  }
+  throw Exception(result.error ?? 'Failed to load performance');
 });

@@ -11,7 +11,9 @@ import 'package:labuda/domains/commerce/catalog/for_sale/domain/domain.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/presentation/providers/for_sale_providers.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/presentation/widgets/for_sale_card.dart';
 import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_marketplace_primitives.dart';
+import 'package:labuda/shared/widgets/app_bottom_sheet_base.dart';
 import 'package:labuda/shared/widgets/empty_state.dart';
+import 'package:labuda/shared/widgets/page_error_state.dart';
 import 'package:labuda/core/core.dart';
 
 /// ForSale List Screen - Public marketplace
@@ -56,12 +58,22 @@ class _ForSaleListScreenState extends ConsumerState<ForSaleListScreen> {
     setState(() {});
   }
 
+  /// Clears the resettable query + filters. One deterministic reset used by
+  /// the filter-empty state's "Atur Ulang" action.
+  void _resetFilters() {
+    _searchController.clear();
+    setState(() {
+      _selectedStatus = null;
+      _minPrice = null;
+      _maxPrice = null;
+    });
+  }
+
   void _showFilterBottomSheet() {
-    showModalBottomSheet(
+    AppBottomSheetBase.show<void>(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => _ForSaleFilterSheet(
+      title: 'Filter',
+      content: _ForSaleFilterSheet(
         selectedStatus: _selectedStatus,
         minPrice: _minPrice,
         maxPrice: _maxPrice,
@@ -91,6 +103,13 @@ class _ForSaleListScreenState extends ConsumerState<ForSaleListScreen> {
       maxPrice: _maxPrice,
     );
 
+    // Semantic split: query/filter active vs a genuinely empty collection.
+    final hasActiveFilter =
+        params.status != null ||
+        params.searchQuery != null ||
+        params.minPrice != null ||
+        params.maxPrice != null;
+
     return PopScope(
       canPop: true,
       child: Scaffold(
@@ -98,7 +117,7 @@ class _ForSaleListScreenState extends ConsumerState<ForSaleListScreen> {
         appBar: AppBar(
           title: const Text('For Sale'),
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
+            icon: const Icon(Icons.arrow_back, semanticLabel: 'Kembali'),
             onPressed: () => Navigator.of(context).pop(),
           ),
           actions: [
@@ -117,21 +136,20 @@ class _ForSaleListScreenState extends ConsumerState<ForSaleListScreen> {
                 padding: const EdgeInsets.all(AppMetrics.p16),
                 child: TextField(
                   controller: _searchController,
-                  decoration: InputDecoration(
+                  decoration: AppTheme.searchDecoration(
+                    scheme,
                     hintText: 'Search For Sale...',
+                  ).copyWith(
                     prefixIcon: const Icon(Icons.search),
                     suffixIcon: _searchController.text.isNotEmpty
                         ? IconButton(
-                            icon: const Icon(Icons.clear),
+                            icon: const Icon(Icons.clear, semanticLabel: 'Bersihkan'),
                             onPressed: () {
                               _searchController.clear();
                               _onFilterChanged();
                             },
                           )
                         : null,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(AppShape.r12),
-                    ),
                   ),
                   onChanged: (_) => _onFilterChanged(),
                 ),
@@ -140,6 +158,8 @@ class _ForSaleListScreenState extends ConsumerState<ForSaleListScreen> {
               Expanded(
                 child: _ForSalesList(
                   params: params,
+                  hasActiveFilter: hasActiveFilter,
+                  onResetFilter: _resetFilters,
                   scrollController: _scrollController,
                   onRefresh: () => _onFilterChanged(),
                   onForSaleTap: (forSale) {
@@ -158,12 +178,22 @@ class _ForSaleListScreenState extends ConsumerState<ForSaleListScreen> {
 /// Internal widget for For Sale list
 class _ForSalesList extends ConsumerWidget {
   final ForSalesParams params;
+
+  /// True when the visible result set is narrowed by an active query/filter,
+  /// so an empty result means "nothing matched", not "nothing exists".
+  final bool hasActiveFilter;
+
+  /// Clears that query/filter — owned by the screen that holds the state.
+  final VoidCallback onResetFilter;
+
   final ScrollController scrollController;
   final VoidCallback onRefresh;
   final void Function(ForSale) onForSaleTap;
 
   const _ForSalesList({
     required this.params,
+    required this.hasActiveFilter,
+    required this.onResetFilter,
     required this.scrollController,
     required this.onRefresh,
     required this.onForSaleTap,
@@ -195,14 +225,28 @@ class _ForSalesList extends ConsumerWidget {
                 onTap: () => onForSaleTap(forSale),
               );
             },
-            emptyBuilder: (context) => const EmptyState(
-              icon: Icons.storefront_outlined,
-              title: 'Belum ada for sale',
-              subtitle: 'Coba kata kunci atau filter lain.',
-            ),
-            errorBuilder: (context, error, stackTrace) => EmptyState.error(
-              title: 'Data belum bisa dimuat.',
-              subtitle: 'Periksa koneksi kamu lalu coba lagi.',
+            emptyBuilder: (context) {
+              final l10n = context.l10n;
+              // Filter/search empty: the marketplace has listings, this
+              // query/filter simply matched none — offer the reset.
+              if (hasActiveFilter) {
+                return EmptyState(
+                  icon: Icons.filter_alt_off_outlined,
+                  title: l10n.emptySearchTitle,
+                  subtitle: l10n.emptySearchMessage,
+                  actionLabel: l10n.resetFilterAction,
+                  onAction: onResetFilter,
+                );
+              }
+              return EmptyState(
+                icon: Icons.storefront_outlined,
+                title: l10n.emptyForSaleTitle,
+                subtitle: l10n.emptyCollectionMessage,
+              );
+            },
+            // CANONICAL page-level error (PageErrorState): safe localized
+            // copy only, the raw [error] never reaches the screen.
+            errorBuilder: (context, error, stackTrace) => PageErrorState(
               onRetry: onRefresh,
             ),
           ),
@@ -245,24 +289,15 @@ class _ForSaleFilterSheetState extends State<_ForSaleFilterSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(AppMetrics.p16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(AppShape.r20),
-        ),
-      ),
-      child: Column(
+    return Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           // Status filter
           DropdownButtonFormField<ForSaleStatus>(
             initialValue: _status,
-            decoration: const InputDecoration(
-              labelText: 'Status',
-              border: OutlineInputBorder(),
-            ),
+            // Border/fill come from `inputDecorationTheme` (AppTheme) — the
+            // one form-field authority.
+            decoration: const InputDecoration(labelText: 'Status'),
             items: ForSaleStatus.values.map((status) {
               return DropdownMenuItem(value: status, child: Text(status.name));
             }).toList(),
@@ -281,7 +316,6 @@ class _ForSaleFilterSheetState extends State<_ForSaleFilterSheet> {
             ),
           ),
         ],
-      ),
     );
   }
 }

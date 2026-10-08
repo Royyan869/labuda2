@@ -60,7 +60,7 @@ func TestGetDashboard_CountsRealForSales(t *testing.T) {
 
 		_, err := tx.Exec(ctx, `
 			INSERT INTO for_sales (id, product_id, seller_id, price_per_unit, status, quantity_available)
-			VALUES ($1, $2, $3, 100000, 'draft', 1)
+			VALUES ($1, $2, $3, 100000, 'withdrawn', 1)
 		`, uuid.New(), draftProductID, sellerID)
 		return err
 	}))

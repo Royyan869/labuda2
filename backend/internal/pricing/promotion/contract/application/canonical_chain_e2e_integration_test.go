@@ -187,6 +187,7 @@ func TestCanonicalChain_E2E_CreateIssueQualifyChargeFinalizeRelease(t *testing.T
 	contract, err := h.svc.Create(ctx, application.CreatePromotionInput{
 		SellerID:     seller,
 		Kind:         entity.KindInternal,
+		Targets:      []application.PromotionTargetInput{{TargetType: "for_sale", TargetID: target}},
 		BudgetRupiah: 30_000,
 		DurationDays: 3,
 	})
@@ -199,13 +200,7 @@ func TestCanonicalChain_E2E_CreateIssueQualifyChargeFinalizeRelease(t *testing.T
 	require.Equal(t, int64(30_000), h.allocBalance(t, seller, contract.ID))
 
 	// 2. ADD TARGET
-	_, err = h.svc.AddTarget(ctx, application.AddTargetInput{
-		SellerID:   seller,
-		ContractID: contract.ID,
-		TargetType: "for_sale",
-		TargetID:   target,
-	})
-	require.NoError(t, err)
+	_ = target
 
 	// 3. ISSUE TICKET (viewer ≠ seller)
 	viewer := h.newViewer(t)
@@ -260,6 +255,7 @@ func TestCanonicalChain_QualifyTicket_RejectedAfterPlannedFinish(t *testing.T) {
 	contract, err := h.svc.Create(ctx, application.CreatePromotionInput{
 		SellerID:     seller,
 		Kind:         entity.KindInternal,
+		Targets:      []application.PromotionTargetInput{{TargetType: "for_sale", TargetID: target}},
 		BudgetRupiah: 30_000,
 		DurationDays: 1,
 	})
@@ -271,13 +267,7 @@ func TestCanonicalChain_QualifyTicket_RejectedAfterPlannedFinish(t *testing.T) {
 	require.NoError(t, err)
 
 	// Add target
-	_, err = h.svc.AddTarget(ctx, application.AddTargetInput{
-		SellerID:   seller,
-		ContractID: contract.ID,
-		TargetType: "for_sale",
-		TargetID:   target,
-	})
-	require.NoError(t, err)
+	_ = target
 
 	// Issue ticket
 	viewer := h.newViewer(t)
@@ -312,18 +302,13 @@ func TestCanonicalChain_SelectionGate_NoCandidatesWhenDisabled(t *testing.T) {
 	contract, err := h.svc.Create(ctx, application.CreatePromotionInput{
 		SellerID:     seller,
 		Kind:         entity.KindInternal,
+		Targets:      []application.PromotionTargetInput{{TargetType: "for_sale", TargetID: target}},
 		BudgetRupiah: 30_000,
 		DurationDays: 3,
 	})
 	require.NoError(t, err)
 
-	_, err = h.svc.AddTarget(ctx, application.AddTargetInput{
-		SellerID:   seller,
-		ContractID: contract.ID,
-		TargetType: "for_sale",
-		TargetID:   target,
-	})
-	require.NoError(t, err)
+	_ = target
 
 	// Selection with delivery disabled → ErrDeliveryDisabled → no candidates
 	// (handoff service returns error; injection falls through to organic)
@@ -350,18 +335,13 @@ func TestCanonicalChain_FinalizeDueContracts_ReleasesPastFinishContracts(t *test
 	contract, err := h.svc.Create(ctx, application.CreatePromotionInput{
 		SellerID:     seller,
 		Kind:         entity.KindInternal,
+		Targets:      []application.PromotionTargetInput{{TargetType: "for_sale", TargetID: target}},
 		BudgetRupiah: 30_000,
 		DurationDays: 1,
 	})
 	require.NoError(t, err)
 
-	_, err = h.svc.AddTarget(ctx, application.AddTargetInput{
-		SellerID:   seller,
-		ContractID: contract.ID,
-		TargetType: "for_sale",
-		TargetID:   target,
-	})
-	require.NoError(t, err)	// Issue + qualify one QI
+	_ = target	// Issue + qualify one QI
 	viewer := h.newViewer(t)
 	ticket, err := h.deliver.IssueTicket(ctx, deliveryApp.IssueTicketInput{
 		ContractID: contract.ID,
@@ -412,18 +392,13 @@ target := h.newTarget(t, seller)
 	contract, err := h.svc.Create(ctx, application.CreatePromotionInput{
 		SellerID:     seller,
 		Kind:         entity.KindInternal,
+		Targets:      []application.PromotionTargetInput{{TargetType: "for_sale", TargetID: target}},
 		BudgetRupiah: 30_000,
 		DurationDays: 1,
 	})
 	require.NoError(t, err)
 
-	_, err = h.svc.AddTarget(ctx, application.AddTargetInput{
-		SellerID:   seller,
-		ContractID: contract.ID,
-		TargetType: "for_sale",
-		TargetID:   target,
-	})
-	require.NoError(t, err)
+	_ = target
 
 	// Force planned_start + planned_finish both into the past (must maintain planned_finish > planned_start)
 	_, err = h.tdb.Pool().Exec(ctx,

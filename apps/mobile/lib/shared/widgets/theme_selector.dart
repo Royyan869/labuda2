@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/core/core.dart';
-import 'package:labuda/shared/widgets/app_bottom_sheet_base.dart';
+import 'package:labuda/shared/widgets/app_bottom_sheet_list_selection.dart';
 import 'package:labuda/shared/widgets/app_snackbar.dart';
 import 'package:labuda/generated/app_localizations.dart';
 
@@ -49,10 +49,7 @@ class ThemeSelector extends ConsumerWidget {
       padding: padding ?? EdgeInsets.zero,
       child: ListTile(
         leading: showLeadingIcon
-            ? Icon(
-                currentTheme.icon,
-                color: scheme.onSurfaceVariant,
-              )
+            ? Icon(currentTheme.icon, color: scheme.onSurfaceVariant)
             : null,
         title: Text(
           l10n?.theme ?? 'Theme',
@@ -62,7 +59,10 @@ class ThemeSelector extends ConsumerWidget {
           ),
         ),
         trailing: Container(
-          padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p8),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppMetrics.p12,
+            vertical: AppMetrics.p8,
+          ),
           decoration: BoxDecoration(
             color: scheme.surfaceContainerHighest,
             border: Border.all(color: scheme.outlineVariant),
@@ -92,9 +92,8 @@ class ThemeSelector extends ConsumerWidget {
                       const SizedBox(width: AppMetrics.p8),
                       Text(
                         _getThemeDisplayName(themeMode, l10n),
-                        style: TextStyle(
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                           color: scheme.onSurface,
-                          fontSize: AppType.s14,
                         ),
                       ),
                     ],
@@ -110,7 +109,7 @@ class ThemeSelector extends ConsumerWidget {
                   // Show success message
                   AppSnackBar.showSuccess(
                     context,
-                    'Theme changed to ${_getThemeDisplayName(newTheme, l10n)}',
+                    'Tema diubah ke ${_getThemeDisplayName(newTheme, l10n)}',
                     duration: const Duration(seconds: 2),
                   );
                 }
@@ -132,7 +131,11 @@ class ThemeSelector extends ConsumerWidget {
 
     return Container(
       padding:
-          padding ?? const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p8),
+          padding ??
+          const EdgeInsets.symmetric(
+            horizontal: AppMetrics.p12,
+            vertical: AppMetrics.p8,
+          ),
       decoration: BoxDecoration(
         color: scheme.surfaceContainerHighest,
         border: Border.all(color: scheme.outlineVariant),
@@ -161,9 +164,8 @@ class ThemeSelector extends ConsumerWidget {
                   const SizedBox(width: 6),
                   Text(
                     _getThemeDisplayName(themeMode, l10n),
-                    style: TextStyle(
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                       color: scheme.onSurface,
-                      fontSize: AppType.s14,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -214,26 +216,24 @@ class ThemeSelectorTile extends ConsumerWidget {
       ),
       title: Text(
         l10n.theme,
-        style: TextStyle(
+        style: context.typeRoles.titleCompact.copyWith(
           color: scheme.onSurface,
-          fontSize: AppType.s16,
           fontWeight: FontWeight.w500,
         ),
       ),
       subtitle: Text(
         _getThemeDisplayName(currentTheme, l10n),
-        style: TextStyle(
+        style: context.typeRoles.bodyDense.copyWith(
           color: scheme.onSurfaceVariant,
-          fontSize: AppType.s14,
         ),
       ),
-      trailing: Icon(
-        Icons.chevron_right,
-        color: scheme.onSurfaceVariant,
-      ),
+      trailing: Icon(Icons.chevron_right, color: scheme.onSurfaceVariant),
       contentPadding:
           contentPadding ??
-          const EdgeInsets.symmetric(horizontal: AppMetrics.p24, vertical: AppMetrics.p4),
+          const EdgeInsets.symmetric(
+            horizontal: AppMetrics.p24,
+            vertical: AppMetrics.p4,
+          ),
       onTap: () => showThemeSelectionSheet(context, ref),
     );
   }
@@ -255,7 +255,6 @@ class ThemeSelectorTile extends ConsumerWidget {
 /// Replaces the copy-pasted sheet that lived in `welcome_screen.dart`
 /// (deleted): one bottom sheet, scheme-driven, no brightness branches.
 void showThemeSelectionSheet(BuildContext context, WidgetRef ref) {
-  final scheme = Theme.of(context).colorScheme;
   final l10n = AppLocalizations.of(context)!;
   final currentTheme = ref.read(themeControllerProvider).themeMode;
 
@@ -270,94 +269,32 @@ void showThemeSelectionSheet(BuildContext context, WidgetRef ref) {
     }
   }
 
-  showModalBottomSheet<void>(
+  // Canonical selection builder: surface, shape, handle, scroll and safe area
+  // all come from the foundation — no bespoke sheet.
+  AppBottomSheetListSelection.showListSelection<ThemeMode>(
     context: context,
-    backgroundColor: scheme.surfaceContainerHigh,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(AppShape.r20)),
-    ),
-    builder: (BuildContext context) {
-      return Container(
-        padding: const EdgeInsets.all(AppMetrics.p24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Handle bar — ONE authority: `AppDragHandle` beside the bottom-sheet base
-            const Center(child: AppDragHandle(padding: EdgeInsets.zero)),
-            const SizedBox(height: 20),
-
-            // Title
-            Text(
-              l10n.theme,
-              style: TextStyle(
-                color: scheme.onSurface,
-                fontSize: AppType.s20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // Theme options
-            ...ThemeMode.values.map((themeMode) {
-              final isSelected = themeMode == currentTheme;
-              return ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: Icon(
-                  themeMode.icon,
-                  color: isSelected
-                      ? scheme.primary
-                      : scheme.onSurfaceVariant,
-                  size: AppMetrics.p24,
-                ),
-                title: Text(
-                  name(themeMode),
-                  style: TextStyle(
-                    color: scheme.onSurface,
-                    fontSize: AppType.s16,
-                    fontWeight: isSelected
-                        ? FontWeight.w600
-                        : FontWeight.w500,
-                  ),
-                ),
-                subtitle: themeMode == ThemeMode.system
-                    ? Text(
-                        'Follow system setting',
-                        style: TextStyle(
-                          color: scheme.onSurfaceVariant,
-                          fontSize: AppType.s12,
-                        ),
-                      )
-                    : null,
-                trailing: isSelected
-                    ? Icon(
-                        Icons.check_circle,
-                        color: scheme.primary,
-                        size: AppIconSize.action,
-                      )
-                    : null,
-                onTap: () {
-                  if (themeMode != currentTheme) {
-                    ref
-                        .read(themeControllerProvider.notifier)
-                        .setThemeMode(themeMode);
-
-                    // Show success message
-                    AppSnackBar.showSuccess(
-                      context,
-                      'Theme changed to ${name(themeMode)}',
-                      duration: const Duration(seconds: 2),
-                    );
-                  }
-                  Navigator.of(context).pop();
-                },
-              );
-            }),
-
-            const SizedBox(height: 20),
-          ],
-        ),
-      );
-    },
-  );
+    title: l10n.theme,
+    selectedValue: currentTheme,
+    items: ThemeMode.values
+        .map(
+          (themeMode) => ListSelectionItem<ThemeMode>(
+            title: name(themeMode),
+            subtitle:
+                themeMode == ThemeMode.system ? 'Follow system setting' : null,
+            icon: themeMode.icon,
+            value: themeMode,
+          ),
+        )
+        .toList(),
+  ).then((themeMode) {
+    if (themeMode == null || themeMode == currentTheme || !context.mounted) {
+      return;
+    }
+    ref.read(themeControllerProvider.notifier).setThemeMode(themeMode);
+    AppSnackBar.showSuccess(
+      context,
+      'Tema diubah ke ${name(themeMode)}',
+      duration: const Duration(seconds: 2),
+    );
+  });
 }

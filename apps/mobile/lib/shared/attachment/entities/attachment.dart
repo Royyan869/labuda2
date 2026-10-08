@@ -189,6 +189,15 @@ class ShippingQuoteAttachment extends Attachment {
   final String status;
   final String sellerId;
 
+  /// Viewer-scoped Commerce projection (backend `shipping_quote_projection`):
+  /// is this quote the current unsuperseded revision?
+  final bool isCurrent;
+
+  /// Viewer-scoped Commerce projection: may THIS viewer act on the quote?
+  /// Commerce owns the decision (current + buyer identity + not expired/used);
+  /// the conversation only renders it and must never recompute quote lifecycle.
+  final bool viewerActionable;
+
   const ShippingQuoteAttachment({
     required this.offerId,
     required this.linkedItemId,
@@ -206,7 +215,34 @@ class ShippingQuoteAttachment extends Attachment {
     required this.validUntil,
     required this.status,
     required this.sellerId,
+    this.isCurrent = false,
+    this.viewerActionable = false,
   }) : linkedItemImage = linkedImage;
+
+  ShippingQuoteAttachment copyWith({
+    bool? isCurrent,
+    bool? viewerActionable,
+  }) {
+    return ShippingQuoteAttachment(
+      offerId: offerId,
+      linkedItemId: linkedItemId,
+      linkedItemType: linkedItemType,
+      linkedItemName: linkedItemName,
+      linkedImage: linkedItemImage,
+      linkedItemPrice: linkedItemPrice,
+      linkedItemBuyNowPrice: linkedItemBuyNowPrice,
+      shippingType: shippingType,
+      shippingTypeName: shippingTypeName,
+      shippingTypeEmoji: shippingTypeEmoji,
+      rate: rate,
+      notes: notes,
+      validUntil: validUntil,
+      status: status,
+      sellerId: sellerId,
+      isCurrent: isCurrent ?? this.isCurrent,
+      viewerActionable: viewerActionable ?? this.viewerActionable,
+    );
+  }
 
   // Backwards compatibility: alias for linkedItemImage
   String? get linkedImage => linkedItemImage;
@@ -230,6 +266,8 @@ class ShippingQuoteAttachment extends Attachment {
     validUntil,
     status,
     sellerId,
+    isCurrent,
+    viewerActionable,
   ];
 
   @override

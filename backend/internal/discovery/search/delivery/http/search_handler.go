@@ -444,7 +444,7 @@ type SearchAuctionsRequest struct {
 //
 // AUCTION SEARCH ELIGIBILITY (Phase 3.5):
 // Only searches auctions with status IN ('scheduled', 'active', 'ended')
-// Draft and cancelled auctions are NOT discoverable via search
+// Cancelled, lapsed and waiting_settlement auctions are NOT discoverable via search
 //
 // Search fields: title, description
 // Sort options: relevance (active first, then bid count), created_at, end_at

@@ -1,10 +1,15 @@
 /// Support Ticket Event Entity
-/// Represents an audit trail event for ticket state transitions
+/// Represents a canonical read-only audit trail entry for ticket state changes
 library;
 
 import 'package:equatable/equatable.dart';
 
-/// Support Event Type - type of event that occurred on a ticket
+/// Support Event Type - type of event that occurred on a ticket.
+///
+/// IDENTITY: every value maps 1:1 to the backend `support_ticket_events.
+/// event_type` wire value through [SupportEvent.parseEventType]. Event display
+/// copy is NOT owned here — it lives in the canonical `AppLocalizations`
+/// authority behind the presentation-layer resolver.
 enum SupportEventType {
   ticketCreated, // Ticket was created
   ticketClaimed, // Admin claimed ticket
@@ -17,10 +22,17 @@ enum SupportEventType {
   ticketReopened, // Ticket was reopened
   adminAssigned, // Admin was assigned
   adminUnassigned, // Admin was unassigned
-  unknown, // Unknown event type
+  ticketEscalated, // Ticket was escalated to dispute
+  unknown, // Unrecognised event type
 }
 
-/// Support Event - audit trail entry for ticket state changes
+/// Support Event - canonical read-only audit-trail entry for a ticket.
+///
+/// Pure data: event identity ([eventType]), canonical transition values
+/// ([oldStatus]/[newStatus] and [metadata]) and the timestamp. It stores no
+/// user-facing copy — the presentation layer derives every label from
+/// `AppLocalizations` so the activity timeline follows the active locale and
+/// never surfaces a raw wire value.
 class SupportEvent extends Equatable {
   final String id;
   final String ticketId;
@@ -46,119 +58,6 @@ class SupportEvent extends Equatable {
     required this.createdAt,
   });
 
-  /// Helper: get display label for event type
-  String get eventTypeLabel {
-    switch (eventType) {
-      case SupportEventType.ticketCreated:
-        return 'Ticket Created';
-      case SupportEventType.ticketClaimed:
-        return 'Ticket Claimed';
-      case SupportEventType.ticketWaitingUser:
-        return 'Waiting for User';
-      case SupportEventType.statusChanged:
-        return 'Status Changed';
-      case SupportEventType.priorityChanged:
-        return 'Priority Changed';
-      case SupportEventType.categoryChanged:
-        return 'Category Changed';
-      case SupportEventType.ticketResolved:
-        return 'Ticket Resolved';
-      case SupportEventType.ticketClosed:
-        return 'Ticket Closed';
-      case SupportEventType.ticketReopened:
-        return 'Ticket Reopened';
-      case SupportEventType.adminAssigned:
-        return 'Admin Assigned';
-      case SupportEventType.adminUnassigned:
-        return 'Admin Unassigned';
-      case SupportEventType.unknown:
-        return 'Unknown Event';
-    }
-  }
-
-  /// Helper: get description for the event
-  String get description {
-    switch (eventType) {
-      case SupportEventType.ticketCreated:
-        return 'Ticket was created';
-      case SupportEventType.ticketClaimed:
-        return actorName != null
-            ? '$actorName claimed this ticket'
-            : 'Ticket was claimed';
-      case SupportEventType.ticketWaitingUser:
-        return 'Waiting for user response';
-      case SupportEventType.statusChanged:
-        if (oldStatus != null && newStatus != null) {
-          return 'Status changed from $oldStatus to $newStatus';
-        }
-        return 'Status was updated';
-      case SupportEventType.priorityChanged:
-        final oldPriority = metadata?['old_priority'] as String?;
-        final newPriority = metadata?['new_priority'] as String?;
-        if (oldPriority != null && newPriority != null) {
-          return 'Priority changed from $oldPriority to $newPriority';
-        }
-        return 'Priority was updated';
-      case SupportEventType.categoryChanged:
-        final oldCategory = metadata?['old_category'] as String?;
-        final newCategory = metadata?['new_category'] as String?;
-        if (oldCategory != null && newCategory != null) {
-          return 'Category changed from $oldCategory to $newCategory';
-        }
-        return 'Category was updated';
-      case SupportEventType.ticketResolved:
-        final notesText = notes != null && notes!.isNotEmpty
-            ? '\nNotes: $notes'
-            : '';
-        return 'Ticket was resolved$notesText';
-      case SupportEventType.ticketClosed:
-        final reasonText = notes != null && notes!.isNotEmpty
-            ? '\nReason: $notes'
-            : '';
-        return 'Ticket was closed$reasonText';
-      case SupportEventType.ticketReopened:
-        return 'Ticket was reopened';
-      case SupportEventType.adminAssigned:
-        return actorName != null
-            ? '$actorName was assigned'
-            : 'Admin was assigned';
-      case SupportEventType.adminUnassigned:
-        return 'Admin was unassigned';
-      case SupportEventType.unknown:
-        return notes ?? 'Event occurred';
-    }
-  }
-
-  /// Helper: get icon for the event type
-  String get iconName {
-    switch (eventType) {
-      case SupportEventType.ticketCreated:
-        return 'add_circle_outline';
-      case SupportEventType.ticketClaimed:
-        return 'person_add';
-      case SupportEventType.ticketWaitingUser:
-        return 'hourglass_empty';
-      case SupportEventType.statusChanged:
-        return 'sync';
-      case SupportEventType.priorityChanged:
-        return 'flag';
-      case SupportEventType.categoryChanged:
-        return 'category';
-      case SupportEventType.ticketResolved:
-        return 'check_circle';
-      case SupportEventType.ticketClosed:
-        return 'close';
-      case SupportEventType.ticketReopened:
-        return 'restore';
-      case SupportEventType.adminAssigned:
-        return 'assignment_ind';
-      case SupportEventType.adminUnassigned:
-        return 'person_remove';
-      case SupportEventType.unknown:
-        return 'info';
-    }
-  }
-
   @override
   List<Object?> get props => [
     id,
@@ -173,7 +72,10 @@ class SupportEvent extends Equatable {
     createdAt,
   ];
 
-  /// Parse event type from string
+  /// Parse the canonical backend `event_type` wire value into an event type.
+  ///
+  /// This is the SINGLE event-type parser for the Support domain; the API DTO
+  /// delegates to it rather than keeping a second, drift-prone switch.
   static SupportEventType parseEventType(String value) {
     switch (value) {
       case 'ticket_created':
@@ -198,6 +100,8 @@ class SupportEvent extends Equatable {
         return SupportEventType.adminAssigned;
       case 'admin_unassigned':
         return SupportEventType.adminUnassigned;
+      case 'ticket_escalated':
+        return SupportEventType.ticketEscalated;
       default:
         return SupportEventType.unknown;
     }

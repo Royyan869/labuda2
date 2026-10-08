@@ -6,13 +6,15 @@ import 'package:labuda/domains/commerce/catalog/for_sale/domain/entities/for_sal
 /// SCOPE 3 — for_sale status boundary (mobile side, parity with auction).
 ///
 /// The backend coarsens the public `status` wire field to the public
-/// lifecycle vocabulary ({active, sold, unavailable}) — raw `draft`/
-/// `withdrawn` NEVER cross the public boundary; `sold` is honest public
-/// business truth (honest-labeling decision), while the reason a listing
-/// was pulled stays private. The exact internal state crosses ONLY via
-/// `seller_status`, and only on owner surfaces. The mapper must prefer
-/// `seller_status` (owner precision) and resolve through the public
-/// vocabulary otherwise.
+/// lifecycle vocabulary ({active, sold, unavailable}) — internal states
+/// `withdrawn` (and the purged legacy `draft`) NEVER cross the public
+/// boundary; `sold` is honest public business truth (honest-labeling
+/// decision). The exact internal state crosses ONLY via `seller_status`,
+/// and only on owner surfaces. The mapper must prefer `seller_status` (owner
+/// precision) and resolve through the public vocabulary otherwise.
+///
+/// DRAFT IS PURGED (owner decision, Oct 2026): create = publish. A legacy
+/// 'draft' value resolves to 'withdrawn' — the conservative not-buyable state.
 void main() {
   Map<String, dynamic> baseJson({String? status, String? sellerStatus}) {
     return <String, dynamic>{
@@ -38,13 +40,13 @@ void main() {
     expect(forSale.status, ForSaleStatus.active);
   });
 
-  test('unavailable coarsens draft/withdrawn into one not-buyable value (sold crosses honestly)', () {
+  test('unavailable coarsens non-buyable states into one value (sold crosses honestly)', () {
     final forSale = ForSaleDtoMapper.toEntity(
       ForSaleResponseDto.fromJson(baseJson(status: 'unavailable')),
     );
-    // Public viewers only need "not buyable" — the conservative mapping
-    // resolves unavailable to the draft (not-buyable) domain state.
-    expect(forSale.status, ForSaleStatus.draft);
+    // Public viewers only need "not buyable" — unavailable resolves to the
+    // conservative withdrawn (not-buyable) domain state.
+    expect(forSale.status, ForSaleStatus.withdrawn);
     expect(forSale.isAvailable, isFalse);
   });
 
@@ -70,7 +72,7 @@ void main() {
     },
   );
 
-  test('owner viewer: withdrawn workspace state survives the boundary', () {
+  test('owner viewer: withdrawn state survives the boundary', () {
     final forSale = ForSaleDtoMapper.toEntity(
       ForSaleResponseDto.fromJson(
         baseJson(status: 'unavailable', sellerStatus: 'withdrawn'),
@@ -88,10 +90,18 @@ void main() {
     expect(forSale.status, ForSaleStatus.active);
   });
 
-  test('unknown public value falls back conservatively (existing contract)', () {
+  test('legacy draft value maps to withdrawn, never to a phantom enum state', () {
+    final forSale = ForSaleDtoMapper.toEntity(
+      ForSaleResponseDto.fromJson(baseJson(status: 'draft')),
+    );
+    expect(forSale.status, ForSaleStatus.withdrawn);
+    expect(forSale.isAvailable, isFalse);
+  });
+
+  test('unknown public value falls back conservatively (not buyable)', () {
     final forSale = ForSaleDtoMapper.toEntity(
       ForSaleResponseDto.fromJson(baseJson(status: 'mystery_state')),
     );
-    expect(forSale.status, ForSaleStatus.draft);
+    expect(forSale.status, ForSaleStatus.withdrawn);
   });
 }

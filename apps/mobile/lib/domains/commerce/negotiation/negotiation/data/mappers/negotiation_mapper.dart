@@ -21,12 +21,9 @@ class NegotiationMapper {
     NegotiationResponseDto dto, {
     String chatRoomId = '',
   }) {
-    // Determine last offer by: buyer starts (seq 1), then alternates
-    // seq 0 = no proposals yet, seq 1 = buyer, seq 2 = seller, etc.
-    final lastOfferBy = dto.proposalSequence > 0 && dto.proposalSequence.isEven
-        ? 'seller'
-        : 'buyer';
-
+    // Turn/actionability is a COMMERCE projection (`viewer_can_act`). The
+    // former client-side reconstruction (proposal_sequence → parity →
+    // lastOfferBy) was a duplicate authority and must not be reintroduced.
     return Negotiation(
       id: dto.id,
       chatId: chatRoomId.isNotEmpty ? chatRoomId : (dto.chatRoomId ?? ''),
@@ -38,7 +35,7 @@ class NegotiationMapper {
       sellerId: dto.sellerId,
       status: NegotiationStatusExtension.fromString(dto.status),
       currentOfferPrice: dto.currentPrice?.toDouble() ?? 0,
-      lastOfferBy: lastOfferBy,
+      viewerCanAct: dto.viewerCanAct,
       round: dto.proposalSequence,
       offers: [],
       agreedPrice: dto.acceptedPrice?.toDouble(),

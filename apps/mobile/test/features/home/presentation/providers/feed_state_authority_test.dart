@@ -24,7 +24,10 @@ class _FakeAuthController extends AuthController {
 }
 
 class _FakeHomeRepository implements HomeRepository {
-  _FakeHomeRepository({this.initialPages = const [], this.loadMorePages = const []});
+  _FakeHomeRepository({
+    this.initialPages = const [],
+    this.loadMorePages = const [],
+  });
 
   final List<FeedPage> initialPages;
   final List<FeedPage> loadMorePages;
@@ -184,18 +187,25 @@ void main() {
   // ==========================================================================
   group('initial load', () {
     test('success with items', () async {
-      final repo = _FakeHomeRepository(initialPages: [
-        FeedPage(
-          items: [_feedItem(id: 'feed-1', content: 'hello'), _feedItem(id: 'feed-2', content: 'world')],
-          hasMore: true,
-          nextCursor: 'cursor-1',
-        ),
-      ]);
-      final container = ProviderContainer(overrides: [
-        homeRepositoryProvider.overrideWithValue(repo),
-        loggerServiceProvider.overrideWithValue(LoggerService.instance),
-        authControllerProvider.overrideWith(_FakeAuthController.new),
-      ]);
+      final repo = _FakeHomeRepository(
+        initialPages: [
+          FeedPage(
+            items: [
+              _feedItem(id: 'feed-1', content: 'hello'),
+              _feedItem(id: 'feed-2', content: 'world'),
+            ],
+            hasMore: true,
+            nextCursor: 'cursor-1',
+          ),
+        ],
+      );
+      final container = ProviderContainer(
+        overrides: [
+          homeRepositoryProvider.overrideWithValue(repo),
+          loggerServiceProvider.overrideWithValue(LoggerService.instance),
+          authControllerProvider.overrideWith(_FakeAuthController.new),
+        ],
+      );
       addTearDown(container.dispose);
       container.listen(feedProvider, (_, _) {});
       await _settle();
@@ -211,14 +221,16 @@ void main() {
     });
 
     test('success with empty list — genuine empty', () async {
-      final repo = _FakeHomeRepository(initialPages: [
-        const FeedPage(items: [], hasMore: false),
-      ]);
-      final container = ProviderContainer(overrides: [
-        homeRepositoryProvider.overrideWithValue(repo),
-        loggerServiceProvider.overrideWithValue(LoggerService.instance),
-        authControllerProvider.overrideWith(_FakeAuthController.new),
-      ]);
+      final repo = _FakeHomeRepository(
+        initialPages: [const FeedPage(items: [], hasMore: false)],
+      );
+      final container = ProviderContainer(
+        overrides: [
+          homeRepositoryProvider.overrideWithValue(repo),
+          loggerServiceProvider.overrideWithValue(LoggerService.instance),
+          authControllerProvider.overrideWith(_FakeAuthController.new),
+        ],
+      );
       addTearDown(container.dispose);
       container.listen(feedProvider, (_, _) {});
       await _settle();
@@ -230,35 +242,42 @@ void main() {
       expect(state.hasReachedMax, isTrue);
     });
 
-    test('FormatException from repository produces initial error, not genuine empty', () async {
-      // Simulates the exact data:null contract path:
-      // FeedApiDatasource → FeedResponseDto.fromJson(data:null) → FormatException
-      // → HomeRepositoryImpl (rethrows) → FeedNotifier.loadFeed (catches)
-      final repo = _ThrowingHomeRepository(
-        const FormatException('Feed response data must be a JSON array'),
-      );
-      final container = ProviderContainer(overrides: [
-        homeRepositoryProvider.overrideWithValue(repo),
-        loggerServiceProvider.overrideWithValue(LoggerService.instance),
-        authControllerProvider.overrideWith(_FakeAuthController.new),
-      ]);
-      addTearDown(container.dispose);
-      container.listen(feedProvider, (_, _) {});
-      await _settle();
+    test(
+      'FormatException from repository produces initial error, not genuine empty',
+      () async {
+        // Simulates the exact data:null contract path:
+        // FeedApiDatasource → FeedResponseDto.fromJson(data:null) → FormatException
+        // → HomeRepositoryImpl (rethrows) → FeedNotifier.loadFeed (catches)
+        final repo = _ThrowingHomeRepository(
+          const FormatException('Feed response data must be a JSON array'),
+        );
+        final container = ProviderContainer(
+          overrides: [
+            homeRepositoryProvider.overrideWithValue(repo),
+            loggerServiceProvider.overrideWithValue(LoggerService.instance),
+            authControllerProvider.overrideWith(_FakeAuthController.new),
+          ],
+        );
+        addTearDown(container.dispose);
+        container.listen(feedProvider, (_, _) {});
+        await _settle();
 
-      final state = container.read(feedProvider);
-      expect(state.items, isEmpty);
-      expect(state.isLoading, isFalse);
-      expect(state.errorMessage, isNotNull);
-    });
+        final state = container.read(feedProvider);
+        expect(state.items, isEmpty);
+        expect(state.isLoading, isFalse);
+        expect(state.errorMessage, isNotNull);
+      },
+    );
 
     test('repository failure is not genuine empty', () async {
       final repo = _ThrowingHomeRepository(Exception('network error'));
-      final container = ProviderContainer(overrides: [
-        homeRepositoryProvider.overrideWithValue(repo),
-        loggerServiceProvider.overrideWithValue(LoggerService.instance),
-        authControllerProvider.overrideWith(_FakeAuthController.new),
-      ]);
+      final container = ProviderContainer(
+        overrides: [
+          homeRepositoryProvider.overrideWithValue(repo),
+          loggerServiceProvider.overrideWithValue(LoggerService.instance),
+          authControllerProvider.overrideWith(_FakeAuthController.new),
+        ],
+      );
       addTearDown(container.dispose);
       container.listen(feedProvider, (_, _) {});
       await _settle();
@@ -272,17 +291,22 @@ void main() {
     test('retry after initial failure recovers to data', () async {
       final repo = _ToggleHomeRepository(
         initialPages: [
-          FeedPage(items: [_feedItem(id: 'feed-1', content: 'recovered')], hasMore: false),
+          FeedPage(
+            items: [_feedItem(id: 'feed-1', content: 'recovered')],
+            hasMore: false,
+          ),
         ],
       );
       // First call (initial load in build) throws
       repo.nextError = Exception('network error');
 
-      final container = ProviderContainer(overrides: [
-        homeRepositoryProvider.overrideWithValue(repo),
-        loggerServiceProvider.overrideWithValue(LoggerService.instance),
-        authControllerProvider.overrideWith(_FakeAuthController.new),
-      ]);
+      final container = ProviderContainer(
+        overrides: [
+          homeRepositoryProvider.overrideWithValue(repo),
+          loggerServiceProvider.overrideWithValue(LoggerService.instance),
+          authControllerProvider.overrideWith(_FakeAuthController.new),
+        ],
+      );
       addTearDown(container.dispose);
       container.listen(feedProvider, (_, _) {});
       await _settle();
@@ -307,15 +331,26 @@ void main() {
   // ==========================================================================
   group('refresh', () {
     test('refresh success updates state', () async {
-      final repo = _FakeHomeRepository(initialPages: [
-        FeedPage(items: [_feedItem(id: 'feed-1', content: 'old')], hasMore: true, nextCursor: 'cursor-1'),
-        FeedPage(items: [_feedItem(id: 'feed-2', content: 'new')], hasMore: false),
-      ]);
-      final container = ProviderContainer(overrides: [
-        homeRepositoryProvider.overrideWithValue(repo),
-        loggerServiceProvider.overrideWithValue(LoggerService.instance),
-        authControllerProvider.overrideWith(_FakeAuthController.new),
-      ]);
+      final repo = _FakeHomeRepository(
+        initialPages: [
+          FeedPage(
+            items: [_feedItem(id: 'feed-1', content: 'old')],
+            hasMore: true,
+            nextCursor: 'cursor-1',
+          ),
+          FeedPage(
+            items: [_feedItem(id: 'feed-2', content: 'new')],
+            hasMore: false,
+          ),
+        ],
+      );
+      final container = ProviderContainer(
+        overrides: [
+          homeRepositoryProvider.overrideWithValue(repo),
+          loggerServiceProvider.overrideWithValue(LoggerService.instance),
+          authControllerProvider.overrideWith(_FakeAuthController.new),
+        ],
+      );
       addTearDown(container.dispose);
       container.listen(feedProvider, (_, _) {});
       await _settle();
@@ -335,17 +370,23 @@ void main() {
       expect(repo.initialCalls, 2);
     });
 
-    test('refresh failure clears items (reset before loadFeed)', () async {
+    test('refresh failure preserves items with refreshError', () async {
       final repo = _ToggleHomeRepository(
         initialPages: [
-          FeedPage(items: [_feedItem(id: 'feed-1', content: 'hello')], hasMore: true, nextCursor: 'cursor-1'),
+          FeedPage(
+            items: [_feedItem(id: 'feed-1', content: 'hello')],
+            hasMore: true,
+            nextCursor: 'cursor-1',
+          ),
         ],
       );
-      final container = ProviderContainer(overrides: [
-        homeRepositoryProvider.overrideWithValue(repo),
-        loggerServiceProvider.overrideWithValue(LoggerService.instance),
-        authControllerProvider.overrideWith(_FakeAuthController.new),
-      ]);
+      final container = ProviderContainer(
+        overrides: [
+          homeRepositoryProvider.overrideWithValue(repo),
+          loggerServiceProvider.overrideWithValue(LoggerService.instance),
+          authControllerProvider.overrideWith(_FakeAuthController.new),
+        ],
+      );
       addTearDown(container.dispose);
       container.listen(feedProvider, (_, _) {});
       await _settle();
@@ -359,24 +400,33 @@ void main() {
       await notifier.refresh();
 
       final state = container.read(feedProvider);
-      // Production refresh() resets items to [] before loadFeed(),
-      // so on failure items remain empty (not preserved from last-good).
-      expect(state.items, isEmpty);
-      expect(state.errorMessage, isNotNull);
+      // Loading Foundation: refresh never clears last-known-good items.
+      // Failure surfaces as refreshError with data preserved — never a
+      // full-page error swap.
+      expect(state.items, hasLength(1));
+      expect(state.items[0].id, 'feed-1');
+      expect(state.errorMessage, isNull);
+      expect(state.refreshError, isNotNull);
       expect(state.isLoading, isFalse);
+      expect(state.isRefreshing, isFalse);
     });
 
-    test('refresh failure produces empty state with error message', () async {
+    test('refresh failure keeps data and surfaces inline error', () async {
       final repo = _ToggleHomeRepository(
         initialPages: [
-          FeedPage(items: [_feedItem(id: 'feed-1', content: 'hello')], hasMore: true),
+          FeedPage(
+            items: [_feedItem(id: 'feed-1', content: 'hello')],
+            hasMore: true,
+          ),
         ],
       );
-      final container = ProviderContainer(overrides: [
-        homeRepositoryProvider.overrideWithValue(repo),
-        loggerServiceProvider.overrideWithValue(LoggerService.instance),
-        authControllerProvider.overrideWith(_FakeAuthController.new),
-      ]);
+      final container = ProviderContainer(
+        overrides: [
+          homeRepositoryProvider.overrideWithValue(repo),
+          loggerServiceProvider.overrideWithValue(LoggerService.instance),
+          authControllerProvider.overrideWith(_FakeAuthController.new),
+        ],
+      );
       addTearDown(container.dispose);
       container.listen(feedProvider, (_, _) {});
       await _settle();
@@ -387,24 +437,33 @@ void main() {
       await notifier.refresh();
 
       final state = container.read(feedProvider);
-      // Production refresh() resets items to [] before loadFeed(),
-      // so on failure items are empty (not preserved).
-      expect(state.items, isEmpty);
-      expect(state.errorMessage, isNotNull);
+      // Loading Foundation: refresh never clears last-known-good items;
+      // failure keeps data with an inline refreshError.
+      expect(state.items, hasLength(1));
+      expect(state.errorMessage, isNull);
+      expect(state.refreshError, isNotNull);
     });
 
     test('retry refresh clears error', () async {
       final repo = _ToggleHomeRepository(
         initialPages: [
-          FeedPage(items: [_feedItem(id: 'feed-1', content: 'hello')], hasMore: true),
-          FeedPage(items: [_feedItem(id: 'feed-2', content: 'fresh')], hasMore: false),
+          FeedPage(
+            items: [_feedItem(id: 'feed-1', content: 'hello')],
+            hasMore: true,
+          ),
+          FeedPage(
+            items: [_feedItem(id: 'feed-2', content: 'fresh')],
+            hasMore: false,
+          ),
         ],
       );
-      final container = ProviderContainer(overrides: [
-        homeRepositoryProvider.overrideWithValue(repo),
-        loggerServiceProvider.overrideWithValue(LoggerService.instance),
-        authControllerProvider.overrideWith(_FakeAuthController.new),
-      ]);
+      final container = ProviderContainer(
+        overrides: [
+          homeRepositoryProvider.overrideWithValue(repo),
+          loggerServiceProvider.overrideWithValue(LoggerService.instance),
+          authControllerProvider.overrideWith(_FakeAuthController.new),
+        ],
+      );
       addTearDown(container.dispose);
       container.listen(feedProvider, (_, _) {});
       await _settle();
@@ -412,7 +471,8 @@ void main() {
       // Refresh fails
       repo.nextError = Exception('fail');
       await container.read(feedProvider.notifier).refresh();
-      expect(container.read(feedProvider).errorMessage, isNotNull);
+      expect(container.read(feedProvider).refreshError, isNotNull);
+      expect(container.read(feedProvider).items, isNotEmpty);
 
       // Retry: nextError was consumed, this call succeeds
       await container.read(feedProvider.notifier).refresh();
@@ -420,6 +480,7 @@ void main() {
       final state = container.read(feedProvider);
       expect(state.items, isNotEmpty);
       expect(state.errorMessage, isNull);
+      expect(state.refreshError, isNull);
     });
   });
 
@@ -430,17 +491,26 @@ void main() {
     test('pagination success adds page', () async {
       final repo = _FakeHomeRepository(
         initialPages: [
-          FeedPage(items: [_feedItem(id: 'feed-1', content: 'page-1')], hasMore: true, nextCursor: 'cursor-1'),
+          FeedPage(
+            items: [_feedItem(id: 'feed-1', content: 'page-1')],
+            hasMore: true,
+            nextCursor: 'cursor-1',
+          ),
         ],
         loadMorePages: [
-          FeedPage(items: [_feedItem(id: 'feed-2', content: 'page-2')], hasMore: false),
+          FeedPage(
+            items: [_feedItem(id: 'feed-2', content: 'page-2')],
+            hasMore: false,
+          ),
         ],
       );
-      final container = ProviderContainer(overrides: [
-        homeRepositoryProvider.overrideWithValue(repo),
-        loggerServiceProvider.overrideWithValue(LoggerService.instance),
-        authControllerProvider.overrideWith(_FakeAuthController.new),
-      ]);
+      final container = ProviderContainer(
+        overrides: [
+          homeRepositoryProvider.overrideWithValue(repo),
+          loggerServiceProvider.overrideWithValue(LoggerService.instance),
+          authControllerProvider.overrideWith(_FakeAuthController.new),
+        ],
+      );
       addTearDown(container.dispose);
       container.listen(feedProvider, (_, _) {});
       await _settle();
@@ -460,17 +530,26 @@ void main() {
     test('pagination failure preserves old pages', () async {
       final repo = _ToggleHomeRepository(
         initialPages: [
-          FeedPage(items: [_feedItem(id: 'feed-1', content: 'page-1')], hasMore: true, nextCursor: 'cursor-1'),
+          FeedPage(
+            items: [_feedItem(id: 'feed-1', content: 'page-1')],
+            hasMore: true,
+            nextCursor: 'cursor-1',
+          ),
         ],
         loadMorePages: [
-          FeedPage(items: [_feedItem(id: 'feed-2', content: 'page-2')], hasMore: false),
+          FeedPage(
+            items: [_feedItem(id: 'feed-2', content: 'page-2')],
+            hasMore: false,
+          ),
         ],
       );
-      final container = ProviderContainer(overrides: [
-        homeRepositoryProvider.overrideWithValue(repo),
-        loggerServiceProvider.overrideWithValue(LoggerService.instance),
-        authControllerProvider.overrideWith(_FakeAuthController.new),
-      ]);
+      final container = ProviderContainer(
+        overrides: [
+          homeRepositoryProvider.overrideWithValue(repo),
+          loggerServiceProvider.overrideWithValue(LoggerService.instance),
+          authControllerProvider.overrideWith(_FakeAuthController.new),
+        ],
+      );
       addTearDown(container.dispose);
       container.listen(feedProvider, (_, _) {});
       await _settle();
@@ -489,17 +568,27 @@ void main() {
     test('pagination failure preserves cursor authority', () async {
       final repo = _ToggleHomeRepository(
         initialPages: [
-          FeedPage(items: [_feedItem(id: 'feed-1', content: 'page-1')], hasMore: true, nextCursor: 'cursor-1'),
+          FeedPage(
+            items: [_feedItem(id: 'feed-1', content: 'page-1')],
+            hasMore: true,
+            nextCursor: 'cursor-1',
+          ),
         ],
         loadMorePages: [
-          FeedPage(items: [_feedItem(id: 'feed-2', content: 'page-2')], hasMore: true, nextCursor: 'cursor-2'),
+          FeedPage(
+            items: [_feedItem(id: 'feed-2', content: 'page-2')],
+            hasMore: true,
+            nextCursor: 'cursor-2',
+          ),
         ],
       );
-      final container = ProviderContainer(overrides: [
-        homeRepositoryProvider.overrideWithValue(repo),
-        loggerServiceProvider.overrideWithValue(LoggerService.instance),
-        authControllerProvider.overrideWith(_FakeAuthController.new),
-      ]);
+      final container = ProviderContainer(
+        overrides: [
+          homeRepositoryProvider.overrideWithValue(repo),
+          loggerServiceProvider.overrideWithValue(LoggerService.instance),
+          authControllerProvider.overrideWith(_FakeAuthController.new),
+        ],
+      );
       addTearDown(container.dispose);
       container.listen(feedProvider, (_, _) {});
       await _settle();
@@ -515,17 +604,26 @@ void main() {
     test('retry pagination succeeds', () async {
       final repo = _ToggleHomeRepository(
         initialPages: [
-          FeedPage(items: [_feedItem(id: 'feed-1', content: 'page-1')], hasMore: true, nextCursor: 'cursor-1'),
+          FeedPage(
+            items: [_feedItem(id: 'feed-1', content: 'page-1')],
+            hasMore: true,
+            nextCursor: 'cursor-1',
+          ),
         ],
         loadMorePages: [
-          FeedPage(items: [_feedItem(id: 'feed-2', content: 'page-2')], hasMore: false),
+          FeedPage(
+            items: [_feedItem(id: 'feed-2', content: 'page-2')],
+            hasMore: false,
+          ),
         ],
       );
-      final container = ProviderContainer(overrides: [
-        homeRepositoryProvider.overrideWithValue(repo),
-        loggerServiceProvider.overrideWithValue(LoggerService.instance),
-        authControllerProvider.overrideWith(_FakeAuthController.new),
-      ]);
+      final container = ProviderContainer(
+        overrides: [
+          homeRepositoryProvider.overrideWithValue(repo),
+          loggerServiceProvider.overrideWithValue(LoggerService.instance),
+          authControllerProvider.overrideWith(_FakeAuthController.new),
+        ],
+      );
       addTearDown(container.dispose);
       container.listen(feedProvider, (_, _) {});
       await _settle();
@@ -735,20 +833,23 @@ void main() {
       expect(item.content, 'hello');
     });
 
-    test('organic FeedItemDto with non-content type still maps (defaults to content)', () {
-      // Production: _mapFeedItemType defaults unknown types to FeedItemType.content.
-      final dto = FeedItemDto(
-        id: 'feed-1',
-        authorId: 'author-1',
-        type: 'something_else',
-        status: 'active',
-        body: 'hello',
-        createdAt: DateTime.utc(2026, 7, 23),
-        updatedAt: DateTime.utc(2026, 7, 23),
-      );
-      final item = dto.toFeedItem();
-      expect(item.type, FeedItemType.content);
-    });
+    test(
+      'organic FeedItemDto with non-content type still maps (defaults to content)',
+      () {
+        // Production: _mapFeedItemType defaults unknown types to FeedItemType.content.
+        final dto = FeedItemDto(
+          id: 'feed-1',
+          authorId: 'author-1',
+          type: 'something_else',
+          status: 'active',
+          body: 'hello',
+          createdAt: DateTime.utc(2026, 7, 23),
+          updatedAt: DateTime.utc(2026, 7, 23),
+        );
+        final item = dto.toFeedItem();
+        expect(item.type, FeedItemType.content);
+      },
+    );
 
     test('promoted type with unknown kind maps to promotedForSale (default)', () {
       // Production: _mapPromotedType defaults unknown types to promotedForSale.

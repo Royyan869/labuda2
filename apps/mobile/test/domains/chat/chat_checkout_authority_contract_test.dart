@@ -1,14 +1,17 @@
 // Chat checkout-authority contract — Owner rule: chat is a display layer.
 //
-// Chat must NEVER resolve commerce identity or build a checkout route:
-//   - zero '/checkout/' route construction in the chat domain,
-//   - zero checkout identity resolution (auctionDetailProvider /
-//     resolveAuctionProductId / manual product-id plumbing),
-//   - every surface forwards to the commerce-owned intent:
-//     openForSaleCheckout (for_sale) and openAuctionCheckout (auction).
+// Chat must NEVER build a checkout route or resolve a physical product id:
+//   - zero '/checkout/' route construction anywhere in the chat domain;
+//   - the FOR-SALE path forwards to the commerce-owned intent
+//     (openForSaleCheckout / CheckoutIntent);
+//   - the AUCTION winner path forwards to the canonical winner CLAIM flow
+//     (AuctionClaimShippingModal + auctionNotifierProvider.claimAuction →
+//     POST /auctions/:id/claim), carrying the quote + conversation provenance.
 //
-// These negative contracts make resurrection fail CI: any future change that
-// reintroduces route building or product-id resolution in chat breaks here.
+// The obsolete auction buy-now intent (openAuctionCheckout / AuctionCheckoutIntent)
+// is NOT a chat entry point: it belongs to auction-detail buy-now only. Routing a
+// chat auction through it is the architecture that was deleted — these contracts
+// make its resurrection fail CI.
 
 import 'dart:io';
 
@@ -55,34 +58,54 @@ void main() {
         isEmpty,
         reason:
             'Checkout route construction is commerce-owned — forward an '
-            'intent (openForSaleCheckout / openAuctionCheckout) instead.',
+            'intent/claim instead of building the route.',
       );
     });
 
-    test('chat resolves zero commerce checkout identity', () {
-      final offenders = chatFiles
-          .where(
-            (f) =>
-                f.readAsStringSync().contains('auctionDetailProvider') ||
-                f.readAsStringSync().contains('resolveAuctionProductId'),
-          )
-          .map((f) => f.path)
-          .toList();
-      expect(
-        offenders,
-        isEmpty,
-        reason:
-            'Product id / listing resolution belongs to the commerce intent, '
-            'not to chat.',
-      );
-    });
-
-    test('both surfaces forward to a commerce-owned intent', () {
+    test('the for-sale path forwards to the commerce checkout intent', () {
       expect(chatScreen, contains('openForSaleCheckout'));
-      expect(chatScreen, contains('openAuctionCheckout'));
-      expect(chatScreen, contains('AuctionCheckoutIntent'));
-      // The distinct-ID discipline lives in commerce now: the product id is
-      // resolved there, so chat carries no productId field on its target.
+      expect(chatScreen, contains('CheckoutIntent('));
+      // The distinct-ID discipline lives in commerce: chat carries no productId.
+      expect(chatScreen, isNot(contains('target.productId')));
+    });
+
+    test('the auction winner path forwards through the canonical claim flow', () {
+      // Canonical flow: resolve the auction from Commerce, seed the
+      // Commerce-owned claim modal, and forward the explicit claim intent.
+      expect(chatScreen, contains('auctionDetailProvider'));
+      expect(chatScreen, contains('AuctionClaimShippingModal.show'));
+      expect(chatScreen, contains('auctionNotifierProvider'));
+      expect(chatScreen, contains('.claimAuction('));
+      // Quote + conversation provenance travel WITH the claim (the backend
+      // consumes the quote via the ONE ShippingQuote authority).
+      expect(chatScreen, contains('shippingQuoteId'));
+      expect(chatScreen, contains('chatId'));
+    });
+
+    test('chat never routes auctions through the obsolete buy-now intent', () {
+      expect(
+        chatScreen,
+        isNot(contains('openAuctionCheckout')),
+        reason:
+            'Auction buy-now (openAuctionCheckout) is auction-detail only. The '
+            'chat auction winner path is the canonical claim flow — a chat '
+            'route to the buy-now intent is the deleted architecture.',
+      );
+      expect(
+        chatScreen,
+        isNot(contains('AuctionCheckoutIntent')),
+        reason: 'obsolete chat auction buy-now intent',
+      );
+    });
+
+    test('chat resolves no physical product id of its own', () {
+      for (final file in chatFiles) {
+        expect(
+          file.readAsStringSync(),
+          isNot(contains('resolveAuctionProductId')),
+          reason: '${file.path} must not resolve auction product ids',
+        );
+      }
       expect(chatScreen, isNot(contains('target.productId')));
     });
   });

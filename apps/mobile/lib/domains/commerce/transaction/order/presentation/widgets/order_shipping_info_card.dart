@@ -11,13 +11,7 @@ class OrderShippingInfoCard extends StatelessWidget {
     final colorScheme = theme.colorScheme;
     final shipping = order.shippingInfo;
 
-    return Container(
-      padding: const EdgeInsets.all(core.AppMetrics.p16),
-      decoration: BoxDecoration(
-        color: colorScheme.surface,
-        borderRadius: BorderRadius.circular(core.AppShape.r12),
-        border: Border.all(color: colorScheme.outlineVariant),
-      ),
+    return OrderSectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -181,7 +175,11 @@ class _PhoneShippingRow extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Icon(icon, size: AppIconSize.action, color: context.statusColors.success),
+            Icon(
+              icon,
+              size: AppIconSize.action,
+              color: context.statusColors.success,
+            ),
             const SizedBox(width: 8),
             Expanded(
               child: Column(
@@ -203,7 +201,11 @@ class _PhoneShippingRow extends StatelessWidget {
                 ],
               ),
             ),
-            Icon(Icons.call, size: AppIconSize.action, color: context.statusColors.success),
+            Icon(
+              Icons.call,
+              size: AppIconSize.action,
+              color: context.statusColors.success,
+            ),
           ],
         ),
       ),
@@ -211,15 +213,17 @@ class _PhoneShippingRow extends StatelessWidget {
   }
 
   Future<void> _callPhone(BuildContext context, String phone) async {
-    // In a real implementation, you would use url_launcher
-    // For now, show a snackbar as fallback
+    final uri = Uri(scheme: 'tel', path: phone);
+    try {
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+        return;
+      }
+    } catch (_) {
+      // Fall through to the user-facing error below.
+    }
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Hubungi: $phone'),
-          duration: const Duration(seconds: 2),
-        ),
-      );
+      AppSnackBar.showError(context, 'Tidak dapat membuka aplikasi telepon');
     }
   }
 }
@@ -243,9 +247,7 @@ class _ShippingNoteSection extends StatelessWidget {
       decoration: BoxDecoration(
         color: colorScheme.secondaryContainer,
         borderRadius: BorderRadius.circular(core.AppShape.r8),
-        border: Border.all(
-          color: colorScheme.secondary.withValues(alpha: 0.4),
-        ),
+        border: Border.all(color: colorScheme.secondary.withValues(alpha: 0.4)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -304,7 +306,11 @@ class _ShippingInfoRow extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: AppIconSize.action, color: colorScheme.onSurfaceVariant),
+        Icon(
+          icon,
+          size: AppIconSize.action,
+          color: colorScheme.onSurfaceVariant,
+        ),
         const SizedBox(width: 8),
         Expanded(
           child: Column(
@@ -338,6 +344,7 @@ class _ShippingInfoRow extends StatelessWidget {
                           Icons.copy,
                           size: AppIconSize.inlineGlyph,
                           color: colorScheme.secondary,
+                          semanticLabel: 'Salin',
                         ),
                       ),
                     ),
@@ -383,7 +390,11 @@ class _ShippingAddressRow extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: AppIconSize.action, color: colorScheme.onSurfaceVariant),
+        Icon(
+          icon,
+          size: AppIconSize.action,
+          color: colorScheme.onSurfaceVariant,
+        ),
         const SizedBox(width: 8),
         Expanded(
           child: Column(
@@ -395,8 +406,9 @@ class _ShippingAddressRow extends StatelessWidget {
                   color: colorScheme.onSurfaceVariant,
                 ),
               ),
-              Text(
-                fullAddress,
+              AddressLocationText(
+                location: fullAddress,
+                mode: AddressLocationMode.detail,
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: colorScheme.onSurface,
                 ),
@@ -431,6 +443,8 @@ class _ShippingHelpSection extends ConsumerWidget {
     final userAvatar = authState is core.AuthStateAuthenticated
         ? authState.user.avatarUrl
         : null;
+    // "Contact seller" is a BUYER-only affordance: the seller never renders it.
+    final isBuyer = userId != null && userId == order.buyerId;
 
     return Container(
       padding: const EdgeInsets.all(core.AppMetrics.p12),
@@ -451,8 +465,7 @@ class _ShippingHelpSection extends ConsumerWidget {
               const SizedBox(width: 6),
               Text(
                 'Masalah dengan pengiriman?',
-                style: TextStyle(
-                  fontSize: core.AppType.s12,
+                style: context.typeRoles.titleCompact.copyWith(
                   fontWeight: FontWeight.w600,
                   color: colorScheme.onSurface,
                 ),
@@ -462,22 +475,23 @@ class _ShippingHelpSection extends ConsumerWidget {
           const SizedBox(height: 8),
           Row(
             children: [
-              Expanded(
-                child: _HelpActionChip(
-                  icon: Icons.chat_bubble_outline,
-                  label: 'Chat Penjual',
-                  onTap: () {
-                    if (userId == null) return;
-                    openOrderCommerceChat(
+              // "Contact seller" is buyer-only: the seller never renders it.
+              if (isBuyer) ...[
+                Expanded(
+                  child: _HelpActionChip(
+                    icon: Icons.chat_bubble_outline,
+                    label: 'Chat Penjual',
+                    // Rendered only for the buyer, so `userId` is non-null.
+                    onTap: () => openOrderCommerceChat(
                       context: context,
                       ref: ref,
                       order: order,
                       currentUserId: userId,
-                    );
-                  },
+                    ),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
+                const SizedBox(width: 8),
+              ],
               Expanded(
                 child: _HelpActionChip(
                   icon: Icons.support_agent,
@@ -521,7 +535,10 @@ class _HelpActionChip extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(core.AppShape.r6),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: core.AppMetrics.p8, vertical: core.AppMetrics.p8),
+        padding: const EdgeInsets.symmetric(
+          horizontal: core.AppMetrics.p8,
+          vertical: core.AppMetrics.p8,
+        ),
         decoration: BoxDecoration(
           color: onTap != null
               ? colorScheme.secondary.withValues(alpha: 0.1)
@@ -541,8 +558,7 @@ class _HelpActionChip extends StatelessWidget {
             const SizedBox(width: 4),
             Text(
               label,
-              style: TextStyle(
-                fontSize: core.AppType.s12,
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
                 fontWeight: FontWeight.w500,
                 color: onTap != null
                     ? colorScheme.secondary

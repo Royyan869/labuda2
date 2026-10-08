@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/shared/widgets/app_image.dart';
 import 'package:labuda/shared/widgets/follow_button.dart';
+import 'package:labuda/shared/widgets/metadata_view.dart';
 import 'package:labuda/domains/social/follow/domain/entities/follow_entity.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
 import 'package:labuda/core/core.dart';
@@ -83,8 +84,12 @@ class UserCard extends ConsumerWidget {
           overflow: TextOverflow.ellipsis,
         ),
         const SizedBox(height: 2),
-        Text(
-          '${_formatCount(user.followersCount)} followers • ${_formatCount(user.followingCount)} following',
+        // Standalone secondary fact (follow counts) → compact Metadata
+        // text authority: one bounded line, truncates with ellipsis.
+        MetadataText(
+          text:
+              '${_formatCount(user.followersCount)} followers • ${_formatCount(user.followingCount)} following',
+          mode: MetadataMode.compact,
           style: theme.textTheme.bodySmall?.copyWith(
             color: colorScheme.onSurfaceVariant,
           ),

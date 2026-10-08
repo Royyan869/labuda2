@@ -123,6 +123,11 @@ class AuthRepositoryImpl implements IAuthRepository {
     String? username,
     String? bio,
     String? location,
+    String? coverPhotoUrl,
+    String? instagramHandle,
+    String? facebookHandle,
+    String? tiktokHandle,
+    String? twitterHandle,
     DateTime? dateOfBirth,
   }) => _profileRepository.updateProfile(
     photoUrl: photoUrl,
@@ -131,6 +136,11 @@ class AuthRepositoryImpl implements IAuthRepository {
     username: username,
     bio: bio,
     location: location,
+    coverPhotoUrl: coverPhotoUrl,
+    instagramHandle: instagramHandle,
+    facebookHandle: facebookHandle,
+    tiktokHandle: tiktokHandle,
+    twitterHandle: twitterHandle,
     dateOfBirth: dateOfBirth,
   );
 

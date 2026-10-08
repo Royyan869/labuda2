@@ -1,6 +1,6 @@
 part of '../screens/checkout_screen_impl.dart';
 
-/// Saved Address Picker Section — selects from user's saved shipping addresses
+/// Saved Address Picker Section — selects from the account's saved addresses
 class _SavedAddressPickerSection extends ConsumerStatefulWidget {
   final String? selectedAddressId;
   final ValueChanged<AddressEntity> onAddressSelected;
@@ -23,9 +23,7 @@ class _SavedAddressPickerSectionState
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final authState = ref.read(authControllerProvider);
       if (authState is AuthStateAuthenticated) {
-        ref
-            .read(addressProvider.notifier)
-            .loadAddressesByTag(authState.user.id, AddressTag.shipping);
+        ref.read(addressProvider.notifier).loadAddresses(authState.user.id);
       }
     });
   }
@@ -122,17 +120,11 @@ class _SavedAddressPickerSectionState
     );
   }
 
-  /// Empty-state CTA: open the one address form directly, pre-locked to the
-  /// shipping role this flow needs. Jumping to the address list instead made
-  /// the buyer do the routing the app should have done.
+  /// Empty-state CTA: open the one address form directly.
   Future<void> _openAddressForm() async {
-    final saved = await showModalBottomSheet<bool>(
+    final saved = await AppBottomSheetBase.show<bool>(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => const AddressFormDialog(
-        presetTags: [AddressTag.shipping],
-      ),
+      content: const AddressFormDialog(),
     );
 
     if (saved != true || !mounted) return;
@@ -141,7 +133,7 @@ class _SavedAddressPickerSectionState
     if (authState is AuthStateAuthenticated) {
       await ref
           .read(addressProvider.notifier)
-          .loadAddressesByTag(authState.user.id, AddressTag.shipping);
+          .loadAddresses(authState.user.id);
     }
   }
 }

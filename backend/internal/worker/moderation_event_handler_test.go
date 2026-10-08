@@ -471,8 +471,8 @@ func TestIsNonRetryableRestoreError(t *testing.T) {
 			true,
 		},
 		{
-			"unexpected status draft",
-			fmt.Errorf(`cannot restore fixed-price sale from moderation: unexpected status "draft" (id=abc)`),
+			"unexpected status",
+			fmt.Errorf(`cannot restore fixed-price sale from moderation: unexpected status "mystery" (id=abc)`),
 			true,
 		},
 		{
@@ -528,6 +528,3 @@ func TestSplitEventSuffix(t *testing.T) {
 		})
 	}
 }
-
-
-

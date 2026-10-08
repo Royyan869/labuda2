@@ -46,7 +46,7 @@ func TestSearchForSales_QuantityAvailablePredicateInSQL(t *testing.T) {
 // TestSearchAuctions_PublicDiscoverableStatesInSQL verifies that BOTH the
 // base query and the count query of SearchAuctions restrict discovery to the
 // canonical public auction states (scheduled, active) and no longer admit
-// ended/draft/cancelled surfaces.
+// ended/cancelled surfaces.
 func TestSearchAuctions_PublicDiscoverableStatesInSQL(t *testing.T) {
 	src := readSearchImplFile(t)
 	tokens := []struct {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	addressEntity "github.com/labuda/backend/internal/identity/address/entity"
@@ -32,106 +33,82 @@ func (f *fakeAddressRepo) GetByUserIDForDisplay(
 	return f.rows, nil
 }
 
-func senderAddress(id uuid.UUID, city string, primary bool) *addressEntity.Address {
+func address(id uuid.UUID, city, province string, primary bool, createdAt time.Time) *addressEntity.Address {
 	return &addressEntity.Address{
 		ID:            id,
-		Tags:          []addressEntity.AddressTag{addressEntity.TagSender},
 		CityName:      city,
-		ProvinceName:  "Jawa Tengah",
+		ProvinceName:  province,
 		StreetAddress: "Jl. Rahasia 1",
 		DistrictName:  "Kecamatan Borobudur",
 		IsPrimary:     primary,
+		CreatedAt:     createdAt,
 	}
 }
 
-func shippingAddress(city string, primary bool) *addressEntity.Address {
-	return &addressEntity.Address{
-		Tags:         []addressEntity.AddressTag{addressEntity.TagShipping},
-		CityName:     city,
-		ProvinceName: "Jawa Barat",
-		IsPrimary:    primary,
-	}
-}
-
-// OWNER RULE (both surfaces): primary first, sender as fallback — and a user
-// who is not yet a seller still gets their address shown.
-func TestResolvePublicOrigin_PrimaryFirstSenderFallback(t *testing.T) {
-	productAddressID := uuid.New()
-	otherID := uuid.New()
-
-	primarySender := senderAddress(otherID, "Magelang", true)
-	sender := senderAddress(productAddressID, "Sleman", false)
+// CANONICAL RULE: the account's PRIMARY address resolves the public origin;
+// when no primary is flagged, the oldest active address answers. There is no
+// role (shipping/sender) narrowing and no product-level address.
+func TestResolvePublicOrigin_PrimaryThenOldest(t *testing.T) {
+	primaryID := uuid.New()
+	olderID := uuid.New()
+	newerID := uuid.New()
 
 	cases := []struct {
-		name    string
-		rows    []*addressEntity.Address
-		want    string
-		product *uuid.UUID
+		name string
+		rows []*addressEntity.Address
+		want string
 	}{
 		{
-			name: "primary sender wins over the product address",
-			rows: []*addressEntity.Address{sender, primarySender},
-			product: func() *uuid.UUID {
-				return &productAddressID
-			}(),
+			name: "primary wins over every other address",
+			rows: []*addressEntity.Address{
+				address(newerID, "Sleman", "DIY", false, time.Date(2026, 7, 2, 0, 0, 0, 0, time.UTC)),
+				address(primaryID, "Magelang", "Jawa Tengah", true, time.Date(2026, 7, 3, 0, 0, 0, 0, time.UTC)),
+			},
 			want: "Magelang, Jawa Tengah",
 		},
 		{
-			name: "product sender address used when no primary exists",
-			rows: []*addressEntity.Address{sender},
-			product: func() *uuid.UUID {
-				return &productAddressID
-			}(),
-			want: "Sleman, Jawa Tengah",
-		},
-		{
-			name: "profile with one non-primary sender resolves",
-			rows: []*addressEntity.Address{sender},
-			want: "Sleman, Jawa Tengah",
-		},
-		{
-			name:    "not a seller: primary shipping address wins",
-			rows:    []*addressEntity.Address{shippingAddress("Bandung", true), shippingAddress("Depok", false)},
-			want:    "Bandung, Jawa Barat",
-		},
-		{
-			name: "not a seller: any shipping address still resolves",
-			rows: []*addressEntity.Address{shippingAddress("Depok", false)},
-			want: "Depok, Jawa Barat",
-		},
-		{
-			name: "not a seller: any address at all, primary first",
+			name: "no primary: oldest address resolves",
 			rows: []*addressEntity.Address{
-				{
-					Tags:         []addressEntity.AddressTag{addressEntity.TagShipping},
-					CityName:     "Depok",
-					ProvinceName: "Jawa Barat",
-				},
+				address(newerID, "Sleman", "DIY", false, time.Date(2026, 7, 2, 0, 0, 0, 0, time.UTC)),
+				address(olderID, "Bandung", "Jawa Barat", false, time.Date(2026, 7, 1, 0, 0, 0, 0, time.UTC)),
+			},
+			want: "Bandung, Jawa Barat",
+		},
+		{
+			name: "single non-primary address resolves",
+			rows: []*addressEntity.Address{
+				address(olderID, "Depok", "Jawa Barat", false, time.Date(2026, 7, 1, 0, 0, 0, 0, time.UTC)),
 			},
 			want: "Depok, Jawa Barat",
 		},
 		{name: "no address hides the line", rows: nil, want: ""},
-		{name: "lookup failure hides the line", rows: nil, want: "", product: nil},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			repo := &fakeAddressRepo{rows: tc.rows}
-			if tc.name == "lookup failure hides the line" {
-				repo.lookupErr = errors.New("db down")
-			}
 
-			got := ResolvePublicOrigin(context.Background(), stubTx{}, repo, uuid.New(), tc.product)
+			got := ResolvePublicOrigin(context.Background(), stubTx{}, repo, uuid.New())
 			if got != tc.want {
 				t.Fatalf("ResolvePublicOrigin() = %q, want %q", got, tc.want)
 			}
-			// Street-level data must never reach a public surface, whatever
-			// path resolved the address.
+			// Street-level data must never reach a public surface.
 			for _, leaked := range []string{"Jl. Rahasia 1", "Kecamatan Borobudur"} {
-				if got != "" && got == leaked {
+				if got == leaked {
 					t.Fatalf("origin %q leaks street/district data", got)
 				}
 			}
 		})
+	}
+}
+
+// TestResolvePublicOrigin_LookupFailureHides proves an unresolvable address
+// never fails the read that carries it.
+func TestResolvePublicOrigin_LookupFailureHides(t *testing.T) {
+	repo := &fakeAddressRepo{lookupErr: errors.New("db down")}
+
+	got := ResolvePublicOrigin(context.Background(), stubTx{}, repo, uuid.New())
+	if got != "" {
+		t.Fatalf("ResolvePublicOrigin() = %q, want empty on lookup failure", got)
 	}
 }

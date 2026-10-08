@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { getFinanceSummary } from '@/lib/api'
 import { ACCOUNT_LABELS, type FinanceSummaryResponse } from '@/types/finance-summary'
-import { RefreshCw, AlertTriangle, ShieldAlert, Info, Wallet, TrendingUp, Bell } from 'lucide-react'
+import { RefreshCw, ShieldAlert, Info, Wallet, TrendingUp, Bell } from 'lucide-react'
+import { AdminErrorState } from '@/components/common'
 
 // ============================================================================
 // FinanceSummaryPanel (PASS_18Z)
@@ -25,7 +26,7 @@ function AccountBalanceCard({ accountType, balance, highlight }: { accountType: 
         {ACCOUNT_LABELS[accountType] ?? accountType}
       </p>
       <p className="text-xl font-mono font-semibold text-foreground mt-1">{formatIdr(balance)}</p>
-      {highlight && <p className="text-xs text-muted-foreground mt-1">{highlight}</p>}
+      {highlight && <p className="type-caption mt-1">{highlight}</p>}
     </div>
   )
 }
@@ -57,7 +58,7 @@ export function FinanceSummaryPanel() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-bold text-foreground">Finance Summary</h2>
-          <p className="text-sm text-muted-foreground mt-0.5">
+          <p className="type-secondary mt-0.5">
             Aggregate ledger balances and revenue — answers "how much is where"
             without a DB query.
           </p>
@@ -69,22 +70,18 @@ export function FinanceSummaryPanel() {
       </div>
 
       {error && (
-        <Card>
-          <CardContent className="p-6 text-center">
-            <AlertTriangle className="h-8 w-8 text-destructive mx-auto mb-2" />
-            <p className="text-foreground font-medium">Failed to load finance summary</p>
-            <p className="text-muted-foreground text-sm mt-1">{error}</p>
-            <Button variant="secondary" size="sm" onClick={fetchSummary} className="mt-3">
-              Retry
-            </Button>
-          </CardContent>
-        </Card>
+        <AdminErrorState
+          title="Failed to load finance summary"
+          message={error}
+          onRetry={fetchSummary}
+        />
       )}
 
       {loading && !summary && !error && (
-        <Card>
+        <Card role="status" aria-busy="true">
           <CardContent className="p-6">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <span className="sr-only">Loading finance summary…</span>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4" aria-hidden="true">
               {Array.from({ length: 4 }).map((_, i) => (
                 <div key={i} className="animate-pulse h-20 bg-surface-muted rounded-lg" />
               ))}
@@ -133,7 +130,7 @@ export function FinanceSummaryPanel() {
                   />
                 ))}
               </div>
-              <p className="text-xs text-muted-foreground mt-3">{summary.gateway_clearing.note}</p>
+              <p className="type-caption mt-3">{summary.gateway_clearing.note}</p>
             </CardContent>
           </Card>
 
@@ -154,18 +151,18 @@ export function FinanceSummaryPanel() {
                     <AccountBalanceCard accountType="Total Platform Revenue" balance={summary.revenue_breakdown.total_platform_revenue_rupiah} />
                   </div>
                   {summary.revenue_breakdown.other_revenue_reference_types && summary.revenue_breakdown.other_revenue_reference_types.length > 0 && (
-                    <p className="text-xs text-muted-foreground mt-2">
+                    <p className="type-caption mt-2">
                       Other revenue sources: {summary.revenue_breakdown.other_revenue_reference_types.join(', ')}
                     </p>
                   )}
                 </>
               ) : (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <div className="flex items-center gap-2 type-secondary">
                   <Info className="h-4 w-4" />
                   Breakdown not distinguishable from current ledger data.
                 </div>
               )}
-              <p className="text-xs text-muted-foreground mt-3">{summary.revenue_breakdown.note}</p>
+              <p className="type-caption mt-3">{summary.revenue_breakdown.note}</p>
             </CardContent>
           </Card>
 
@@ -189,7 +186,7 @@ export function FinanceSummaryPanel() {
                 </Badge>
               </div>
               {summary.finance_alerts.unresolved_by_type && Object.keys(summary.finance_alerts.unresolved_by_type).length > 0 && (
-                <ul className="mt-3 text-sm text-foreground space-y-1">
+                <ul className="mt-3 type-body space-y-1">
                   {Object.entries(summary.finance_alerts.unresolved_by_type).map(([type, count]) => (
                     <li key={type} className="flex justify-between border-b border-border py-1">
                       <span className="font-mono text-xs">{type}</span>
@@ -209,7 +206,7 @@ export function FinanceSummaryPanel() {
             <CardContent className="space-y-4">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-foreground">Internal ledger consistency:</span>
+                  <span className="type-label">Internal ledger consistency:</span>
                   {summary.internal_reconciliation.available ? (
                     <Badge variant={summary.internal_reconciliation.severity === 'passed' ? 'success' : 'warning'}>
                       {summary.internal_reconciliation.severity}
@@ -221,28 +218,28 @@ export function FinanceSummaryPanel() {
                   )}
                 </div>
                 {summary.internal_reconciliation.available && summary.internal_reconciliation.last_checked_at && (
-                  <p className="text-xs text-muted-foreground mt-1">
+                  <p className="type-caption mt-1">
                     Last checked: {new Date(summary.internal_reconciliation.last_checked_at).toLocaleString()}
                   </p>
                 )}
-                <p className="text-xs text-muted-foreground mt-1">{summary.internal_reconciliation.note}</p>
+                <p className="type-caption mt-1">{summary.internal_reconciliation.note}</p>
               </div>
 
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-sm font-medium text-foreground">External Midtrans settlement reconciliation:</span>
+                  <span className="type-label">External Midtrans settlement reconciliation:</span>
                   <Badge variant="default">Not Implemented</Badge>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap mt-1">
-                  <span className="text-sm font-medium text-foreground">Bank statement reconciliation:</span>
+                  <span className="type-label">Bank statement reconciliation:</span>
                   <Badge variant="default">Not Implemented</Badge>
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">{summary.external_reconciliation.note}</p>
+                <p className="type-caption mt-1">{summary.external_reconciliation.note}</p>
               </div>
             </CardContent>
           </Card>
 
-          <p className="text-xs text-muted-foreground text-right">
+          <p className="type-caption text-right">
             Generated at {new Date(summary.generated_at).toLocaleString()}
           </p>
         </>

@@ -118,6 +118,17 @@ func TestFpsCatalog_SurvivesProductLifecycleRemoval(t *testing.T) {
 		`, sellerID, "fb-"+sellerID.String(), sellerID.String()+"@test.invalid")
 		return err
 	}))
+	// Active market authority: the Oct 2026 read-side hide excludes listings
+	// from sellers without a live subscription interval. payment_id is NOT NULL
+	// in the canonical schema (no FK) — synthetic reference, same as the
+	// role_checker fixture pattern.
+	require.NoError(t, tdb.WithTx(ctx, func(tx db.Tx) error {
+		_, err := tx.Exec(ctx, `
+			INSERT INTO seller_subscriptions (id, user_id, status, started_at, expires_at, duration_days, amount_paid, currency, payment_id, created_at, updated_at)
+			VALUES ($1, $2, 'active', NOW() - INTERVAL '1 day', NOW() + INTERVAL '365 days', 365, 0, 'IDR', $3, NOW(), NOW())
+		`, uuid.New(), sellerID, uuid.New())
+		return err
+	}))
 
 	seedProductAndSale := func(status string) (uuid.UUID, uuid.UUID) {
 		productID := uuid.New()

@@ -82,14 +82,14 @@ func TestDirectSQL_SellingSurfaceExclusivity(t *testing.T) {
 	// A: for_sale Product → Auction INSERT rejected
 	t.Run("A: for_sale Product → Auction INSERT rejected", func(t *testing.T) {
 		productID := seedProduct("for_sale")
-		err := insertAuction(productID, "draft")
+		err := insertAuction(productID, "scheduled")
 		assertCheckViolation(t, err, "Auction on for_sale Product")
 	})
 
 	// B: auction Product → ForSale INSERT rejected
 	t.Run("B: auction Product → ForSale INSERT rejected", func(t *testing.T) {
 		productID := seedProduct("auction")
-		err := insertForSale(productID, "draft")
+		err := insertForSale(productID, "active")
 		assertCheckViolation(t, err, "ForSale on auction Product")
 	})
 
@@ -99,7 +99,7 @@ func TestDirectSQL_SellingSurfaceExclusivity(t *testing.T) {
 		forSaleID := uuid.New()
 		_, err := pool.Exec(ctx, `
 			INSERT INTO for_sales (id, product_id, seller_id, price_per_unit, negotiation_enabled, status, quantity_available, created_at, updated_at)
-			VALUES ($1, $2, $3, 100000, false, 'draft', 1, NOW(), NOW())
+			VALUES ($1, $2, $3, 100000, false, 'active', 1, NOW(), NOW())
 		`, forSaleID, productID, sellerID)
 		require.NoError(t, err)
 		_, err = pool.Exec(ctx, `UPDATE for_sales SET status = 'sold', sold_at = NOW(), quantity_available = 0 WHERE id = $1`, forSaleID)
@@ -119,7 +119,7 @@ func TestDirectSQL_SellingSurfaceExclusivity(t *testing.T) {
 		auctionID := uuid.New()
 		_, err := pool.Exec(ctx, `
 			INSERT INTO auctions (id, seller_id, product_id, start_price, bid_increment, buy_now_price, start_at, end_at, status, created_at, updated_at)
-			VALUES ($1, $2, $3, 100000, 10000, NULL, NOW(), NOW() + INTERVAL '24 hours', 'draft', NOW(), NOW())
+			VALUES ($1, $2, $3, 100000, 10000, NULL, NOW(), NOW() + INTERVAL '24 hours', 'scheduled', NOW(), NOW())
 		`, auctionID, sellerID, productID)
 		require.NoError(t, err)
 		_, err = pool.Exec(ctx, `UPDATE auctions SET status = 'ended', updated_at = NOW() WHERE id = $1`, auctionID)

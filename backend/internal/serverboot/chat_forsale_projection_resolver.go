@@ -247,10 +247,10 @@ func (r *forSaleProjectionBatchResolver) ResolveForSales(
 				NegotiationEnabled: row.negotiationEnabled,
 				SellerTrustActive:  sellerTrustActive,
 			})
-			commerceActions := buildForSaleCommerceActions(forSaleCaps)
 			viewerCaps := chatApp.ProjectionViewerCapabilities{
 				CanView:            true,
-				CanInteract:        commerceActions.CanBuy || commerceActions.CanNegotiate,
+				CanInteract:        forSaleCaps.CanBuy || forSaleCaps.CanNegotiate,
+				CanManage:          forSaleCaps.CanManage,
 				BlockedByTombstone: false,
 			}
 
@@ -258,18 +258,19 @@ func (r *forSaleProjectionBatchResolver) ResolveForSales(
 			sellerCard := buildForSaleSellerCard(row, sellerLifecycle)
 			thumbnail := firstResolvedURLFromJSONStrings(row.productMediaURLs)
 			payload := commerceshared.ForSaleLivePayload{
-				Title:             row.title,
-				Media:             mediaRefs,
-				ThumbnailURL:      thumbnail,
-				Price:             commerceshared.LivePrice{Amount: row.pricePerUnit, Currency: commerceshared.LivePriceCurrencyIDR},
+				Title:        row.title,
+				Media:        mediaRefs,
+				ThumbnailURL: thumbnail,
+				Price:        commerceshared.LivePrice{Amount: row.pricePerUnit, Currency: commerceshared.LivePriceCurrencyIDR},
 				// Scope 3 — status boundary: coarsened public lifecycle only
 				// ({active, sold, unavailable}); sold is honest public
-				// business truth for buyers, draft/withdrawn stay coarsened.
-				// The raw internal enum (draft/withdrawn) never crosses the
+				// business truth for buyers, withdrawn stays coarsened.
+				// The raw internal enum never crosses the
 				// chat wire. Parity with the chat auction projection.
-				Status:            fpsEntity.ForSaleStatus(row.status).PublicLifecycle(),
-				Seller:            sellerCard,
-				QuantityAvailable: row.quantityAvailable,
+				Status:             fpsEntity.ForSaleStatus(row.status).PublicLifecycle(),
+				NegotiationEnabled: commerceshared.ForSaleNegotiationEnabled(row.status, row.quantityAvailable, row.negotiationEnabled),
+				Seller:             sellerCard,
+				QuantityAvailable:  row.quantityAvailable,
 			}
 
 			proj, projErr := commerceshared.NewLiveResourceProjection(
@@ -277,7 +278,6 @@ func (r *forSaleProjectionBatchResolver) ResolveForSales(
 				sourceID,
 				payload,
 				viewerCaps,
-				&commerceActions,
 			)
 			if projErr != nil {
 				return projErr
@@ -292,19 +292,6 @@ func (r *forSaleProjectionBatchResolver) ResolveForSales(
 	}
 
 	return result, nil
-}
-
-func buildForSaleCommerceActions(
-	caps commerceshared.ViewerCapabilities,
-) chatApp.CommerceActionCapabilities {
-	return chatApp.CommerceActionCapabilities{
-		Role:         caps.Role,
-		CanChat:      caps.CanChat,
-		CanNegotiate: caps.CanNegotiate,
-		CanBuy:       caps.CanBuy,
-		CanBid:       caps.CanBid,
-		CanManage:    caps.CanManage,
-	}
 }
 
 // buildForSaleSellerCard builds the CANONICAL publiccard.SellerCard for the

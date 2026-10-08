@@ -1,32 +1,31 @@
-/// CHAT RESOURCE PROJECTION CTA CONTRACT (owner decision: CTA = navigation
-/// shortcut, card carries no price)
+/// CHAT GENERIC PRODUCT CARD — CONTRACT.
 ///
-/// 1. for-sale + can_buy  → "Beli Sekarang" button → delegates to the owning
-///    screen (checkout navigation stays in Commerce: product id, fresh preview,
-///    seller trust gate). The card itself never resolves a transaction.
-/// 2. auction + can_bid   → "Bid" button → the canonical auction detail, which
-///    is the bidding surface.
-/// 3. PRICE IS RENDERED ON EVERY SURFACE (owner decision, 2026-09-27): the chat
-///    card shows the very same canonical money string as discovery, with the
-///    availability/lifecycle label kept as the caption.
-/// 4. Tombstone / missing capability → no CTA at all, no money rendered, and
-///    the identity is still carried for dedup/audit.
+/// LOCKED: the generic Chat Product Reference Card is a display/reference
+/// layer — product identity, price, lifecycle, informational product
+/// attributes — plus a whole-card tap into the canonical Commerce detail. It
+/// is NOT a mini Commerce screen.
+///
+/// 1. No Commerce capability matrix: no "Beli Sekarang", no "Bid", no
+///    "Kirim Ongkir", no transactional Nego CTA, no Chat/Kelola badge, no
+///    button widget of any kind.
+/// 2. `Nego` is rendered ONLY from the canonical PRODUCT-LEVEL attribute
+///    `ForSaleLivePayload.negotiationEnabled` and is never actionable.
+/// 3. The card still renders the canonical price + lifecycle caption and
+///    navigates to the canonical detail on a whole-card tap.
+/// 4. Tombstone renders no money and cannot navigate.
 library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:labuda/domains/chat/chat/presentation/widgets/chat_resource_projection_card.dart';
+import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_marketplace_primitives.dart';
 import 'package:labuda/shared/domain/entities/resource_projection.dart';
 
 Map<String, dynamic> _fpsLiveJson({
   String resourceId = 'fps-cta-1',
-  required bool canBuy,
-  bool canBid = false,
-  bool canChat = true,
-  bool canNegotiate = false,
-  bool canManage = false,
-  String status = 'available',
+  bool negotiationEnabled = false,
+  String status = 'active',
 }) {
   return {
     'state': 'LIVE',
@@ -35,25 +34,18 @@ Map<String, dynamic> _fpsLiveJson({
     'canonical_url': '/for-sale/$resourceId',
     'viewer_capabilities': {
       'can_view': true,
-      'can_interact': canBuy || canNegotiate,
+      'can_interact': false,
       'blocked_by_tombstone': false,
-    },
-    'commerce_actions': {
-      'role': 'buyer',
-      'can_chat': canChat,
-      'can_negotiate': canNegotiate,
-      'can_buy': canBuy,
-      'can_bid': canBid,
-      'can_manage': canManage,
     },
     'for_sale': {
       'title': 'Kohaku 45 cm',
       'media': [
         {'url': 'https://cdn.example.test/fps.jpg', 'kind': 'image'},
       ],
-      // The price exists on the wire and MUST NOT reach the card.
       'price': {'amount': 1250000, 'currency': 'IDR'},
       'status': status,
+      'quantity_available': 3,
+      'negotiation_enabled': negotiationEnabled,
       'seller': {
         'user': {
           'id': 'seller-1',
@@ -62,17 +54,12 @@ Map<String, dynamic> _fpsLiveJson({
         },
         'lifecycle': 'active',
       },
-      'quantity_available': 3,
     },
   };
 }
 
 Map<String, dynamic> _auctionLiveJson({
   String resourceId = 'auction-cta-1',
-  required bool canBid,
-  bool canBuy = false,
-  bool canChat = true,
-  bool canManage = false,
   String lifecycle = 'active',
 }) {
   return {
@@ -82,23 +69,14 @@ Map<String, dynamic> _auctionLiveJson({
     'canonical_url': '/auction/$resourceId',
     'viewer_capabilities': {
       'can_view': true,
-      'can_interact': canBid || canBuy,
+      'can_interact': false,
       'blocked_by_tombstone': false,
-    },
-    'commerce_actions': {
-      'role': 'buyer',
-      'can_chat': canChat,
-      'can_negotiate': false,
-      'can_buy': canBuy,
-      'can_bid': canBid,
-      'can_manage': canManage,
     },
     'auction': {
       'title': 'Lelang Jumbo',
       'media': [
         {'url': 'https://cdn.example.test/auction.jpg', 'kind': 'image'},
       ],
-      // Bid/buy-now amounts exist on the wire and MUST NOT reach the card.
       'current_bid': 1450000,
       'buy_now_price': 1750000,
       'end_at': '2026-12-10T12:34:56Z',
@@ -139,11 +117,10 @@ String _renderedText(WidgetTester tester) => tester
     .join(' | ');
 
 /// Pumps the card under a router with a canonical detail destination for the
-/// resource, so a CTA tap can be told apart from a card-body tap.
+/// resource, so a whole-card tap can be observed.
 Future<void> _pumpCard(
   WidgetTester tester,
   ResourceProjection projection, {
-  VoidCallback? onBuy,
   required String detailDestination,
 }) async {
   final router = GoRouter(
@@ -153,10 +130,7 @@ Future<void> _pumpCard(
         path: '/',
         builder: (context, state) => Scaffold(
           body: SingleChildScrollView(
-            child: ChatResourceProjectionCard(
-              resourceProjection: projection,
-              onBuy: onBuy,
-            ),
+            child: ChatResourceProjectionCard(resourceProjection: projection),
           ),
         ),
       ),
@@ -180,84 +154,68 @@ Future<void> _pumpCard(
   await tester.pump(const Duration(milliseconds: 400));
 }
 
+Future<void> _tapWholeCard(WidgetTester tester) async {
+  await tester.tap(find.byType(CommerceMarketplaceCardShell));
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 400));
+}
+
 void main() {
-  group('for-sale CTA (Beli Sekarang → checkout, delegated)', () {
-    testWidgets('can_buy renders the CTA and delegates the buy intent', (
-      tester,
-    ) async {
-      var delegated = 0;
-      await _pumpCard(
-        tester,
-        _parse(_fpsLiveJson(canBuy: true)),
-        detailDestination: 'detail destination',
-        onBuy: () => delegated++,
-      );
-
-      expect(find.text('Beli Sekarang'), findsOneWidget);
-
-      await tester.ensureVisible(find.text('Beli Sekarang'));
-      await tester.pump(const Duration(milliseconds: 400));
-      await tester.tap(find.text('Beli Sekarang'));
-      await tester.pump(const Duration(milliseconds: 400));
-
-      expect(delegated, 1);
-      // The CTA must not silently degrade into a plain card-body navigation.
-      expect(find.text('detail destination'), findsNothing);
-    });
-
-    testWidgets('without an owner the CTA falls back to the canonical detail', (
+  group('for-sale generic card exposes no Commerce CTA', () {
+    testWidgets('renders no transactional or capability CTA/badge', (
       tester,
     ) async {
       await _pumpCard(
         tester,
-        _parse(_fpsLiveJson(canBuy: true)),
-        detailDestination: 'detail destination',
-      );
-
-      await tester.ensureVisible(find.text('Beli Sekarang'));
-      await tester.pump(const Duration(milliseconds: 400));
-      await tester.tap(find.text('Beli Sekarang'));
-      // Route materialisation needs two frames: one to process the router
-      // notification, one to finish the transition. Never pumpAndSettle —
-      // the card's shimmer skeletons animate forever by design.
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 400));
-
-      expect(find.text('detail destination'), findsOneWidget);
-    });
-
-    testWidgets('missing can_buy renders no buy CTA', (tester) async {
-      await _pumpCard(
-        tester,
-        _parse(_fpsLiveJson(canBuy: false)),
+        _parse(_fpsLiveJson(negotiationEnabled: true)),
         detailDestination: 'detail destination',
       );
 
       expect(find.text('Beli Sekarang'), findsNothing);
+      expect(find.text('Kirim Ongkir'), findsNothing);
+      expect(find.text('Chat'), findsNothing);
+      expect(find.text('Kelola'), findsNothing);
+      expect(find.byType(FilledButton), findsNothing);
+      expect(find.byType(ElevatedButton), findsNothing);
+      expect(find.byType(OutlinedButton), findsNothing);
+      expect(find.byType(TextButton), findsNothing);
     });
 
-    testWidgets('the card renders the canonical price plus the status caption', (
+    testWidgets('the card still renders the canonical price and lifecycle', (
       tester,
     ) async {
       await _pumpCard(
         tester,
-        _parse(_fpsLiveJson(canBuy: true)),
+        _parse(_fpsLiveJson()),
         detailDestination: 'detail destination',
       );
 
       // Same money string as discovery — grouped thousands, envelope-owned.
       expect(find.text('Rp 1.250.000'), findsOneWidget);
       expect(find.text('Tersedia'), findsOneWidget);
-      // The raw/ungrouped form is not a display string.
       expect(_renderedText(tester), isNot(contains('Rp 1250000')));
     });
 
-    testWidgets('a non-available status keeps its honest label beside the price', (
+    testWidgets('a whole-card tap still navigates to the canonical detail', (
       tester,
     ) async {
       await _pumpCard(
         tester,
-        _parse(_fpsLiveJson(canBuy: false, status: 'sold')),
+        _parse(_fpsLiveJson()),
+        detailDestination: 'detail destination',
+      );
+
+      await _tapWholeCard(tester);
+
+      expect(find.text('detail destination'), findsOneWidget);
+    });
+
+    testWidgets('a non-available status keeps its honest label and price', (
+      tester,
+    ) async {
+      await _pumpCard(
+        tester,
+        _parse(_fpsLiveJson(status: 'sold')),
         detailDestination: 'detail destination',
       );
       expect(find.text('Terjual'), findsOneWidget);
@@ -265,7 +223,7 @@ void main() {
 
       await _pumpCard(
         tester,
-        _parse(_fpsLiveJson(canBuy: false, status: 'inactive')),
+        _parse(_fpsLiveJson(status: 'unavailable')),
         detailDestination: 'detail destination',
       );
       expect(find.text('Tidak tersedia'), findsOneWidget);
@@ -273,43 +231,54 @@ void main() {
     });
   });
 
-  group('auction CTA (Bid → auction detail, the bidding surface)', () {
-    testWidgets('can_bid renders the CTA and navigates to the auction', (
+  group('negotiation is an informational product attribute', () {
+    testWidgets('negotiation_enabled=true renders the Nego badge', (
       tester,
     ) async {
       await _pumpCard(
         tester,
-        _parse(_auctionLiveJson(canBid: true)),
-        detailDestination: 'bid destination',
+        _parse(_fpsLiveJson(negotiationEnabled: true)),
+        detailDestination: 'detail destination',
       );
 
-      expect(find.text('Bid'), findsOneWidget);
-
-      await tester.ensureVisible(find.text('Bid'));
-      await tester.pump(const Duration(milliseconds: 400));
-      await tester.tap(find.text('Bid'));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 400));
-
-      expect(find.text('bid destination'), findsOneWidget);
+      expect(find.text('Nego'), findsOneWidget);
     });
 
-    testWidgets('missing can_bid renders no bid CTA', (tester) async {
+    testWidgets('negotiation_enabled=false renders no Nego badge', (
+      tester,
+    ) async {
       await _pumpCard(
         tester,
-        _parse(_auctionLiveJson(canBid: false, canBuy: false)),
+        _parse(_fpsLiveJson(negotiationEnabled: false)),
+        detailDestination: 'detail destination',
+      );
+
+      expect(find.text('Nego'), findsNothing);
+    });
+  });
+
+  group('auction generic card exposes no Commerce CTA', () {
+    testWidgets('renders no Bid / Beli and no capability badge', (tester) async {
+      await _pumpCard(
+        tester,
+        _parse(_auctionLiveJson()),
         detailDestination: 'bid destination',
       );
 
       expect(find.text('Bid'), findsNothing);
+      expect(find.text('Beli Sekarang'), findsNothing);
+      expect(find.text('Chat'), findsNothing);
+      expect(find.text('Kelola'), findsNothing);
+      expect(find.text('Nego'), findsNothing);
+      expect(find.byType(FilledButton), findsNothing);
     });
 
-    testWidgets('the card renders the current bid plus the lifecycle caption', (
+    testWidgets('the card still renders the current bid and lifecycle', (
       tester,
     ) async {
       await _pumpCard(
         tester,
-        _parse(_auctionLiveJson(canBid: true)),
+        _parse(_auctionLiveJson()),
         detailDestination: 'bid destination',
       );
 
@@ -319,18 +288,33 @@ void main() {
       expect(_renderedText(tester), isNot(contains('Rp 1.750.000')));
     });
 
-    testWidgets('a non-active lifecycle keeps the amount, drops the label', (
+    testWidgets('a whole-card tap still navigates to the auction detail', (
       tester,
     ) async {
       await _pumpCard(
         tester,
-        _parse(_auctionLiveJson(canBid: false, lifecycle: 'ended')),
+        _parse(_auctionLiveJson()),
+        detailDestination: 'bid destination',
+      );
+
+      await _tapWholeCard(tester);
+
+      expect(find.text('bid destination'), findsOneWidget);
+    });
+
+    testWidgets('a non-active lifecycle keeps the amount and the mapped label', (
+      tester,
+    ) async {
+      await _pumpCard(
+        tester,
+        _parse(_auctionLiveJson(lifecycle: 'ended')),
         detailDestination: 'bid destination',
       );
 
       expect(find.text('Rp 1.450.000'), findsOneWidget);
       expect(find.text('Berlangsung'), findsNothing);
-      expect(find.text('ended'), findsOneWidget);
+      // ended + has_winner=false → no-winner outcome.
+      expect(find.text('Berakhir tanpa pemenang'), findsOneWidget);
     });
   });
 
@@ -353,10 +337,10 @@ void main() {
       expect(_renderedText(tester), isNot(contains('Rp')));
       expect(find.text('Tidak dapat ditampilkan'), findsOneWidget);
 
-      final card = tester.widget<ChatResourceProjectionCard>(
-        find.byType(ChatResourceProjectionCard),
+      final shell = tester.widget<CommerceMarketplaceCardShell>(
+        find.byType(CommerceMarketplaceCardShell),
       );
-      expect(card.onBuy, isNull);
+      expect(shell.onTap, isNull);
     });
   });
 }

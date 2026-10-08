@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:labuda/core/core.dart';
-import 'package:labuda/core/utils/notification_navigation_handler.dart';
 import 'in_app_banner_service.dart';
+import 'notification_navigation_service.dart';
 
 /// FCM Action Mapper
 ///
@@ -28,10 +28,8 @@ class FCMActionMapper {
     if (type == null) return null;
 
     switch (type) {
-      // Follow request - View profile
-      case 'follower':
-      case 'new_follower': // Backend alias
-      case 'request':
+      // Follow - View profile (canonical wire type)
+      case 'user.followed':
         return [
           BannerAction(
             label: 'Lihat',
@@ -40,9 +38,8 @@ class FCMActionMapper {
           ),
         ];
 
-      // Like - View post
-      case 'like':
-      case 'new_like': // Backend alias
+      // Like - View post (canonical wire type)
+      case 'content.liked':
         return [
           BannerAction(
             label: 'Lihat Post',
@@ -51,9 +48,9 @@ class FCMActionMapper {
           ),
         ];
 
-      // Comment - View & Reply
+      // Comment - View & Reply (canonical wire types)
       case 'comment':
-      case 'new_comment': // Backend alias
+      case 'comment_reply':
         return [
           BannerAction(
             label: 'Lihat',
@@ -72,9 +69,8 @@ class FCMActionMapper {
           ),
         ];
 
-      // Chat message - Reply
+      // Chat message - Reply (canonical wire type)
       case 'chat_message':
-      case 'new_chat_message': // Backend alias
         return [
           BannerAction(
             label: 'Balas',
@@ -83,9 +79,12 @@ class FCMActionMapper {
           ),
         ];
 
-      // Auction notifications
-      case 'auction_bid_placed':
-      case 'auction_ending':
+      // Auction notifications (canonical wire types)
+      case 'auction.bid.placed':
+      case 'auction.waiting_settlement':
+      case 'auction.seller_has_winner':
+      case 'auction.ended_no_winner':
+      case 'auction.bnr_seller':
         return [
           BannerAction(
             label: 'Lihat Lelang',
@@ -96,7 +95,7 @@ class FCMActionMapper {
         ];
 
       // Auction won
-      case 'auction_won':
+      case 'auction.bnr_winner':
         return [
           BannerAction(
             label: 'Bayar Sekarang',
@@ -106,11 +105,9 @@ class FCMActionMapper {
           ),
         ];
 
-      // Order notifications
-      case 'order_created':
+      // Order notifications (canonical wire types)
       case 'order.created':
       case 'order.created.buyer':
-      case 'order_confirmed':
       case 'order.paid':
       case 'order.paid.buyer':
         return [
@@ -122,7 +119,6 @@ class FCMActionMapper {
         ];
 
       // Order shipped
-      case 'order_shipped':
       case 'order.shipped':
         return [
           BannerAction(
@@ -132,8 +128,8 @@ class FCMActionMapper {
           ),
         ];
 
-      // Order delivered
-      case 'order_delivered':
+      // Order delivered / completed
+      case 'order.completed':
         return [
           BannerAction(
             label: 'Konfirmasi Terima',
@@ -143,15 +139,15 @@ class FCMActionMapper {
           ),
         ];
 
-      // Refund notifications
-      case 'refund_requested':
+      // Refund / dispute notifications (canonical wire types)
       case 'refund.opened':
-      case 'refund_approved':
       case 'refund.approved':
-      case 'refund_rejected':
       case 'refund.rejected':
       case 'refund.escalated':
-      case 'refund_processed':
+      case 'order.refunded':
+      case 'order.partially_refunded':
+      case 'dispute.opened':
+      case 'dispute.resolved':
         return [
           BannerAction(
             label: 'Lihat Detail',
@@ -166,15 +162,15 @@ class FCMActionMapper {
     }
   }
 
-  /// Navigate using NotificationNavigationHandler
-  /// FIX: Fetch fresh context from global navigatorKey at navigation time
+  /// Navigate through the ONE notification destination decision.
+  /// Fetch a fresh context from the global navigatorKey at tap time.
   void _navigate(String type, Map<String, dynamic> data) {
     // Use global navigatorKey from app_router.dart
     final freshContext = navigatorKey.currentContext;
 
     if (freshContext != null && freshContext.mounted) {
-      NotificationNavigationHandler.navigate(
-        context: freshContext,
+      NotificationNavigationService.canonical().handleNotificationPayload(
+        freshContext,
         type: type,
         data: data,
       );

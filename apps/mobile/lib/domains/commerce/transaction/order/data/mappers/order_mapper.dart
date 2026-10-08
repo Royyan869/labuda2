@@ -23,7 +23,10 @@ class OrderMapper {
       items: _buildOrderItems(dto),
       status: _mapOrderStatus(dto.status),
       // NOTE: primaryStatus removed - redundant (always duplicated status)
-      paymentMethod: PaymentMethodType.bankTransfer,
+      // Canonical bound method (backend `payment_method_code`). This is the
+      // authority the post-order Pay Now flow uses; visual presentation is owned
+      // solely by PaymentMethodVisuals (the coarse PaymentMethodType enum is purged).
+      paymentMethodCode: dto.paymentMethodCode,
       paymentStatus: _mapPaymentStatus(dto.paymentStatus),
       shippingInfo: _buildShippingInfo(dto),
       pricing: _buildOrderPricing(dto),
@@ -46,6 +49,11 @@ class OrderMapper {
       sellerAvatarUrl: dto.sellerAvatarUrl,
       buyerUsername: dto.buyerUsername,
       paymentId: dto.paymentId,
+      // Backend Decision contract is the SINGLE action authority — forward it
+      // verbatim so the existing Order Detail action system can render it.
+      decision: dto.decision,
+      // Escrow state projection (holding/released/refunded), null when absent.
+      escrowStatus: dto.escrowStatus,
     );
   }
 
@@ -69,7 +77,7 @@ class OrderMapper {
             forSaleName: item.name,
             forSaleImage: '',
             price: item.unitPrice,
-            quantity: item.quantity,
+            quantity:       item.quantity,
           ),
         )
         .toList();
@@ -151,7 +159,6 @@ class OrderMapper {
   /// frontend and backend - this should be surfaced immediately.
   static OrderStatus _mapOrderStatus(String status) {
     switch (status.toLowerCase()) {
-      case 'pending':
       case 'pending_payment': // Backend canonical wire value (StatusPending = "pending_payment")
         return OrderStatus.pending;
       case 'waiting_payment':
@@ -202,7 +209,7 @@ class OrderMapper {
   static String mapOrderStatusToString(OrderStatus status) {
     switch (status) {
       case OrderStatus.pending:
-        return 'pending';
+        return 'pending_payment';
       case OrderStatus.paid:
         return 'paid'; // Frontend OrderStatus.paid → backend 'paid' (P11 aligned)
       case OrderStatus.shipped:

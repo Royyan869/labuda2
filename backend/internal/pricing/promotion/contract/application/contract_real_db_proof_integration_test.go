@@ -175,13 +175,28 @@ func (h *contractHarness) consumeQI(t *testing.T, seller, contractID uuid.UUID, 
 	})
 }
 
-func (h *contractHarness) create(t *testing.T, seller uuid.UUID, kind entity.Kind, budget int64, durationDays int64) (*entity.Contract, error) {
+// testTargetType returns a kind-matching target type for synthetic queue entries.
+func testTargetType(kind entity.Kind) string {
+	if kind == entity.KindExternal {
+		return "external_product"
+	}
+	return "for_sale"
+}
+
+// createWithTargets creates a contract with an explicit initial queue.
+func (h *contractHarness) createWithTargets(t *testing.T, seller uuid.UUID, kind entity.Kind, budget int64, durationDays int64, targets []application.PromotionTargetInput) (*entity.Contract, error) {
 	return h.svc.Create(context.Background(), application.CreatePromotionInput{
 		SellerID:     seller,
 		Kind:         kind,
 		BudgetRupiah: budget,
 		DurationDays: durationDays,
+		Targets:      targets,
 	})
+}
+
+func (h *contractHarness) create(t *testing.T, seller uuid.UUID, kind entity.Kind, budget int64, durationDays int64) (*entity.Contract, error) {
+	return h.createWithTargets(t, seller, kind, budget, durationDays,
+		[]application.PromotionTargetInput{{TargetType: testTargetType(kind), TargetID: uuid.New()}})
 }
 
 func TestPromotionContractCanonical_RealDB(t *testing.T) {
@@ -621,20 +636,30 @@ func TestPromotionContractCanonical_RealDB(t *testing.T) {
 		require.Equal(t, 1, checkCount, "planned_finish > planned_start CHECK must remain enforced")
 	})
 
-	t.Run("K_no_arbitrary_3650_product_cap", func(t *testing.T) {
-		// Negative proof E: the invented 3650-day product cap is gone. The
-		// only remaining bound is the technical time.Duration overflow guard
-		// (~292 years). A SAFE duration far above 3650 days must be accepted;
-		// rejection here would mean an arbitrary product maximum survived.
+	t.Run("K_owner_locked_internal_cap_and_no_arbitrary_cap_for_external", func(t *testing.T) {
+		// Owner lock: internal promotions are capped at 30 days. External
+		// promotions have NO 30-day maximum, so the old invented 3650-day cap
+		// must not survive for external either — the only remaining external
+		// bound is the technical time.Duration overflow guard (~292 years).
 		h.seedConfig(t, 7500, 10_000)
-		seller := h.newSeller(t, 1_000_000_000)
-		const days = 4000 // > 3650 (~11 years), safe for time.Duration + timestamptz
 
-		c, err := h.create(t, seller, entity.KindInternal, 10_000*days, days)
-		require.NoError(t, err, "duration above 3650 days must not be rejected by an arbitrary cap")
+		// External: a SAFE duration far above 3650 days is accepted.
+		const days = 4000 // > 3650 (~11 years), safe for time.Duration + timestamptz
+		extSeller := h.newSeller(t, 1_000_000_000)
+		c, err := h.create(t, extSeller, entity.KindExternal, 10_000*days, days)
+		require.NoError(t, err, "external duration above 3650 days must not be rejected by an arbitrary cap")
 		require.Equal(t, int64(10_000*days), c.BudgetRupiah)
 		require.Equal(t, days*24*time.Hour, c.PlannedFinish.Sub(c.PlannedStart).Round(time.Second),
 			"the server-derived finish must still follow duration x 24h")
+
+		// Internal: 30 days accepted, 31 days rejected through the canonical
+		// duration error (Owner-locked business maximum).
+		intSeller := h.newSeller(t, 1_000_000)
+		_, err = h.create(t, intSeller, entity.KindInternal, 10_000*30, 30)
+		require.NoError(t, err)
+		_, err = h.create(t, intSeller, entity.KindInternal, 10_000*31, 31)
+		require.ErrorIs(t, err, application.ErrPromotionDurationInvalid,
+			"internal duration must be capped at the Owner-locked 30 days")
 	})
 
 	t.Run("L_duration_overflow_fail_closed", func(t *testing.T) {
@@ -647,9 +672,11 @@ func TestPromotionContractCanonical_RealDB(t *testing.T) {
 		seller := h.newSeller(t, 1_000_000)
 
 		const technicalBound = math.MaxInt64 / int64(24*time.Hour) // 106,751 days
-		_, err := h.create(t, seller, entity.KindInternal, 30_000, technicalBound+1)
+		// External is used so the technical bound (not the internal 30-day
+		// business cap) is the guard under test.
+		_, err := h.create(t, seller, entity.KindExternal, 30_000, technicalBound+1)
 		require.ErrorIs(t, err, application.ErrPromotionDurationInvalid)
-		require.Equal(t, 0, h.countContracts(t, seller, entity.KindInternal), "no contract may survive")
+		require.Equal(t, 0, h.countContracts(t, seller, entity.KindExternal), "no contract may survive")
 		require.Equal(t, 0, h.countAllocationAccounts(t, seller), "no allocation account may survive")
 		require.Equal(t, int64(1_000_000), h.promoteBalance(t, seller), "no ledger movement may survive")
 	})

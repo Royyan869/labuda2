@@ -5,6 +5,9 @@ import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Avatar } from '@/components/ui/Avatar'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/Table'
+import { Input } from '@/components/ui/Input'
+import { Select } from '@/components/ui/Select'
+import { AdminLoadingState, AdminErrorState, AdminEmptyState, AdminPagination, PageHeader } from '@/components/common'
 import { UserDetailModal } from '@/components/users/UserDetailModal'
 import { useUsers } from '@/hooks/useUsers'
 import { formatDate } from '@/lib/utils'
@@ -47,7 +50,7 @@ export function UsersPage() {
   const [selectedUser, setSelectedUser] = useState<UserListItem | null>(null)
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
 
-  const { users, loading, error, total, refetch } = useUsers(
+  const { users, loading, error, total, page, setPage, totalPages, refetch } = useUsers(
     statusFilter || roleFilter || verifiedFilter || searchQuery
       ? {
           status: statusFilter || undefined,
@@ -74,34 +77,29 @@ export function UsersPage() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
+    setPage(1)
     refetch()
   }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
-          <p className="mt-4 text-muted-foreground">Loading users...</p>
-        </div>
-      </div>
-    )
+  const hasActiveFilters = statusFilter || roleFilter || verifiedFilter || searchQuery
+
+  const handleClearFilters = () => {
+    setStatusFilter('')
+    setRoleFilter('')
+    setVerifiedFilter('')
+    setSearchQuery('')
+    setPage(1)
+  }
+
+  if (loading && users.length === 0) {
+    return <AdminLoadingState />
   }
 
   if (error) {
     return (
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Users</h1>
-          <p className="text-muted-foreground mt-1">Manage user accounts</p>
-        </div>
-        <Card>
-          <CardContent className="p-6">
-            <div className="text-center text-destructive">
-              <p>Error loading users: {error.message}</p>
-            </div>
-          </CardContent>
-        </Card>
+        <PageHeader title="Users" description="Manage user accounts and permissions" />
+        <AdminErrorState title="Failed to load users" message={error.message} onRetry={refetch} />
       </div>
     )
   }
@@ -109,20 +107,16 @@ export function UsersPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Users</h1>
-          <p className="text-muted-foreground mt-1">Manage user accounts and permissions</p>
-        </div>
-        <Button
-          variant="secondary"
-          onClick={refetch}
-          className="gap-2"
-        >
-          <RefreshCw className="h-4 w-4" />
-          Refresh
-        </Button>
-      </div>
+      <PageHeader
+        title="Users"
+        description="Manage user accounts and permissions"
+        actions={
+          <Button variant="secondary" onClick={refetch} className="gap-2">
+            <RefreshCw className="h-4 w-4" />
+            Refresh
+          </Button>
+        }
+      />
 
       {/* Stats Card */}
       <Card>
@@ -130,7 +124,7 @@ export function UsersPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-muted-foreground">Total Users</p>
-              <p className="text-3xl font-bold text-primary mt-1">{total}</p>
+              <p className="type-metric-lg text-primary mt-1">{total}</p>
             </div>
             <div className="p-4 rounded-lg bg-info-bg">
               <Users className="h-8 w-8 text-info" />
@@ -142,78 +136,58 @@ export function UsersPage() {
       {/* Filters */}
       <Card>
         <CardContent className="pt-6">
-          <div className="flex items-center gap-6 flex-wrap">
-            <div className="flex items-center gap-4">
-              <Filter className="h-5 w-5 text-muted-foreground" />
-            </div>
+          <div className="flex items-end gap-6 flex-wrap">
+            <Filter className="h-5 w-5 text-muted-foreground mb-2" />
 
             {/* Status Filter */}
-            <div className="flex items-center gap-2">
-              <label htmlFor="status-filter" className="text-sm font-medium text-foreground">
-                Status:
-              </label>
-              <select
-                id="status-filter"
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as AccountStatus | '')}
-                className="px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-              >
-                {USER_STATUSES.map((status) => (
-                  <option key={status.value} value={status.value}>
-                    {status.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <Select
+              label="Status:"
+              value={statusFilter}
+              onChange={(e) => { setStatusFilter(e.target.value as AccountStatus | ''); setPage(1) }}
+            >
+              {USER_STATUSES.map((status) => (
+                <option key={status.value} value={status.value}>
+                  {status.label}
+                </option>
+              ))}
+            </Select>
 
             {/* Role Filter */}
-            <div className="flex items-center gap-2">
-              <label htmlFor="role-filter" className="text-sm font-medium text-foreground">
-                Role:
-              </label>
-              <select
-                id="role-filter"
-                value={roleFilter}
-                onChange={(e) => setRoleFilter(e.target.value as 'user' | 'admin' | '')}
-                className="px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-              >
-                {USER_ROLES.map((role) => (
-                  <option key={role.value} value={role.value}>
-                    {role.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <Select
+              label="Role:"
+              value={roleFilter}
+              onChange={(e) => { setRoleFilter(e.target.value as 'user' | 'admin' | ''); setPage(1) }}
+            >
+              {USER_ROLES.map((role) => (
+                <option key={role.value} value={role.value}>
+                  {role.label}
+                </option>
+              ))}
+            </Select>
 
             {/* Verification Filter */}
-            <div className="flex items-center gap-2">
-              <label htmlFor="verified-filter" className="text-sm font-medium text-foreground">
-                KYC:
-              </label>
-              <select
-                id="verified-filter"
-                value={verifiedFilter}
-                onChange={(e) => setVerifiedFilter(e.target.value as 'true' | 'false' | '')}
-                className="px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-              >
-                {VERIFICATION_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <Select
+              label="KYC:"
+              value={verifiedFilter}
+              onChange={(e) => { setVerifiedFilter(e.target.value as 'true' | 'false' | ''); setPage(1) }}
+            >
+              {VERIFICATION_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </Select>
 
             {/* Search */}
-            <form onSubmit={handleSearch} className="flex items-center gap-2">
+            <form onSubmit={handleSearch} className="flex items-end gap-2">
               <div className="relative">
-                <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                <input
+                <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground z-10" />
+                <Input
                   type="text"
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => { setSearchQuery(e.target.value); setPage(1) }}
                   placeholder="Search by name, email, or username..."
-                  className="pl-9 pr-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary w-64"
+                  className="pl-9 w-64"
                 />
               </div>
               <Button type="submit" size="sm" variant="secondary">
@@ -231,15 +205,17 @@ export function UsersPage() {
         </CardHeader>
         <CardContent>
           {users.length === 0 ? (
-            <div className="text-center py-12">
-              <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-foreground mb-2">No Users Found</h3>
-              <p className="text-muted-foreground">
-                {statusFilter || roleFilter || verifiedFilter || searchQuery
+            <AdminEmptyState
+              icon={Users}
+              title="No Users Found"
+              description={
+                hasActiveFilters
                   ? 'No users match the current filters.'
-                  : 'No users in the system.'}
-              </p>
-            </div>
+                  : 'No users in the system.'
+              }
+              filtered={Boolean(hasActiveFilters)}
+              onClearFilters={handleClearFilters}
+            />
           ) : (
             <div className="border border-border rounded-lg overflow-hidden">
               <Table>
@@ -299,13 +275,13 @@ export function UsersPage() {
                             {user.warning_count}
                           </Badge>
                         ) : (
-                          <span className="text-sm text-muted-foreground">-</span>
+                          <span className="type-secondary">-</span>
                         )}
                       </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
+                      <TableCell className="type-secondary">
                         {formatDate(user.created_at)}
                       </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
+                      <TableCell className="type-secondary">
                         {user.last_active_at ? formatDate(user.last_active_at) : 'Never'}
                       </TableCell>
                       <TableCell className="text-right">
@@ -325,6 +301,16 @@ export function UsersPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <AdminPagination
+          page={page}
+          totalPages={totalPages}
+          onPageChange={setPage}
+          disabled={loading}
+        />
+      )}
 
       {/* User Detail Modal */}
       <UserDetailModal

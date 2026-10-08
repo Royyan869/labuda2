@@ -23,7 +23,7 @@ class ContentAppBar extends StatelessWidget implements PreferredSizeWidget {
     final scheme = Theme.of(context).colorScheme;
     return AppBar(
       title: const Text('Create Content'),
-      leading: IconButton(onPressed: onClose, icon: const Icon(Icons.close)),
+      leading: IconButton(onPressed: onClose, icon: const Icon(Icons.close, semanticLabel: 'Tutup')),
       actions: [
         TextButton(
           onPressed: canSubmit && !isSubmitting ? onSubmit : null,

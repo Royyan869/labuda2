@@ -24,11 +24,14 @@ import (
 	productinfra "github.com/labuda/backend/internal/commerce/product/infrastructure/repository"
 	shippingApp "github.com/labuda/backend/internal/commerce/shipping/application"
 	shippingrepo "github.com/labuda/backend/internal/commerce/shipping/infrastructure/repository"
+	shippingquoteApp "github.com/labuda/backend/internal/commerce/shipping/quote/application"
+	shippingquoteRepo "github.com/labuda/backend/internal/commerce/shipping/quote/infrastructure/repository"
 	capabilityEntity "github.com/labuda/backend/internal/platform/capability/entity"
 	outboxinfra "github.com/labuda/backend/internal/platform/outbox/infrastructure/repository"
 	"github.com/labuda/backend/pkg/db"
 	"github.com/labuda/backend/pkg/money"
 	"github.com/labuda/backend/pkg/testdb"
+	"go.uber.org/zap"
 )
 
 // ============================================================================
@@ -85,7 +88,7 @@ func (stage5ActorResolver) ResolveActor(_ interface{}, userID uuid.UUID) (*capab
 // order/forSale/product/shipping/outbox, stub gates only.
 func newStage5OrderService() *orderApp.OrderCreationService {
 	optionRepo := shippingrepo.NewShippingSetupRepository()
-	return orderApp.NewOrderCreationService(
+	svc := orderApp.NewOrderCreationService(
 		stage5AccountChecker{},
 		shippingApp.NewShippingService(
 			optionRepo,
@@ -102,6 +105,15 @@ func newStage5OrderService() *orderApp.OrderCreationService {
 		nil, // auctionStatusChecker (nil-safe guard; skips BNR lock)
 
 	)
+	// The ONE shipping-quote checkout authority. ConsumeQuoteForCheckout only
+	// needs the quote repository, so the remaining collaboration ports are nil.
+	svc.SetShippingQuoteCheckoutAuthority(shippingquoteApp.NewService(
+		nil,
+		shippingquoteRepo.NewShippingQuoteRepository(),
+		nil, nil, nil, nil, nil,
+		zap.NewNop(),
+	))
+	return svc
 }
 
 // ---------------------------------------------------------------------------
@@ -119,12 +131,12 @@ func stage5User(t *testing.T, ctx context.Context, tdb *testdb.TestDB, id uuid.U
 	}))
 }
 
-func stage5Address(t *testing.T, ctx context.Context, tdb *testdb.TestDB, id, userID uuid.UUID, purpose, provinceID string) {
+func stage5Address(t *testing.T, ctx context.Context, tdb *testdb.TestDB, id, userID uuid.UUID, provinceID string) {
 	t.Helper()
 	require.NoError(t, tdb.WithTx(ctx, func(tx db.Tx) error {
 		_, err := tx.Exec(ctx, `
 			INSERT INTO addresses (
-				id, user_id, purpose, nickname,
+				id, user_id, nickname,
 				recipient_name, phone,
 				province_id, province_name,
 				city_id, city_name,
@@ -136,12 +148,12 @@ func stage5Address(t *testing.T, ctx context.Context, tdb *testdb.TestDB, id, us
 				created_at, updated_at
 			)
 			VALUES (
-				$1, $2, $3, 'Addr', 'Name', '08123',
-				$4, 'DKI Jakarta', '', '', '', '', '', '',
+				$1, $2, 'Addr', 'Name', '08123',
+				$3, 'DKI Jakarta', '', '', '', '', '', '',
 				'St.', '12345',
 				NULL, NULL, 'stage5', true, true, NOW(), NOW()
 			)
-		`, id, userID, purpose, provinceID)
+		`, id, userID, provinceID)
 		return err
 	}))
 }
@@ -264,10 +276,9 @@ func TestOrderItemProductIdentity_Convergence_RuntimeProof(t *testing.T) {
 	stage5User(t, ctx, tdb, sellerID)
 	stage5User(t, ctx, tdb, buyerID)
 
-	farmAddressID := uuid.New()
 	buyerAddressID := uuid.New()
-	stage5Address(t, ctx, tdb, farmAddressID, sellerID, "sender", "31")
-	stage5Address(t, ctx, tdb, buyerAddressID, buyerID, "shipping", "31")
+	stage5Address(t, ctx, tdb, uuid.New(), sellerID, "31")
+	stage5Address(t, ctx, tdb, buyerAddressID, buyerID, "31")
 
 	orderRepo := orderinfra.NewOrderRepository()
 	svc := newStage5OrderService()
@@ -280,7 +291,6 @@ func TestOrderItemProductIdentity_Convergence_RuntimeProof(t *testing.T) {
 			Description:     "desc",
 			Variety:         "Kohaku",
 			PreparationTime: "1_3_days",
-			FarmAddressID:   &farmAddressID,
 		}
 		require.NoError(t, tdb.WithTx(ctx, func(tx db.Tx) error {
 			return productinfra.NewProductRepository().Create(ctx, tx, product)
@@ -290,10 +300,9 @@ func TestOrderItemProductIdentity_Convergence_RuntimeProof(t *testing.T) {
 
 	createActiveFPS := func(productID uuid.UUID, qty int) uuid.UUID {
 		t.Helper()
-		forSale, err := fpsentity.NewForSaleSurface(sellerID, money.New(100_000), qty, false, fpsentity.ForSaleVisibilityPublic)
+		forSale, err := fpsentity.NewForSaleSurface(sellerID, money.New(100_000), qty, false)
 		require.NoError(t, err)
 		forSale.ProductID = productID
-		require.NoError(t, forSale.Publish())
 		require.NoError(t, tdb.WithTx(ctx, func(tx db.Tx) error {
 			return fpsinfra.NewForSaleRepository().Create(ctx, tx, forSale)
 		}))
@@ -362,10 +371,9 @@ func TestOrderItemProductIdentity_Convergence_RuntimeProof(t *testing.T) {
 		_, err := tx.Exec(ctx, `UPDATE for_sales SET status = 'sold', sold_at = NOW(), quantity_available = 0 WHERE id = $1`, fps1ID)
 		return err
 	}))
-	forSale2, err := fpsentity.NewForSaleSurface(sellerID, money.New(100_000), 3, false, fpsentity.ForSaleVisibilityPublic)
+	forSale2, err := fpsentity.NewForSaleSurface(sellerID, money.New(100_000), 3, false)
 	require.NoError(t, err)
 	forSale2.ProductID = product1
-	require.NoError(t, forSale2.Publish())
 	require.Error(t, tdb.WithTx(ctx, func(tx db.Tx) error {
 		return fpsinfra.NewForSaleRepository().Create(ctx, tx, forSale2)
 	}), "second ForSale on a sold product must be rejected by the permanent selling-surface claim")
@@ -494,11 +502,10 @@ func auctionOrderQuantity(t *testing.T, ctx context.Context, tdb *testdb.TestDB,
 
 func stage5Auction(t *testing.T, ctx context.Context, tdb *testdb.TestDB, productID, sellerID uuid.UUID) uuid.UUID {
 	t.Helper()
-	auction := auctionentity.NewDraft(
+	auction := auctionentity.NewScheduled(
 		sellerID, productID, 400_000, 25_000, nil,
 		time.Now().Add(-time.Hour), time.Now().Add(24*time.Hour),
 	)
-	require.NoError(t, auction.Schedule())
 	require.NoError(t, auction.Activate())
 	require.NoError(t, tdb.WithTx(ctx, func(tx db.Tx) error {
 		return auctioninfra.NewAuctionRepository().CreateTx(ctx, tx, auction)

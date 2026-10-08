@@ -220,10 +220,10 @@ type SellerVerificationPayload struct {
 	// The remaining admin decisions each carry their own actor key (see
 	// VerificationService.emitEventTx). Dropping them would surface an
 	// anonymous "admin" while the identity is right there in the payload.
-	SuspendedBy   string `json:"suspended_by,omitempty"`
-	RevokedBy     string `json:"revoked_by,omitempty"`
+	SuspendedBy    string `json:"suspended_by,omitempty"`
+	RevokedBy      string `json:"revoked_by,omitempty"`
 	InvestigatedBy string `json:"investigated_by,omitempty"`
-	RestoredBy    string `json:"restored_by,omitempty"`
+	RestoredBy     string `json:"restored_by,omitempty"`
 }
 
 // reviewerID resolves the human who caused a seller-verification lifecycle
@@ -440,12 +440,6 @@ func (h *NotificationEventHandler) getTitleAndBody(notifyType string) (title, bo
 		return "Ada Pemenang Lelang", "Lelang Anda memiliki pemenang. Tunggu hingga pembayaran masuk."
 	case "auction.ended_no_winner":
 		return "Lelang Berakhir Tanpa Pemenang", "Lelang Anda telah berakhir tanpa ada pemenang."
-	case "auction.cancelled.seller":
-		// Scope B — subscription-expired auto-cancel. The auction died
-		// because the seller's market authority lapsed; renewal is the
-		// recourse. Factual copy: no blame, no reason leak (reason is
-		// internal outbox vocabulary).
-		return "Lelang Dibatalkan Otomatis", "Langganan Anda telah berakhir sehingga lelang ini dibatalkan. Perpanjang langganan untuk menjual kembali."
 	case "auction.bnr_seller":
 		return "Lelang Tidak Diselesaikan", "Pemenang tidak menyelesaikan pembayaran dalam batas waktu"
 	case "auction.bnr_winner":

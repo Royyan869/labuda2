@@ -4,10 +4,7 @@ import 'package:labuda/core/core.dart';
 class BankAccountEmptyStateWidget extends StatelessWidget {
   final VoidCallback onAddAccount;
 
-  const BankAccountEmptyStateWidget({
-    super.key,
-    required this.onAddAccount,
-  });
+  const BankAccountEmptyStateWidget({super.key, required this.onAddAccount});
 
   @override
   Widget build(BuildContext context) {
@@ -36,9 +33,8 @@ class BankAccountEmptyStateWidget extends StatelessWidget {
           const SizedBox(height: 24),
           Text(
             'No Bank Account Yet',
-            style: TextStyle(
+            style: context.typeRoles.titleSection.copyWith(
               color: scheme.onSurface,
-              fontSize: AppType.s20,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -46,9 +42,8 @@ class BankAccountEmptyStateWidget extends StatelessWidget {
           Text(
             'Add your bank account to receive payments from your sales.',
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: context.typeRoles.bodyDense.copyWith(
               color: scheme.onSurfaceVariant,
-              fontSize: AppType.s14,
             ),
           ),
           const SizedBox(height: 24),
@@ -71,14 +66,17 @@ class BankAccountEmptyStateWidget extends StatelessWidget {
             ),
             child: Row(
               children: [
-                Icon(Icons.info_outline, color: context.statusColors.info, size: AppIconSize.inlineGlyph),
+                Icon(
+                  Icons.info_outline,
+                  color: context.statusColors.info,
+                  size: AppIconSize.inlineGlyph,
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     'Your bank account information is encrypted and secure.',
-                    style: TextStyle(
+                    style: context.typeRoles.labelMicro.copyWith(
                       color: scheme.onSurface,
-                      fontSize: AppType.s12,
                     ),
                   ),
                 ),

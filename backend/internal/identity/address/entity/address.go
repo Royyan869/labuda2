@@ -10,28 +10,27 @@ import (
 // Address is the canonical saved-address record for an account.
 //
 // CANONICAL TRUTH (one authority, one address book):
-// - Address belongs to the ACCOUNT, never to a role. An account owns one
-//   address book; seller/buyer are labels drawn from Tags, not separate books.
-// - Tags describe how an address is USED. One address may carry several tags
-//   ("shipping" AND "sender" at the same time).
+// - Address belongs to the ACCOUNT. An account owns one address book.
 // - Exactly ONE address per account is primary (enforced by
-//   idx_addresses_user_active_primary_unique). There is no per-purpose primary.
+//   idx_addresses_user_active_primary_unique).
+// - The primary address is the account's single default address: it is the
+//   default destination at checkout and the default origin for every product.
 // - Order stores an address snapshot, NOT address_id (for immutability).
-// - Promotion scope will attach additional tags later; no schema change needed.
+//
+// Nickname is a free, user-facing label (e.g., "Home", "Office") for
+// recognition only. It carries no business role and no branching logic.
 //
 // FORBIDDEN DESIGN (killed, do not reintroduce):
-// - A separate address book / primary per purpose.
-// - A single-purpose "purpose" column that forces one role per address.
+// - A separate address book / primary per role.
+// - A "purpose" column or "tags" set that classifies an address by role
+//   (shipping/sender). There are no address roles.
+// - A product-level origin address (products.farm_address_id).
 // - Any profile-side copy of an address (origin line is derived, never stored).
 type Address struct {
-	ID        uuid.UUID
-	UserID    uuid.UUID
+	ID     uuid.UUID
+	UserID uuid.UUID
 
-	// Tags declares how this address may be used: "shipping", "sender".
-	// An address used both as a destination and as an origin carries both.
-	Tags []AddressTag
-
-	// Nickname is an optional user-defined name for this address (e.g., "Home", "Office")
+	// Nickname is an optional user-defined label for this address (e.g., "Home", "Office")
 	Nickname string
 
 	// Recipient information
@@ -67,104 +66,9 @@ type Address struct {
 	UpdatedAt time.Time
 }
 
-// AddressTag declares a usage of an address.
-type AddressTag string
-
-const (
-	// TagShipping marks an address a buyer may be delivered to.
-	TagShipping AddressTag = "shipping"
-
-	// TagSender marks an address goods may be shipped from.
-	TagSender AddressTag = "sender"
-)
-
-// AllAddressTags lists every valid address tag.
-var AllAddressTags = []AddressTag{
-	TagShipping,
-	TagSender,
-}
-
-// IsValidTag reports whether a wire-level tag value is known.
-func IsValidTag(tag string) bool {
-	switch AddressTag(tag) {
-	case TagShipping, TagSender:
-		return true
-	default:
-		return false
-	}
-}
-
-// NormalizeTags validates, de-duplicates and canonically orders a wire-level
-// tag list. It returns InvalidTagsError when the list is empty or unknown.
-func NormalizeTags(tags []string) ([]AddressTag, error) {
-	if len(tags) == 0 {
-		return nil, &InvalidTagsError{Tags: tags}
-	}
-
-	seen := make(map[AddressTag]bool, len(tags))
-	result := make([]AddressTag, 0, len(tags))
-	for _, raw := range tags {
-		if !IsValidTag(raw) {
-			return nil, &InvalidTagsError{Tags: tags}
-		}
-		tag := AddressTag(raw)
-		if seen[tag] {
-			continue
-		}
-		seen[tag] = true
-		result = append(result, tag)
-	}
-
-	// Stable canonical order so equal tag sets compare equal on the wire.
-	ordered := make([]AddressTag, 0, len(result))
-	for _, known := range AllAddressTags {
-		if seen[known] {
-			ordered = append(ordered, known)
-		}
-	}
-	return ordered, nil
-}
-
-// HasTag reports whether the address carries the given tag.
-func (a *Address) HasTag(tag AddressTag) bool {
-	for _, t := range a.Tags {
-		if t == tag {
-			return true
-		}
-	}
-	return false
-}
-
-// TagStrings renders the canonical tag list as wire values.
-func (a *Address) TagStrings() []string {
-	out := make([]string, 0, len(a.Tags))
-	for _, t := range a.Tags {
-		out = append(out, string(t))
-	}
-	return out
-}
-
-// TagsFrom converts a persisted text[] into the canonical tag list.
-func TagsFrom(values []string) []AddressTag {
-	tags := make([]AddressTag, 0, len(values))
-	for _, v := range values {
-		tags = append(tags, AddressTag(v))
-	}
-	return tags
-}
-
 // ============================================================================
 // BUSINESS ERRORS
 // ============================================================================
-
-// InvalidTagsError is returned when a tag list is empty or holds unknown tags.
-type InvalidTagsError struct {
-	Tags []string
-}
-
-func (e *InvalidTagsError) Error() string {
-	return fmt.Sprintf("invalid address tags: must be a non-empty subset of %q, got %v", AllAddressTags, e.Tags)
-}
 
 // MissingRequiredFieldError is returned when a required field is missing.
 type MissingRequiredFieldError struct {
@@ -219,17 +123,6 @@ type PrimaryAddressAlreadyExistsError struct {
 
 func (e *PrimaryAddressAlreadyExistsError) Error() string {
 	return fmt.Sprintf("user already has a primary address: user_id=%s", e.UserID)
-}
-
-// SenderAddressRequiresSellerAuthorityError is returned when a non-authorized
-// user tries to create a sender address.
-// Sender addresses are shipping origin addresses for sellers.
-type SenderAddressRequiresSellerAuthorityError struct {
-	UserID uuid.UUID
-}
-
-func (e *SenderAddressRequiresSellerAuthorityError) Error() string {
-	return fmt.Sprintf("sender address requires seller authority: user_id=%s", e.UserID)
 }
 
 // ============================================================================
@@ -330,14 +223,12 @@ func (a *Address) ToSnapshot() AddressSnapshot {
 // NewAddress creates a new address.
 //
 // Validation:
-// - Tags must be a non-empty subset of AllAddressTags
 // - RecipientName is required
 // - Phone is required and must be valid
 // - At least ProvinceID/CityID are required
 // - StreetAddress is required
 func NewAddress(
 	userID uuid.UUID,
-	tags []AddressTag,
 	nickname string,
 	recipientName string,
 	phone string,
@@ -356,16 +247,6 @@ func NewAddress(
 	notes string,
 	isPrimary bool,
 ) (*Address, error) {
-	// Validate tags: at least one, no unknown values.
-	if len(tags) == 0 {
-		return nil, &InvalidTagsError{}
-	}
-	for _, tag := range tags {
-		if !IsValidTag(string(tag)) {
-			return nil, &InvalidTagsError{Tags: []string{string(tag)}}
-		}
-	}
-
 	// Validate required fields
 	if recipientName == "" {
 		return nil, &MissingRequiredFieldError{Field: "recipient_name"}
@@ -398,7 +279,6 @@ func NewAddress(
 	return &Address{
 		ID:                      uuid.New(),
 		UserID:                  userID,
-		Tags:                    tags,
 		Nickname:                nickname,
 		RecipientName:           recipientName,
 		Phone:                   phone,

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:labuda/shared/shared.dart';
-import 'package:labuda/core/core.dart';
 
 /// Wrapper AppBar yang konsisten — chrome DARI THEME, bukan dari call site.
 ///
@@ -33,8 +32,7 @@ class AppBarCustom extends StatelessWidget implements PreferredSizeWidget {
     return AppBar(
       title: Text(
         title,
-        style: TextStyle(
-          fontSize: AppType.s20,
+        style: Theme.of(context).textTheme.titleLarge?.copyWith(
           fontWeight: FontWeight.w600,
           color: scheme.onSurface,
         ),

@@ -24,6 +24,12 @@ type ShippingQuoteRepository interface {
 	// GetByID retrieves a shipping quote by ID.
 	GetByID(ctx context.Context, tx db.Tx, id uuid.UUID) (*entity.ShippingQuote, error)
 
+	// GetByIDs retrieves shipping quotes by ID in ONE batch query, keyed by
+	// quote id. Missing ids are simply absent from the result. This is the
+	// canonical batch read used to project quote actionability onto a
+	// conversation message page without N+1.
+	GetByIDs(ctx context.Context, tx db.Tx, ids []uuid.UUID) (map[uuid.UUID]*entity.ShippingQuote, error)
+
 	// GetByIDForUpdate retrieves a shipping quote by ID with FOR UPDATE lock.
 	// CRITICAL: Use this in order creation to prevent race condition where
 	// the same quote could be used by multiple concurrent checkouts.

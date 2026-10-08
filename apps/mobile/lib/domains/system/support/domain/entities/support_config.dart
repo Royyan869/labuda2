@@ -49,22 +49,21 @@ class SLATargets {
   }
 }
 
-/// Category Configuration
+/// Category presentation Configuration (icon + colour only).
+///
+/// Category *identity* is `SupportCategory.wireValue`; the category display
+/// label is user-facing content owned by the canonical `AppLocalizations`
+/// authority (see the `SupportCategoryLabel` extension in the presentation
+/// layer). CategoryConfig intentionally carries no label/name string.
 class CategoryConfig {
   final String icon;
   final String emoji;
   final int colorValue;
-  final String nameEn;
-  final String nameId;
-  final String descriptionId;
 
   const CategoryConfig({
     required this.icon,
     required this.emoji,
     required this.colorValue,
-    required this.nameEn,
-    required this.nameId,
-    required this.descriptionId,
   });
 
   /// Presentation config keyed by the canonical category taxonomy. The keys are
@@ -74,138 +73,90 @@ class CategoryConfig {
       icon: '📦',
       emoji: '📦',
       colorValue: 0xFF3B82F6, // Blue
-      nameEn: 'Order Problems',
-      nameId: 'Masalah Pesanan',
-      descriptionId: 'Pesanan tidak sesuai, tidak diterima, tracking',
     ),
     SupportCategory.paymentIssue: CategoryConfig(
       icon: '💳',
       emoji: '💰',
       colorValue: 0xFF10B981, // Green
-      nameEn: 'Payment Issues',
-      nameId: 'Masalah Pembayaran',
-      descriptionId: 'Pembayaran gagal, saldo terpotong, transaksi bermasalah',
     ),
     SupportCategory.accountIssue: CategoryConfig(
       icon: '👤',
       emoji: '🔐',
       colorValue: 0xFFF59E0B, // Orange
-      nameEn: 'Account Help',
-      nameId: 'Bantuan Akun',
-      descriptionId: 'Login, verifikasi, lupa password',
     ),
     SupportCategory.listingIssue: CategoryConfig(
       icon: '🏷️',
       emoji: '🏷️',
       colorValue: 0xFF14B8A6, // Teal
-      nameEn: 'Listing Problems',
-      nameId: 'Masalah Produk',
-      descriptionId: 'Produk tidak tampil, data listing salah',
     ),
     SupportCategory.shippingIssue: CategoryConfig(
       icon: '🚚',
       emoji: '🚚',
       colorValue: 0xFF0EA5E9, // Sky
-      nameEn: 'Shipping Issues',
-      nameId: 'Masalah Pengiriman',
-      descriptionId: 'Pengiriman terlambat, paket hilang, ongkir',
     ),
     SupportCategory.refundRequest: CategoryConfig(
       icon: '💸',
       emoji: '💸',
       colorValue: 0xFF22C55E, // Green
-      nameEn: 'Refund Request',
-      nameId: 'Permintaan Refund',
-      descriptionId: 'Pengajuan pengembalian dana',
     ),
     SupportCategory.dispute: CategoryConfig(
       icon: '⚖️',
       emoji: '⚖️',
       colorValue: 0xFFEF4444, // Red
-      nameEn: 'Dispute',
-      nameId: 'Sengketa',
-      descriptionId: 'Sengketa transaksi dengan pihak lain',
     ),
     SupportCategory.technicalIssue: CategoryConfig(
       icon: '🔧',
       emoji: '⚙️',
       colorValue: 0xFF8B5CF6, // Purple
-      nameEn: 'Technical Help',
-      nameId: 'Bantuan Teknis',
-      descriptionId: 'App crash, bug, fitur tidak berfungsi',
     ),
     SupportCategory.other: CategoryConfig(
       icon: '❓',
       emoji: '💬',
       colorValue: 0xFF6B7280, // Gray
-      nameEn: 'Other',
-      nameId: 'Lainnya',
-      descriptionId: 'Pertanyaan lain tentang LABUDA',
     ),
   };
 
   static CategoryConfig get(SupportCategory category) {
     return configs[category] ??
-        const CategoryConfig(
-          icon: '❓',
-          emoji: '💬',
-          colorValue: 0xFF6B7280,
-          nameEn: 'Other',
-          nameId: 'Lainnya',
-          descriptionId: 'Pertanyaan umum',
-        );
+        const CategoryConfig(icon: '❓', emoji: '💬', colorValue: 0xFF6B7280);
   }
 }
 
-/// Priority Configuration
+/// Priority Configuration (icon + colour only).
+///
+/// Priority *identity* is the enum itself (`SupportPriority.name`, the
+/// backend / API contract); the priority display label is user-facing content
+/// owned by the canonical `AppLocalizations` authority (see the
+/// `SupportPriorityLabel` extension in the presentation layer). PriorityConfig
+/// intentionally carries no label/name string.
 class PriorityConfig {
   final String icon;
   final int colorValue;
-  final String labelEn;
-  final String labelId;
 
-  const PriorityConfig({
-    required this.icon,
-    required this.colorValue,
-    required this.labelEn,
-    required this.labelId,
-  });
+  const PriorityConfig({required this.icon, required this.colorValue});
 
   static const Map<SupportPriority, PriorityConfig> configs = {
     SupportPriority.urgent: PriorityConfig(
       icon: '🔴',
       colorValue: 0xFFEF4444, // Red
-      labelEn: 'URGENT',
-      labelId: 'MENDESAK',
     ),
     SupportPriority.high: PriorityConfig(
       icon: '🟠',
       colorValue: 0xFFF97316, // Orange
-      labelEn: 'HIGH',
-      labelId: 'TINGGI',
     ),
     SupportPriority.medium: PriorityConfig(
       icon: '🟡',
       colorValue: 0xFFF59E0B, // Yellow
-      labelEn: 'MEDIUM',
-      labelId: 'SEDANG',
     ),
     SupportPriority.low: PriorityConfig(
       icon: '🟢',
       colorValue: 0xFF10B981, // Green
-      labelEn: 'LOW',
-      labelId: 'RENDAH',
     ),
   };
 
   static PriorityConfig get(SupportPriority priority) {
     return configs[priority] ??
-        const PriorityConfig(
-          icon: '⚪',
-          colorValue: 0xFF6B7280,
-          labelEn: 'UNKNOWN',
-          labelId: 'TIDAK DIKETAHUI',
-        );
+        const PriorityConfig(icon: '⚪', colorValue: 0xFF6B7280);
   }
 
   /// Get priority order untuk sorting (lower = higher priority)
@@ -223,61 +174,44 @@ class PriorityConfig {
   }
 }
 
-/// Status Configuration
+/// Status Configuration (icon + colour only).
+///
+/// Status *identity* is `SupportStatus.wireValue`; the status display label is
+/// user-facing content owned by the canonical `AppLocalizations` authority (see
+/// the `SupportStatusLabel` extension in the presentation layer). StatusConfig
+/// intentionally carries no label/name string.
 class StatusConfig {
   final String icon;
   final int colorValue;
-  final String labelEn;
-  final String labelId;
 
-  const StatusConfig({
-    required this.icon,
-    required this.colorValue,
-    required this.labelEn,
-    required this.labelId,
-  });
+  const StatusConfig({required this.icon, required this.colorValue});
 
   static const Map<SupportStatus, StatusConfig> configs = {
     SupportStatus.open: StatusConfig(
       icon: '🆕',
       colorValue: 0xFF3B82F6, // Blue
-      labelEn: 'Open',
-      labelId: 'Baru',
     ),
     SupportStatus.inProgress: StatusConfig(
       icon: '⏳',
       colorValue: 0xFFF59E0B, // Orange
-      labelEn: 'In Progress',
-      labelId: 'Diproses',
     ),
     SupportStatus.waitingUser: StatusConfig(
       icon: '⏰',
       colorValue: 0xFF8B5CF6, // Purple
-      labelEn: 'Waiting User',
-      labelId: 'Menunggu User',
     ),
     SupportStatus.resolved: StatusConfig(
       icon: '✅',
       colorValue: 0xFF10B981, // Green
-      labelEn: 'Resolved',
-      labelId: 'Selesai',
     ),
     SupportStatus.closed: StatusConfig(
       icon: '🔒',
       colorValue: 0xFF6B7280, // Gray
-      labelEn: 'Closed',
-      labelId: 'Ditutup',
     ),
   };
 
   static StatusConfig get(SupportStatus status) {
     return configs[status] ??
-        const StatusConfig(
-          icon: '❓',
-          colorValue: 0xFF6B7280,
-          labelEn: 'UNKNOWN',
-          labelId: 'TIDAK DIKETAHUI',
-        );
+        const StatusConfig(icon: '❓', colorValue: 0xFF6B7280);
   }
 }
 
@@ -408,24 +342,6 @@ class QuickReplies {
 /// Support-related utility functions
 class SupportUtils {
   const SupportUtils._();
-
-  /// Format time ago (e.g., "5 min ago", "2 hours ago")
-  static String formatTimeAgo(DateTime dateTime) {
-    final now = DateTime.now();
-    final difference = now.difference(dateTime);
-
-    if (difference.inSeconds < 60) {
-      return '${difference.inSeconds} detik lalu';
-    } else if (difference.inMinutes < 60) {
-      return '${difference.inMinutes} menit lalu';
-    } else if (difference.inHours < 24) {
-      return '${difference.inHours} jam lalu';
-    } else if (difference.inDays < 7) {
-      return '${difference.inDays} hari lalu';
-    } else {
-      return '${difference.inDays ~/ 7} minggu lalu';
-    }
-  }
 
   /// Get priority from keywords in message
   static SupportPriority detectPriority(String message) {

@@ -159,7 +159,9 @@ class _SelfieCameraScreenState extends State<SelfieCameraScreen>
                   padding: const EdgeInsets.all(AppMetrics.p16),
                   child: Text(
                     _errorMessage!,
-                    style: TextStyle(color: scheme.onPrimary, fontSize: AppType.s16),
+                    style: context.typeRoles.titleCompact.copyWith(
+                      color: scheme.onPrimary,
+                    ),
                     textAlign: TextAlign.center,
                   ),
                 ),
@@ -167,9 +169,7 @@ class _SelfieCameraScreenState extends State<SelfieCameraScreen>
 
             // Loading
             if (!_isCameraInitialized && _errorMessage == null)
-              Center(
-                child: CircularProgressIndicator(color: scheme.onPrimary),
-              ),
+              Center(child: CircularProgressIndicator(color: scheme.onPrimary)),
 
             // Selfie Frame Overlay
             if (_isCameraInitialized)
@@ -239,7 +239,9 @@ class _SelfieCameraScreenState extends State<SelfieCameraScreen>
                                                       width: 3,
                                                     ),
                                             ),
-                                            borderRadius: BorderRadius.circular(AppShape.r10),
+                                            borderRadius: BorderRadius.circular(
+                                              AppShape.r10,
+                                            ),
                                           ),
                                         ),
                                       );
@@ -261,7 +263,9 @@ class _SelfieCameraScreenState extends State<SelfieCameraScreen>
                               ),
                               decoration: BoxDecoration(
                                 color: scheme.scrim.withValues(alpha: 0.8),
-                                borderRadius: BorderRadius.circular(AppShape.r8),
+                                borderRadius: BorderRadius.circular(
+                                  AppShape.r8,
+                                ),
                                 border: Border.all(
                                   color: scheme.primary,
                                   width: 2,
@@ -278,11 +282,11 @@ class _SelfieCameraScreenState extends State<SelfieCameraScreen>
                                   const SizedBox(width: 6),
                                   Text(
                                     'Pegang KTP',
-                                    style: TextStyle(
-                                      color: scheme.onPrimary,
-                                      fontSize: AppType.s12,
-                                      fontWeight: FontWeight.w500,
-                                    ),
+                                    style: context.typeRoles.labelMicro
+                                        .copyWith(
+                                          color: scheme.onPrimary,
+                                          fontWeight: FontWeight.w500,
+                                        ),
                                   ),
                                 ],
                               ),
@@ -318,9 +322,9 @@ class _SelfieCameraScreenState extends State<SelfieCameraScreen>
                     // Close Button
                     IconButton(
                       onPressed: () => Navigator.of(context).pop(),
-                      icon: const Icon(Icons.close),
+                      icon: const Icon(Icons.close, semanticLabel: 'Tutup'),
                       color: scheme.onPrimary,
-                      iconSize: 28,
+                      iconSize: AppIconSize.emphasis,
                     ),
                     const SizedBox(width: 48), // Balance for centering
                   ],
@@ -351,18 +355,16 @@ class _SelfieCameraScreenState extends State<SelfieCameraScreen>
                     // Instructions
                     Text(
                       'Posisikan wajah di dalam lingkaran',
-                      style: TextStyle(
+                      style: context.typeRoles.titleCompact.copyWith(
                         color: scheme.onPrimary,
-                        fontSize: AppType.s16,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       'Pegang KTP di samping wajah Anda',
-                      style: TextStyle(
+                      style: context.typeRoles.bodyDense.copyWith(
                         color: scheme.onPrimary.withValues(alpha: 0.7),
-                        fontSize: AppType.s14,
                       ),
                     ),
                     const SizedBox(height: 24),
@@ -375,10 +377,7 @@ class _SelfieCameraScreenState extends State<SelfieCameraScreen>
                         height: 72,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          border: Border.all(
-                            color: scheme.onPrimary,
-                            width: 4,
-                          ),
+                          border: Border.all(color: scheme.onPrimary, width: 4),
                         ),
                         child: Center(
                           child: Container(

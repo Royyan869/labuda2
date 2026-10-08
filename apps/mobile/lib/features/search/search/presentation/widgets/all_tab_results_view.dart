@@ -85,8 +85,7 @@ class _SectionHeader extends StatelessWidget {
           Expanded(
             child: Text(
               title,
-              style: TextStyle(
-                fontSize: AppType.s16,
+              style: context.typeRoles.titleSection.copyWith(
                 fontWeight: FontWeight.w700,
                 color: scheme.onSurface,
               ),

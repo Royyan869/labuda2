@@ -19,7 +19,7 @@ type PaymentDB struct {
 	CoinsToUse         int         `json:"coins_to_use"`
 	CoinDiscountAmount money.Money `json:"coin_discount_amount"`
 	Status             string      `json:"status"`
-	ReferenceType      string      `json:"reference_type"` // order, auction, collection, etc.
+	ReferenceType      string      `json:"reference_type"` // order, billing, subscription
 	ReferenceID        *uuid.UUID  `json:"reference_id,omitempty"`
 	PriceSnapshotID    *uuid.UUID  `json:"price_snapshot_id,omitempty"`
 

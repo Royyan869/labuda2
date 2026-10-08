@@ -66,50 +66,6 @@ func TestGetDashboard_Unauthorized_InvalidUserID(t *testing.T) {
 }
 
 // ============================================================================
-// TEST: GetAnalytics - Handler Logic Tests
-// ============================================================================
-
-func TestGetAnalytics_Unauthorized_NoUserID(t *testing.T) {
-	// Arrange
-	gin.SetMode(gin.TestMode)
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Request, _ = http.NewRequest("GET", "/api/v1/seller/analytics", nil)
-	// No userID set in context
-
-	handler := &SellerHandler{
-		log: nil,
-		db:  nil,
-	}
-
-	// Act
-	handler.GetAnalytics(c)
-
-	// Assert
-	assert.Equal(t, http.StatusUnauthorized, w.Code)
-}
-
-func TestGetAnalytics_Unauthorized_InvalidUserID(t *testing.T) {
-	// Arrange
-	gin.SetMode(gin.TestMode)
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Request, _ = http.NewRequest("GET", "/api/v1/seller/analytics", nil)
-	c.Set("userID", "not-a-uuid") // String instead of UUID
-
-	handler := &SellerHandler{
-		log: nil,
-		db:  nil,
-	}
-
-	// Act
-	handler.GetAnalytics(c)
-
-	// Assert
-	assert.Equal(t, http.StatusInternalServerError, w.Code)
-}
-
-// ============================================================================
 // TEST: GetPerformance - Handler Logic Tests
 // ============================================================================
 
@@ -217,14 +173,6 @@ func TestSellerEndpoints_RequireAuthenticatedUser(t *testing.T) {
 			expectedStatus: http.StatusUnauthorized,
 		},
 		{
-			name: "GetAnalytics without userID",
-			setupRequest: func(c *gin.Context) {
-				c.Request, _ = http.NewRequest("GET", "/api/v1/seller/analytics", nil)
-			},
-			handlerFunc:    func(h *SellerHandler, c *gin.Context) { h.GetAnalytics(c) },
-			expectedStatus: http.StatusUnauthorized,
-		},
-		{
 			name: "GetPerformance without userID",
 			setupRequest: func(c *gin.Context) {
 				c.Request, _ = http.NewRequest("GET", "/api/v1/seller/performance", nil)
@@ -284,32 +232,64 @@ func TestSellerDashboardResponse_Structure(t *testing.T) {
 	assert.IsType(t, int64(0), resp.PendingOrders)
 }
 
-func TestSellerAnalyticsResponse_Structure(t *testing.T) {
-	// This test validates the response structure matches the expected format
-	resp := SellerAnalyticsResponse{
-		Views:          12000,
-		ConversionRate: 3.2,
+func TestSellerPerformanceResponse_Structure(t *testing.T) {
+	// This test validates the response structure matches the canonical projection:
+	// reputation (tier/fulfillment/orders/timeout) + rating (avg + star distribution).
+	resp := SellerPerformanceResponse{
+		Tier:             "pro",
+		FulfillmentRate:  0.9667,
+		CompletedOrders:  320,
+		CancelledTimeout: 4,
+		AverageRating:    4.8,
+		ReviewCount:      210,
+		OneStarCount:     1,
+		TwoStarCount:     2,
+		ThreeStarCount:   10,
+		FourStarCount:    45,
+		FiveStarCount:    152,
 	}
 
 	// Assert all fields have expected types
-	assert.IsType(t, int64(0), resp.Views)
-	assert.IsType(t, float64(0), resp.ConversionRate)
+	assert.IsType(t, "", resp.Tier)
+	assert.IsType(t, float64(0), resp.FulfillmentRate)
+	assert.IsType(t, int64(0), resp.CompletedOrders)
+	assert.IsType(t, int64(0), resp.CancelledTimeout)
+	assert.IsType(t, float64(0), resp.AverageRating)
+	assert.IsType(t, int64(0), resp.ReviewCount)
+	assert.IsType(t, int64(0), resp.OneStarCount)
+	assert.IsType(t, int64(0), resp.TwoStarCount)
+	assert.IsType(t, int64(0), resp.ThreeStarCount)
+	assert.IsType(t, int64(0), resp.FourStarCount)
+	assert.IsType(t, int64(0), resp.FiveStarCount)
 }
 
-func TestSellerPerformanceResponse_Structure(t *testing.T) {
-	// This test validates the response structure matches the expected format
-	resp := SellerPerformanceResponse{
-		Rating:          4.8,
-		CompletedOrders: 320,
-		CancelRate:      1.2,
-		ResponseTime:    "2h",
+// TestSellerPerformanceResponse_NoObsoleteFields verifies the obsolete
+// fields (cancel_rate, response_time, all-time rating-only shape) are gone
+// from the response contract.
+func TestSellerPerformanceResponse_NoObsoleteFields(t *testing.T) {
+	typ := reflect.TypeOf(SellerPerformanceResponse{})
+
+	obsolete := []string{"Rating", "CancelRate", "ResponseTime"}
+	for _, name := range obsolete {
+		_, ok := typ.FieldByName(name)
+		assert.False(t, ok, "obsolete field %s must be removed from SellerPerformanceResponse", name)
 	}
 
-	// Assert all fields have expected types
-	assert.IsType(t, float64(0), resp.Rating)
-	assert.IsType(t, int64(0), resp.CompletedOrders)
-	assert.IsType(t, float64(0), resp.CancelRate)
-	assert.IsType(t, "", resp.ResponseTime)
+	required := map[string]string{
+		"Tier":             "tier",
+		"FulfillmentRate":  "fulfillment_rate",
+		"CompletedOrders":  "completed_orders",
+		"CancelledTimeout": "cancelled_timeout",
+		"AverageRating":    "average_rating",
+		"ReviewCount":      "review_count",
+		"FiveStarCount":    "five_star_count",
+	}
+	for fieldName, jsonTag := range required {
+		field, ok := typ.FieldByName(fieldName)
+		assert.True(t, ok, "field %s must exist on SellerPerformanceResponse", fieldName)
+		assert.Equal(t, jsonTag, field.Tag.Get("json"),
+			"field %s must have json tag %q", fieldName, jsonTag)
+	}
 }
 
 func TestSellerEarningsResponse_Structure(t *testing.T) {
@@ -403,5 +383,3 @@ func TestGetEarnings_UsesLedgerAuthority_NoPayoutRiskServiceField(t *testing.T) 
 				"payoutRiskService / payable_maturity path must be absent")
 	}
 }
-
-

@@ -128,8 +128,8 @@ ChatRoomEventDto _roomEvent({
 
 Negotiation _session({
   required int round,
-  required String lastOfferBy,
   required double price,
+  bool viewerCanAct = false,
 }) => Negotiation(
   id: 'session-1',
   chatId: _roomId,
@@ -141,7 +141,7 @@ Negotiation _session({
   sellerId: _other,
   status: NegotiationStatus.active,
   currentOfferPrice: price,
-  lastOfferBy: lastOfferBy,
+  viewerCanAct: viewerCanAct,
   round: round,
   createdAt: DateTime.utc(2026, 9, 30),
   updatedAt: DateTime.utc(2026, 9, 30),
@@ -186,7 +186,6 @@ void main() {
     () async {
       negoRepo.session = _session(
         round: 1,
-        lastOfferBy: _me,
         price: 250000,
       );
       repo.serverMessages = [_message('m1')];
@@ -201,7 +200,7 @@ void main() {
       // moved to round 2. One room signal must refresh BOTH — the card reads
       // the session, so a message-only refresh would leave a stale CTA row.
       repo.serverMessages = [_message('m2'), _message('m1')];
-      negoRepo.session = _session(round: 2, lastOfferBy: _other, price: 200000);
+      negoRepo.session = _session(round: 2, price: 200000);
       events.add(
         _roomEvent(roomId: _roomId, unreadCount: 0, lastMessage: _message('m2')),
       );
@@ -220,7 +219,7 @@ void main() {
   test(
     'body-less room signals (read state / order link) never touch the session read',
     () async {
-      negoRepo.session = _session(round: 1, lastOfferBy: _me, price: 250000);
+      negoRepo.session = _session(round: 1, price: 250000);
       repo.serverMessages = [_message('m1')];
       await container
           .read(chatDetailProvider(_roomId).notifier)
@@ -240,7 +239,7 @@ void main() {
   test(
     'signals for other rooms never touch this room session read',
     () async {
-      negoRepo.session = _session(round: 1, lastOfferBy: _me, price: 250000);
+      negoRepo.session = _session(round: 1, price: 250000);
       repo.serverMessages = [_message('m1')];
       await container
           .read(chatDetailProvider(_roomId).notifier)

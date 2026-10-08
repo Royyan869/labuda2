@@ -93,16 +93,30 @@ class AuthApiDatasource extends BaseApiRepository {
     String? photoUrl,
     String? phoneNumber,
     String? location,
+    String? coverPhotoUrl,
+    String? instagramHandle,
+    String? facebookHandle,
+    String? tiktokHandle,
+    String? twitterHandle,
     DateTime? phoneVerifiedAt,
     DateTime? dateOfBirth,
   }) async {
-    // Build request body with only non-null fields
+    // Build request body with only non-null fields.
+    //
+    // Non-null empty strings are intentional: for nullable profile fields an
+    // explicit "" is the canonical "clear this field" signal (the backend maps
+    // it to NULL). Social handles: "" clears; presence = visible.
     final body = <String, dynamic>{};
     if (username != null) body['username'] = username;
     if (bio != null) body['bio'] = bio;
     if (photoUrl != null) body['avatar_url'] = photoUrl;
     if (phoneNumber != null) body['phone_number'] = phoneNumber;
     if (location != null) body['location'] = location;
+    if (coverPhotoUrl != null) body['cover_photo_url'] = coverPhotoUrl;
+    if (instagramHandle != null) body['instagram_handle'] = instagramHandle;
+    if (facebookHandle != null) body['facebook_handle'] = facebookHandle;
+    if (tiktokHandle != null) body['tiktok_handle'] = tiktokHandle;
+    if (twitterHandle != null) body['twitter_handle'] = twitterHandle;
 
     return executeRequest(
       () => apiClient.patch('/users/me/profile', data: body),

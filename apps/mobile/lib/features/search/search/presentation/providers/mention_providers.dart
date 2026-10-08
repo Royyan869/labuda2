@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/features/search/search/domain/entities/user_search.dart';
+import 'package:labuda/shared/helpers/canonical_username_validator.dart';
 
 /// Mention-related providers for search domain
 ///
@@ -68,7 +69,9 @@ final mentionUserSearchProvider =
             // matches solely on username (fullName/email are private/contractual
             // and must not surface as public identity discovery).
             final canonicalUsername = username.toLowerCase();
-            if (!_isMentionableUsername(canonicalUsername)) {
+            // Username format authority is CanonicalUsernameValidator — the
+            // mention surface must not keep a second copy of the rule.
+            if (!CanonicalUsernameValidator.isValid(canonicalUsername)) {
               continue;
             }
 
@@ -127,10 +130,6 @@ final mentionUserSearchProvider =
         return [];
       }
     });
-
-bool _isMentionableUsername(String username) {
-  return RegExp(r'^[a-z0-9_]+$').hasMatch(username);
-}
 
 /// Parameters for mention search
 class MentionSearchParams {
@@ -206,7 +205,7 @@ class MentionResolver {
     try {
       final normalizedUsername = username.toLowerCase().trim();
       if (normalizedUsername.isEmpty ||
-          !_isMentionableUsername(normalizedUsername)) {
+          !CanonicalUsernameValidator.isValid(normalizedUsername)) {
         _addToCache(username, null);
         _logger.info('Username not found: $username');
         return null;

@@ -49,8 +49,7 @@ class NewChatUserListWidget extends ConsumerWidget {
             Expanded(
               child: Text(
                 UserIdentityFormatter.formatHandle(user.username) ?? 'User',
-                style: TextStyle(
-                  fontSize: AppType.s16,
+                style: context.typeRoles.titleCompact.copyWith(
                   fontWeight: FontWeight.w500,
                   color: scheme.onSurface,
                 ),
@@ -82,7 +81,7 @@ class NewChatUserListWidget extends ConsumerWidget {
     if (!isEmailVerified) {
       AppSnackBar.showWarning(
         context,
-        'Please verify your email to start new conversations.',
+        'Verifikasi email Anda untuk memulai percakapan baru.',
       );
       return;
     }

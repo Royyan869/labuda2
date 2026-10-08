@@ -35,8 +35,7 @@ class SearchHistoryList extends StatelessWidget {
             children: [
               Text(
                 'Recent Searches',
-                style: TextStyle(
-                  fontSize: AppType.s16,
+                style: context.typeRoles.titleSection.copyWith(
                   fontWeight: FontWeight.w600,
                   color: scheme.onSurface,
                 ),
@@ -45,7 +44,9 @@ class SearchHistoryList extends StatelessWidget {
                 onPressed: onClearAll,
                 child: Text(
                   'Clear All',
-                  style: TextStyle(color: scheme.primary, fontSize: AppType.s14),
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    color: scheme.primary,
+                  ),
                 ),
               ),
             ],
@@ -78,7 +79,8 @@ class SearchHistoryList extends StatelessWidget {
                   Icons.close,
                   size: AppIconSize.action,
                   color: scheme.onSurfaceVariant,
-                ),
+                 semanticLabel: 'Hapus',
+                 ),
                 onPressed: () => onDeleteTap(item.id),
               ),
               onTap: () => onHistoryTap(item.query),

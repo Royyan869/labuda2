@@ -443,6 +443,50 @@ func (r *PromotionRepositoryImpl) ListForReview(
 	return products, nil
 }
 
+// CountForReview returns the truthful total number of products matching the
+// admin review-queue filters (same predicate as ListForReview).
+func (r *PromotionRepositoryImpl) CountForReview(
+	ctx context.Context,
+	tx db.Tx,
+	filters ExternalProductAdminListFilters,
+) (int, error) {
+	query := strings.Builder{}
+	query.WriteString(`SELECT COUNT(*) FROM external_products WHERE 1=1`)
+	args := make([]any, 0)
+	argIdx := 1
+
+	if len(filters.ReviewStatuses) == 0 {
+		filters.ReviewStatuses = []entity.ExternalProductReviewStatus{
+			entity.ExternalProductReviewStatusPendingReview,
+			entity.ExternalProductReviewStatusApproved,
+			entity.ExternalProductReviewStatusRejected,
+			entity.ExternalProductReviewStatusRequestChanges,
+			entity.ExternalProductReviewStatusHidden,
+		}
+	}
+
+	query.WriteString(" AND review_status IN (")
+	for i, status := range filters.ReviewStatuses {
+		if i > 0 {
+			query.WriteString(", ")
+		}
+		query.WriteString(fmt.Sprintf("$%d", argIdx))
+		args = append(args, string(status))
+		argIdx++
+	}
+	query.WriteString(")")
+
+	if !filters.IncludeDeleted {
+		query.WriteString(" AND deleted_at IS NULL")
+	}
+
+	var total int
+	if err := tx.QueryRow(ctx, query.String(), args...).Scan(&total); err != nil {
+		return 0, fmt.Errorf("failed to count external products for review: %w", err)
+	}
+	return total, nil
+}
+
 // GetByID retrieves an external product by ID.
 func (r *PromotionRepositoryImpl) GetByID(ctx context.Context, tx db.Tx, externalProductID uuid.UUID) (*entity.ExternalProduct, error) {
 	query := `

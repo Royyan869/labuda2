@@ -27,7 +27,9 @@ type fakeRoleCheckerCanonical struct {
 	profileErr    error
 }
 
-func (f fakeRoleCheckerCanonical) IsAdmin(context.Context, uuid.UUID) (bool, error) { return false, nil }
+func (f fakeRoleCheckerCanonical) IsAdmin(context.Context, uuid.UUID) (bool, error) {
+	return false, nil
+}
 func (f fakeRoleCheckerCanonical) HasActiveSellerCapability(ctx context.Context, uid uuid.UUID) (bool, error) {
 	return f.hasCapability, f.capErr
 }
@@ -81,12 +83,12 @@ func (r *mockRow) Scan(dest ...any) error {
 type mockTx struct {
 	// sequence of QueryRow calls: keyed by SQL snippet
 	accountStatus string
-	deletedAt   *time.Time
+	deletedAt     *time.Time
 	emailAt       *time.Time
 	hasProfile    bool
 	// errors
-	accountErr error
-	profileErr error
+	accountErr    error
+	profileErr    error
 	queryRowCalls int
 }
 
@@ -114,39 +116,37 @@ func (m *mockTx) QueryRow(ctx context.Context, sql string, args ...any) pgx.Row 
 	// commerce restriction not used in these tests (repo nil → bypass)
 	return &mockRow{err: errors.New("unexpected query: " + sql)}
 }
-func (m *mockTx) Commit(ctx context.Context) error  { return nil }
+func (m *mockTx) Commit(ctx context.Context) error   { return nil }
 func (m *mockTx) Rollback(ctx context.Context) error { return nil }
 
 var _ db.Tx = (*mockTx)(nil)
 
-// ── Test 1 – Expired/no subscription seller can create private draft ──
+// ── Test 1 – workspace authority (create = publish: workspace gate runs
+// before the market gate inside the same transaction) ──
 
-func TestCanonical_PrivateDraft_WorkspaceAuthority_SucceedsWithoutSubscription(t *testing.T) {
+func TestCanonical_WorkspaceAuthority_SucceedsWithoutSubscription(t *testing.T) {
 	now := time.Now()
 	seller := uuid.New()
 	tx := &mockTx{
 		accountStatus: "active",
-		deletedAt:   nil,
+		deletedAt:     nil,
 		emailAt:       &now,
 		hasProfile:    true,
 	}
 	rc := fakeRoleCheckerCanonical{hasCapability: false} // no active subscription – Has would deny public
 	svc := &ForSaleService{roleChecker: rc}
 	// bypass commerce restriction (nil repo → allow)
-	// also need to avoid product/ repo persistence – use minimal Create that still hits workspace then market check
-	// For private visibility, market check is skipped, so Create should reach product creation
-	// We inject a failing productRepo to not actually persist, but workspace gate passes before that.
-	// Instead directly test ensureWorkspaceAuthorityTx
+	// Workspace gate: active account + verified email + seller profile.
 	err := svc.ensureWorkspaceAuthorityTx(context.Background(), tx, seller)
 	require.NoError(t, err)
 }
 
-func TestCanonical_PrivateDraft_MissingProfile_Denied(t *testing.T) {
+func TestCanonical_Workspace_MissingProfile_Denied(t *testing.T) {
 	now := time.Now()
 	seller := uuid.New()
 	tx := &mockTx{
 		accountStatus: "active",
-		deletedAt:   nil,
+		deletedAt:     nil,
 		emailAt:       &now,
 		hasProfile:    false,
 	}
@@ -162,7 +162,7 @@ func TestCanonical_PublicCreate_RequiresMarketAuthority(t *testing.T) {
 	seller := uuid.New()
 	tx := &mockTx{
 		accountStatus: "active",
-		deletedAt:   nil,
+		deletedAt:     nil,
 		emailAt:       &now,
 		hasProfile:    true,
 	}
@@ -247,11 +247,13 @@ func TestCanonical_Workspace_DeletedDenied(t *testing.T) {
 	assert.ErrorIs(t, err, auth.ErrAccountRemoved)
 }
 
-// Ensure entity lifecycle still holds: private draft can be created via entity directly
-func TestCanonical_Entity_PrivateDraft_IsWorkspaceNotMarket(t *testing.T) {
+// Ensure the entity lifecycle holds: a for_sale is born active + public
+// (create = publish — there is no draft workspace state).
+func TestCanonical_Entity_BornActiveAndPublic(t *testing.T) {
 	seller := uuid.New()
-	fs, err := entity.NewForSaleSurface(seller, money.New(100000), 1, false, entity.ForSaleVisibilityPrivate)
+	fs, err := entity.NewForSaleSurface(seller, money.New(100000), 1, false)
 	require.NoError(t, err)
-	assert.Equal(t, entity.ForSaleStatusDraft, fs.Status)
-	assert.Equal(t, entity.ForSaleVisibilityPrivate, fs.Visibility)
+	assert.Equal(t, entity.ForSaleStatusActive, fs.Status)
+	assert.Equal(t, entity.ForSaleVisibilityPublic, fs.Visibility)
+	assert.NotNil(t, fs.PublishedAt)
 }

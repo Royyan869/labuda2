@@ -106,6 +106,33 @@ describe('SupportTicketsPage', () => {
     expect(screen.getByRole('button', { name: 'View' })).toBeInTheDocument()
   })
 
+  it('renders the server order verbatim without any client-side re-sort', () => {
+    useAuthMock.mockReturnValue({
+      user: { id: 'admin-1' },
+      capabilities: ['support.ticket.read'],
+    })
+    // 'Subject A' is non-overdue and 'Subject B' is overdue. The removed
+    // client-side sort used to move overdue tickets to the top; the server
+    // order must now be rendered verbatim.
+    const a = { ...makeTicket(), id: 'a', subject: 'Subject A', sla: { ...makeTicket().sla, is_overdue: false } }
+    const b = { ...makeTicket(), id: 'b', subject: 'Subject B', sla: { ...makeTicket().sla, is_overdue: true } }
+    useSupportTicketsMock.mockReturnValue({
+      tickets: [a, b],
+      loading: false,
+      error: null,
+      total: 2,
+      page: 1,
+      setPage: vi.fn(),
+      totalPages: 1,
+      refetch: vi.fn(),
+    })
+
+    renderSupportPage()
+
+    const subjects = screen.getAllByText(/^Subject [AB]$/).map((el) => el.textContent)
+    expect(subjects).toEqual(['Subject A', 'Subject B'])
+  })
+
   it('renders the error state instead of an empty-success state when loading fails', () => {
     useAuthMock.mockReturnValue({
       user: { id: 'admin-1' },
@@ -121,7 +148,7 @@ describe('SupportTicketsPage', () => {
 
     renderSupportPage()
 
-    expect(screen.getByText(/Error loading tickets/i)).toBeInTheDocument()
+    expect(screen.getByText(/Failed to load tickets/i)).toBeInTheDocument()
     expect(screen.queryByText('No support tickets in the system.')).not.toBeInTheDocument()
   })
 })

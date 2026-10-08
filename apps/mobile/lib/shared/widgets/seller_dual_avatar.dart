@@ -13,12 +13,24 @@ class SellerDualAvatar extends StatelessWidget {
   final String? storeImageReloadToken;
   final VoidCallback? onTap;
 
+  /// DECODE / CACHE IDENTITY for BOTH circles (store + personal overlay) —
+  /// deliberately separate from [size].
+  ///
+  /// Null (the normal case) derives the decode target from [size], valid only
+  /// while [size] is static. Callers that animate [size] (Profile header
+  /// collapse) must pin this to a fixed value so the image provider key never
+  /// moves with the animation — otherwise every frame re-instates the `Image`
+  /// state and the photo flashes through its placeholder. [size] keeps
+  /// driving the layout; this only drives the decode/cache key.
+  final int? cacheWidth;
+
   const SellerDualAvatar({
     super.key,
     required this.identity,
     this.size = 80,
     this.storeImageReloadToken,
     this.onTap,
+    this.cacheWidth,
   });
 
   @override
@@ -33,6 +45,13 @@ class SellerDualAvatar extends StatelessWidget {
 
     final storePlaceholder = _buildStorePlaceholder(context);
     final personalSize = size * 0.4;
+
+    // Decode targets: pinned to the caller's fixed cache width when supplied
+    // (animated-size surfaces), otherwise derived from the static [size].
+    final int? pinnedCacheWidth = cacheWidth;
+    final storeCacheWidth = pinnedCacheWidth ?? (size * 2).round();
+    final personalCacheWidth =
+        pinnedCacheWidth == null ? null : (pinnedCacheWidth * 0.4).round();
 
     return GestureDetector(
       onTap: onTap,
@@ -67,7 +86,7 @@ class SellerDualAvatar extends StatelessWidget {
                         isCircle: true,
                         width: size,
                         height: size,
-                        cacheWidth: (size * 2).round(),
+                        cacheWidth: storeCacheWidth,
                         backgroundColor: Theme.of(
                           context,
                         ).colorScheme.surfaceContainerHighest,
@@ -84,6 +103,7 @@ class SellerDualAvatar extends StatelessWidget {
                 size: personalSize,
                 imageUrl: identity.normalizedAvatarUrl,
                 showShadow: false,
+                cacheWidth: personalCacheWidth,
               ),
             ),
           ],

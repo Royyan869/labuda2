@@ -43,8 +43,9 @@ class AvatarImageProcessor {
         );
       }
     } catch (e) {
+      debugPrint('AvatarImageProcessor: crop failed - $e');
       if (context.mounted) {
-        AppSnackBar.showError(context, 'Gagal memotong gambar: $e');
+        AppSnackBar.showError(context, 'Gagal memotong gambar. Coba lagi.');
       }
       onCropped(null);
     }
@@ -105,8 +106,9 @@ class AvatarImageProcessor {
               // DON'T pop here - FlutterImageCropper already pops itself.
               onCropped(tempPath);
             } catch (e) {
+              debugPrint('AvatarImageProcessor: save failed - $e');
               if (context.mounted) {
-                AppSnackBar.showError(context, 'Gagal menyimpan gambar: $e');
+                AppSnackBar.showError(context, 'Gagal menyimpan gambar. Coba lagi.');
               }
               onCropped(null);
             }

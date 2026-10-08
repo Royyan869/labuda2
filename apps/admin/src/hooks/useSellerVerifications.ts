@@ -17,19 +17,25 @@ export function useSellerVerifications(status?: string) {
   const [items, setItems] = useState<SellerVerificationListItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
+  const [page, setPage] = useState(1)
+  const [pageSize] = useState(20)
+  const [total, setTotal] = useState(0)
+  const [totalPages, setTotalPages] = useState(0)
 
   const fetchList = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
-      const resp = await listPendingVerifications(status)
+      const resp = await listPendingVerifications(status, page, pageSize)
       setItems(resp.items)
+      setTotal(resp.count)
+      setTotalPages(resp.total_pages)
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Failed to load verifications'))
     } finally {
       setLoading(false)
     }
-  }, [status])
+  }, [status, page, pageSize])
 
   useEffect(() => {
     fetchList()
@@ -43,7 +49,7 @@ export function useSellerVerifications(status?: string) {
     return () => clearInterval(interval)
   }, [fetchList])
 
-  return { items, loading, error, refetch: fetchList }
+  return { items, loading, error, page, setPage, pageSize, total, totalPages, refetch: fetchList }
 }
 
 export function useVerificationDetail(sellerId: string | null) {

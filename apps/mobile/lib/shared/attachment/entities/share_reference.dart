@@ -239,30 +239,6 @@ class ShareReference extends Equatable {
   /// Get the API path for this share reference
   String get apiPath => '${targetType.apiPath}/$targetId';
 
-  /// Wire target type that is safe to emit into chat payloads.
-  ///
-  /// Canonical content references emit `content` directly.
-  String? get chatWireTargetType {
-    if (targetType != ShareTargetType.content) {
-      return wireTargetType;
-    }
-
-    return wireTargetType == 'content' ? wireTargetType : null;
-  }
-
-  /// Returns a ShareReference normalized for chat transport, or null when
-  /// the reference is not valid for chat payloads.
-  ShareReference? asChatReference() {
-    final chatWireType = chatWireTargetType;
-    if (chatWireType == null) {
-      return null;
-    }
-    if (chatWireType == wireTargetType) {
-      return this;
-    }
-    return copyWith(wireTargetType: chatWireType);
-  }
-
   /// Get the display name for this share reference
   String get displayName => targetType.displayName;
 

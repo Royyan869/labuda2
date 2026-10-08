@@ -44,7 +44,13 @@ class Negotiation extends Equatable {
   /// Current negotiation state
   final NegotiationStatus status;
   final double currentOfferPrice;
-  final String lastOfferBy;
+
+  /// Canonical Commerce-provided actionability projection for the requesting
+  /// viewer (wire: `viewer_can_act`). TRUE when this viewer may act on the
+  /// current proposal. Owned by Commerce — the conversation only reads it and
+  /// must NEVER reconstruct turn from `proposal_sequence` parity.
+  final bool viewerCanAct;
+
   final int round;
 
   /// History of all offers
@@ -87,7 +93,7 @@ class Negotiation extends Equatable {
     this.sellerAvatar,
     required this.status,
     required this.currentOfferPrice,
-    required this.lastOfferBy,
+    required this.viewerCanAct,
     this.round = 1,
     this.offers = const [],
     this.agreedPrice,
@@ -98,26 +104,14 @@ class Negotiation extends Equatable {
     this.rejectionReason,
   });
 
-  /// Check if current user can take action (send counter offer or accept)
+  /// Whether the current viewer may act on the current proposal.
   ///
-  /// **RULES:**
-  /// - Only active negotiations can receive actions
-  /// - If buyer made last offer, only seller can counter or accept
-  /// - If seller made last offer (counter), only buyer can counter or accept
-  /// - Either participant may ACCEPT on their turn (owner truth: Terima and
-  ///   Tolak exist on both sides — backend authorizes participation)
-  bool canUserAct(String userId) {
-    // Only active negotiations allow actions
-    if (!status.isActive) {
-      return false;
-    }
-    // If buyer made last offer, seller can respond
-    if (lastOfferBy == 'buyer') {
-      return userId == sellerId;
-    }
-    // If seller made last offer, buyer can respond
-    return userId == buyerId;
-  }
+  /// This is now a READ of the canonical Commerce projection
+  /// ([viewerCanAct], wire `viewer_can_act`). The former client-side turn
+  /// reconstruction (proposal_sequence → parity → lastOfferBy) was a duplicate
+  /// authority and has been removed. [userId] is retained only for call-site
+  /// compatibility; the projection is already viewer-scoped by Commerce.
+  bool canUserAct(String userId) => viewerCanAct;
 
   /// Check if user is buyer
   bool isBuyer(String userId) => userId == buyerId;
@@ -157,7 +151,7 @@ class Negotiation extends Equatable {
     sellerAvatar,
     status,
     currentOfferPrice,
-    lastOfferBy,
+    viewerCanAct,
     round,
     offers,
     agreedPrice,
@@ -182,7 +176,7 @@ class Negotiation extends Equatable {
     String? sellerAvatar,
     NegotiationStatus? status,
     double? currentOfferPrice,
-    String? lastOfferBy,
+    bool? viewerCanAct,
     int? round,
     List<NegotiationOffer>? offers,
     double? agreedPrice,
@@ -206,7 +200,7 @@ class Negotiation extends Equatable {
       sellerAvatar: sellerAvatar ?? this.sellerAvatar,
       status: status ?? this.status,
       currentOfferPrice: currentOfferPrice ?? this.currentOfferPrice,
-      lastOfferBy: lastOfferBy ?? this.lastOfferBy,
+      viewerCanAct: viewerCanAct ?? this.viewerCanAct,
       round: round ?? this.round,
       offers: offers ?? this.offers,
       agreedPrice: agreedPrice ?? this.agreedPrice,
@@ -272,8 +266,8 @@ class NegotiationOffer extends Equatable {
 /// values must fail loudly, not silently collapse into `active`.
 ///
 /// **UI CONSIDERATIONS:**
-/// To show "who made last offer" in UI, use `lastOfferBy` field and `currentOfferPrice`.
-/// Do NOT create separate states for this.
+/// Turn/actionability is a Commerce projection (`viewerCanAct`); do NOT derive
+/// "whose turn" in the UI, and do NOT create separate states for this.
 enum NegotiationStatus {
   /// Negotiation is in progress (backend: active)
   /// Initial state after creation, persists through counter offers

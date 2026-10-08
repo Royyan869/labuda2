@@ -5,41 +5,26 @@ import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/commerce/catalog/auction/data/auction_providers.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/domain.dart';
 
-enum SellerAuctionFilter { all, draft, scheduled, active, finished }
+/// Canonical My Auctions filter options, in presentation order.
+///
+/// `null` is the synthetic "Semua" option (no status restriction); every other
+/// entry is a canonical [AuctionStatus]. This is the single source for filter
+/// identity, ordering and labels — there is no aggregate option.
+const List<AuctionStatus?> kSellerAuctionFilters = <AuctionStatus?>[
+  null, // Semua
+  AuctionStatus.scheduled,
+  AuctionStatus.active,
+  AuctionStatus.waitingSettlement,
+  AuctionStatus.ended,
+  AuctionStatus.cancelled,
+  AuctionStatus.lapsed,
+];
 
-extension SellerAuctionFilterX on SellerAuctionFilter {
-  String get label {
-    switch (this) {
-      case SellerAuctionFilter.all:
-        return 'Semua';
-      case SellerAuctionFilter.draft:
-        return 'Draft';
-      case SellerAuctionFilter.scheduled:
-        return 'Terjadwal';
-      case SellerAuctionFilter.active:
-        return 'Aktif';
-      case SellerAuctionFilter.finished:
-        return 'Selesai';
-    }
-  }
-
-  bool matches(Auction auction) {
-    switch (this) {
-      case SellerAuctionFilter.all:
-        return true;
-      case SellerAuctionFilter.draft:
-        return auction.status == AuctionStatus.draft;
-      case SellerAuctionFilter.scheduled:
-        return auction.status == AuctionStatus.scheduled;
-      case SellerAuctionFilter.active:
-        return auction.status == AuctionStatus.active;
-      case SellerAuctionFilter.finished:
-        return auction.status == AuctionStatus.waitingSettlement ||
-            auction.status == AuctionStatus.ended ||
-            auction.status == AuctionStatus.cancelled;
-    }
-  }
-}
+/// Canonical label for a My Auctions filter. "Semua" is the only synthetic
+/// option; status labels resolve through the single authority
+/// [AuctionStatus.displayName].
+String sellerAuctionFilterLabel(AuctionStatus? status) =>
+    status == null ? 'Semua' : status.displayName;
 
 final sellerAuctionsPagerProvider =
     NotifierProvider.autoDispose<
@@ -48,7 +33,9 @@ final sellerAuctionsPagerProvider =
     >(SellerAuctionsPagerController.new);
 
 class SellerAuctionsPagerState {
-  final SellerAuctionFilter activeFilter;
+  /// Canonical filter selection: `null` = Semua, otherwise exactly one
+  /// [AuctionStatus].
+  final AuctionStatus? activeFilter;
   final List<Auction> auctions;
   final int pageSize;
   final bool hasMore;
@@ -76,7 +63,7 @@ class SellerAuctionsPagerState {
 
   factory SellerAuctionsPagerState.initial({
     required String? ownerId,
-    SellerAuctionFilter activeFilter = SellerAuctionFilter.all,
+    AuctionStatus? activeFilter,
     int pageSize = 20,
   }) {
     return SellerAuctionsPagerState(
@@ -101,14 +88,17 @@ class SellerAuctionsPagerState {
       !isLoadMoreLoading &&
       !isRefreshing;
 
-  List<Auction> get visibleAuctions => activeFilter == SellerAuctionFilter.all
+  List<Auction> get visibleAuctions => activeFilter == null
       ? auctions
-      : auctions.where(activeFilter.matches).toList(growable: false);
+      : auctions
+            .where((auction) => auction.status == activeFilter)
+            .toList(growable: false);
 
   bool get hasVisibleAuctions => visibleAuctions.isNotEmpty;
 
   SellerAuctionsPagerState copyWith({
-    SellerAuctionFilter? activeFilter,
+    AuctionStatus? activeFilter,
+    bool clearActiveFilter = false,
     List<Auction>? auctions,
     int? pageSize,
     bool? hasMore,
@@ -124,7 +114,9 @@ class SellerAuctionsPagerState {
     bool clearRefreshError = false,
   }) {
     return SellerAuctionsPagerState(
-      activeFilter: activeFilter ?? this.activeFilter,
+      activeFilter: clearActiveFilter
+          ? null
+          : (activeFilter ?? this.activeFilter),
       auctions: auctions ?? this.auctions,
       pageSize: pageSize ?? this.pageSize,
       hasMore: hasMore ?? this.hasMore,
@@ -178,10 +170,11 @@ class SellerAuctionsPagerController extends Notifier<SellerAuctionsPagerState> {
     );
   }
 
-  void setFilter(SellerAuctionFilter filter) {
+  void setFilter(AuctionStatus? filter) {
     if (state.activeFilter == filter) return;
     state = state.copyWith(
       activeFilter: filter,
+      clearActiveFilter: filter == null,
       clearInitialError: true,
       clearLoadMoreError: true,
       clearRefreshError: true,
@@ -214,7 +207,12 @@ class SellerAuctionsPagerController extends Notifier<SellerAuctionsPagerState> {
 
   Future<void> loadMore() {
     if (!state.canLoadMore) return Future.value();
-    final cursor = state.auctions.isEmpty ? null : state.auctions.last.id;
+    // The backend cursor is the RFC3339 created_at of the last row — it
+    // rejects anything else with 400 "Invalid cursor format". Sending the
+    // auction id here is what made load-more fail on this screen.
+    final cursor = state.auctions.isEmpty
+        ? null
+        : state.auctions.last.createdAt.toUtc().toIso8601String();
     return _fetchPage(
       pageToken: cursor,
       replaceExisting: false,

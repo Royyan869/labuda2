@@ -126,7 +126,10 @@ class _MediaVideoItemState extends State<MediaVideoItem> {
       bottom: 8,
       left: 8,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8, vertical: AppMetrics.p4),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppMetrics.p8,
+          vertical: AppMetrics.p4,
+        ),
         decoration: BoxDecoration(
           color: scheme.scrim.withValues(alpha: 0.7),
           borderRadius: BorderRadius.circular(AppShape.r4),
@@ -134,15 +137,18 @@ class _MediaVideoItemState extends State<MediaVideoItem> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.play_arrow, color: scheme.onPrimary, size: AppIconSize.inlineGlyph),
+            Icon(
+              Icons.play_arrow,
+              color: scheme.onPrimary,
+              size: AppIconSize.inlineGlyph,
+            ),
             const SizedBox(width: 2),
             Text(
               _isInitialized && _controller != null
                   ? _formatDuration(_controller!.value.duration)
                   : '--:--',
-              style: TextStyle(
+              style: context.typeRoles.labelMicro.copyWith(
                 color: scheme.onPrimary,
-                fontSize: AppType.s12,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -165,7 +171,12 @@ class _MediaVideoItemState extends State<MediaVideoItem> {
             color: scheme.error.withValues(alpha: 0.9),
             shape: BoxShape.circle,
           ),
-          child: Icon(Icons.close, color: scheme.onPrimary, size: AppIconSize.inlineGlyph),
+          child: Icon(
+            Icons.close,
+            color: scheme.onPrimary,
+            size: AppIconSize.inlineGlyph,
+            semanticLabel: 'Hapus media',
+          ),
         ),
       ),
     );

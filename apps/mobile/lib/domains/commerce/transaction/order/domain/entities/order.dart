@@ -445,7 +445,11 @@ class Order extends Equatable {
   final String? lastStatusChangedBy;
 
   // Payment & Shipping
-  final PaymentMethodType paymentMethod;
+  /// Canonical payment method bound to this order at checkout
+  /// (backend `payment_method_code`). Non-null = the order's method is fixed;
+  /// Pay Now must use it. Null for unbound (auction-claim) orders.
+  final String? paymentMethodCode;
+
   /// Buyer-facing payment verdict, or null when the payment row carries NO
   /// verdict (no row yet, cancelled/void, or a status outside the canonical
   /// vocabulary). Null is deliberately not `pending`: pending means one thing
@@ -550,8 +554,8 @@ class Order extends Equatable {
     this.statusBeforeRefund,
     this.lastStatusChangeAt,
     this.lastStatusChangedBy,
-    required this.paymentMethod,
-    required    this.paymentStatus,
+    this.paymentMethodCode,
+    required this.paymentStatus,
     this.tokenRegenerationCount = 0,
     required this.shippingInfo,
     required this.pricing,
@@ -605,23 +609,6 @@ class Order extends Equatable {
   // `pricing.totalPayableAmount` (PD + S + F) or `pricing.totalBeforeCoinsAmount`
   // (PD + S) directly from OrderPricing. No alias, no client-side derivation.
 
-  // ============================================================
-  // BACKWARD COMPATIBILITY: These getters are kept for existing code
-  // New code should use decision contract from backend instead
-  // ============================================================
-
-  /// Check if seller action is required (for UI display)
-  ///
-  /// O1: Updated to remove 'processing' which was never a real backend status.
-  /// Better: read decision.hasActionType('accept') instead.
-  bool get isSellerActionRequired {
-    // Only pending orders require seller acceptance/action
-    return switch (status) {
-      OrderStatus.pending => true,
-      _ => false,
-    };
-  }
-
   // P11 Phase 2: All canX methods removed — action availability comes from the
   // backend decision contract (decision.hasActionType('cancel')). Never
   // reintroduce locally derived predicates here.
@@ -639,7 +626,7 @@ class Order extends Equatable {
     statusBeforeRefund,
     lastStatusChangeAt,
     lastStatusChangedBy,
-    paymentMethod,
+    paymentMethodCode,
     paymentStatus,
     tokenRegenerationCount,
     shippingInfo,
@@ -700,7 +687,7 @@ class Order extends Equatable {
     OrderStatus? statusBeforeRefund,
     DateTime? lastStatusChangeAt,
     String? lastStatusChangedBy,
-    PaymentMethodType? paymentMethod,
+    String? paymentMethodCode,
     PaymentStatus? paymentStatus,
     bool clearPaymentStatus = false,
     int? tokenRegenerationCount,
@@ -761,7 +748,7 @@ class Order extends Equatable {
       statusBeforeRefund: statusBeforeRefund ?? this.statusBeforeRefund,
       lastStatusChangeAt: lastStatusChangeAt ?? this.lastStatusChangeAt,
       lastStatusChangedBy: lastStatusChangedBy ?? this.lastStatusChangedBy,
-      paymentMethod: paymentMethod ?? this.paymentMethod,
+      paymentMethodCode: paymentMethodCode ?? this.paymentMethodCode,
       paymentStatus: clearPaymentStatus
           ? null
           : (paymentStatus ?? this.paymentStatus),

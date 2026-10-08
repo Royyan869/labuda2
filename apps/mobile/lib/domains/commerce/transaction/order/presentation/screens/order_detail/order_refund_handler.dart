@@ -70,15 +70,13 @@ class OrderRefundHandler {
               Navigator.of(ctx).pop(); // Close dialog
               AppSnackBar.showSuccess(
                 ctx,
-                'Refund request submitted successfully',
+                'Permintaan refund berhasil dikirim',
               );
             }
           } catch (e) {
+            debugPrint('refund.submit failed: $e');
             if (ctx.mounted) {
-              AppSnackBar.showError(
-                ctx,
-                'Failed to submit refund: ${e.toString()}',
-              );
+              AppSnackBar.showError(ctx, 'Gagal mengirim refund. Coba lagi.');
             }
           }
         },

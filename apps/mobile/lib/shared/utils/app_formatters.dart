@@ -82,32 +82,6 @@ class AppFormatters {
     return _timeFormat.format(dateTime);
   }
 
-  /// Format relative time (e.g., "2 days ago", "3 hours ago")
-  ///
-  /// Example:
-  /// - 2 hours ago -> "2 jam yang lalu"
-  /// - 1 day ago -> "1 hari yang lalu"
-  static String formatRelativeTime(DateTime dateTime) {
-    final now = DateTime.now();
-    final difference = now.difference(dateTime);
-
-    if (difference.inDays > 365) {
-      final years = (difference.inDays / 365).floor();
-      return '$years tahun yang lalu';
-    } else if (difference.inDays > 30) {
-      final months = (difference.inDays / 30).floor();
-      return '$months bulan yang lalu';
-    } else if (difference.inDays > 0) {
-      return '${difference.inDays} hari yang lalu';
-    } else if (difference.inHours > 0) {
-      return '${difference.inHours} jam yang lalu';
-    } else if (difference.inMinutes > 0) {
-      return '${difference.inMinutes} menit yang lalu';
-    } else {
-      return 'Baru saja';
-    }
-  }
-
   /// Format number with thousand separator
   ///
   /// Example: 1000000 -> "1.000.000"

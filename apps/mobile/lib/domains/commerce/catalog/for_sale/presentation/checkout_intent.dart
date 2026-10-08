@@ -34,7 +34,7 @@ Future<void> openForSaleCheckout(
   WidgetRef ref,
   CheckoutIntent intent, {
   String? shippingQuoteId,
-  String? returnToChatRoomId,
+  String? chatId,
 }) async {
   ForSale? forSale;
   try {
@@ -52,12 +52,9 @@ Future<void> openForSaleCheckout(
   // and backend Guard 6 remain the authoritative checks — that is exactly
   // why this gate lives here and not in the host.
   if (forSale.sellerTrustLifecycle != ContentLifecycle.active) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'Penjual tidak aktif — transaksi tidak dapat dilanjutkan',
-        ),
-      ),
+    AppSnackBar.showError(
+      context,
+      'Penjual tidak aktif — transaksi tidak dapat dilanjutkan',
     );
     return;
   }
@@ -75,7 +72,7 @@ Future<void> openForSaleCheckout(
     'product_id': productId,
     'negotiation_id': ?intent.negotiationId,
     'shipping_quote_id': ?shippingQuoteId,
-    'return_to_chat': ?returnToChatRoomId,
+    'chat_id': ?chatId,
   };
 
   if (!context.mounted) return;

@@ -37,25 +37,49 @@ type UserProfile struct {
 	UpdatedAt time.Time
 }
 
-// SocialMedia represents social media handles.
+// SocialMedia represents the optional social media handles a user may expose
+// on their profile. Presence of a value is the visibility authority: a nil
+// handle means the account is not displayed. There is no separate visibility
+// toggle.
 type SocialMedia struct {
 	InstagramHandle *string
 	FacebookHandle  *string
 	TwitterHandle   *string
 	TiktokHandle    *string
-	YoutubeHandle   *string
-	WebsiteURL      *string
 }
 
-// PrivacySettings represents user privacy settings.
-type PrivacySettings struct {
-	ShowLocation         bool
-	ShowPhoneNumber      bool
-	ShowEmail            bool
-	AllowMessagesFrom    string
-	AllowTagging         bool
-	ShowActivityStatus   bool
-	ShowTransactionCount bool
+// ToMap converts the handles to the persisted jsonb shape. Nil or empty
+// handles are omitted so the stored object only carries present accounts
+// (presence = visible).
+func (s *SocialMedia) ToMap() map[string]interface{} {
+	if s == nil {
+		return nil
+	}
+	m := map[string]interface{}{}
+	if s.InstagramHandle != nil && *s.InstagramHandle != "" {
+		m["instagram_handle"] = *s.InstagramHandle
+	}
+	if s.FacebookHandle != nil && *s.FacebookHandle != "" {
+		m["facebook_handle"] = *s.FacebookHandle
+	}
+	if s.TwitterHandle != nil && *s.TwitterHandle != "" {
+		m["twitter_handle"] = *s.TwitterHandle
+	}
+	if s.TiktokHandle != nil && *s.TiktokHandle != "" {
+		m["tiktok_handle"] = *s.TiktokHandle
+	}
+	return m
+}
+
+// HasAny reports whether at least one handle is present.
+func (s *SocialMedia) HasAny() bool {
+	if s == nil {
+		return false
+	}
+	return (s.InstagramHandle != nil && *s.InstagramHandle != "") ||
+		(s.FacebookHandle != nil && *s.FacebookHandle != "") ||
+		(s.TwitterHandle != nil && *s.TwitterHandle != "") ||
+		(s.TiktokHandle != nil && *s.TiktokHandle != "")
 }
 
 // UpdateProfileInput contains fields that can be updated on a user profile.

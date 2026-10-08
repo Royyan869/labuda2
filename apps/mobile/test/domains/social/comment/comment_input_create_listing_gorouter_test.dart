@@ -28,8 +28,8 @@ class FakeSellerFPSPagerController extends SellerFPSPagerController {
 
 class FakeSellerAuctionsPagerController extends SellerAuctionsPagerController {
   @override
-  SellerAuctionsPagerState build() => const SellerAuctionsPagerState(
-        activeFilter: SellerAuctionFilter.all,
+      SellerAuctionsPagerState build() => const SellerAuctionsPagerState(
+        activeFilter: null,
         auctions: [],
         pageSize: 20,
         hasMore: false,
@@ -67,7 +67,7 @@ GoRouter _testRouter({required String mode}) {
     routes: [
       GoRoute(
         path: RoutePaths.createForSale,
-        name: RoutePaths.createForSale, // Match RoutePaths.createForSale used in pushNamed
+        name: RouteNames.createForSale, // the canonical name the composer pushes
         pageBuilder: (context, state) => MaterialPage(
           key: state.pageKey,
           child: Scaffold(

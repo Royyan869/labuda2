@@ -100,7 +100,6 @@ func NewShippingQuote(
 	}
 }
 
-
 // IsActive returns true if the quote is in ACTIVE status.
 func (q *ShippingQuote) IsActive() bool {
 	return q.Status == QuoteStatusActive
@@ -237,6 +236,41 @@ func (q *ShippingQuote) GetItemReference() (uuid.UUID, bool) {
 		return *q.SourceID, *q.SourceType == "auction"
 	}
 	return uuid.Nil, false
+}
+
+// CheckoutContext is the canonical expected commercial context a shipping quote
+// must match to be consumed at checkout.
+//
+// SCOPE: a quote is created only through Chat and its BuyerID is the Chat
+// opponent it was issued to. ChatID is the quote's provenance + supersession
+// scope and is compared whenever the caller supplies it; the canonical
+// commercial scope that is ALWAYS enforced at checkout is
+// buyer + seller + product + source + destination lock (the buyer binding is
+// what enforces the "opponent of the Chat" invariant, since BuyerID is assigned
+// from the Chat participants at creation).
+type CheckoutContext struct {
+	QuoteID            uuid.UUID
+	BuyerID            uuid.UUID
+	ProductID          uuid.UUID
+	SourceType         string
+	SourceID           uuid.UUID
+	SellerID           uuid.UUID
+	ChatID             *uuid.UUID
+	ShippingProvinceID string
+	ShippingCityID     string
+}
+
+// CheckoutRejectionError is the typed, field-tagged reason a shipping quote was
+// rejected at checkout. The single consume authority returns it so the caller
+// can surface both the reason code (Field) and a human-readable detail (Reason)
+// WITHOUT re-deriving any lifecycle rule.
+type CheckoutRejectionError struct {
+	Field  string
+	Reason string
+}
+
+func (e *CheckoutRejectionError) Error() string {
+	return fmt.Sprintf("shipping quote checkout rejected [%s]: %s", e.Field, e.Reason)
 }
 
 // InvalidQuoteStatusError is returned when attempting an invalid status transition.

@@ -9,10 +9,6 @@ class AddressApiMapper {
     return AddressEntity(
       id: api.id,
       userId: api.userId,
-      tags: api.tags
-          .map(AddressTagExtension.parse)
-          .whereType<AddressTag>()
-          .toList(),
       nickname: api.nickname,
       recipientName: api.recipientName,
       phone: api.phone,
@@ -46,7 +42,6 @@ class AddressApiMapper {
   /// Convert domain entity to create request API model
   static CreateAddressRequestApi toCreateRequest(AddressEntity entity) {
     return CreateAddressRequestApi(
-      tags: entity.tagValues,
       nickname: entity.nickname,
       recipientName: entity.recipientName,
       phone: entity.phone,
@@ -70,7 +65,6 @@ class AddressApiMapper {
   /// Convert partial domain entity updates to update request API model
   static UpdateAddressRequestApi toUpdateRequest(Map<String, dynamic> updates) {
     return UpdateAddressRequestApi(
-      tags: updates['tags'] as List<String>?,
       nickname: updates['nickname'] as String?,
       recipientName: updates['recipientName'] as String?,
       phone: updates['phone'] as String?,
@@ -89,5 +83,4 @@ class AddressApiMapper {
       longitude: updates['longitude'] as double?,
     );
   }
-
 }

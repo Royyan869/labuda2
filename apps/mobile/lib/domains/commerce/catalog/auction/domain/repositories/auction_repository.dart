@@ -34,7 +34,6 @@ abstract class AuctionRepository {
     required String startMode,
     DateTime? scheduledStartAt,
     required int durationHours,
-    String? farmAddressId,
 
     /// Preparation-time range the seller needs after checkout (default 1–3 days).
     required PreparationTime preparationTime,
@@ -63,6 +62,11 @@ abstract class AuctionRepository {
   });
 
   /// Get user's auctions (seller dashboard)
+  ///
+  /// `lastAuctionId` is forwarded to the API as its `cursor` query parameter,
+  /// which the backend parses as an RFC3339 timestamp — the created_at of the
+  /// last row the caller already holds. Despite the parameter name it is NOT
+  /// an auction id. See SellerAuctionsPagerController.loadMore().
   Future<Result<List<Auction>>> getUserAuctions({
     required String sellerId,
     AuctionStatus? status,
@@ -83,8 +87,22 @@ abstract class AuctionRepository {
     required String reason,
   });
 
-  // Note: View tracking is handled by backend automatically
-  // No explicit incrementViewCount needed
+  /// Relist (republish) an auction that ended with no bids, or one that
+  /// lapsed before activation (seller only).
+  ///
+  /// The backend requires the full create-form payload (fresh timing/pricing)
+  /// and rejects any auction carrying a bid, winner or bound order.
+  Future<Result<void>> relistAuction({
+    required String auctionId,
+    required String title,
+    required String description,
+    required int openingBid,
+    required int bidIncrement,
+    int? buyNowPrice,
+    required String startMode,
+    DateTime? scheduledStartAt,
+    required int durationHours,
+  });
 
   // ========== Bidding Operations ==========
 
@@ -122,7 +140,9 @@ abstract class AuctionRepository {
   Future<Result<String>> claimAuction({
     required String auctionId,
     required String addressId,
-    required String shippingSetupId,
+    String? shippingSetupId,
+    String? shippingQuoteId,
+    String? chatId,
     String? discountCode,
     bool useCoins = false,
   });
@@ -157,7 +177,6 @@ class CreateAuctionParams {
   final String startMode;
   final DateTime? scheduledStartAt;
   final int durationHours;
-  final String? farmAddressId;
 
   /// Preparation-time range the seller needs after checkout (1–3 / 4–7 / 8–15
   /// days, default 1–3).
@@ -182,7 +201,6 @@ class CreateAuctionParams {
     required this.startMode,
     this.scheduledStartAt,
     required this.durationHours,
-    this.farmAddressId,
     required this.preparationTime,
     required this.shippingSetupIds,
   });
@@ -210,7 +228,6 @@ class CreateAuctionParams {
     if (scheduledStartAt != null)
       'scheduledStartAt': scheduledStartAt!.toIso8601String(),
     'durationHours': durationHours,
-    if (farmAddressId != null) 'farmAddressId': farmAddressId,
     'preparationTime': preparationTime.toJson(),
     'shippingSetupIds': shippingSetupIds,
   };

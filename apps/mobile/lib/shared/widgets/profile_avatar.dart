@@ -20,6 +20,17 @@ class ProfileAvatar extends StatelessWidget {
   final bool showEditIcon;
   final VoidCallback? onEditTap;
 
+  /// DECODE / CACHE IDENTITY — deliberately separate from [size].
+  ///
+  /// When null (the normal case) it is derived from [size], which is only
+  /// correct for surfaces whose display size is static. Callers that animate
+  /// [size] frame by frame (Profile header collapse: 96 → 40) MUST pass a
+  /// fixed value here instead: a changing decode target produces a new
+  /// `ResizeImage` key every frame, the `Image` state is re-instituted, and
+  /// the placeholder flashes while the photo is actually already cached.
+  /// The visual size stays free to animate; only the image identity is pinned.
+  final int? cacheWidth;
+
   const ProfileAvatar({
     super.key,
     required this.userId,
@@ -29,6 +40,7 @@ class ProfileAvatar extends StatelessWidget {
     this.showShadow = true,
     this.showEditIcon = false,
     this.onEditTap,
+    this.cacheWidth,
   });
 
   @override
@@ -79,7 +91,7 @@ class ProfileAvatar extends StatelessWidget {
         isCircle: true,
         width: size,
         height: size,
-        cacheWidth: (size * 2).round(),
+        cacheWidth: cacheWidth ?? (size * 2).round(),
         backgroundColor: Theme.of(
           context,
         ).colorScheme.surfaceContainerHighest,
@@ -124,6 +136,7 @@ class ProfileAvatar extends StatelessWidget {
           Icons.camera_alt,
           color: scheme.onInverseSurface,
           size: iconSize * 0.6,
+          semanticLabel: 'Ubah foto profil',
         ),
       ),
     );

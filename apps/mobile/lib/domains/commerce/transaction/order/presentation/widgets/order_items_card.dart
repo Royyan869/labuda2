@@ -10,13 +10,7 @@ class OrderItemsCard extends StatelessWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    return Container(
-      padding: const EdgeInsets.all(core.AppMetrics.p16),
-      decoration: BoxDecoration(
-        color: colorScheme.surface,
-        borderRadius: BorderRadius.circular(core.AppShape.r12),
-        border: Border.all(color: colorScheme.outlineVariant),
-      ),
+    return OrderSectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -160,7 +154,10 @@ class _VariantChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: core.AppMetrics.p8, vertical: core.AppMetrics.p4),
+      padding: const EdgeInsets.symmetric(
+        horizontal: core.AppMetrics.p8,
+        vertical: core.AppMetrics.p4,
+      ),
       decoration: BoxDecoration(
         color: colorScheme.onSurfaceVariant.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(core.AppShape.r4),
@@ -170,8 +167,7 @@ class _VariantChip extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-          fontSize: core.AppType.s12,
+        style: context.typeRoles.labelMicro.copyWith(
           color: colorScheme.onSurfaceVariant,
         ),
       ),

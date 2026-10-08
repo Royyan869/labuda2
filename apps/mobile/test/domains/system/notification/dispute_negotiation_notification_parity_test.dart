@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:labuda/core/core.dart' hide NotificationEntity;
-import 'package:labuda/core/utils/notification_navigation_handler.dart';
 import 'package:labuda/domains/system/notification/data/mappers/notification_api_mapper.dart';
 import 'package:labuda/domains/system/notification/data/models/api/notification_api_models.dart';
 import 'package:labuda/domains/system/notification/domain/entities/notification_entity.dart';
@@ -129,14 +128,13 @@ void main() {
       await tester.pumpWidget(_routerApp());
       await tester.pumpAndSettle();
 
-      final handled = NotificationNavigationHandler.navigate(
-        context: tester.element(find.text('home')),
-        type: 'dispute.opened',
-        data: {'orderId': 'order-456'},
-      );
-      expect(handled, isTrue);
+      await NotificationNavigationService.canonical()
+          .handleNotificationPayload(
+            tester.element(find.text('home')),
+            type: 'dispute.opened',
+            data: {'orderId': 'order-456'},
+          );
 
-      await tester.pump(const Duration(milliseconds: 700));
       await tester.pumpAndSettle();
 
       expect(find.text('order:order-456'), findsOneWidget);
@@ -166,14 +164,13 @@ void main() {
       await tester.pumpWidget(_routerApp());
       await tester.pumpAndSettle();
 
-      final handled = NotificationNavigationHandler.navigate(
-        context: tester.element(find.text('home')),
-        type: 'negotiation.cancelled',
-        data: {'chatRoomId': 'chat-room-456'},
-      );
-      expect(handled, isTrue);
+      await NotificationNavigationService.canonical()
+          .handleNotificationPayload(
+            tester.element(find.text('home')),
+            type: 'negotiation.cancelled',
+            data: {'chatRoomId': 'chat-room-456'},
+          );
 
-      await tester.pump(const Duration(milliseconds: 700));
       await tester.pumpAndSettle();
 
       expect(find.text('chat:chat-room-456'), findsOneWidget);
@@ -181,11 +178,10 @@ void main() {
   });
 
   // PASS_8A / F1: negotiation.started, negotiation.message_sent,
-  // negotiation.accepted, and negotiation.expired previously had no case in
-  // NotificationNavigationHandler's push/open dispatcher — tapping them
-  // showed "Tipe notifikasi tidak dikenal" instead of opening the chat.
-  // NotificationNavigationService (in-app list) already handled all five;
-  // this group locks parity for the push/open path too.
+  // negotiation.accepted, and negotiation.expired are canonical types with one
+  // destination decision (NotificationNavigationService). This group locks the
+  // push/open path to the same chat destination as the in-app list — and to the
+  // same "stay put" behaviour when the payload carries no chat room id.
   group('negotiation push/open parity (PASS_8A / F1)', () {
     for (final type in [
       'negotiation.started',
@@ -193,42 +189,45 @@ void main() {
       'negotiation.accepted',
       'negotiation.expired',
     ]) {
-      testWidgets('$type routes to chatRoomId via push/open dispatcher', (
+      testWidgets('$type routes to chatRoomId via the canonical service', (
         tester,
       ) async {
         await tester.pumpWidget(_routerApp());
         await tester.pumpAndSettle();
 
-        final handled = NotificationNavigationHandler.navigate(
-          context: tester.element(find.text('home')),
-          type: type,
-          data: {'chatRoomId': 'chat-room-789'},
-        );
-        expect(handled, isTrue, reason: '$type must be a recognised type');
+        await NotificationNavigationService.canonical()
+            .handleNotificationPayload(
+              tester.element(find.text('home')),
+              type: type,
+              data: {'chatRoomId': 'chat-room-789'},
+            );
 
-        await tester.pump(const Duration(milliseconds: 700));
         await tester.pumpAndSettle();
 
-        expect(find.text('chat:chat-room-789'), findsOneWidget);
+        expect(
+          find.text('chat:chat-room-789'),
+          findsOneWidget,
+          reason: '$type must open the negotiation chat',
+        );
       });
     }
 
-    testWidgets('missing chatRoomId shows a stable error instead of crashing', (
+    testWidgets('missing chatRoomId stays put instead of crashing', (
       tester,
     ) async {
-      await tester.pumpWidget(
-        const MaterialApp(home: Scaffold(body: Text('home'))),
-      );
+      await tester.pumpWidget(_routerApp());
+      await tester.pumpAndSettle();
 
-      final handled = NotificationNavigationHandler.navigate(
-        context: tester.element(find.text('home')),
-        type: 'negotiation.started',
-        data: const {},
-      );
+      await NotificationNavigationService.canonical()
+          .handleNotificationPayload(
+            tester.element(find.text('home')),
+            type: 'negotiation.started',
+            data: const {},
+          );
 
-      expect(handled, isFalse);
-      await tester.pump();
-      expect(find.byType(SnackBar), findsOneWidget);
+      await tester.pumpAndSettle();
+      expect(find.text('home'), findsOneWidget);
+      expect(tester.takeException(), isNull);
     });
   });
 

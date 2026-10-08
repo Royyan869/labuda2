@@ -5,14 +5,14 @@ import 'chat_state.dart';
 import 'package:labuda/domains/chat/chat/data/dto/chat_dto.dart';
 import 'package:labuda/domains/chat/chat/data/dto/chat_resource_occurrence_request.dart';
 import 'package:labuda/domains/chat/chat/data/dto/chat_room_event_dto.dart';
-import 'package:labuda/domains/chat/chat/data/dto/message_dto.dart' show WebSocketEventType;
+import 'package:labuda/domains/chat/chat/data/dto/message_dto.dart'
+    show WebSocketEventType;
 import 'package:labuda/domains/chat/chat/data/mappers/chat_mapper.dart';
 import 'package:labuda/domains/chat/chat/data/chat_providers.dart';
 import 'package:labuda/domains/chat/chat/domain/entities/chat_entities.dart';
 import 'package:labuda/domains/chat/chat/domain/repositories/chat_repository.dart';
 import 'package:labuda/domains/chat/chat/presentation/providers/chat_providers.dart';
 import 'package:labuda/domains/chat/chat/domain/usecases/chat_usecases.dart';
-import 'package:labuda/shared/attachment/entities/share_reference.dart';
 import 'package:labuda/domains/system/notification/data/notification_providers.dart';
 import 'package:labuda/domains/commerce/negotiation/negotiation/presentation/providers/negotiation_providers.dart';
 import 'package:labuda/shared/providers/auth_status_providers.dart'
@@ -50,25 +50,55 @@ class ChatList extends _$ChatList {
 
   ChatRepository get _repository => ref.read(chatRepositoryProvider);
 
-  /// Load user's chats
-  Future<void> loadChats(String userId) async {
+  /// Load user's chats.
+  ///
+  /// LOADING FOUNDATION CONTRACT:
+  /// - First load (no chats cached): [ChatListState.isLoading] drives the
+  ///   full-content [LoadingIndicator]; failure sets [ChatListState.error]
+  ///   (PageErrorState).
+  /// - Refresh ([isRefresh] with chats cached): chats are NEVER cleared.
+  ///   [ChatListState.isRefreshing] drives the update indicator while
+  ///   last-known-good chats stay visible; failure sets
+  ///   [ChatListState.refreshError] with an inline indication.
+  Future<void> loadChats(String userId, {bool isRefresh = false}) async {
     // Guard against concurrent calls
     if (_isLoadingChats) return;
 
+    final refreshingWithData = isRefresh && state.chats.isNotEmpty;
+    final snapshot = List.of(state.chats);
+
     try {
       _isLoadingChats = true;
-      state = state.loading();
+      if (refreshingWithData) {
+        state = state.copyWith(isRefreshing: true, clearRefreshError: true);
+      } else {
+        state = state.loading();
+      }
 
       final result = await _repository.getUserChats(userId: userId);
 
-      result.fold((error) => state = state.failure(error), (chats) {
-        final activeChats = chats.where((chat) {
-          return !chat.isDeletedBy(userId);
-        }).toList();
+      result.fold(
+        (error) {
+          if (refreshingWithData) {
+            state = state.copyWith(
+              chats: snapshot,
+              isLoading: false,
+              isRefreshing: false,
+              refreshError: error,
+            );
+          } else {
+            state = state.failure(error);
+          }
+        },
+        (chats) {
+          final activeChats = chats.where((chat) {
+            return !chat.isDeletedBy(userId);
+          }).toList();
 
-        _replaceChats(activeChats);
-        state = ChatListState(chats: _sortChats(activeChats), hasMore: false);
-      });
+          _replaceChats(activeChats);
+          state = ChatListState(chats: _sortChats(activeChats), hasMore: false);
+        },
+      );
     } finally {
       _isLoadingChats = false;
     }
@@ -110,7 +140,7 @@ class ChatList extends _$ChatList {
     final updatedChats = state.chats
         .where((chat) => chat.id != chatId)
         .toList();
-    state = ChatListState(chats: updatedChats);
+    state = state.copyWith(chats: updatedChats);
   }
 
   void updateChat(Chat updatedChat) {
@@ -131,18 +161,21 @@ class ChatList extends _$ChatList {
         // One failed room must not block the remaining rooms.
       }
     }
-    state = ChatListState(
+    state = state.copyWith(
       chats: [for (final chat in state.chats) chat.copyWith(unreadCount: 0)],
-      hasMore: state.hasMore,
-      nextCursor: state.nextCursor,
-      isLoading: state.isLoading,
-      error: state.error,
     );
   }
 
   void clearError() {
-    if (state.error != null) {
-      state = state.copyWith(error: null);
+    if (state.error != null || state.refreshError != null) {
+      state = state.copyWith(clearError: true, clearRefreshError: true);
+    }
+  }
+
+  /// Dismisses the inline refresh-failure indication; cached chats stay.
+  void clearRefreshError() {
+    if (state.refreshError != null) {
+      state = state.copyWith(clearRefreshError: true);
     }
   }
 
@@ -181,12 +214,8 @@ class ChatList extends _$ChatList {
         previousLastMessageAt != null &&
         previousLastMessageAt == derivedLastMessageAt;
 
-    state = ChatListState(
+    state = state.copyWith(
       chats: shouldPreserveOrder ? nextChats : _sortChats(nextChats),
-      hasMore: state.hasMore,
-      nextCursor: state.nextCursor,
-      isLoading: state.isLoading,
-      error: state.error,
     );
   }
 
@@ -438,9 +467,7 @@ class ChatDetail extends _$ChatDetail {
 
     state = state.copyWith(
       messages: _mergeNewestFirst(fetched),
-      hasMoreMessages: keepOlder
-          ? state.hasMoreMessages
-          : fetched.length >= 50,
+      hasMoreMessages: keepOlder ? state.hasMoreMessages : fetched.length >= 50,
       nextMessageCursor: keepOlder
           ? state.nextMessageCursor
           : _encodeMessageCursorFromMessages(fetched),
@@ -577,9 +604,7 @@ class ChatDetail extends _$ChatDetail {
     List<String> mediaAssetIds = const [],
     String? replyToId,
     List<String> mentionedUserIds = const [],
-    ShareReference? objectReference,
     ChatResourceOccurrenceRequest? resourceOccurrence,
-    Map<String, dynamic>? workflowAttachment,
   }) async {
     // Guard against concurrent sends
     if (_isSending) return null;
@@ -599,9 +624,7 @@ class ChatDetail extends _$ChatDetail {
         content: content,
         type: type,
         mediaAssetIds: mediaAssetIds,
-        objectReference: objectReference,
         resourceOccurrence: resourceOccurrence,
-        workflowAttachment: workflowAttachment,
       ),
     );
 
@@ -614,9 +637,7 @@ class ChatDetail extends _$ChatDetail {
         content: content,
         type: type,
         mediaAssetIds: mediaAssetIds,
-        objectReference: objectReference,
         resourceOccurrence: resourceOccurrence,
-        workflowAttachment: workflowAttachment,
       );
 
       if (result.isSuccess && result.data != null) {
@@ -664,9 +685,7 @@ class ChatDetail extends _$ChatDetail {
       content: pending.content,
       type: pending.type,
       mediaAssetIds: pending.mediaAssetIds,
-      objectReference: pending.objectReference,
       resourceOccurrence: pending.resourceOccurrence,
-      workflowAttachment: pending.workflowAttachment,
     );
   }
 
@@ -763,9 +782,7 @@ class ChatDetail extends _$ChatDetail {
   /// silently re-reading the newest page as history.
   String? _encodeMessageCursorFromMessages(List<Message> messages) {
     if (messages.isEmpty) return null;
-    final oldest = messages.reduce(
-      (a, b) => _byNewestFirst(a, b) <= 0 ? b : a,
-    );
+    final oldest = messages.reduce((a, b) => _byNewestFirst(a, b) <= 0 ? b : a);
     return '${oldest.createdAt.toUtc().toIso8601String()}|${oldest.id}';
   }
 
@@ -789,9 +806,7 @@ class _PendingSend {
   final String content;
   final MessageType type;
   final List<String> mediaAssetIds;
-  final ShareReference? objectReference;
   final ChatResourceOccurrenceRequest? resourceOccurrence;
-  final Map<String, dynamic>? workflowAttachment;
 
   const _PendingSend({
     required this.senderId,
@@ -799,9 +814,7 @@ class _PendingSend {
     required this.content,
     required this.type,
     this.mediaAssetIds = const [],
-    this.objectReference,
     this.resourceOccurrence,
-    this.workflowAttachment,
   });
 }
 
@@ -811,5 +824,3 @@ class _MessageCursor {
 
   const _MessageCursor({required this.createdAt, required this.messageId});
 }
-
-

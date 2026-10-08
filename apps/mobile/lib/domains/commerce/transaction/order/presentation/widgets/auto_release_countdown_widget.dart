@@ -153,19 +153,18 @@ class _AutoReleaseCountdownWidgetState
                     Text(
                       hasExpired
                           ? 'Waktu Pemeriksaan Barang Berakhir'
-                          : 'Waktu Pemeriksaan Barang',                        style: TextStyle(
-                          fontSize: core.AppType.s14,
-                          fontWeight: FontWeight.w600,
-                          color: colorScheme.onSurface,
-                        ),
+                          : 'Waktu Pemeriksaan Barang',
+                      style: context.typeRoles.titleCompact.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: colorScheme.onSurface,
+                      ),
                     ),
                     if (!hasExpired)
                       Text(
                         widget.isBuyer
                             ? 'Selama masa ini Anda masih bisa menghubungi penjual atau mengajukan bantuan'
                             : 'Proses penjualan akan selesai setelah masa ini berakhir',
-                        style: TextStyle(
-                          fontSize: core.AppType.s12,
+                        style: context.typeRoles.bodyDense.copyWith(
                           color: colorScheme.onSurfaceVariant,
                         ),
                       ),
@@ -195,8 +194,7 @@ class _AutoReleaseCountdownWidgetState
                 hasExpired
                     ? 'Masa pemeriksaan telah berakhir'
                     : 'Berakhir: ${AppFormatters.formatDate(widget.autoReleaseAt!)}',
-                style: TextStyle(
-                  fontSize: core.AppType.s12,
+                style: context.typeRoles.labelMicro.copyWith(
                   color: colorScheme.onSurfaceVariant,
                 ),
               ),
@@ -236,7 +234,10 @@ class _CountdownDisplay extends StatelessWidget {
     final daysText = days > 0 ? '$days hari lagi' : 'Hari terakhir';
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: core.AppMetrics.p16, vertical: core.AppMetrics.p12),
+      padding: const EdgeInsets.symmetric(
+        horizontal: core.AppMetrics.p16,
+        vertical: core.AppMetrics.p12,
+      ),
       decoration: BoxDecoration(
         color: _withOpacity(color, 0.1),
         borderRadius: BorderRadius.circular(core.AppShape.r8),
@@ -249,8 +250,7 @@ class _CountdownDisplay extends StatelessWidget {
           const SizedBox(width: 8),
           Text(
             daysText,
-            style: TextStyle(
-              fontSize: core.AppType.s16,
+            style: context.typeRoles.labelMicro.copyWith(
               fontWeight: FontWeight.bold,
               color: color,
             ),

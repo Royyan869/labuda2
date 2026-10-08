@@ -80,7 +80,7 @@ func TestOrderDetailResponse_SourceStatus(t *testing.T) {
 		sourceType string
 		status     string
 	}{
-		{"for_sale", "draft"},
+		{"for_sale", "active"},
 		{"for_sale", "active"},
 		{"for_sale", "sold"},
 		{"for_sale", "withdrawn"},
@@ -119,5 +119,3 @@ func TestOrderDetailResponse_SourceStatus(t *testing.T) {
 		})
 	}
 }
-
-

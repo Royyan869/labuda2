@@ -61,7 +61,7 @@ func newDeliveryHarness(t *testing.T) *deliveryHarness {
 	tdb, financeSvc, contractSvc, deliveryRepo := setupDeliveryHarnessBase(t)
 	// Canonical target eligibility authority: the existing OperabilityChecker
 	// reads real For Sale / Auction state (reused, not duplicated).
-	checker := legacyapp.NewOperabilityCheckerImpl(db.NewFromPool(tdb.Pool()), nil)
+	checker := legacyapp.NewOperabilityCheckerImpl(db.NewFromPool(tdb.Pool()))
 	return newDeliveryHarnessWithEligibility(t, tdb, financeSvc, contractSvc, deliveryRepo, checker)
 }
 
@@ -238,6 +238,7 @@ func (h *deliveryHarness) createContract(t *testing.T, seller uuid.UUID, kind co
 		Kind:         kind,
 		BudgetRupiah: budget,
 		DurationDays: days,
+		Targets:      []contractapp.PromotionTargetInput{{TargetType: "for_sale", TargetID: uuid.New()}},
 	})
 	require.NoError(t, err)
 	return c

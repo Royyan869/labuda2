@@ -1,10 +1,6 @@
 import 'package:get_it/get_it.dart';
 import 'package:labuda/core/src/interfaces/services/i_local_storage_service.dart';
 import 'package:labuda/core/src/interfaces/services/i_logger_service.dart';
-import 'package:labuda/core/src/interfaces/services/i_validation_service.dart';
-import 'package:labuda/core/src/navigation/i_navigation_registry.dart';
-import 'package:labuda/core/src/navigation/navigation_registry_impl.dart';
-import 'package:labuda/core/navigation/navigation_handler.dart';
 import 'package:labuda/core/websocket/websocket_service.dart';
 
 // =============================================================================
@@ -71,11 +67,9 @@ class ServiceLocator {
   }
 
   static Future<void> _initCoreServices() async {
-    // Register navigation registry
-    if (!sl.isRegistered<INavigationRegistry>()) {
-      sl.registerSingleton<INavigationRegistry>(NavigationRegistryImpl());
-    }
-
+    // Navigation registry is owned by main.dart (ProviderScope override) —
+    // there is no second tab-registry authority in GetIt.
+    //
     // Core services registration akan dilakukan dari main.dart
     // Tidak ada hardcoded dependencies di sini
   }
@@ -87,21 +81,9 @@ class ServiceLocator {
     }
   }
 
-  static void registerValidation(IValidationService validation) {
-    if (!sl.isRegistered<IValidationService>()) {
-      sl.registerSingleton<IValidationService>(validation);
-    }
-  }
-
   static void registerLocalStorage(ILocalStorageService storage) {
     if (!sl.isRegistered<ILocalStorageService>()) {
       sl.registerSingleton<ILocalStorageService>(storage);
-    }
-  }
-
-  static void registerNavigationHandler(NavigationHandler handler) {
-    if (!sl.isRegistered<NavigationHandler>()) {
-      sl.registerSingleton<NavigationHandler>(handler);
     }
   }
 

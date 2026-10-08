@@ -7,17 +7,22 @@ class _OrderSummarySection extends ConsumerWidget {
   /// The applied backend preview — non-null ONLY while it is current.
   final PreviewOrderResult? previewResult;
   final CheckoutReadiness readiness;
-  final Duration? remainingTime;
   final VoidCallback onRefreshPricing;
   final bool isAuctionCheckout;
+
+  /// Canonical pre-order payment pricing + the buyer's selected method, used to
+  /// show the final payable amount. Null until the methods are loaded.
+  final PreOrderPaymentPricing? preOrderPricing;
+  final String? selectedMethodCode;
 
   const _OrderSummarySection({
     required this.forSaleId,
     this.previewResult,
     required this.readiness,
-    this.remainingTime,
     required this.onRefreshPricing,
     this.isAuctionCheckout = false,
+    this.preOrderPricing,
+    this.selectedMethodCode,
   });
 
   @override
@@ -36,7 +41,6 @@ class _OrderSummarySection extends ConsumerWidget {
             // action bar or the create-order guard.
             _TokenValidityIndicator(
               readiness: readiness,
-              remainingTime: remainingTime,
               onRefresh: onRefreshPricing,
             ),
             const SizedBox(height: 16),
@@ -44,6 +48,8 @@ class _OrderSummarySection extends ConsumerWidget {
               forSale: forSale,
               previewResult: previewResult,
               isAuctionCheckout: isAuctionCheckout,
+              preOrderPricing: preOrderPricing,
+              selectedMethodCode: selectedMethodCode,
             ),
           ],
         );
@@ -57,21 +63,12 @@ class _OrderSummarySection extends ConsumerWidget {
 /// Pricing readiness indicator: truthful per-state copy + refresh affordance.
 class _TokenValidityIndicator extends StatelessWidget {
   final CheckoutReadiness readiness;
-  final Duration? remainingTime;
   final VoidCallback onRefresh;
 
   const _TokenValidityIndicator({
     required this.readiness,
-    this.remainingTime,
     required this.onRefresh,
   });
-
-  String _formatRemainingTime(Duration duration) {
-    if (duration <= Duration.zero) return '0:00';
-    final minutes = duration.inMinutes;
-    final seconds = duration.inSeconds % 60;
-    return '$minutes:${seconds.toString().padLeft(2, '0')}';
-  }
 
   /// No current preview yet, but every prerequisite is satisfied.
   Widget _buildLoading(BuildContext context) {
@@ -93,9 +90,8 @@ class _TokenValidityIndicator extends StatelessWidget {
           Expanded(
             child: Text(
               readiness.message,
-              style: TextStyle(
+              style: context.typeRoles.bodyDense.copyWith(
                 color: colorScheme.onSurfaceVariant,
-                fontSize: AppType.s14,
               ),
             ),
           ),
@@ -118,7 +114,11 @@ class _TokenValidityIndicator extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(Icons.info_outline, color: colorScheme.secondary, size: AppIconSize.action),
+          Icon(
+            Icons.info_outline,
+            color: colorScheme.secondary,
+            size: AppIconSize.action,
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -126,17 +126,15 @@ class _TokenValidityIndicator extends StatelessWidget {
               children: [
                 Text(
                   readiness.title,
-                  style: TextStyle(
+                  style: context.typeRoles.bodyDense.copyWith(
                     fontWeight: FontWeight.bold,
                     color: colorScheme.secondary,
-                    fontSize: AppType.s14,
                   ),
                 ),
                 Text(
                   readiness.message,
-                  style: TextStyle(
+                  style: context.typeRoles.bodyDense.copyWith(
                     color: colorScheme.onSurfaceVariant,
-                    fontSize: AppType.s12,
                   ),
                 ),
               ],
@@ -176,17 +174,15 @@ class _TokenValidityIndicator extends StatelessWidget {
               children: [
                 Text(
                   readiness.title,
-                  style: TextStyle(
+                  style: context.typeRoles.bodyDense.copyWith(
                     fontWeight: FontWeight.bold,
                     color: accent,
-                    fontSize: AppType.s14,
                   ),
                 ),
                 Text(
                   readiness.message,
-                  style: TextStyle(
+                  style: context.typeRoles.bodyDense.copyWith(
                     color: colorScheme.onSurfaceVariant,
-                    fontSize: AppType.s12,
                   ),
                 ),
               ],
@@ -196,8 +192,11 @@ class _TokenValidityIndicator extends StatelessWidget {
             onPressed: onRefresh,
             style: ElevatedButton.styleFrom(
               backgroundColor: accent,
-              padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p8),
-              textStyle: const TextStyle(fontSize: AppType.s12),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppMetrics.p16,
+                vertical: AppMetrics.p8,
+              ),
+              textStyle: Theme.of(context).textTheme.labelLarge,
             ),
             child: const Text('Refresh'),
           ),
@@ -208,85 +207,25 @@ class _TokenValidityIndicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
     switch (readiness) {
       case CheckoutReadiness.ready:
-        break;
+        // Price locked: NO manual refresh affordance. Convergence is automatic
+        // (input changes auto-preview; near-expiry auto-regenerates).
+        return const SizedBox.shrink();
       case CheckoutReadiness.loading:
+      case CheckoutReadiness.loadingPaymentMethods:
         return _buildLoading(context);
       case CheckoutReadiness.missingProduct:
       case CheckoutReadiness.missingAddress:
       case CheckoutReadiness.missingShipping:
+      case CheckoutReadiness.missingPaymentMethod:
         return _buildPrerequisite(context);
       case CheckoutReadiness.error:
       case CheckoutReadiness.stale:
       case CheckoutReadiness.expired:
+      case CheckoutReadiness.paymentMethodsError:
         return _buildRefreshRequired(context);
     }
-
-    // Show countdown with refresh button
-    final timeString = remainingTime != null
-        ? _formatRemainingTime(remainingTime!)
-        : '--:--';
-    final isUrgent = remainingTime != null && remainingTime!.inMinutes < 3;
-
-    return Container(
-      padding: const EdgeInsets.all(AppMetrics.p12),
-      decoration: BoxDecoration(
-        color: isUrgent
-            ? context.statusColors.warning.withValues(alpha: 0.1)
-            : context.statusColors.success.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(AppShape.r8),
-        border: Border.all(
-          color: isUrgent ? context.statusColors.warning : context.statusColors.success,
-        ),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            isUrgent ? Icons.timer_outlined : Icons.verified_outlined,
-            color: isUrgent ? context.statusColors.warning : context.statusColors.success,
-            size: AppIconSize.action,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Harga Terkunci',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: isUrgent
-                        ? context.statusColors.warning
-                        : context.statusColors.success,
-                    fontSize: AppType.s14,
-                  ),
-                ),
-                Text(
-                  'Berlaku dalam $timeString',
-                  style: TextStyle(
-                    color: colorScheme.onSurfaceVariant,
-                    fontSize: AppType.s12,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          OutlinedButton.icon(
-            onPressed: onRefresh,
-            style: OutlinedButton.styleFrom(
-              foregroundColor: colorScheme.onSurfaceVariant,
-              padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p8),
-              minimumSize: const Size(0, 32),
-              textStyle: const TextStyle(fontSize: AppType.s12),
-            ),
-            icon: const Icon(Icons.refresh, size: AppIconSize.inlineGlyph),
-            label: const Text('Refresh'),
-          ),
-        ],
-      ),
-    );
   }
 }
 
@@ -294,11 +233,15 @@ class _OrderSummaryContent extends StatelessWidget {
   final ForSale forSale;
   final PreviewOrderResult? previewResult;
   final bool isAuctionCheckout;
+  final PreOrderPaymentPricing? preOrderPricing;
+  final String? selectedMethodCode;
 
   const _OrderSummaryContent({
     required this.forSale,
     this.previewResult,
     this.isAuctionCheckout = false,
+    this.preOrderPricing,
+    this.selectedMethodCode,
   });
 
   @override
@@ -315,20 +258,21 @@ class _OrderSummaryContent extends StatelessWidget {
       koiDetailsDisplay = size.isNotEmpty ? '$variety - $size' : variety;
     }
 
-    // Use preview pricing if available, otherwise show loading state
+    // All money is BACKEND AUTHORITY. The escrow base comes from the applied
+    // preview; the buyer fee and FINAL payable come from the selected method in
+    // the pre-order pricing response. Nothing is derived on the client.
     final hasPricing = previewResult != null;
     final subtotal = hasPricing ? previewResult!.subtotal : 0.0;
     final shippingCost = hasPricing ? previewResult!.shippingCost : 0.0;
-    final serviceFee = hasPricing
-        ? (previewResult!.serviceFeeAmount ?? 0.0)
+    final selectedOption = preOrderPricing?.optionFor(selectedMethodCode);
+    final serviceFee = selectedOption != null
+        ? selectedOption.buyerPaymentFeeAmount.toDouble()
         : 0.0;
-    // CANONICAL TOTAL: total_payable_amount (PD + S + F) is the buyer's gross
-    // payable and is emitted by the backend on every canonical order/preview
-    // surface. The old `previewResult.total` compatibility alias (which
-    // re-derived P+S+F client side) and the legacy discount / coin rows were
-    // purged: the seller discount is already folded into the canonical money
-    // model, and coins are not an Order snapshot authority.
-    final total = hasPricing ? (previewResult!.totalPayableAmount ?? 0.0) : 0.0;
+    // Before a method is selected the payable is the escrow base (PD+S); once a
+    // method is selected it is that method's backend-computed FINAL amount.
+    final total = selectedOption != null
+        ? selectedOption.finalPayableAmount.toDouble()
+        : (hasPricing ? (previewResult!.totalPayableAmount ?? 0.0) : 0.0);
 
     // SHIPPING MODE INDICATOR: Determine shipping label based on mode
     // - "quote": Manual shipping quote from seller (fixed price)
@@ -368,9 +312,11 @@ class _OrderSummaryContent extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Text(
+              Text(
                 'Ringkasan Pesanan',
-                style: TextStyle(fontSize: AppType.s20, fontWeight: FontWeight.bold),
+                style: context.typeRoles.titleSection.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(width: 8),
               // Auction badge - shows this is an auction-derived order
@@ -384,7 +330,9 @@ class _OrderSummaryContent extends StatelessWidget {
                     color: context.statusColors.success.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(AppShape.r4),
                     border: Border.all(
-                      color: context.statusColors.success.withValues(alpha: 0.4),
+                      color: context.statusColors.success.withValues(
+                        alpha: 0.4,
+                      ),
                       width: 1,
                     ),
                   ),
@@ -399,8 +347,7 @@ class _OrderSummaryContent extends StatelessWidget {
                       const SizedBox(width: 3),
                       Text(
                         'Lelang',
-                        style: TextStyle(
-                          fontSize: AppType.s12,
+                        style: context.typeRoles.labelMicro.copyWith(
                           fontWeight: FontWeight.bold,
                           color: context.statusColors.success,
                         ),
@@ -442,8 +389,7 @@ class _OrderSummaryContent extends StatelessWidget {
                   children: [
                     Text(
                       forSale.title,
-                      style: const TextStyle(
-                        fontSize: AppType.s14,
+                      style: context.typeRoles.titleCompact.copyWith(
                         fontWeight: FontWeight.w600,
                       ),
                       maxLines: 2,
@@ -453,8 +399,7 @@ class _OrderSummaryContent extends StatelessWidget {
                     if (koiDetailsDisplay.isNotEmpty)
                       Text(
                         koiDetailsDisplay,
-                        style: TextStyle(
-                          fontSize: AppType.s12,
+                        style: context.typeRoles.labelMicro.copyWith(
                           color: colorScheme.onSurfaceVariant,
                         ),
                       ),
@@ -468,7 +413,11 @@ class _OrderSummaryContent extends StatelessWidget {
           const Divider(),
           const SizedBox(height: 12),
 
-          // Price Breakdown - using backend preview pricing
+          // Price Breakdown — BACKEND MONEY ONLY. The base is the applied
+          // preview's escrow; the buyer fee and FINAL total come from the
+          // selected pre-order method. There is no local price projection: an
+          // amount is shown only once the backend has produced it (before that,
+          // the readiness banner explains what is missing).
           if (hasPricing) ...[
             _PriceRow('Subtotal', 1, subtotal),
             const SizedBox(height: 8),
@@ -480,57 +429,7 @@ class _OrderSummaryContent extends StatelessWidget {
             const SizedBox(height: 12),
             const Divider(),
             const SizedBox(height: 12),
-            // Total
-            _PriceRow('Total', 1, total, isTotal: true),
-          ] else ...[
-            // NON-AUTHORITATIVE LOCAL PROJECTION.
-            // `forSale.price` is NOT the checkout price: it ignores negotiation,
-            // auction settlement, seller discount and payment fee. It is shown
-            // only as an explicitly-labelled temporary estimate while the
-            // backend preview for the CURRENT inputs has not been applied yet.
-            // Nothing here can make checkout READY.
-            _PriceRow(
-              'Subtotal',
-              1,
-              forSale.price,
-              note: 'Harga lokal sementara',
-            ),
-            const SizedBox(height: 8),
-            const _PriceRow(
-              'Ongkir + Packing',
-              1,
-              0,
-              note: 'Akan dihitung oleh server',
-            ),
-            const SizedBox(height: 8),
-            const _PriceRow(
-              'Biaya Layanan Pembayaran',
-              1,
-              0,
-              note: 'Akan dihitung oleh server',
-            ),
-            const SizedBox(height: 12),
-            const Divider(),
-            const SizedBox(height: 12),
-            // Total
-            _PriceRow(
-              'Total',
-              1,
-              forSale.price,
-              isTotal: true,
-              note: 'Harga lokal sementara',
-            ),
-            const SizedBox(height: 8),
-            Center(
-              child: Text(
-                'Harga lokal sementara — menunggu harga dari server',
-                style: TextStyle(
-                  fontSize: AppType.s12,
-                  color: colorScheme.onSurfaceVariant,
-                  fontStyle: FontStyle.italic,
-                ),
-              ),
-            ),
+            _PriceRow('Total Pembayaran', 1, total, isTotal: true),
           ],
         ],
       ),
@@ -549,14 +448,12 @@ class _PriceRow extends StatelessWidget {
   final int quantity;
   final double price;
   final bool isTotal;
-  final String? note;
 
   const _PriceRow(
     this.label,
     this.quantity,
     this.price, {
     this.isTotal = false,
-    this.note,
   });
 
   @override
@@ -576,30 +473,30 @@ class _PriceRow extends StatelessWidget {
                 children: [
                   Text(
                     label,
-                    style: TextStyle(
-                      fontSize: isTotal ? AppType.s16 : AppType.s14,
-                      fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
-                      color: isTotal ? colorScheme.primary : null,
-                    ),
+                    style:
+                        (isTotal
+                                ? context.typeRoles.titleCompact
+                                : context.typeRoles.bodyDense)
+                            .copyWith(
+                              fontWeight: isTotal
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
+                              color: isTotal ? colorScheme.primary : null,
+                            ),
                   ),
-                  if (note != null)
-                    Text(
-                      note!,
-                      style: TextStyle(
-                        fontSize: AppType.s12,
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                    ),
                 ],
               ),
             ),
             Text(
               AppFormatters.formatCurrency(total),
-              style: TextStyle(
-                fontSize: isTotal ? AppType.s20 : AppType.s14,
-                fontWeight: isTotal ? FontWeight.bold : FontWeight.w600,
-                color: isTotal ? colorScheme.primary : null,
-              ),
+              style:
+                  (isTotal
+                          ? context.typeRoles.titleSection
+                          : context.typeRoles.titleCompact)
+                      .copyWith(
+                        fontWeight: isTotal ? FontWeight.bold : FontWeight.w600,
+                        color: isTotal ? colorScheme.primary : null,
+                      ),
             ),
           ],
         ),

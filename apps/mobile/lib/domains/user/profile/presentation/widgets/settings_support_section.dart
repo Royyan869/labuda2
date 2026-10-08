@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:labuda/core/core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/generated/app_localizations.dart';
-import 'package:labuda/shared/shared.dart'; // R3.1: Import for AppSnackBar
-import 'package:labuda/domains/system/support/support.dart';
 
 class SettingsSupportSection extends ConsumerWidget {
   final Function(String) onNavigate;
@@ -67,15 +66,13 @@ class SettingsSupportSection extends ConsumerWidget {
   void _handleMyTicketsTap(BuildContext context, WidgetRef ref) {
     final authState = ref.read(authControllerProvider);
     if (authState is! AuthStateAuthenticated) {
-      AppSnackBar.showError(context, 'Silakan login terlebih dahulu');
+      ref.read(navigationHandlerProvider).navigateToSignIn();
       return;
     }
 
     // Open the support ticket list directly so "My Tickets" stays on the
     // support surface instead of dropping into generic chat.
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (context) => const SupportTicketsListScreen()),
-    );
+    context.push(RoutePaths.supportTickets);
   }
 
   Widget _buildSectionHeaderWithIcon(
@@ -85,19 +82,19 @@ class SettingsSupportSection extends ConsumerWidget {
     ColorScheme scheme,
   ) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p16, AppMetrics.p16, AppMetrics.p8),
+      padding: const EdgeInsets.fromLTRB(
+        AppMetrics.p16,
+        AppMetrics.p16,
+        AppMetrics.p16,
+        AppMetrics.p8,
+      ),
       child: Row(
         children: [
-          Icon(
-            icon,
-            size: AppIconSize.action,
-            color: scheme.onSurfaceVariant,
-          ),
+          Icon(icon, size: AppIconSize.action, color: scheme.onSurfaceVariant),
           const SizedBox(width: 8),
           Text(
             title,
-            style: TextStyle(
-              fontSize: AppType.s14,
+            style: context.typeRoles.bodyDense.copyWith(
               fontWeight: FontWeight.w600,
               color: scheme.onSurfaceVariant,
             ),
@@ -116,30 +113,16 @@ class SettingsSupportSection extends ConsumerWidget {
     Color? textColor,
   }) {
     return ListTile(
-      leading: Icon(
-        icon,
-        color:
-            textColor ??
-            (scheme.onSurfaceVariant),
-      ),
+      leading: Icon(icon, color: textColor ?? (scheme.onSurfaceVariant)),
       title: Text(
         title,
-        style: TextStyle(
-          color:
-              textColor ??
-              (scheme.onSurface),
-        ),
+        style: TextStyle(color: textColor ?? (scheme.onSurface)),
       ),
       subtitle: Text(
         subtitle,
-        style: TextStyle(
-          color: scheme.onSurfaceVariant,
-        ),
+        style: TextStyle(color: scheme.onSurfaceVariant),
       ),
-      trailing: Icon(
-        Icons.chevron_right,
-        color: scheme.onSurfaceVariant,
-      ),
+      trailing: Icon(Icons.chevron_right, color: scheme.onSurfaceVariant),
       onTap: onTap,
     );
   }

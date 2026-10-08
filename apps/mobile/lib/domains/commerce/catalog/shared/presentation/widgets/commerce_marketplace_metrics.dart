@@ -1,7 +1,8 @@
 /// SINGLE SOURCE OF TRUTH for marketplace grid & card geometry.
 ///
 /// Owner-locked (2026-09-27):
-///   - card radius 12 — aligned with `BaseCard`, feed cards, search results;
+///   - card radius 12 — aligned with `AppShape.r12`, feed cards, search
+///     results (`BaseCard` was purged as obsolete and is no longer a reference);
 ///   - grid: edge padding 12, gap 8 (edge > gap so the rhythm stays even);
 ///   - content rhythm inside the card: padding 8, gap 8;
 ///   - media frame fixed 4:5 rendered with `BoxFit.contain` so portrait AND

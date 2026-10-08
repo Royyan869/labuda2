@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/shared.dart';
 import 'package:labuda/shared/models/seller_identity_data.dart';
@@ -7,7 +8,6 @@ import 'package:labuda/generated/app_localizations.dart';
 import 'package:labuda/features/home/presentation/widgets/main_drawer/drawer_header.dart';
 import 'package:labuda/features/home/presentation/widgets/main_drawer/drawer_footer.dart';
 import 'package:labuda/features/home/presentation/widgets/main_drawer/drawer_item.dart';
-import 'package:labuda/domains/system/support/support.dart';
 import 'package:labuda/domains/user/preference/seller/domain/entities/seller_state.dart';
 import 'package:labuda/domains/user/preference/seller/presentation/providers/current_seller_provider.dart';
 
@@ -24,7 +24,6 @@ class MainDrawer extends ConsumerWidget {
   final VoidCallback onHandleSignOut;
   final VoidCallback onHandleSettings;
   final VoidCallback onHandleProfile;
-  final Function(BuildContext, String) onHandleComingSoon;
 
   const MainDrawer({
     super.key,
@@ -36,7 +35,6 @@ class MainDrawer extends ConsumerWidget {
     required this.onHandleSignOut,
     required this.onHandleSettings,
     required this.onHandleProfile,
-    required this.onHandleComingSoon,
   });
 
   @override
@@ -124,25 +122,15 @@ class MainDrawer extends ConsumerWidget {
                         authenticatedUserProvider,
                       );
                       if (authenticatedUser == null) {
-                        // Show login prompt for guest users
+                        // Authentication required: send the guest to the
+                        // canonical sign-in route rather than a transient toast.
+                        final navigation = ref.read(navigationHandlerProvider);
                         Navigator.pop(context);
-                        AppSnackBar.showError(
-                          context,
-                          'Please login to access support',
-                          duration: const Duration(seconds: 3),
-                        );
+                        navigation.navigateToSignIn();
                         return;
                       }
                       Navigator.pop(context);
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) => HelpCenterScreen(
-                            userId: authenticatedUser.id,
-                            userName: authenticatedUser.username,
-                            userAvatar: authenticatedUser.avatarUrl,
-                          ),
-                        ),
-                      );
+                      context.push(RoutePaths.helpCenter);
                     },
                   ),
                   if (isLoggedIn) ...[

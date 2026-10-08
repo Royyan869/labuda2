@@ -18,11 +18,6 @@
 ///   subtitle: 'Sign in to your account',
 /// )
 ///
-/// AuthTextField.email(
-///   controller: _emailController,
-///   validator: validateEmail,
-/// )
-///
 /// AuthPasswordField(
 ///   controller: _passwordController,
 ///   isPasswordVisible: controller.isPasswordVisible,
@@ -51,14 +46,12 @@
 /// ### Models
 /// - AuthFormState - Unified form state model
 /// - AuthFormType - Form type enum (signIn, signUp, forgotPassword)
-/// - FormFieldValidation - Field validation status
 /// - PasswordVisibility - Password visibility state
 ///
 /// ### Controllers
 /// - AuthFormController - Centralized state management
 ///
 /// ### Widgets
-/// - AuthTextField - Consistent text input field
 /// - AuthPasswordField - Password field with visibility toggle
 /// - AuthConfirmPasswordField - Confirm password with match indicator
 /// - AuthButton - Primary/secondary/social buttons
@@ -66,6 +59,9 @@
 /// - AuthHeader - Screen header with logo and animations
 /// - AuthStateView - Conditional state renderer
 /// - AuthStateBanner - Top banner for messages
+///
+/// Generic text fields use the shared [AppTextField]; auth owns only
+/// password-specific behaviour.
 
 library;
 
@@ -76,7 +72,6 @@ export 'models/auth_form_state.dart';
 export 'controllers/auth_form_controller.dart';
 
 // Widgets
-export 'widgets/auth_text_field.dart';
 export 'widgets/auth_password_field.dart';
 export 'widgets/auth_button.dart';
 export 'widgets/auth_divider.dart';

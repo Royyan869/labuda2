@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/labuda/backend/internal/pricing/promotion/contract/entity"
 	"github.com/stretchr/testify/require"
 )
 
@@ -73,6 +74,36 @@ func TestMaxContractDurationDays_IsTechnicalOverflowBound(t *testing.T) {
 	wrapped := time.Duration(days) * 24 * time.Hour
 	require.Less(t, int64(wrapped), int64(0),
 		"one day past the technical bound the duration x 24h multiplication must wrap")
+}
+
+// ============================================================================
+// OWNER-LOCKED INTERNAL DURATION MAXIMUM (SCOPE 1)
+//
+// One duration authority (validateContractDuration) enforces the technical
+// representation bound for every kind AND the Owner-locked 30-day maximum for
+// internal promotions only. External promotions are bounded by the technical
+// guard alone — no 30-day business maximum.
+// ============================================================================
+
+func TestValidateContractDuration_InternalMaximum30Days(t *testing.T) {
+	// Owner lock: internal maximum is exactly 30 days.
+	require.Equal(t, int64(30), int64(maxInternalPromotionDurationDays))
+
+	// Internal: 1 and 30 days accepted.
+	require.NoError(t, validateContractDuration(entity.KindInternal, 1))
+	require.NoError(t, validateContractDuration(entity.KindInternal, maxInternalPromotionDurationDays))
+
+	// Internal: 31 days rejected through the existing canonical error type.
+	require.ErrorIs(t, validateContractDuration(entity.KindInternal, 31), ErrPromotionDurationInvalid)
+
+	// External: >30 days stays allowed up to the technical bound.
+	require.NoError(t, validateContractDuration(entity.KindExternal, 31))
+	require.NoError(t, validateContractDuration(entity.KindExternal, maxContractDurationDays))
+
+	// Shared lower bound + technical bound apply to both kinds.
+	require.ErrorIs(t, validateContractDuration(entity.KindInternal, 0), ErrPromotionDurationInvalid)
+	require.ErrorIs(t, validateContractDuration(entity.KindExternal, 0), ErrPromotionDurationInvalid)
+	require.ErrorIs(t, validateContractDuration(entity.KindExternal, maxContractDurationDays+1), ErrPromotionDurationInvalid)
 }
 
 func TestMulNonNeg_FailsClosedOnOverflow(t *testing.T) {

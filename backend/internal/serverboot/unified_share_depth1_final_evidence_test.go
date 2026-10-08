@@ -93,11 +93,11 @@ func TestUnifiedShareDepth1_QueryCountsAndSuppressionEvidence(t *testing.T) {
 	publicSaleID := fx.seedForSale(t, saleOwnerID, fpsEntity.ForSaleStatusActive, &publicPublishedAt)
 	draftSaleOwnerID := fx.seedUser(t, "active", nil, uniqueSeedLabel("draft_sale_owner"), nil)
 	draftPublishedAt := base.Add(401 * time.Minute)
-	draftSaleID := fx.seedForSale(t, draftSaleOwnerID, fpsEntity.ForSaleStatusDraft, &draftPublishedAt)
+	draftSaleID := fx.seedForSale(t, draftSaleOwnerID, fpsEntity.ForSaleStatusWithdrawn, &draftPublishedAt)
 	auctionOwnerID := fx.seedUser(t, "active", nil, uniqueSeedLabel("auction_owner"), nil)
 	activeAuctionID := fx.seedAuction(t, auctionOwnerID, auctionEntity.StatusActive)
 	draftAuctionOwnerID := fx.seedUser(t, "active", nil, uniqueSeedLabel("draft_auction_owner"), nil)
-	draftAuctionID := fx.seedAuction(t, draftAuctionOwnerID, auctionEntity.StatusDraft)
+	draftAuctionID := fx.seedAuction(t, draftAuctionOwnerID, auctionEntity.StatusLapsed)
 
 	mixedNested := map[uuid.UUID]*chatEntity.ChatMessageResourceOccurrence{}
 	repeatedNested := map[uuid.UUID]*chatEntity.ChatMessageResourceOccurrence{}
@@ -209,7 +209,7 @@ func TestUnifiedShareDepth1_NestedFailurePropagationEvidence(t *testing.T) {
 			quantity_available, created_at, updated_at
 		)
 		VALUES ($1, $2, $3, $4, false, $5, NULL, NULL, NULL, 1, $6, $6)
-	`, draftSaleID, draftProductID, authorID, int64(100000), string(fpsEntity.ForSaleStatusDraft), time.Now().UTC())
+	`, draftSaleID, draftProductID, authorID, int64(100000), string(fpsEntity.ForSaleStatusWithdrawn), time.Now().UTC())
 	require.NoError(t, err)
 
 	activeAuctionID := fx.seedAuction(t, authorID, auctionEntity.StatusActive)
@@ -451,7 +451,7 @@ func TestUnifiedShareDepth1_DepthMatrixD1ToD30Evidence(t *testing.T) {
 	fpsActiveID := fx.seedForSale(t, fpsOwnerID, fpsEntity.ForSaleStatusActive, &fpsActivePublishedAt)
 
 	fpsDraftOwnerID := seedSellerAccessUser(t, fx, "active", nil, "active")
-	fpsDraftID := fx.seedForSale(t, fpsDraftOwnerID, fpsEntity.ForSaleStatusDraft, nil)
+	fpsDraftID := fx.seedForSale(t, fpsDraftOwnerID, fpsEntity.ForSaleStatusWithdrawn, nil)
 
 	fpsRemovedOwnerID := seedSellerAccessUser(t, fx, "suspended", nil, "active")
 	fpsRemovedPublishedAt := base.Add(12 * time.Minute)
@@ -466,7 +466,7 @@ func TestUnifiedShareDepth1_DepthMatrixD1ToD30Evidence(t *testing.T) {
 	auctionActiveID := fx.seedAuction(t, auctionActiveOwnerID, auctionEntity.StatusActive)
 
 	auctionDraftOwnerID := seedSellerAccessUser(t, fx, "active", nil, "active")
-	auctionDraftID := fx.seedAuction(t, auctionDraftOwnerID, auctionEntity.StatusDraft)
+	auctionDraftID := fx.seedAuction(t, auctionDraftOwnerID, auctionEntity.StatusLapsed)
 
 	auctionRemovedOwnerID := seedSellerAccessUser(t, fx, "suspended", nil, "active")
 	auctionRemovedID := fx.seedAuction(t, auctionRemovedOwnerID, auctionEntity.StatusActive)

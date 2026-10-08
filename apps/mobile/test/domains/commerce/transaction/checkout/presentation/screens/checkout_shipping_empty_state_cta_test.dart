@@ -74,10 +74,7 @@ class _FakeAddressNotifier extends AddressNotifier {
   }
 
   @override
-  Future<void> loadAddressesByTag(
-    String userId,
-    AddressTag tag,
-  ) async {}
+  Future<void> loadAddresses(String userId) async {}
 }
 
 class _FakeChatList extends ChatList {
@@ -142,7 +139,6 @@ AddressEntity _shippingAddress() {
   return AddressEntity(
     id: 'address-1',
     userId: 'buyer-1',
-    tags: const [AddressTag.shipping],
     recipientName: 'Buyer',
     phone: '08123456789',
     province: const Province(id: '31', name: 'DKI Jakarta'),
@@ -193,6 +189,7 @@ PreviewOrderResult _previewResult() => PreviewOrderResult(
   pricingToken: 'token-ship-A',
   sellerId: 'seller-1',
   shippingMode: 'standard',
+  expiresAt: DateTime.now().add(const Duration(minutes: 10)),
 );
 
 // ===========================================================================

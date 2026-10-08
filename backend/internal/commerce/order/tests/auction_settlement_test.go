@@ -87,14 +87,11 @@ func TestAuctionBuyNowSettlement_ClosesAuctionAndBlocksDoubleSale(t *testing.T) 
 			return err
 		}
 
-		auction := auctionentity.NewDraft(
+		auction := auctionentity.NewScheduled(
 			sellerID, product.ID,
 			100000, 10000, &buyNowPrice,
 			time.Now().Add(-1*time.Hour), time.Now().Add(1*time.Hour),
 		)
-		if err := auction.Schedule(); err != nil {
-			return err
-		}
 		if err := auction.Activate(); err != nil {
 			return err
 		}
@@ -207,12 +204,11 @@ func TestAuctionBuyNowSettlement_RollbackLeavesAuctionUnchanged(t *testing.T) {
 		if err := productRepo.Create(ctx, tx, product); err != nil {
 			return err
 		}
-		auction := auctionentity.NewDraft(
+		auction := auctionentity.NewScheduled(
 			sellerID, product.ID,
 			100000, 10000, &buyNowPrice,
 			time.Now().Add(-1*time.Hour), time.Now().Add(1*time.Hour),
 		)
-		require.NoError(t, auction.Schedule())
 		require.NoError(t, auction.Activate())
 		if err := auctionRepo.CreateTx(ctx, tx, auction); err != nil {
 			return err
@@ -309,12 +305,11 @@ func TestAuctionOrderCancel_ReleasesBinding(t *testing.T) {
 			return err
 		}
 
-		auction := auctionentity.NewDraft(
+		auction := auctionentity.NewScheduled(
 			sellerID, product.ID,
 			100000, 10000, &buyNowPrice,
 			time.Now().Add(-1*time.Hour), time.Now().Add(1*time.Hour),
 		)
-		require.NoError(t, auction.Schedule())
 		require.NoError(t, auction.Activate())
 		if err := auctionRepo.CreateTx(ctx, tx, auction); err != nil {
 			return err
@@ -392,13 +387,16 @@ func TestAuctionOrderExpire_ReleasesBinding(t *testing.T) {
 			return err
 		}
 
-		auction := auctionentity.NewDraft(
+		auction := auctionentity.NewScheduled(
 			sellerID, product.ID,
 			100000, 10000, nil,
-			time.Now().Add(-25*time.Hour), time.Now().Add(-1*time.Hour),
+			// The canonical schedule gate commits a FUTURE end only; the window
+			// is aged out right after activation to model a run that closed an
+			// hour ago.
+			time.Now().Add(-25*time.Hour), time.Now().Add(1*time.Hour),
 		)
-		require.NoError(t, auction.Schedule())
 		require.NoError(t, auction.Activate())
+		auction.EndAt = time.Now().Add(-1 * time.Hour)
 		if err := auctionRepo.CreateTx(ctx, tx, auction); err != nil {
 			return err
 		}

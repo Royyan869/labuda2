@@ -12,13 +12,13 @@ import 'package:labuda/domains/commerce/catalog/for_sale/domain/entities/for_sal
 import 'package:labuda/domains/commerce/catalog/for_sale/presentation/checkout_intent.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/presentation/providers/for_sale_providers.dart';
 import 'package:labuda/domains/chat/chat/presentation/providers/chat_providers.dart';
+import 'package:labuda/domains/chat/chat/presentation/models/pending_commerce_attachment.dart';
 import 'package:labuda/domains/chat/chat/presentation/utils/commerce_chat_navigation.dart';
 import 'package:labuda/domains/commerce/negotiation/negotiation/presentation/providers/negotiation_providers.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
 import 'package:labuda/shared/shared.dart';
 import 'package:labuda/domains/social/share/share.dart';
 import 'package:labuda/domains/system/report/domain/entities/entities.dart';
-import 'package:labuda/domains/system/report/presentation/dialogs/report_submission_dialog.dart';
 import 'package:labuda/domains/commerce/negotiation/negotiation/presentation/widgets/negotiation_offer_sheet.dart';
 import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_common_product_detail_section.dart';
 import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_detail_primitives.dart';
@@ -143,10 +143,7 @@ class _ForSaleDetailScreenState extends ConsumerState<ForSaleDetailScreen> {
     final authState = ref.read(authControllerProvider);
     if (authState is! AuthStateAuthenticated) {
       if (mounted) {
-        AppSnackBar.showError(
-          context,
-          'Silakan masuk untuk melaporkan forSale',
-        );
+        ref.read(navigationHandlerProvider).navigateToSignIn();
       }
       return;
     }
@@ -162,11 +159,12 @@ class _ForSaleDetailScreenState extends ConsumerState<ForSaleDetailScreen> {
     }
 
     if (!mounted) return;
-    await ReportSubmissionDialog.show(
-      context,
-      targetId: forSale.forSaleId,
-      targetType: ReportTargetType.forSale,
-      targetTitle: forSale.title,
+    await context.push<bool>(
+      RoutePaths.reportLocation(
+        targetType: ReportTargetType.forSale.name,
+        targetId: forSale.forSaleId,
+        targetTitle: forSale.title,
+      ),
     );
   }
 
@@ -364,8 +362,7 @@ class _ForSalePriceSection extends StatelessWidget {
                     forSale.isNegotiable
                         ? 'Beli langsung — penawaran bisa diajukan lewat chat'
                         : 'Beli langsung — harga pas tanpa tawar',
-                    style: TextStyle(
-                      fontSize: AppType.s14,
+                    style: context.typeRoles.bodyDense.copyWith(
                       color: colorScheme.onSurfaceVariant,
                       fontStyle: FontStyle.italic,
                     ),
@@ -553,15 +550,14 @@ class _ForSaleActionBar extends ConsumerWidget {
     await openCommerceChat(
       context: context,
       ref: ref,
-      reference: ShareReference.forSale(
+      attachment: PendingCommerceAttachment.forSale(
         forSaleId: forSale.forSaleId,
         title: forSale.title,
         imageUrl: forSale.media.isNotEmpty
             ? (forSale.media.first.thumbnailUrl ??
                   forSale.media.first.originalUrl)
             : null,
-        isAvailable: forSale.isAvailable,
-        isSold: forSale.stock == 0,
+        price: forSale.price.toInt(),
       ),
       sellerId: forSale.sellerId,
     );
@@ -642,115 +638,49 @@ class _ForSaleActionBar extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
 
-    return Container(
-      padding: const EdgeInsets.fromLTRB(
-        AppMetrics.p16,
-        AppMetrics.p8,
-        AppMetrics.p16,
-        AppMetrics.p12,
-      ),
-      decoration: BoxDecoration(
-        color: theme.scaffoldBackgroundColor,
-        border: Border(
-          top: BorderSide(color: theme.colorScheme.outlineVariant),
-        ),
-      ),
-      child: SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (unavailable)
-              Container(
-                margin: const EdgeInsets.only(bottom: AppMetrics.p8),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppMetrics.p12,
-                  vertical: AppMetrics.p8,
-                ),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(AppShape.r8),
-                ),
-                child: Text(
-                  'Item sudah tidak tersedia untuk dibeli',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
+    // CANONICAL ONE-ROW CTA BAR: [Chat icon+label] [Nego icon+label]
+    // [Beli Sekarang] all in the SAME row. Chrome, spacing, and the icon
+    // affordance shape are owned by [BottomActionBar]; this widget only
+    // decides which affordances the viewer capabilities allow.
+    return BottomActionBar(
+      header: unavailable
+          ? Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppMetrics.p12,
+                vertical: AppMetrics.p8,
+              ),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(AppShape.r8),
+              ),
+              child: Text(
+                'Item sudah tidak tersedia untuk dibeli',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
                 ),
               ),
-            // CANONICAL ONE-ROW CTA BAR — byte-shape parity with
-            // AuctionDetailBottomBar: [Chat icon+label] [Nego icon+label]
-            // [Beli Sekarang] all in the SAME row. A second CTA row is a
-            // forbidden design.
-            Row(
-              children: [
-                if (canChat)
-                  _iconActionButton(
-                    context,
-                    icon: Icons.chat_bubble_outline,
-                    label: 'Chat',
-                    onTap: () => _openChat(context, ref),
-                    expand: !canBuy,
-                  ),
-                if (canChat && (canNegotiate || canBuy))
-                  const SizedBox(width: 12),
-                if (canNegotiate)
-                  _iconActionButton(
-                    context,
-                    icon: Icons.handshake_outlined,
-                    label: 'Nego',
-                    onTap: () => _openNegotiationOffer(context, ref),
-                    expand: !canBuy,
-                  ),
-                if ((canChat || canNegotiate) && canBuy)
-                  const SizedBox(width: 12),
-                if (canBuy)
-                  Expanded(
-                    child: SizedBox(
-                      height: AppContentSize.control,
-                      child: ElevatedButton(
-                        onPressed: () => _buyNow(context, ref),
-                        child: const Text(
-                          'Beli Sekarang',
-                          style: TextStyle(
-                            fontSize: AppType.s16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ],
-        ),
-      ),
+            )
+          : null,
+      leading: [
+        if (canChat)
+          BottomBarIconAction(
+            icon: Icons.chat_bubble_outline,
+            label: 'Chat',
+            onPressed: () => _openChat(context, ref),
+          ),
+        if (canNegotiate)
+          BottomBarIconAction(
+            icon: Icons.handshake_outlined,
+            label: 'Nego',
+            onPressed: () => _openNegotiationOffer(context, ref),
+          ),
+      ],
+      primary: canBuy
+          ? BottomBarAction(
+              label: 'Beli Sekarang',
+              onPressed: () => _buyNow(context, ref),
+            )
+          : null,
     );
-  }
-
-  /// Icon + label-under affordance — the SAME shape as
-  /// AuctionDetailBottomBar._buildActionButton (icon 20 → 2px → label s10).
-  /// [expand] stretches it only when the primary Buy CTA is absent, so the
-  /// row still never wraps into a second line.
-  Widget _iconActionButton(
-    BuildContext context, {
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-    required bool expand,
-  }) {
-    final theme = Theme.of(context);
-    final button = InkWell(
-      onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: theme.colorScheme.onSurfaceVariant, size: AppIconSize.action),
-          const SizedBox(height: 2),
-          Text(label, style: const TextStyle(fontSize: AppType.s12)),
-        ],
-      ),
-    );
-    return expand ? Expanded(child: button) : button;
   }
 }

@@ -141,6 +141,10 @@ func (m *mockCapabilityRepository) ListTickets(ctx context.Context, tx interface
 	return nil, nil
 }
 
+func (m *mockCapabilityRepository) ListTicketsForOrdering(ctx context.Context, tx interface{}, filter *supportRepo.TicketFilter) ([]*supportEntity.Ticket, error) {
+	return nil, nil
+}
+
 func (m *mockCapabilityRepository) CountTickets(ctx context.Context, tx interface{}, filter *supportRepo.TicketFilter) (int64, error) {
 	return 0, nil
 }

@@ -1,172 +1,202 @@
 import 'package:flutter/material.dart';
 import 'package:labuda/core/core.dart';
 
-/// Reusable SnackBar component dengan styling konsisten
+/// THE canonical Snackbar authority.
 ///
-/// Features:
-/// - Success (hijau), Error (merah), Info (biru), Warning (orange)
-/// - Floating style dengan rounded corners
-/// - Icon otomatis sesuai type
-/// - Duration customizable
-/// - Consistent spacing dan typography
+/// Every transient semantic toast in Labuda is rendered here and nowhere else.
+/// There is exactly ONE visual model (floating, status-colored, icon + body
+/// ink) and exactly FOUR semantic types ([AppSnackBarType]). Callers choose a
+/// type; they never choose a colour, radius, icon, or foreground.
+///
+/// Foundation consumed:
+/// - background/foreground: [AppStatusColors] (`context.statusColors`)
+/// - geometry: [AppMetrics] / [AppShape] / [AppElevation] / [AppIconSize]
+/// - typography: `context.typeRoles.bodyDense`
+///
+/// Actions are intentional: there is NO automatic "Close" action. A caller may
+/// pass an [AppSnackBarAction] only when the interaction genuinely needs one.
 class AppSnackBar {
-  /// Show success snackbar (hijau)
+  AppSnackBar._();
+
+  /// Canonical type → duration defaults.
+  static const Duration _shortDuration = Duration(seconds: 4);
+  static const Duration _errorDuration = Duration(seconds: 6);
+
+  /// Success (4s).
   static void showSuccess(
     BuildContext context,
     String message, {
-    Duration duration = const Duration(seconds: 3),
-  }) {
-    _show(
-      context,
-      message: message,
-      type: AppSnackBarType.success,
-      duration: duration,
-    );
-  }
+    Duration duration = _shortDuration,
+    AppSnackBarAction? action,
+  }) => _show(
+    context,
+    message: message,
+    type: AppSnackBarType.success,
+    duration: duration,
+    action: action,
+  );
 
-  /// Show error snackbar (merah)
+  /// Error (6s — the longest, because errors are the most important and the
+  /// most likely to be the only channel for a failure).
   static void showError(
     BuildContext context,
     String message, {
-    Duration duration = const Duration(seconds: 4),
-  }) {
-    _show(
-      context,
-      message: message,
-      type: AppSnackBarType.error,
-      duration: duration,
-    );
-  }
+    Duration duration = _errorDuration,
+    AppSnackBarAction? action,
+  }) => _show(
+    context,
+    message: message,
+    type: AppSnackBarType.error,
+    duration: duration,
+    action: action,
+  );
 
-  /// Show info snackbar (biru)
-  static void showInfo(
-    BuildContext context,
-    String message, {
-    Duration duration = const Duration(seconds: 3),
-  }) {
-    _show(
-      context,
-      message: message,
-      type: AppSnackBarType.info,
-      duration: duration,
-    );
-  }
-
-  /// Show warning snackbar (orange)
+  /// Warning (4s).
   static void showWarning(
     BuildContext context,
     String message, {
-    Duration duration = const Duration(seconds: 3),
-  }) {
-    _show(
-      context,
-      message: message,
-      type: AppSnackBarType.warning,
-      duration: duration,
-    );
-  }
+    Duration duration = _shortDuration,
+    AppSnackBarAction? action,
+  }) => _show(
+    context,
+    message: message,
+    type: AppSnackBarType.warning,
+    duration: duration,
+    action: action,
+  );
 
-  /// Internal method untuk show snackbar - DISABLED TEMPORARILY
+  /// Informational (4s).
+  static void showInfo(
+    BuildContext context,
+    String message, {
+    Duration duration = _shortDuration,
+    AppSnackBarAction? action,
+  }) => _show(
+    context,
+    message: message,
+    type: AppSnackBarType.info,
+    duration: duration,
+    action: action,
+  );
+
+  /// The ONLY renderer. One visible toast at a time: the previous toast is
+  /// cleared before a new one is shown.
   static void _show(
     BuildContext context, {
     required String message,
     required AppSnackBarType type,
-    Duration duration = const Duration(seconds: 3),
+    required Duration duration,
+    AppSnackBarAction? action,
   }) {
-    // Clear existing snackbar
     ScaffoldMessenger.of(context).clearSnackBars();
 
-    final config = _getTypeConfig(context, 
-      type,
-      Theme.of(context).colorScheme,
-    );
+    final config = _getTypeConfig(context, type);
 
-    // Calculate safe bottom margin that works with bottom navigation
-    final mediaQuery = MediaQuery.of(context);
-    final bottomInset = mediaQuery.viewInsets.bottom;
-    final bottomPadding = mediaQuery.padding.bottom;
-    // Use a fixed margin above bottom navigation (~90px for bottom nav + ~16px spacing)
-    final bottomMargin = bottomInset > 0
-        ? bottomInset + 16
-        : 106 + bottomPadding;
-
-    final scheme = Theme.of(context).colorScheme;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
           children: [
-            Icon(config.icon, color: scheme.onPrimary, size: AppIconSize.action),
-            const SizedBox(width: 12),
+            Icon(
+              config.icon,
+              color: config.foreground,
+              size: AppIconSize.action,
+            ),
+            const SizedBox(width: AppMetrics.p12),
             Expanded(
               child: Text(
                 message,
-                style: TextStyle(
-                  color: scheme.onPrimary,
+                style: context.typeRoles.bodyDense.copyWith(
+                  color: config.foreground,
                   fontWeight: FontWeight.w500,
-                  fontSize: AppType.s14,
                 ),
               ),
             ),
           ],
         ),
-        backgroundColor: config.color,
+        backgroundColor: config.background,
         behavior: SnackBarBehavior.floating,
-        margin: EdgeInsets.only(bottom: bottomMargin, left: AppMetrics.p16, right: AppMetrics.p16),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppShape.r12)),
+        // The Scaffold owns system/bottom-UI positioning; this margin is
+        // visual spacing only — never an inset calculation.
+        margin: const EdgeInsets.only(
+          bottom: AppMetrics.p16,
+          left: AppMetrics.p16,
+          right: AppMetrics.p16,
+        ),
+        padding: AppMetrics.inputPadding,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppShape.r12),
+        ),
         duration: duration,
         elevation: AppElevation.snackBar,
-        action: duration.inSeconds > 3
-            ? SnackBarAction(
-                label: 'Close',
-                textColor: scheme.onPrimary.withValues(alpha: 0.7),
-                onPressed: () {
-                  ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                },
-              )
-            : null,
+        action: action == null
+            ? null
+            : SnackBarAction(
+                label: action.label,
+                textColor: config.foreground,
+                onPressed: action.onPressed,
+              ),
       ),
     );
   }
 
-  /// Get configuration berdasarkan type
-  static _SnackBarConfig _getTypeConfig(BuildContext context,
+  /// Type → canonical background/foreground/icon. The foreground is the
+  /// contrast-safe on-status role, never a blanket white.
+  static _SnackBarConfig _getTypeConfig(
+    BuildContext context,
     AppSnackBarType type,
-    ColorScheme scheme,
   ) {
+    final status = context.statusColors;
     switch (type) {
       case AppSnackBarType.success:
         return _SnackBarConfig(
-          color: context.statusColors.success,
+          background: status.success,
+          foreground: status.onSuccess,
           icon: Icons.check_circle_outline,
         );
       case AppSnackBarType.error:
         return _SnackBarConfig(
-          color: context.statusColors.error,
+          background: status.error,
+          foreground: status.onError,
           icon: Icons.error_outline,
-        );
-      case AppSnackBarType.info:
-        return _SnackBarConfig(
-          // Same canonical red value via the scheme role (info uses the
-          // brand red by product convention — hue unchanged).
-          color: scheme.primary,
-          icon: Icons.info_outline,
         );
       case AppSnackBarType.warning:
         return _SnackBarConfig(
-          color: context.statusColors.warning,
+          background: status.warning,
+          foreground: status.onWarning,
           icon: Icons.warning_amber_outlined,
+        );
+      case AppSnackBarType.info:
+        return _SnackBarConfig(
+          background: status.info,
+          foreground: status.onInfo,
+          icon: Icons.info_outline,
         );
     }
   }
 }
 
-/// Types untuk snackbar
-enum AppSnackBarType { success, error, info, warning }
+/// The FOUR canonical Snackbar semantic types. No fifth type may be added —
+/// "action required" is an action on a type, not a type; "coming soon" is not
+/// a semantic at all.
+enum AppSnackBarType { success, error, warning, info }
 
-/// Internal config untuk snackbar
+/// An intentional Snackbar action. Only provide one when the interaction
+/// genuinely needs it.
+class AppSnackBarAction {
+  const AppSnackBarAction({required this.label, required this.onPressed});
+
+  final String label;
+  final VoidCallback onPressed;
+}
+
 class _SnackBarConfig {
-  final Color color;
-  final IconData icon;
+  const _SnackBarConfig({
+    required this.background,
+    required this.foreground,
+    required this.icon,
+  });
 
-  const _SnackBarConfig({required this.color, required this.icon});
+  final Color background;
+  final Color foreground;
+  final IconData icon;
 }

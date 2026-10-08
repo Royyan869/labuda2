@@ -37,7 +37,6 @@ import 'package:labuda/domains/commerce/catalog/shared/domain/entities/commerce_
 // EvaluateAuctionViewerCapabilities on GET /api/v1/auctions/:id.
 // The legacy P11 DecisionContract (decision/allowed_actions) was a phantom
 // contract — the auction backend never emitted it — and is PURGED.
-// Buyer bid-position authority lives in GET /api/v1/bidding.
 
 /// Media type enum for auction media
 enum AuctionMediaType { photo, video }
@@ -113,7 +112,7 @@ class Auction {
   final String? sellerFarmName;
   final String? sellerAvatar;
 
-  /// Buyer-facing origin summary of the listing's sender address
+  /// Buyer-facing origin summary of the listing's primary address
   /// ("City, Province"). Detail payloads only — null on discovery payloads,
   /// and the seller card HIDES the line rather than fabricating one.
   final String? publicOriginLine;
@@ -202,18 +201,18 @@ class Auction {
   final AuctionStatus status;
   final String? winnerId;
   //
-  // PURGED counters: totalBidders/totalViews — the auction wire never emitted
-  // total_bids/views_count, so these were always-zero fake truths. Bid count
-  // on the detail screen derives from the live bid stream (bids.length).
+  // PURGED counter: totalBidders — the auction wire never emitted total_bids,
+  // so it was an always-zero fake truth. Bid count on the detail screen derives
+  // from the live bid stream (bids.length).
 
   final DateTime createdAt;
   final DateTime? updatedAt;
   //
   // PURGED: version (optimistic-locking hint the backend never emitted) and
   // location (AuctionLocation — never hydrated from any wire payload).
-
-  // Shipping options
-  final String? farmAddressId;
+  //
+  // There is no product-level origin address: every product's origin is the
+  // seller account's primary address, resolved by the backend.
 
   // Checkout integration - optional reference to product for checkout flow
   final String? productId;
@@ -244,7 +243,6 @@ class Auction {
     this.winnerId,
     required this.createdAt,
     this.updatedAt,
-    this.farmAddressId,
     this.productId,
   });
 
@@ -293,6 +291,11 @@ class Auction {
   /// Backend determines this via winnerId field, not status
   bool get isExpired => status == AuctionStatus.ended && winnerId == null;
 
+  /// Relist (republish) gate — mirrors the backend: an auction that ended
+  /// without a bid/winner/order, or one that lapsed before activation.
+  /// The backend re-checks and remains the final authority.
+  bool get isRelistable => isExpired || status == AuctionStatus.lapsed;
+
   /// Canonical settlement deadline derivation (backend rule:
   /// Auction.SettlementDeadline() = end_at + 24h). There is NO stored deadline
   /// authority — backend derives it and so does the client, from the same
@@ -333,7 +336,6 @@ class Auction {
     String? winnerId,
     DateTime? createdAt,
     DateTime? updatedAt,
-    String? farmAddressId,
     String? productId,
   }) {
     return Auction(
@@ -362,7 +364,6 @@ class Auction {
       winnerId: winnerId ?? this.winnerId,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
-      farmAddressId: farmAddressId ?? this.farmAddressId,
       productId: productId ?? this.productId,
     );
   }

@@ -8,6 +8,7 @@ import 'package:labuda/domains/user/preference/saved_item/data/repositories/save
 import 'package:labuda/domains/user/preference/saved_item/data/repositories/saved_item_repository_provider.dart';
 import 'package:labuda/domains/user/preference/saved_item/models/saved_item_model.dart';
 import 'package:labuda/domains/user/preference/saved_item/screens/saved_item_screen.dart';
+import 'package:labuda/generated/app_localizations.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
 
 class _FakeAuthController extends AuthController {
@@ -186,7 +187,12 @@ Widget _wrap({
       if (navigationHandler != null)
         navigationHandlerProvider.overrideWithValue(navigationHandler),
     ],
-    child: MaterialApp(home: Scaffold(body: child)),
+    child: MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      locale: const Locale('id'),
+      home: Scaffold(body: child),
+    ),
   );
 }
 
@@ -211,6 +217,51 @@ void main() {
       expect(find.byIcon(Icons.bookmarks_outlined), findsOneWidget);
     });
 
+    testWidgets(
+      'filter empty is a different state than collection empty, and resets',
+      (tester) async {
+        final repository = _MemorySavedItemRepository(
+          initialItems: [
+            _forSaleItem(id: 'for-sale-1', title: 'For Sale Item'),
+          ],
+        );
+
+        await tester.pumpWidget(
+          _wrap(
+            repository: repository,
+            authState: AuthState.authenticated(
+              _authUser(id: 'buyer-filter-empty'),
+              emailVerified: true,
+            ),
+            child: const SavedItemScreen(),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // The account HAS a saved item → no empty state at all.
+        expect(find.text('Belum ada item yang disimpan'), findsNothing);
+
+        // Pick the Auction filter while only a For Sale item exists.
+        await tester.tap(find.byType(PopupMenuButton<String?>));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Auction'));
+        await tester.pumpAndSettle();
+
+        // Filter empty: distinct copy + ONE reset action, never the
+        // collection-empty copy.
+        expect(find.text('Tidak Ada Hasil'), findsOneWidget);
+        expect(find.text('Belum ada item yang disimpan'), findsNothing);
+        expect(find.widgetWithText(FilledButton, 'Atur Ulang'), findsOneWidget);
+
+        // The reset really clears the filter and brings the data back.
+        await tester.tap(find.widgetWithText(FilledButton, 'Atur Ulang'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Tidak Ada Hasil'), findsNothing);
+        expect(find.text('For Sale Item'), findsOneWidget);
+      },
+    );
+
     testWidgets('load failure shows error state and retry refetches', (
       tester,
     ) async {
@@ -228,15 +279,21 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Data belum bisa dimuat.'), findsOneWidget);
+      // CANONICAL page-level error (PageErrorState): localized safe copy,
+      // never the raw provider error.
+      expect(find.text('Terjadi Kesalahan'), findsOneWidget);
+      expect(
+        find.text('Data belum bisa dimuat. Silakan coba lagi.'),
+        findsOneWidget,
+      );
       expect(find.text('Belum ada item yang disimpan'), findsNothing);
       expect(find.byIcon(Icons.error_outline), findsOneWidget);
 
       repository.failOnLoad = false;
-      await tester.tap(find.text('Try Again'));
+      await tester.tap(find.text('Coba Lagi'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Data belum bisa dimuat.'), findsNothing);
+      expect(find.text('Terjadi Kesalahan'), findsNothing);
       expect(find.text('Belum ada item yang disimpan'), findsOneWidget);
       expect(find.byIcon(Icons.bookmarks_outlined), findsOneWidget);
     });

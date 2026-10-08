@@ -98,9 +98,10 @@ func ValidatePreparationTime(pt *string) error {
 	}
 }
 
-// ProductContentPatch holds editable Product content for draft update.
+// ProductContentPatch holds the canonical seller-editable Product content
+// (title/description/media/koi attributes/preparation).
 // Nil means absent (preserve), non-nil means set (including empty slice for clear).
-// FarmAddressID, SellerID, ID, SellingSurface are intentionally absent (creation-only/immutable).
+// SellerID, ID, SellingSurface are intentionally absent (creation-only/immutable).
 type ProductContentPatch struct {
 	Title           *string
 	Description     *string

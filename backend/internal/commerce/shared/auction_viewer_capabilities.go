@@ -63,7 +63,7 @@ func EvaluateAuctionViewerCapabilities(input AuctionViewerCapabilitiesInput) Vie
 
 func isAuctionEditableStatus(status string) bool {
 	switch strings.TrimSpace(status) {
-	case auctionStatusDraft, auctionStatusScheduled:
+	case auctionStatusScheduled:
 		return true
 	default:
 		return false

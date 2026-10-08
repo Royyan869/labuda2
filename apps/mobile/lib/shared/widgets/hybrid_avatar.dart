@@ -19,12 +19,16 @@ import 'package:labuda/shared/shared.dart';
 ///
 /// Widget ini otomatis handle semua fallback dan caching
 class HybridAvatar extends ConsumerWidget {
-  final String userId;
-  final String?
-  savedAvatarUrl; // dari post.authorAvatarUrl atau request.userAvatarUrl
+  final String userId;  final String? savedAvatarUrl; // dari post.authorAvatarUrl atau request.userAvatarUrl
   final double size;
   final VoidCallback? onTap;
   final bool showOnlineStatus;
+
+  /// DECODE / CACHE IDENTITY — forwarded to [ProfileAvatar]. Null keeps the
+  /// size-derived default; callers that animate [size] (Profile header
+  /// collapse) must pass a fixed value so the image provider identity never
+  /// moves with the animation.
+  final int? cacheWidth;
 
   const HybridAvatar({
     super.key,
@@ -33,6 +37,7 @@ class HybridAvatar extends ConsumerWidget {
     this.size = 36,
     this.onTap,
     this.showOnlineStatus = false,
+    this.cacheWidth,
   });
 
   /// Factory untuk post header
@@ -111,6 +116,7 @@ class HybridAvatar extends ConsumerWidget {
           size: size,
           imageUrl: finalAvatarUrl,
           onTap: onTap,
+          cacheWidth: cacheWidth,
         );
 
         // Return with online status dot if enabled

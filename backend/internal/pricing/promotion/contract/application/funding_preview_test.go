@@ -111,6 +111,7 @@ func TestPreviewFunding_SufficientBalance(t *testing.T) {
 	preview, err := h.svc.PreviewFunding(context.Background(), application.CreatePromotionInput{
 		SellerID:     seller,
 		Kind:         entity.KindInternal,
+		Targets:      []application.PromotionTargetInput{{TargetType: "for_sale", TargetID: uuid.New()}},
 		BudgetRupiah: 30_000,
 		DurationDays: 3,
 	})
@@ -141,6 +142,7 @@ func TestPreviewFunding_ExactBalance(t *testing.T) {
 	preview, err := h.svc.PreviewFunding(context.Background(), application.CreatePromotionInput{
 		SellerID:     seller,
 		Kind:         entity.KindInternal,
+		Targets:      []application.PromotionTargetInput{{TargetType: "for_sale", TargetID: uuid.New()}},
 		BudgetRupiah: 30_000,
 		DurationDays: 3,
 	})
@@ -171,6 +173,7 @@ func TestPreviewFunding_InsufficientBalance(t *testing.T) {
 	preview, err := h.svc.PreviewFunding(context.Background(), application.CreatePromotionInput{
 		SellerID:     seller,
 		Kind:         entity.KindInternal,
+		Targets:      []application.PromotionTargetInput{{TargetType: "for_sale", TargetID: uuid.New()}},
 		BudgetRupiah: 45_000,
 		DurationDays: 3,
 	})
@@ -211,6 +214,7 @@ func TestPreviewFunding_NoAllocationMutation(t *testing.T) {
 	preview, err := h.svc.PreviewFunding(context.Background(), application.CreatePromotionInput{
 		SellerID:     seller,
 		Kind:         entity.KindInternal,
+		Targets:      []application.PromotionTargetInput{{TargetType: "for_sale", TargetID: uuid.New()}},
 		BudgetRupiah: 20_000,
 		DurationDays: 2,
 	})
@@ -253,6 +257,7 @@ func TestPreviewFunding_ZeroBalance(t *testing.T) {
 	preview, err := h.svc.PreviewFunding(context.Background(), application.CreatePromotionInput{
 		SellerID:     seller,
 		Kind:         entity.KindInternal,
+		Targets:      []application.PromotionTargetInput{{TargetType: "for_sale", TargetID: uuid.New()}},
 		BudgetRupiah: 15_000,
 		DurationDays: 1,
 	})
@@ -281,6 +286,7 @@ func TestPreviewFunding_BudgetBelowMinimum(t *testing.T) {
 	_, err := h.svc.PreviewFunding(context.Background(), application.CreatePromotionInput{
 		SellerID:     seller,
 		Kind:         entity.KindInternal,
+		Targets:      []application.PromotionTargetInput{{TargetType: "for_sale", TargetID: uuid.New()}},
 		BudgetRupiah: 5_000,
 		DurationDays: 1,
 	})
@@ -302,6 +308,7 @@ func TestPreviewFunding_InvalidInputs(t *testing.T) {
 	_, err := h.svc.PreviewFunding(context.Background(), application.CreatePromotionInput{
 		SellerID:     uuid.Nil,
 		Kind:         entity.KindInternal,
+		Targets:      []application.PromotionTargetInput{{TargetType: "for_sale", TargetID: uuid.New()}},
 		BudgetRupiah: 10_000,
 		DurationDays: 1,
 	})
@@ -320,6 +327,7 @@ func TestPreviewFunding_InvalidInputs(t *testing.T) {
 	_, err = h.svc.PreviewFunding(context.Background(), application.CreatePromotionInput{
 		SellerID:     seller,
 		Kind:         entity.KindInternal,
+		Targets:      []application.PromotionTargetInput{{TargetType: "for_sale", TargetID: uuid.New()}},
 		BudgetRupiah: 0,
 		DurationDays: 1,
 	})
@@ -329,8 +337,77 @@ func TestPreviewFunding_InvalidInputs(t *testing.T) {
 	_, err = h.svc.PreviewFunding(context.Background(), application.CreatePromotionInput{
 		SellerID:     seller,
 		Kind:         entity.KindInternal,
+		Targets:      []application.PromotionTargetInput{{TargetType: "for_sale", TargetID: uuid.New()}},
 		BudgetRupiah: 10_000,
 		DurationDays: 0,
 	})
 	require.ErrorIs(t, err, application.ErrPromotionDurationInvalid)
+}
+
+// ============================================================================
+// SCOPE 1: internal 30-day maximum, external unbounded (pre-payment gate)
+// ============================================================================
+
+func TestPreviewFunding_InternalDurationMaximum(t *testing.T) {
+	h := newPreviewHarness(t)
+	h.seedConfig(t, 7500, 10_000)
+
+	seller := uuid.New()
+	h.fundSeller(t, seller, 1_000_000)
+
+	// internal + 30 days accepted.
+	_, err := h.svc.PreviewFunding(context.Background(), application.CreatePromotionInput{
+		SellerID:     seller,
+		Kind:         entity.KindInternal,
+		Targets:      []application.PromotionTargetInput{{TargetType: "for_sale", TargetID: uuid.New()}},
+		BudgetRupiah: 500_000,
+		DurationDays: 30,
+	})
+	require.NoError(t, err)
+
+	// internal + 31 days rejected before payment.
+	_, err = h.svc.PreviewFunding(context.Background(), application.CreatePromotionInput{
+		SellerID:     seller,
+		Kind:         entity.KindInternal,
+		Targets:      []application.PromotionTargetInput{{TargetType: "for_sale", TargetID: uuid.New()}},
+		BudgetRupiah: 500_000,
+		DurationDays: 31,
+	})
+	require.ErrorIs(t, err, application.ErrPromotionDurationInvalid)
+
+	// external + 31 days remains allowed (no 30-day business maximum).
+	_, err = h.svc.PreviewFunding(context.Background(), application.CreatePromotionInput{
+		SellerID:     seller,
+		Kind:         entity.KindExternal,
+		Targets:      []application.PromotionTargetInput{{TargetType: "external_product", TargetID: uuid.New()}},
+		BudgetRupiah: 500_000,
+		DurationDays: 31,
+	})
+	require.NoError(t, err)
+}
+
+// ============================================================================
+// SCOPE 1: estimated impressions present pre-payment (canonical calculator)
+// ============================================================================
+
+func TestPreviewFunding_EstimatedImpressionsCanonical(t *testing.T) {
+	h := newPreviewHarness(t)
+	h.seedConfig(t, 7500, 10_000)
+
+	seller := uuid.New()
+	h.fundSeller(t, seller, 50_000)
+
+	preview, err := h.svc.PreviewFunding(context.Background(), application.CreatePromotionInput{
+		SellerID:     seller,
+		Kind:         entity.KindInternal,
+		Targets:      []application.PromotionTargetInput{{TargetType: "for_sale", TargetID: uuid.New()}},
+		BudgetRupiah: 30_000,
+		DurationDays: 3,
+	})
+	require.NoError(t, err)
+
+	// Must equal the single canonical calculator (no second formula).
+	want, err := finance.PromotionEstimatedImpressions(30_000, 7500)
+	require.NoError(t, err)
+	require.Equal(t, want, preview.EstimatedImpressions)
 }

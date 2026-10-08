@@ -11,11 +11,11 @@ import (
 	"github.com/stretchr/testify/require"
 
 	forsaleentity "github.com/labuda/backend/internal/commerce/forsale/entity"
-	productEntity "github.com/labuda/backend/internal/commerce/product/entity"
-	productInfraRepo "github.com/labuda/backend/internal/commerce/product/infrastructure/repository"
 	forsalerepo "github.com/labuda/backend/internal/commerce/forsale/infrastructure/repository"
 	orderentity "github.com/labuda/backend/internal/commerce/order/entity"
 	orderrepo "github.com/labuda/backend/internal/commerce/order/infrastructure/repository"
+	productEntity "github.com/labuda/backend/internal/commerce/product/entity"
+	productInfraRepo "github.com/labuda/backend/internal/commerce/product/infrastructure/repository"
 	"github.com/labuda/backend/pkg/db"
 	"github.com/labuda/backend/pkg/money"
 	"github.com/labuda/backend/pkg/testdb"
@@ -78,32 +78,28 @@ func seedFPS002PendingOrder(t *testing.T, ctx context.Context, tdb *testdb.TestD
 	var listingID uuid.UUID
 	require.NoError(t, tdb.WithTx(ctx, func(tx db.Tx) error {
 		listing_product := &productEntity.Product{
-	SellerID: sellerID,
-	Title: "FPS-002",
-	Description: "test",
-	MediaURLs: []string{},
-	Variety: "Kohaku",
-	SizeCm: nil,
-	AgeMonths: nil,
-	Gender: nil,
-	Breeder: nil,
-	Bloodline: nil,
-	Certificates: []string{},
-	FarmAddressID: nil,
-	PreparationTime: string(forsaleentity.PreparationTime1To3Days),
-	SellingSurface: productEntity.SellingSurfaceForSale,
-}
-	productRepo := productInfraRepo.NewProductRepository()
-	if err := productRepo.Create(ctx, tx, listing_product); err != nil {
-		return err
-	}
-	listing, err := forsaleentity.NewForSaleSurface(sellerID, money.New(50000), 1, false, forsaleentity.ForSaleVisibilityPublic)
-	listing.ProductID = listing_product.ID
-	listing.Product = listing_product
-		if err != nil {
+			SellerID:        sellerID,
+			Title:           "FPS-002",
+			Description:     "test",
+			MediaURLs:       []productEntity.ProductMedia{},
+			Variety:         "Kohaku",
+			SizeCm:          nil,
+			AgeMonths:       nil,
+			Gender:          nil,
+			Breeder:         nil,
+			Bloodline:       nil,
+			Certificates:    []string{},
+			PreparationTime: string(forsaleentity.PreparationTime1To3Days),
+			SellingSurface:  productEntity.SellingSurfaceForSale,
+		}
+		productRepo := productInfraRepo.NewProductRepository()
+		if err := productRepo.Create(ctx, tx, listing_product); err != nil {
 			return err
 		}
-		if err := listing.Publish(); err != nil {
+		listing, err := forsaleentity.NewForSaleSurface(sellerID, money.New(50000), 1, false)
+		listing.ProductID = listing_product.ID
+		listing.Product = listing_product
+		if err != nil {
 			return err
 		}
 		if err := listingRepo.Create(ctx, tx, listing); err != nil {

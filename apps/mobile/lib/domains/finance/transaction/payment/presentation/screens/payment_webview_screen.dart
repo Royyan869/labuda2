@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:labuda/core/src/theme/app_theme.dart';
@@ -36,6 +37,15 @@ import 'package:labuda/core/src/theme/app_theme.dart';
 /// NEVER settles, confirms, or marks any payment — settlement happens
 /// exclusively through the backend (Midtrans webhook → settlement pipeline,
 /// plus the discovery/reconciliation workers).
+///
+/// RESULT CONTRACT (returned to the awaiting `context.push`):
+/// - `true`  → the gateway finish redirect was reached (payment processed /
+///   continued). The caller may proceed to backend status verification.
+/// - `false` → the buyer closed/cancelled the payment (close button).
+/// - `null`  → the buyer left via system back without finishing.
+/// Callers MUST treat anything other than `true` as a cancellation and return
+/// the buyer to the surface that initiated payment (e.g. Checkout) — never to
+/// the payment-result polling screen.
 class PaymentWebviewScreen extends StatefulWidget {
   final String paymentUrl;
 
@@ -136,8 +146,8 @@ class _PaymentWebviewScreenState extends State<PaymentWebviewScreen> {
               // Gateway-side flow finished (user reached the Snap result →
               // redirect). Close immediately — the awaiting flow owns the
               // outcome and polls the backend. This pop NEVER implies a paid
-              // state.
-              if (mounted) Navigator.of(context).pop();
+              // state. `true` signals completion to the awaiting caller.
+              if (mounted) context.pop(true);
               return NavigationDecision.prevent;
             }
             if (_isExternalAppNavigation(request.url)) {
@@ -160,8 +170,8 @@ class _PaymentWebviewScreenState extends State<PaymentWebviewScreen> {
       appBar: AppBar(
         title: const Text('Pembayaran'),
         leading: IconButton(
-          icon: const Icon(Icons.close),
-          onPressed: () => Navigator.of(context).pop(),
+          icon: const Icon(Icons.close, semanticLabel: 'Tutup'),
+          onPressed: () => context.pop(false),
         ),
       ),
       body: Stack(
@@ -217,8 +227,7 @@ class _ExternalAppGuidanceBannerState
               child: Text(
                 'Untuk GoPay/OVO/DANA/ShopeePay, aplikasi terkait akan dibuka. '
                 'Selesaikan pembayaran di sana, lalu kembali ke Labuda.',
-                style: TextStyle(
-                  fontSize: AppType.s12,
+                style: context.typeRoles.labelMicro.copyWith(
                   color: Theme.of(context).colorScheme.onSecondaryContainer,
                 ),
               ),
@@ -229,6 +238,7 @@ class _ExternalAppGuidanceBannerState
                 Icons.close,
                 size: AppIconSize.inlineGlyph,
                 color: Theme.of(context).colorScheme.onSecondaryContainer,
+                semanticLabel: 'Tutup',
               ),
             ),
           ],

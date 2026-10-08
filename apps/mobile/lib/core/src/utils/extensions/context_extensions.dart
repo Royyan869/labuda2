@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/shared/widgets/app_snackbar.dart';
 
 extension BuildContextExtensions on BuildContext {
   // Theme access
@@ -28,107 +27,19 @@ extension BuildContextExtensions on BuildContext {
   bool get isMediumScreen => screenWidth >= 600 && screenWidth < 1200;
   bool get isLargeScreen => screenWidth >= 1200;
 
-  // Navigation - Removed pop() method to avoid conflict with GoRouter extension
-  // Use NavigationHandler from ServiceLocator for navigation instead
+  // Navigation helpers are NOT hosted here: GoRouter's own `context.pop()`
+  // extension is the ONE pop authority. The former `popUntil` / `popToRoot`
+  // wrappers had zero consumers and are purged.
 
-  void popUntil(bool Function(Route<dynamic>) predicate) {
-    Navigator.of(this).popUntil(predicate);
-  }
+  // Snackbar presentation lives in its ONE canonical widget authority
+  // (`shared/widgets/app_snackbar.dart`). The former convenience methods here
+  // had no colour decision of their own and were purged — callers pick a
+  // semantic type on that authority directly.
 
-  void popToRoot() => Navigator.of(this).popUntil((route) => route.isFirst);
-
-  // Snackbar — delegates to the canonical AppSnackBar authority. There is no
-  // local colour decision here: callers pick the semantic type explicitly
-  // (showErrorSnackBar / showSuccessSnackBar) or get the neutral info style.
-  void showSnackBar(
-    String message, {
-    Duration duration = const Duration(seconds: 3),
-  }) {
-    AppSnackBar.showInfo(this, message, duration: duration);
-  }
-
-  void showErrorSnackBar(String message) {
-    AppSnackBar.showError(this, message);
-  }
-
-  void showSuccessSnackBar(String message) {
-    AppSnackBar.showSuccess(this, message);
-  }
-
-  // Dialog
-  Future<T?> showAlertDialog<T>({
-    required String title,
-    required String content,
-    String confirmText = 'OK',
-    String? cancelText,
-    VoidCallback? onConfirm,
-    VoidCallback? onCancel,
-  }) {
-    return showDialog<T>(
-      context: this,
-      builder: (context) => AlertDialog(
-        title: Text(title),
-        content: Text(content),
-        actions: [
-          if (cancelText != null)
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                onCancel?.call();
-              },
-              child: Text(cancelText),
-            ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              onConfirm?.call();
-            },
-            child: Text(confirmText),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<bool?> showConfirmDialog({
-    required String title,
-    required String content,
-    String confirmText = 'Ya',
-    String cancelText = 'Tidak',
-  }) {
-    return showDialog<bool>(
-      context: this,
-      builder: (context) => AlertDialog(
-        title: Text(title),
-        content: Text(content),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text(cancelText),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text(confirmText),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Loading indicator
-  void showLoadingDialog() {
-    showDialog(
-      context: this,
-      barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator()),
-    );
-  }
-
-  void hideLoadingDialog() {
-    if (Navigator.of(this).canPop()) {
-      Navigator.of(this).pop();
-    }
-  }
+  // Dialog presentation lives in the canonical `AppDialog` authority
+  // (`shared/widgets/app_dialog.dart`). The former competing extension helpers
+  // here had ZERO consumers and are purged — a second dialog authority is
+  // exactly the split this file is not allowed to host.
 
   // Focus
   void unfocus() => FocusScope.of(this).unfocus();

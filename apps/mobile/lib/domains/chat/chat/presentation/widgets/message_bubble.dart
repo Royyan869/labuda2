@@ -5,6 +5,7 @@ import 'package:labuda/core/src/localization/l10n_extension.dart';
 // dependency surface explicit. The chat-entities `MessageStatus` consumed by
 // this widget must stay the single MessageStatus in scope.
 import 'package:labuda/core/src/theme/app_theme.dart';
+import 'package:labuda/shared/utils/app_formatters.dart';
 import 'package:labuda/core/media/media_upload_orchestrator.dart';
 import 'package:labuda/domains/chat/chat/domain/entities/chat_entities.dart';
 import 'package:labuda/domains/chat/chat/presentation/utils/chat_identity_display.dart';
@@ -31,17 +32,7 @@ class MessageBubble extends ConsumerWidget {
   final bool showAvatar;
   final VoidCallback? onLongPress;
   final VoidCallback? onTap;
-  final VoidCallback? onNegotiate;
   final VoidCallback? onPurchase;
-
-  /// CTA "Beli Sekarang" on the resource projection card. Wired by the chat
-  /// screen, which resolves checkout navigation (product id + trust gate).
-  final VoidCallback? onProjectionBuy;
-
-  /// Shipping-quote (ongkir) entry on the projection card — owner-only,
-  /// gated by the server projection's canManage. The screen forwards the
-  /// tap to the Shipping domain; chat owns no shipping logic.
-  final VoidCallback? onQuoteShipping;
 
   /// DEAL → checkout intent from the commerce-owned negotiation proposal
   /// card. Wired by the chat screen, which resolves checkout (product id,
@@ -53,6 +44,11 @@ class MessageBubble extends ConsumerWidget {
   /// failure never ends as a snackbar the user has already missed.
   final VoidCallback? onRetry;
 
+  /// Product-bubble `⋮` action menu. Offered only when the surface decides the
+  /// bubble refers to a product AND the viewer holds the seller capability; it
+  /// is NEVER a primary CTA on the card. Null hides the affordance entirely.
+  final VoidCallback? onProductMenu;
+
   const MessageBubble({
     super.key,
     required this.message,
@@ -60,13 +56,11 @@ class MessageBubble extends ConsumerWidget {
     this.showAvatar = true,
     this.onLongPress,
     this.onTap,
-    this.onNegotiate,
     this.onPurchase,
-    this.onProjectionBuy,
-    this.onQuoteShipping,
     this.onDealBuy,
     this.currentUserId,
     this.onRetry,
+    this.onProductMenu,
   });
 
   @override
@@ -122,9 +116,7 @@ class MessageBubble extends ConsumerWidget {
             _buildHiddenMessage(context, textColor)
           else ...[
             if (message.replyToId != null) _buildReplyPreview(context),
-            if (message.hasAttachment) _buildAttachment(context, ref),
-            if (message.resourceProjection != null)
-              _buildResourceProjection(context),
+            _buildProductContext(context, ref),
             if (message.type == MessageType.text)
               _buildTextMessage(context, textColor)
             else if (message.type == MessageType.image ||
@@ -138,6 +130,50 @@ class MessageBubble extends ConsumerWidget {
           _buildMessageFooter(context, textColor),
         ],
       ),
+    );
+  }
+
+  /// Product-context section of the bubble: the resource card the message
+  /// refers to (canonical projection or transport snapshot).
+  ///
+  /// When the surface offers the seller-only product action, a `⋮` (More)
+  /// affordance is overlaid on the card's top-right corner. It is deliberately
+  /// NOT a CTA inside the card: the card stays display/navigation only and the
+  /// product itself is the entry context.
+  Widget _buildProductContext(BuildContext context, WidgetRef ref) {
+    final section = Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (message.hasAttachment) _buildAttachment(context, ref),
+        if (message.resourceProjection != null)
+          _buildResourceProjection(context),
+      ],
+    );
+
+    if (onProductMenu == null) return section;
+
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        section,
+        Positioned(
+          top: 0,
+          right: 0,
+          child: IconButton(
+            onPressed: onProductMenu,
+            iconSize: AppIconSize.action,
+            visualDensity: VisualDensity.compact,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+            tooltip: 'Opsi produk',
+            icon: const Icon(
+              Icons.more_vert,
+              semanticLabel: 'Opsi produk',
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -267,7 +303,7 @@ class MessageBubble extends ConsumerWidget {
       children: [
         const Icon(Icons.attach_file, size: AppIconSize.action),
         const SizedBox(width: 8),
-        Flexible(child: Text(fileName, style: const TextStyle(fontSize: AppType.s14))),
+        Flexible(child: Text(fileName, style: context.typeRoles.bodyDense)),
         const SizedBox(width: 8),
         const Icon(Icons.download, size: AppIconSize.action),
       ],
@@ -284,8 +320,7 @@ class MessageBubble extends ConsumerWidget {
         ),
         child: Text(
           message.content,
-          style: TextStyle(
-            fontSize: AppType.s12,
+          style: context.typeRoles.labelMicro.copyWith(
             color: Theme.of(context).colorScheme.onSurfaceVariant,
             fontStyle: FontStyle.italic,
           ),
@@ -325,8 +360,7 @@ class MessageBubble extends ConsumerWidget {
               children: [
                 Text(
                   _senderLabelForReplyPreview(),
-                  style: TextStyle(
-                    fontSize: AppType.s12,
+                  style: context.typeRoles.labelMicro.copyWith(
                     color: replyInk,
                     fontWeight: FontWeight.bold,
                   ),
@@ -334,8 +368,7 @@ class MessageBubble extends ConsumerWidget {
                 const SizedBox(height: 2),
                 Text(
                   message.content,
-                  style: TextStyle(
-                    fontSize: AppType.s12,
+                  style: context.typeRoles.labelMicro.copyWith(
                     color: replyInk,
                   ),
                   maxLines: 2,
@@ -410,7 +443,6 @@ class MessageBubble extends ConsumerWidget {
           attachment: message.shippingQuote!,
           isFromCurrentUser: isFromUser,
           onTap: onTap,
-          onNegotiate: onNegotiate,
           onPurchase: onPurchase,
           currentUserId: currentUserId,
         ),
@@ -425,7 +457,6 @@ class MessageBubble extends ConsumerWidget {
           attachment: message.location!,
           isFromCurrentUser: isFromUser,
           onTap: onTap,
-          onNegotiate: onNegotiate,
           onPurchase: onPurchase,
           currentUserId: currentUserId,
         ),
@@ -442,8 +473,6 @@ class MessageBubble extends ConsumerWidget {
       padding: const EdgeInsets.only(bottom: AppMetrics.p8),
       child: ChatResourceProjectionCard(
         resourceProjection: message.resourceProjection!,
-        onBuy: onProjectionBuy,
-        onQuoteShipping: onQuoteShipping,
       ),
     );
   }
@@ -453,9 +482,8 @@ class MessageBubble extends ConsumerWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          _formatTime(message.createdAt),
-          style: TextStyle(
-            fontSize: AppType.s12,
+          AppFormatters.formatTime(message.createdAt),
+          style: context.typeRoles.labelMicro.copyWith(
             color: textColor.withValues(alpha: 0.7),
           ),
         ),
@@ -526,8 +554,7 @@ class MessageBubble extends ConsumerWidget {
       padding: const EdgeInsets.only(left: AppMetrics.p4, top: AppMetrics.p4),
       child: Text(
         displayName,
-        style: TextStyle(
-          fontSize: AppType.s12,
+        style: context.typeRoles.labelMicro.copyWith(
           color: Theme.of(context).colorScheme.onSurfaceVariant,
           fontStyle: senderDegraded ? FontStyle.italic : FontStyle.normal,
         ),
@@ -552,11 +579,5 @@ class MessageBubble extends ConsumerWidget {
     if (sender.isNotEmpty) return sender;
     if (message.type == MessageType.system) return message.senderName;
     return '';
-  }
-
-  String _formatTime(DateTime dateTime) {
-    final hour = dateTime.hour.toString().padLeft(2, '0');
-    final minute = dateTime.minute.toString().padLeft(2, '0');
-    return '$hour:$minute';
   }
 }

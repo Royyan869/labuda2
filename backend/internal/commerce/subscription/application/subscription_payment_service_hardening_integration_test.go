@@ -64,13 +64,11 @@ func (onboardingSuccessSellerRepo) GetByUserID(context.Context, db.Tx, uuid.UUID
 
 type onboardingSuccessAddressRepo struct{}
 
-func (onboardingSuccessAddressRepo) GetByUserIDFiltered(context.Context, db.Tx, uuid.UUID, string) ([]*addressEntity.Address, error) {
-	return []*addressEntity.Address{
-		{
-			ID:     uuid.New(),
-			UserID: uuid.New(),
-			Tags:   []addressEntity.AddressTag{addressEntity.TagSender},
-		},
+func (onboardingSuccessAddressRepo) GetPrimaryByUserID(context.Context, db.Tx, uuid.UUID) (*addressEntity.Address, error) {
+	return &addressEntity.Address{
+		ID:        uuid.New(),
+		UserID:    uuid.New(),
+		IsPrimary: true,
 	}, nil
 }
 
@@ -139,7 +137,6 @@ func newRenewalHarness(t *testing.T) *renewalHarness {
 		onboardingSvc,
 		financeSvc,
 		outboxRepo,
-		subRepo,
 	)
 
 	require.NoError(t, tdb.WithTx(ctx, func(tx db.Tx) error {
@@ -147,9 +144,6 @@ func newRenewalHarness(t *testing.T) *renewalHarness {
 			return err
 		}
 		if err := seedLedgerAccounts(ctx, tx); err != nil {
-			return err
-		}
-		if err := seedSubscriptionConfig(ctx, tx); err != nil {
 			return err
 		}
 		return nil
@@ -231,19 +225,6 @@ func seedLedgerAccounts(ctx context.Context, tx db.Tx) error {
 	return nil
 }
 
-func seedSubscriptionConfig(ctx context.Context, tx db.Tx) error {
-	if _, err := tx.Exec(ctx, `
-		INSERT INTO seller_subscription_configs (
-			id, yearly_fee_rupiah, duration_days, renewal_reminder_days, enabled, created_at
-		)
-		VALUES ('a27309fc-586a-4890-a60a-d867db9a03a9', 70000, 365, 7, true, NOW())
-		ON CONFLICT (id) DO NOTHING
-	`); err != nil {
-		return fmt.Errorf("seed subscription config: %w", err)
-	}
-	return nil
-}
-
 func (h *renewalHarness) createSettledPayment(t *testing.T, paidAt time.Time, suffix string, includePaidAt bool) uuid.UUID {
 	t.Helper()
 
@@ -253,16 +234,18 @@ func (h *renewalHarness) createSettledPayment(t *testing.T, paidAt time.Time, su
 	var paymentID uuid.UUID
 	require.NoError(t, h.tdb.WithTx(ctx, func(tx db.Tx) error {
 		referenceID := uuid.New()
+		durationDays := 365
 		payment, err := h.paymentRepo.CreatePayment(ctx, tx, paymentRepoImpl.CreatePaymentInput{
-			UserID:           h.userID,
-			PaymentNumber:    "PN-" + suffix + "-" + uuid.NewString(),
-			MidtransOrderID:  "renewal-" + suffix + "-" + uuid.NewString(),
-			GrossAmount:      money.New(70000),
-			ServiceFeeAmount: money.Zero(),
-			CoinsToUse:       0,
-			ReferenceType:    paymentRepoImpl.ReferenceTypeSubscription,
-			ReferenceID:      &referenceID,
-			ExpiredAt:        paidAt.Add(24 * time.Hour),
+			UserID:                   h.userID,
+			PaymentNumber:            "PN-" + suffix + "-" + uuid.NewString(),
+			MidtransOrderID:          "renewal-" + suffix + "-" + uuid.NewString(),
+			GrossAmount:              money.New(70000),
+			ServiceFeeAmount:         money.Zero(),
+			CoinsToUse:               0,
+			ReferenceType:            paymentRepoImpl.ReferenceTypeSubscription,
+			ReferenceID:              &referenceID,
+			ExpiredAt:                paidAt.Add(24 * time.Hour),
+			SubscriptionDurationDays: &durationDays,
 		})
 		if err != nil {
 			return err

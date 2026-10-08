@@ -3,6 +3,7 @@ package application
 import (
 	"context"
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/google/uuid"
@@ -424,6 +425,95 @@ func (s *Service) ListTickets(
 		return err
 	})
 	return tickets, err
+}
+
+// ListTicketsOrdered returns one page of the GLOBALLY ordered admin support
+// queue plus the truthful total. The canonical order is computed here on the
+// server over the FULL filtered set using the canonical SLA calculator, then
+// sliced — so page N is a slice of one global order and the client must not
+// re-sort. This makes the server the single ordering authority and guarantees
+// the displayed SLA matches the ordering. Order (owner-locked):
+//
+//  1. SLA breached/overdue first
+//  2. least remaining SLA time (urgency)
+//  3. business priority
+//  4. age
+//  5. stable id
+func (s *Service) ListTicketsOrdered(
+	ctx context.Context,
+	filter *supportRepo.TicketFilter,
+	limit, offset int,
+) ([]*entity.Ticket, int64, error) {
+	if limit <= 0 {
+		limit = DefaultTicketListLimit
+	}
+	if limit > MaxTicketListLimit {
+		limit = MaxTicketListLimit
+	}
+	if offset < 0 {
+		offset = 0
+	}
+
+	var (
+		page  []*entity.Ticket
+		total int64
+	)
+	err := s.db.WithTx(ctx, func(tx db.Tx) error {
+		all, err := s.repo.ListTicketsForOrdering(ctx, tx, filter)
+		if err != nil {
+			return err
+		}
+		total = int64(len(all))
+
+		ids := make([]uuid.UUID, len(all))
+		for i, t := range all {
+			ids[i] = t.ID
+		}
+		events, err := s.repo.ListStatusEventsForTickets(ctx, tx, ids)
+		if err != nil {
+			// Degraded but non-fatal: fall back to wall-clock SLA.
+			events = make(map[uuid.UUID][]*entity.Event)
+		}
+		firstResponses, err := s.repo.ListFirstAdminResponsesByTicketIDs(ctx, tx, ids)
+		if err != nil {
+			firstResponses = make(map[uuid.UUID]*time.Time)
+		}
+
+		type ranked struct {
+			ticket  *entity.Ticket
+			metrics entity.SLAMetrics
+		}
+		rankedList := make([]ranked, len(all))
+		now := time.Now()
+		for i, t := range all {
+			rankedList[i] = ranked{
+				ticket:  t,
+				metrics: t.ComputeSLAMetricsFromEvents(events[t.ID], firstResponses[t.ID]),
+			}
+		}
+
+		sort.SliceStable(rankedList, func(i, j int) bool {
+			return entity.SLAQueueLess(rankedList[i].ticket, rankedList[j].ticket, rankedList[i].metrics, rankedList[j].metrics, now)
+		})
+
+		start := offset
+		if start > len(rankedList) {
+			start = len(rankedList)
+		}
+		end := start + limit
+		if end > len(rankedList) {
+			end = len(rankedList)
+		}
+		page = make([]*entity.Ticket, 0, end-start)
+		for _, r := range rankedList[start:end] {
+			page = append(page, r.ticket)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, 0, err
+	}
+	return page, total, nil
 }
 
 // ListMyTickets lists tickets for a specific user.

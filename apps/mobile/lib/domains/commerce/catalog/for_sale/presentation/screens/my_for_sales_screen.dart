@@ -9,18 +9,37 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:labuda/core/core.dart';
+import 'package:labuda/domains/system/shared/domain/services/time_format_service.dart';
 import 'package:labuda/shared/widgets/app_snackbar.dart';
+import 'package:labuda/shared/widgets/empty_state.dart';
+import 'package:labuda/shared/widgets/loading_indicator.dart';
+import 'package:labuda/shared/widgets/page_error_state.dart';
 import 'package:labuda/shared/utils/media_extensions.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/domain/domain.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/presentation/providers/for_sale_providers.dart';
-import 'package:labuda/shared/widgets/app_image.dart';
+import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/seller_management_row.dart';
+
+/// Canonical My For Sale filter choices, in presentation order.
+///
+/// `null` is the synthetic "Semua Status" choice (no status restriction); the
+/// remaining entries are the canonical [ForSaleStatus] values. This list is the
+/// single source for tab identity, order, selected state and labels.
+const List<ForSaleStatus?> _kMyForSaleFilters = <ForSaleStatus?>[
+  null,
+  ForSaleStatus.active,
+  ForSaleStatus.sold,
+  ForSaleStatus.withdrawn,
+];
+
+String _myForSaleFilterLabel(ForSaleStatus? status) =>
+    status == null ? 'Semua Status' : status.displayName;
 
 /// My ForSales Screen
 ///
 /// Shows seller's own forSales with management actions:
 /// - View forSale details
 /// - Edit forSale
-/// - Change status (active/inactive/sold)
+/// - Change status (active/sold/withdrawn)
 /// - Delete forSale (soft delete - marks as withdrawn, hidden from default view)
 class MyForSalesScreen extends ConsumerStatefulWidget {
   const MyForSalesScreen({super.key});
@@ -29,14 +48,64 @@ class MyForSalesScreen extends ConsumerStatefulWidget {
   ConsumerState<MyForSalesScreen> createState() => _MyForSalesScreenState();
 }
 
-class _MyForSalesScreenState extends ConsumerState<MyForSalesScreen> {
-  /// Default to showing only active forSales (excludes withdrawn/deleted)
+class _MyForSalesScreenState extends ConsumerState<MyForSalesScreen>
+    with SingleTickerProviderStateMixin {
+  /// Default to showing only active forSales (excludes withdrawn/deleted).
+  /// This is the single canonical filter state; the tabs only mutate it.
   ForSaleStatus? _statusFilter = ForSaleStatus.active;
+
+  late final TabController _tabController;
+
+  int get _selectedFilterIndex => _kMyForSaleFilters.indexOf(_statusFilter);
 
   @override
   void initState() {
     super.initState();
-    // Initial data fetch will happen in build via provider
+    _tabController = TabController(
+      length: _kMyForSaleFilters.length,
+      initialIndex: _selectedFilterIndex,
+      vsync: this,
+    );
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  /// Single params authority for this management surface. Every read,
+  /// refresh, retry, and post-delete invalidation goes through this exact
+  /// key (page 1, pageSize 50, owner-inventory opt-in), so an invalidation
+  /// can never miss the watched provider via a mismatched page size.
+  ///
+  /// includeWithdrawn: true — this is the owner's own management surface,
+  /// so the status filter must be able to reach the canonical `withdrawn`
+  /// state. The default filter (active) still hides withdrawn items until
+  /// the seller asks for them.
+  SellerForSalesParams _params(String sellerId) => SellerForSalesParams(
+    sellerId: sellerId,
+    page: 1,
+    pageSize: 50,
+    includeWithdrawn: true,
+  );
+
+  /// Single canonical reload: initial load, pull-to-refresh, every retry,
+  /// and post-delete invalidation are this one operation. Failure is never
+  /// rethrown or rendered raw — it stays in the provider state and renders
+  /// as [PageErrorState] (no data yet) or the inline refresh banner
+  /// (existing data preserved).
+  Future<void> _reload(SellerForSalesParams params) async {
+    try {
+      // The reloaded collection reaches the screen through the provider
+      // state, not through this future — `.then((_) {})` adapts it to
+      // `Future<void>` so the `unused_result` contract is satisfied while
+      // failures still propagate to the `catch` below.
+      await ref.refresh(sellerForSalesProvider(params).future).then((_) {});
+    } catch (_) {
+      // No-op: the failure remains observable via async.hasError with the
+      // last-known-good collection preserved in async.value.
+    }
   }
 
   @override
@@ -49,112 +118,71 @@ class _MyForSalesScreenState extends ConsumerState<MyForSalesScreen> {
     }
 
     final sellerId = authState.user.id;
-
-    // Build params for fetching seller's forSales
-    final params = SellerForSalesParams(
-      sellerId: sellerId,
-      page: 1,
-      pageSize: 50,
-    );
-
+    final params = _params(sellerId);
     final forSalesAsync = ref.watch(sellerForSalesProvider(params));
+
+    // Last-known-good collection. Present once the first request settles —
+    // including during a refresh and after a failed refresh, where the
+    // previous value is kept alongside the in-flight/failed state.
+    final forSales = forSalesAsync.value ?? const <ForSale>[];
 
     return Scaffold(
       backgroundColor: scheme.surfaceContainerLowest,
       appBar: AppBar(
         title: const Text('For Sale Saya'),
-        actions: [
-          // Status filter dropdown
-          Padding(
-            padding: const EdgeInsets.only(right: AppMetrics.p16),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<ForSaleStatus>(
-                value: _statusFilter,
-                hint: const Text('Semua Status'),
-                icon: const Icon(Icons.filter_list),
-                onChanged: (status) {
-                  setState(() => _statusFilter = status);
-                },
-                items: [
-                  const DropdownMenuItem(
-                    value: null,
-                    child: Text('Semua Status'),
-                  ),
-                  ...ForSaleStatus.values.map(
-                    (status) => DropdownMenuItem(
-                      value: status,
-                      child: Text(status.displayName),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
+        bottom: TabBar(
+          controller: _tabController,
+          isScrollable: true,
+          tabs: [
+            for (final filter in _kMyForSaleFilters)
+              Tab(text: _myForSaleFilterLabel(filter)),
+          ],
+          onTap: (index) {
+            // Single canonical filter state: the tab only selects it, the body
+            // reads it. No second filter state exists.
+            setState(() => _statusFilter = _kMyForSaleFilters[index]);
+          },
+        ),
       ),
-      body: forSalesAsync.when(
-        data: (forSales) {
-          // Apply status filter: show all if null, otherwise filter by selected status
-          // Default is active, so withdrawn (deleted) For Sale are hidden by default
-          final filteredForSales = _statusFilter == null
-              ? forSales
-              : forSales.where((l) => l.status == _statusFilter).toList();
-
-          if (filteredForSales.isEmpty) {
-            return _buildEmptyState(context);
-          }
-
-          return RefreshIndicator(
-            onRefresh: () async {
-              ref.invalidate(sellerForSalesProvider(params));
-            },
-            child: ListView.builder(
-              padding: const EdgeInsets.all(AppMetrics.p16),
-              itemCount: filteredForSales.length,
-              itemBuilder: (context, index) {
-                final forSale = filteredForSales[index];
-                return _SellerForSaleManagementCard(
-                  forSale: forSale,
-                  onTap: () => _viewForSaleDetail(context, forSale.forSaleId),
-                  onEdit: () => _editForSale(context, forSale),
-                  onStatusChange: (status) =>
-                      _changeStatus(context, forSale, status),
-                  onDelete: () => _deleteForSale(context, forSale),
-                );
-              },
-            ),
-          );
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) => Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.error_outline, size: AppIconSize.display, color: scheme.error),
-              const SizedBox(height: 16),
-              Text(
-                'Error loading For Sale',
-                style: TextStyle(
-                  fontSize: AppType.s16,
-                  color: scheme.onSurfaceVariant,
+      // LOADING FOUNDATION (owner-locked):
+      // - No collection yet → first-load states only: LoadingIndicator,
+      //   PageErrorState, or EmptyState.
+      // - Collection present → it stays visible during refresh; the update
+      //   indicator and refresh failure render inline, never as full-page
+      //   loading/error.
+      // SAFE-AREA-32: the body content owns the bottom system inset —
+      // /seller/for-sale is a STANDALONE pushed route (ForSaleModule
+      // top-level GoRoute, no shell bar), so no shell owns it. FAB
+      // positioning stays the Scaffold endFloat authority, measured
+      // OUTSIDE this SafeArea (never conflated with body inset).
+      body: SafeArea(
+        child: RefreshIndicator(
+          onRefresh: () => _reload(params),
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
+              if (forSalesAsync.isLoading && forSales.isEmpty)
+                // First request with no data → LoadingIndicator. Never
+                // EmptyState (not yet loaded) and never a raw spinner.
+                const SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Center(child: LoadingIndicator()),
+                )
+              else if (forSalesAsync.hasError && forSales.isEmpty)
+                // CANONICAL page-level load error (PageErrorState): safe
+                // localized copy only; the raw provider error never reaches
+                // the screen. Retry re-executes the canonical reload.
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: PageErrorState(onRetry: () => _reload(params)),
+                )
+              else
+                ..._buildCollectionSlivers(
+                  context,
+                  forSalesAsync,
+                  forSales,
+                  params,
                 ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                error.toString(),
-                style: TextStyle(
-                  fontSize: AppType.s12,
-                  color: scheme.onSurfaceVariant,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () {
-                  ref.invalidate(sellerForSalesProvider(params));
-                },
-                child: const Text('Retry'),
-              ),
             ],
           ),
         ),
@@ -163,7 +191,113 @@ class _MyForSalesScreenState extends ConsumerState<MyForSalesScreen> {
         onPressed: () => _createNewForSale(context),
         backgroundColor: scheme.primary,
         icon: Icon(Icons.add, color: scheme.onPrimary),
-        label: Text('Buat For Sale', style: TextStyle(color: scheme.onPrimary)),
+        label: Text(
+          context.l10n.createForSaleAction,
+          style: TextStyle(color: scheme.onPrimary),
+        ),
+      ),
+    );
+  }
+
+  /// Collection branch: runs only when a settled collection exists
+  /// (possibly preserved across a failed refresh). Applies the local status
+  /// filter, then renders EmptyState (zero-result success) or the rows with
+  /// the inline refresh indicator / refresh-error banner on top.
+  List<Widget> _buildCollectionSlivers(
+    BuildContext context,
+    AsyncValue<List<ForSale>> forSalesAsync,
+    List<ForSale> forSales,
+    SellerForSalesParams params,
+  ) {
+    // Apply status filter: show all if null, otherwise filter by selected status
+    // Default is active, so withdrawn (deleted) For Sale are hidden by default
+    final filteredForSales = _statusFilter == null
+        ? forSales
+        : forSales.where((l) => l.status == _statusFilter).toList();
+
+    if (filteredForSales.isEmpty) {
+      return [
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: _buildEmptyState(context, collectionEmpty: forSales.isEmpty),
+        ),
+      ];
+    }
+
+    return [
+      // Refresh with existing data: rows stay, update indication on top.
+      if (forSalesAsync.isLoading)
+        const SliverToBoxAdapter(child: LinearProgressIndicator(minHeight: 2)),
+      // Refresh failure: rows stay, inline banner with retry that
+      // re-executes the canonical reload. Never a full-page error here.
+      if (forSalesAsync.hasError)
+        SliverToBoxAdapter(child: _buildRefreshErrorBanner(params)),
+      SliverPadding(
+        padding: const EdgeInsets.all(AppMetrics.p16),
+        sliver: SliverList(
+          delegate: SliverChildBuilderDelegate((context, index) {
+            final forSale = filteredForSales[index];
+            return _SellerForSaleManagementCard(
+              forSale: forSale,
+              onTap: () => _viewForSaleDetail(context, forSale.forSaleId),
+              onDelete: () => _deleteForSale(context, forSale),
+            );
+          }, childCount: filteredForSales.length),
+        ),
+      ),
+    ];
+  }
+
+  /// Minimum bounded refresh-failure indication: persistent inline banner
+  /// with safe localized copy ([pageErrorMessage]) and a retry action that
+  /// re-executes the canonical reload. Not a new foundation — composition
+  /// of canonical tokens for this screen, matching the Home / Chat / Coin /
+  /// Search / Seller Auctions refresh banners.
+  Widget _buildRefreshErrorBanner(SellerForSalesParams params) {
+    final scheme = Theme.of(context).colorScheme;
+    final l10n = context.l10n;
+    return Semantics(
+      container: true,
+      liveRegion: true,
+      child: Container(
+        width: double.infinity,
+        margin: const EdgeInsets.fromLTRB(
+          AppMetrics.p16,
+          AppMetrics.p12,
+          AppMetrics.p16,
+          AppMetrics.p4,
+        ),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppMetrics.p12,
+          vertical: AppMetrics.p8,
+        ),
+        decoration: BoxDecoration(
+          color: scheme.errorContainer,
+          borderRadius: BorderRadius.circular(AppShape.r12),
+          border: Border.all(color: scheme.error),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.refresh_outlined,
+              size: AppIconSize.action,
+              color: scheme.onErrorContainer,
+            ),
+            const SizedBox(width: AppMetrics.p8),
+            Expanded(
+              child: Text(
+                l10n.pageErrorMessage,
+                style: context.typeRoles.bodyDense.copyWith(
+                  color: scheme.onErrorContainer,
+                ),
+              ),
+            ),
+            TextButton(
+              onPressed: () => _reload(params),
+              child: Text(l10n.retryAction),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -180,10 +314,9 @@ class _MyForSalesScreenState extends ConsumerState<MyForSalesScreen> {
               color: Theme.of(context).colorScheme.primary,
             ),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'Login Diperlukan',
-              style: TextStyle(
-                fontSize: AppType.s20,
+              style: context.typeRoles.titleProminent.copyWith(
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -195,35 +328,39 @@ class _MyForSalesScreenState extends ConsumerState<MyForSalesScreen> {
     );
   }
 
-  Widget _buildEmptyState(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.inventory_2_outlined,
-            size: AppIconSize.display,
-            color: scheme.onSurfaceVariant,
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'Belum Ada For Sale',
-            style: TextStyle(
-              fontSize: AppType.s20,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Mulai buat For Sale untuk menjual produk Anda',
-            style: TextStyle(
-              fontSize: AppType.s14,
-              color: scheme.onSurfaceVariant,
-            ),
-          ),
-        ],
-      ),
+  /// Two distinct states, one renderer:
+  /// - the seller has never listed anything → first-use empty with the ONE
+  ///   primary action (create). The persistent FAB stays the screen-level
+  ///   affordance, this is the state-level action.
+  /// - listings exist but the active status tab matched none → filter empty
+  ///   with a reset that returns to "Semua Status".
+  Widget _buildEmptyState(
+    BuildContext context, {
+    required bool collectionEmpty,
+  }) {
+    final l10n = context.l10n;
+
+    if (!collectionEmpty) {
+      return EmptyState(
+        icon: Icons.filter_alt_off_outlined,
+        title: l10n.emptySearchTitle,
+        subtitle: l10n.emptySearchMessage,
+        actionLabel: l10n.resetFilterAction,
+        onAction: () {
+          setState(() {
+            _statusFilter = null;
+            _tabController.index = _selectedFilterIndex;
+          });
+        },
+      );
+    }
+
+    return EmptyState(
+      icon: Icons.inventory_2_outlined,
+      title: l10n.myForSalesTitle,
+      subtitle: l10n.firstUseForSaleMessage,
+      actionLabel: l10n.createForSaleAction,
+      onAction: () => _createNewForSale(context),
     );
   }
 
@@ -233,121 +370,8 @@ class _MyForSalesScreenState extends ConsumerState<MyForSalesScreen> {
     );
   }
 
-  void _editForSale(BuildContext context, ForSale forSale) {
-    context.push(
-      RoutePaths.editForSale.replaceFirst(':forSaleId', forSale.forSaleId),
-    );
-  }
-
   void _createNewForSale(BuildContext context) {
     context.push(RoutePaths.createForSale);
-  }
-
-  Future<void> _changeStatus(
-    BuildContext context,
-    ForSale forSale,
-    ForSaleStatus newStatus,
-  ) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Ubah Status For Sale'),
-        content: Text(
-          'Ubah status "${forSale.title}" menjadi ${newStatus.displayName}?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Batal'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Ya, Ubah'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true && mounted) {
-      final controller = ref.read(forSaleControllerProvider);
-      final result = await controller.updateForSaleStatus(
-        forSale.forSaleId,
-        newStatus,
-      );
-
-      if (!context.mounted) return;
-
-      if (result.isSuccess) {
-        AppSnackBar.showSuccess(context, 'Status berhasil diubah');
-        ref.invalidate(
-          sellerForSalesProvider(
-            SellerForSalesParams(sellerId: forSale.sellerId),
-          ),
-        );
-        return;
-      }
-
-      // Canonical restriction dispatch. The presenter owns the whole
-      // restriction family: `MARKET_AUTHORITY_REQUIRED` → seller renewal
-      // navigation, `COMMERCE_RESTRICTED` → restriction snackbar. Unknown
-      // codes are NOT consumed here and fall through to this screen's own
-      // error handling below.
-      final restrictionConsumed = CommerceRestrictionPresenter.handle(
-        context,
-        errorCode: result.errorCode,
-        actionDescription: 'mengubah status For Sale',
-      );
-      if (restrictionConsumed) return;
-
-      // Phase 0 honesty + Phase 2 routing: publish gate surfaces
-      // SHIPPING_NOT_CONFIGURED when the seller has not yet linked any
-      // shipping options to the For Sale. Offer two CTAs: one to set up
-      // global options (if the catalog is empty), one to pick options for
-      // this specific For Sale via the edit screen.
-      if (result.errorCode == 'SHIPPING_NOT_CONFIGURED') {
-        showDialog<void>(
-          context: context,
-          builder: (dialogCtx) => AlertDialog(
-            title: const Text('Pengiriman Belum Dipilih'),
-            content: const Text(
-              'Pengiriman belum dipilih. For Sale belum bisa dipublish sampai '
-              'Anda memilih opsi pengiriman untuk For Sale ini.\n\n'
-              'Jika Anda belum memiliki opsi pengiriman, atur dulu di '
-              'Pengaturan → Pengiriman. Jika sudah, buka Edit For Sale untuk '
-              'memilih opsi yang berlaku untuk For Sale ini.',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(dialogCtx).pop(),
-                child: const Text('Tutup'),
-              ),
-              TextButton(
-                onPressed: () {
-                  Navigator.of(dialogCtx).pop();
-                  Navigator.of(context).pushNamed(RoutePaths.sellerShipping);
-                },
-                child: const Text('Atur Opsi'),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.of(dialogCtx).pop();
-                  context.push(
-                    RoutePaths.editForSale.replaceFirst(
-                      ':fixedPriceSaleId',
-                      forSale.forSaleId,
-                    ),
-                  );
-                },
-                child: const Text('Edit For Sale'),
-              ),
-            ],
-          ),
-        );
-        return;
-      }
-
-      AppSnackBar.showError(context, 'Gagal mengubah status: ${result.error}');
-    }
   }
 
   Future<void> _deleteForSale(BuildContext context, ForSale forSale) async {
@@ -379,18 +403,21 @@ class _MyForSalesScreenState extends ConsumerState<MyForSalesScreen> {
       final result = await controller.deleteForSale(forSale.forSaleId);
 
       if (mounted) {
-        result.fold(
-          (error) {
-            AppSnackBar.showError(context, 'Gagal menghapus For Sale: $error');
-          },
-          (_) {
-            AppSnackBar.showSuccess(context, 'For Sale berhasil dihapus');
-            // Invalidate to refresh
-            ref.invalidate(
-              sellerForSalesProvider(
-                SellerForSalesParams(sellerId: forSale.sellerId),
-              ),
+        await result.fold(
+          (_) async {
+            AppSnackBar.showError(
+              context,
+              'Gagal menghapus For Sale. Coba lagi.',
             );
+          },
+          (_) async {
+            AppSnackBar.showSuccess(context, 'For Sale berhasil dihapus');
+            // Canonical invalidation: the single reload path with the single
+            // params authority — the watched key (page 1, pageSize 50,
+            // owner-inventory opt-in) is rebuilt, so the collection is fresh.
+            // A reload failure is not swallowed: it renders as the inline
+            // refresh banner with retry, data preserved.
+            await _reload(_params(forSale.sellerId));
           },
         );
       }
@@ -402,253 +429,86 @@ class _MyForSalesScreenState extends ConsumerState<MyForSalesScreen> {
 class _SellerForSaleManagementCard extends StatelessWidget {
   final ForSale forSale;
   final VoidCallback onTap;
-  final VoidCallback onEdit;
-  final void Function(ForSaleStatus) onStatusChange;
   final VoidCallback onDelete;
 
   const _SellerForSaleManagementCard({
     required this.forSale,
     required this.onTap,
-    required this.onEdit,
-    required this.onStatusChange,
     required this.onDelete,
   });
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: AppMetrics.p12),
-      decoration: BoxDecoration(
-        color: scheme.surface,
-        borderRadius: BorderRadius.circular(AppShape.r12),
-        border: Border.all(color: scheme.outlineVariant),
+    return SellerManagementRow(
+      onTap: onTap,
+      leading: SellerManagementThumbnail(
+        imageUrl: forSale.media.isNotEmptyUrls ? forSale.media.firstUrl : null,
       ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppShape.r12),
-        child: Padding(
-          padding: const EdgeInsets.all(AppMetrics.p12),
-          child: Row(
+      title: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Title row with status
+          Row(
             children: [
-              // Thumbnail
-              ClipRRect(
-                borderRadius: BorderRadius.circular(AppShape.r8),
-                child: forSale.media.isNotEmptyUrls
-                    ? AppImage(
-                        imageUrl: forSale.media.firstUrl,
-                        width: 80,
-                        height: 80,
-                        fit: BoxFit.cover,
-                        errorWidget: _buildPlaceholder(context),
-                      )
-                    : _buildPlaceholder(context),
-              ),
-              const SizedBox(width: 12),
-              // Content
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Title row with status
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            forSale.title,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: AppType.s16,
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        _StatusBadge(status: forSale.status),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    // Price
-                    Text(
-                      forSale.formattedPrice,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.primary,
-                        fontWeight: FontWeight.bold,
-                        fontSize: AppType.s16,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    // Date
-                    Text(
-                      'Dibuat ${_formatDate(forSale.createdAt)}',
-                      style: TextStyle(
-                        fontSize: AppType.s12,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
+                child: Text(
+                  forSale.title,
+                  style: context.typeRoles.titleCompact.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
-              // Action menu
-              PopupMenuButton<String>(
-                onSelected: (value) {
-                  switch (value) {
-                    case 'promote':
-                      _navigateToPromotion(context, forSale);
-                      break;
-                    case 'edit':
-                      onEdit();
-                      break;
-                    case 'activate':
-                      onStatusChange(ForSaleStatus.active);
-                      break;
-                    case 'deactivate':
-                      // Deactivate now means withdraw (remove from sale)
-                      onStatusChange(ForSaleStatus.withdrawn);
-                      break;
-                    case 'mark_sold':
-                      onStatusChange(ForSaleStatus.sold);
-                      break;
-                    case 'delete':
-                      onDelete();
-                      break;
-                  }
-                },
-                itemBuilder: (context) => [
-                  // Promote action (only for active forSales)
-                  if (forSale.status == ForSaleStatus.active)
-                    PopupMenuItem(
-                      value: 'promote',
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.campaign,
-                            size: AppIconSize.action,
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                          SizedBox(width: 12),
-                          Text('Promosikan'),
-                        ],
-                      ),
-                    ),
-                  // Canonical: seller edit allowed IFF status == draft (active/sold/withdrawn are immutable)
-                  if (forSale.status == ForSaleStatus.draft)
-                    const PopupMenuItem(
-                      value: 'edit',
-                      child: Row(
-                        children: [
-                          Icon(Icons.edit, size: AppIconSize.action),
-                          SizedBox(width: 12),
-                          Text('Edit'),
-                        ],
-                      ),
-                    ),
-                  if (forSale.status != ForSaleStatus.active)
-                    PopupMenuItem(
-                      value: 'activate',
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.check_circle,
-                            size: AppIconSize.action,
-                            color: context.statusColors.success,
-                          ),
-                          SizedBox(width: 12),
-                          Text('Aktifkan'),
-                        ],
-                      ),
-                    ),
-                  if (forSale.status == ForSaleStatus.active)
-                    const PopupMenuItem(
-                      value: 'deactivate',
-                      child: Row(
-                        children: [
-                          Icon(Icons.visibility_off, size: AppIconSize.action),
-                          SizedBox(width: 12),
-                          Text('Nonaktifkan'),
-                        ],
-                      ),
-                    ),
-                  if (forSale.status != ForSaleStatus.sold)
-                    const PopupMenuItem(
-                      value: 'mark_sold',
-                      child: Row(
-                        children: [
-                          Icon(Icons.sell, size: AppIconSize.action),
-                          SizedBox(width: 12),
-                          Text('Tandai Terjual'),
-                        ],
-                      ),
-                    ),
-                  PopupMenuItem(
-                    value: 'delete',
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.delete,
-                          size: AppIconSize.action,
-                          color: Theme.of(context).colorScheme.error,
-                        ),
-                        SizedBox(width: 12),
-                        Text(
-                          'Hapus',
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.error,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+              _StatusBadge(status: forSale.status),
             ],
           ),
-        ),
+          const SizedBox(height: 4),
+          // Price
+          Text(
+            forSale.formattedPrice,
+            style: context.typeRoles.titleCompact.copyWith(
+              color: Theme.of(context).colorScheme.primary,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 4),
+          // Date
+          Text(
+            'Dibuat ${const TimeFormatService().formatTimeAgo(forSale.createdAt)}',
+            style: context.typeRoles.labelMicro.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
+      trailing: PopupMenuButton<String>(
+        onSelected: (value) {
+          if (value == 'delete') {
+            onDelete();
+          }
+        },
+        itemBuilder: (context) => [
+          PopupMenuItem(
+            value: 'delete',
+            child: Row(
+              children: [
+                Icon(
+                  Icons.delete,
+                  size: AppIconSize.action,
+                  color: Theme.of(context).colorScheme.error,
+                ),
+                SizedBox(width: 12),
+                Text(
+                  'Hapus',
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
-  }
-
-  Widget _buildPlaceholder(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      width: 80,
-      height: 80,
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(AppShape.r8),
-      ),
-      child: Icon(
-        Icons.image_not_supported,
-        size: AppIconSize.header,
-        color: scheme.onSurfaceVariant,
-      ),
-    );
-  }
-
-  String _formatDate(DateTime date) {
-    final now = DateTime.now();
-    final difference = now.difference(date);
-
-    if (difference.inDays == 0) {
-      return 'hari ini';
-    } else if (difference.inDays == 1) {
-      return 'kemarin';
-    } else if (difference.inDays < 7) {
-      return '${difference.inDays} hari lalu';
-    } else if (difference.inDays < 30) {
-      final weeks = (difference.inDays / 7).floor();
-      return '$weeks minggu lalu';
-    } else {
-      return '${date.day}/${date.month}/${date.year}';
-    }
-  }
-
-  void _navigateToPromotion(BuildContext context, ForSale forSale) {
-    // Canonical era: promotion is contract-based; seller manages contracts
-    // (create + queue targets) from the canonical promotion list screen.
-    // The legacy activation flow is purged.
-    context.push(RoutePaths.sellerCanonicalPromotions);
   }
 }
 
@@ -660,26 +520,21 @@ class _StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Color color;
-    String label;
+    // Single label authority: the canonical ForSaleStatus presentation getter.
+    // This widget only owns the status -> color mapping, never the label.
+    final label = status.displayName;
 
+    Color color;
     final scheme = Theme.of(context).colorScheme;
     switch (status) {
-      case ForSaleStatus.draft:
-        color = scheme.onSurfaceVariant;
-        label = 'Draft';
-        break;
       case ForSaleStatus.active:
         color = context.statusColors.success;
-        label = 'Aktif';
         break;
       case ForSaleStatus.withdrawn:
         color = scheme.onSurfaceVariant;
-        label = 'Ditarik';
         break;
       case ForSaleStatus.sold:
         color = scheme.primary;
-        label = 'Terjual';
         break;
     }
 
@@ -694,8 +549,7 @@ class _StatusBadge extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: TextStyle(
-          fontSize: AppType.s12,
+        style: context.typeRoles.labelMicro.copyWith(
           fontWeight: FontWeight.w600,
           color: color,
         ),

@@ -60,7 +60,7 @@ export function BuyerEvidencePanel({ dispute }: BuyerEvidencePanelProps) {
               <MessageSquare className="h-4 w-4 text-primary" />
               <p className="text-sm font-medium text-primary">Buyer Statement</p>
             </div>
-            <p className="text-sm text-foreground whitespace-pre-wrap">
+            <p className="type-body whitespace-pre-wrap">
               {buyerEvidence?.statement}
             </p>
           </div>
@@ -69,7 +69,7 @@ export function BuyerEvidencePanel({ dispute }: BuyerEvidencePanelProps) {
         {/* Evidence Items */}
         {hasEvidence ? (
           <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">
+            <p className="type-secondary">
               {displayEvidence.length} evidence item{displayEvidence.length !== 1 ? 's' : ''} submitted
             </p>
 
@@ -84,7 +84,7 @@ export function BuyerEvidencePanel({ dispute }: BuyerEvidencePanelProps) {
                 >
                   {/* Evidence Header */}
                   <div
-                    className="flex items-center justify-between p-3 bg-muted cursor-pointer hover:bg-muted transition-colors"
+                    className="flex items-center justify-between p-3 bg-surface-muted cursor-pointer hover:bg-surface-muted transition-colors"
                     onClick={() => toggleExpanded(item.id)}
                   >
                     <div className="flex items-center gap-3">
@@ -94,10 +94,10 @@ export function BuyerEvidencePanel({ dispute }: BuyerEvidencePanelProps) {
                         <FileText className="h-4 w-4 text-muted-foreground" />
                       )}
                       <div>
-                        <p className="text-sm font-medium text-foreground">
+                        <p className="type-label">
                           {item.description || `Evidence ${item.id.slice(-6)}`}
                         </p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="type-caption">
                           {formatDate(item.submitted_at)}
                         </p>
                       </div>
@@ -122,7 +122,7 @@ export function BuyerEvidencePanel({ dispute }: BuyerEvidencePanelProps) {
                           <img
                             src={item.url}
                             alt={item.description || 'Evidence'}
-                            className="w-full max-h-80 object-contain rounded-lg bg-muted"
+                            className="w-full max-h-80 object-contain rounded-lg bg-surface-muted"
                           />
                         </a>
                       ) : item.type === 'document' && item.url ? (
@@ -136,13 +136,13 @@ export function BuyerEvidencePanel({ dispute }: BuyerEvidencePanelProps) {
                           <span className="text-sm">Open Document</span>
                         </a>
                       ) : item.content ? (
-                        <div className="bg-muted rounded-lg p-3">
-                          <p className="text-sm text-foreground whitespace-pre-wrap">
+                        <div className="bg-surface-muted rounded-lg p-3">
+                          <p className="type-body whitespace-pre-wrap">
                             {item.content}
                           </p>
                         </div>
                       ) : (
-                        <p className="text-sm text-muted-foreground">No content available</p>
+                        <p className="type-secondary">No content available</p>
                       )}
                     </div>
                   )}
@@ -151,9 +151,9 @@ export function BuyerEvidencePanel({ dispute }: BuyerEvidencePanelProps) {
             })}
           </div>
         ) : (
-          <div className="text-center py-8 bg-muted rounded-lg">
+          <div className="text-center py-8 bg-surface-muted rounded-lg">
             <FileImage className="h-10 w-10 text-muted-foreground mx-auto mb-2" />
-            <p className="text-sm text-muted-foreground">No evidence submitted by buyer</p>
+            <p className="type-secondary">No evidence submitted by buyer</p>
           </div>
         )}
       </CardContent>

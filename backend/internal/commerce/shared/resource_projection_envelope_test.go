@@ -16,22 +16,22 @@ import (
 //
 // These tests lock the converged wire shape. Any resurrection of a former
 // per-module divergence (payload can_interact, price scalar, image_url, flat
-// seller, omitted tombstone resource_id, capabilities inside payloads) fails
-// here first.
+// seller, omitted tombstone resource_id, commerce_actions capability matrix,
+// capabilities inside payloads) fails here first.
 
 func liveFPSFixture(t *testing.T) ResourceProjection {
 	t.Helper()
 	caps := ProjectionViewerCapabilities{CanView: true, CanInteract: true}
-	actions := &CommerceActionCapabilities{CanBuy: true, CanNegotiate: true}
 	payload := ForSaleLivePayload{
-		Title:             "Tomat Cherry",
-		Media:             []mediaref.MediaRef{{URL: "https://cdn/x.jpg", Kind: nil, Width: nil, Height: nil}},
-		Price:             LivePrice{Amount: 15000, Currency: "IDR"},
-		Status:            "active",
-		QuantityAvailable: 3,
-		Seller:            publiccard.SellerCard{},
+		Title:              "Tomat Cherry",
+		Media:              []mediaref.MediaRef{{URL: "https://cdn/x.jpg", Kind: nil, Width: nil, Height: nil}},
+		Price:              LivePrice{Amount: 15000, Currency: "IDR"},
+		Status:             "active",
+		QuantityAvailable:  3,
+		NegotiationEnabled: true,
+		Seller:             publiccard.SellerCard{},
 	}
-	p, err := NewLiveResourceProjection(ProjectionResourceTypeForSale, uuid.New(), payload, caps, actions)
+	p, err := NewLiveResourceProjection(ProjectionResourceTypeForSale, uuid.New(), payload, caps)
 	if err != nil {
 		t.Fatalf("build live fps: %v", err)
 	}
@@ -95,10 +95,10 @@ func TestCanonicalEnvelope_LiveFPSWireShape(t *testing.T) {
 	m := marshalMap(t, liveFPSFixture(t))
 
 	requireKeys(t, m, "state", "resource_type", "resource_id", "canonical_url",
-		"viewer_capabilities", "commerce_actions", "for_sale")
+		"viewer_capabilities", "for_sale")
 
 	// Divergences that must never come back:
-	forbidKeys(t, m, "can_interact", "image_url", "price_scalar_marker")
+	forbidKeys(t, m, "commerce_actions", "can_interact", "image_url", "price_scalar_marker")
 
 	// price must be the money object {amount, currency}, never a scalar.
 	price, ok := m["for_sale"].(map[string]any)
@@ -116,7 +116,12 @@ func TestCanonicalEnvelope_LiveFPSWireShape(t *testing.T) {
 		t.Errorf("for_sale.price missing currency")
 	}
 
-	// payload-level can_interact is dead — capabilities live on the envelope.
+	// The canonical PRODUCT-LEVEL negotiation attribute is present on the payload.
+	if _, ok := price["negotiation_enabled"]; !ok {
+		t.Errorf("for_sale.negotiation_enabled missing (product negotiation attribute)")
+	}
+
+	// payload-level can_interact is dead — viewer truth lives on the envelope.
 	if _, ok := price["can_interact"]; ok {
 		t.Errorf("payload-level can_interact resurrected (must live in viewer_capabilities)")
 	}
@@ -144,32 +149,20 @@ func TestCanonicalEnvelope_LiveFPSWireShape(t *testing.T) {
 	}
 }
 
-func TestCanonicalEnvelope_LiveProfileForbidsCommerceActions(t *testing.T) {
+func TestCanonicalEnvelope_LiveProfileShape(t *testing.T) {
 	p, err := NewLiveResourceProjection(
 		ProjectionResourceTypeProfile,
 		uuid.New(),
 		ProfileLivePayload{Username: "ani", Lifecycle: "active"},
 		ProjectionViewerCapabilities{CanView: true},
-		nil,
 	)
 	if err != nil {
 		t.Fatalf("build live profile: %v", err)
 	}
 	m := marshalMap(t, p)
+	// The commerce_actions capability matrix is purged from the contract.
 	forbidKeys(t, m, "commerce_actions", "for_sale", "auction", "content")
 	requireKeys(t, m, "profile", "viewer_capabilities", "canonical_url")
-
-	// commerce_actions on a profile must be rejected at construction.
-	_, err = NewLiveResourceProjection(
-		ProjectionResourceTypeProfile,
-		uuid.New(),
-		ProfileLivePayload{Username: "ani", Lifecycle: "active"},
-		ProjectionViewerCapabilities{CanView: true},
-		&CommerceActionCapabilities{CanChat: true},
-	)
-	if err == nil {
-		t.Errorf("LIVE profile with commerce_actions must fail validation")
-	}
 }
 
 func TestCanonicalEnvelope_TombstoneWireShape(t *testing.T) {
@@ -206,20 +199,20 @@ func TestCanonicalEnvelope_ValidationRejectsResurrectedShapes(t *testing.T) {
 		wantErr string
 	}{
 		{
-			name: "LIVE fps without commerce_actions",
-			build: func() (ResourceProjection, error) {
-				return NewLiveResourceProjection(ProjectionResourceTypeForSale, id,
-					ForSaleLivePayload{Title: "x", Price: LivePrice{Amount: 1, Currency: "IDR"}},
-					ProjectionViewerCapabilities{CanView: true}, nil)
-			},
-			wantErr: "commerce_actions",
-		},
-		{
 			name: "LIVE profile with can_interact",
 			build: func() (ResourceProjection, error) {
 				return NewLiveResourceProjection(ProjectionResourceTypeProfile, id,
 					ProfileLivePayload{Username: "u", Lifecycle: "active"},
-					ProjectionViewerCapabilities{CanView: true, CanInteract: true}, nil)
+					ProjectionViewerCapabilities{CanView: true, CanInteract: true})
+			},
+			wantErr: "can_interact=false",
+		},
+		{
+			name: "LIVE content with can_interact",
+			build: func() (ResourceProjection, error) {
+				return NewLiveResourceProjection(ProjectionResourceTypeContent, id,
+					ContentLivePayload{},
+					ProjectionViewerCapabilities{CanView: true, CanInteract: true})
 			},
 			wantErr: "can_interact=false",
 		},
@@ -251,7 +244,7 @@ func TestCanonicalEnvelope_ValidationRejectsResurrectedShapes(t *testing.T) {
 			name: "LIVE without resource_id",
 			build: func() (ResourceProjection, error) {
 				return NewLiveResourceProjection(ProjectionResourceTypeContent, uuid.Nil,
-					ContentLivePayload{}, ProjectionViewerCapabilities{CanView: true}, nil)
+					ContentLivePayload{}, ProjectionViewerCapabilities{CanView: true})
 			},
 			wantErr: "resource id",
 		},
@@ -259,7 +252,7 @@ func TestCanonicalEnvelope_ValidationRejectsResurrectedShapes(t *testing.T) {
 			name: "invalid resource type",
 			build: func() (ResourceProjection, error) {
 				return NewLiveResourceProjection(ProjectionResourceType("forSale"), id,
-					ContentLivePayload{}, ProjectionViewerCapabilities{CanView: true}, nil)
+					ContentLivePayload{}, ProjectionViewerCapabilities{CanView: true})
 			},
 			wantErr: "invalid resource type",
 		},
@@ -301,7 +294,7 @@ func TestCanonicalEnvelope_PayloadJSONContracts(t *testing.T) {
 		p, err := NewLiveResourceProjection(ProjectionResourceTypeProfile, uuid.New(),
 			ProfileLivePayload{Username: "ani", AvatarURL: &avatar, StoreName: &farm,
 				IsSeller: true, Lifecycle: "active"},
-			ProjectionViewerCapabilities{CanView: true}, nil)
+			ProjectionViewerCapabilities{CanView: true})
 		if err != nil {
 			t.Fatalf("build: %v", err)
 		}
@@ -319,8 +312,8 @@ func TestCanonicalEnvelope_PayloadJSONContracts(t *testing.T) {
 			ContentLivePayload{Caption: &caption,
 				Media:     []mediaref.MediaRef{{URL: "https://cdn/c.jpg"}},
 				Lifecycle: "active", CreatedAt: "2026-09-01T00:00:00Z",
-				Author:    publiccard.NewWithLifecycle(uuid.New(), "penulis", &avatar, "active")},
-			ProjectionViewerCapabilities{CanView: true}, nil)
+				Author: publiccard.NewWithLifecycle(uuid.New(), "penulis", &avatar, "active")},
+			ProjectionViewerCapabilities{CanView: true})
 		if err != nil {
 			t.Fatalf("build: %v", err)
 		}
@@ -336,21 +329,20 @@ func TestCanonicalEnvelope_PayloadJSONContracts(t *testing.T) {
 		// liveFPSFixture builds a minimal payload; enrich to full wire shape.
 		m := marshalMap(t, p)
 		fps, _ := m["for_sale"].(map[string]any)
-		requireExactKeys(t, fps, "title", "media", "price", "status", "quantity_available", "seller")
+		requireExactKeys(t, fps, "title", "media", "price", "status",
+			"quantity_available", "negotiation_enabled", "seller")
 	})
 
 	t.Run("auction payload keys", func(t *testing.T) {
 		bid := int64(9000)
 		buyNow := int64(15000)
-		actions := AuctionCommerceActions(ViewerCapabilities{CanChat: true, CanBid: true, CanBuyNow: true})
 		p, err := NewLiveResourceProjection(ProjectionResourceTypeAuction, uuid.New(),
 			AuctionLivePayload{Title: "Lelang Koi",
 				Media:        []mediaref.MediaRef{{URL: "https://cdn/k.jpg"}},
 				ThumbnailURL: &avatar, CurrentBid: &bid, BuyNowPrice: &buyNow,
 				EndAt: "2026-09-10T00:00:00Z", Lifecycle: "active",
 				Seller: publiccard.NewSellerCardWithUserLifecycle(uuid.New(), "petani", &avatar, farm, "active")},
-			ProjectionViewerCapabilities{CanView: true, CanInteract: true},
-			&actions)
+			ProjectionViewerCapabilities{CanView: true, CanInteract: true})
 		if err != nil {
 			t.Fatalf("build: %v", err)
 		}

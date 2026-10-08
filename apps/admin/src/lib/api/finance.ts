@@ -115,12 +115,13 @@ export async function getLedgerTransactions(params?: {
 export async function getWhitelistAudit(params?: {
   seller_id?: string
   limit?: number
-  offset?: number
+  /** Opaque continuation token from the previous page's `next_cursor`. */
+  cursor?: string | null
 }) {
   const queryParams = new URLSearchParams()
   if (params?.seller_id) queryParams.append('seller_id', params.seller_id)
   queryParams.append('limit', String(params?.limit ?? 50))
-  queryParams.append('offset', String(params?.offset ?? 0))
+  if (params?.cursor) queryParams.append('cursor', params.cursor)
 
   return api.get<import('@/types/finance').WhitelistAuditResponse>(
     `/api/v1/admin/payouts/whitelist/audit?${queryParams.toString()}`

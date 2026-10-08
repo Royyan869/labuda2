@@ -20,7 +20,6 @@ class ProfileActions extends ConsumerWidget {
   final VoidCallback? onEditProfile;
   final VoidCallback? onShare;
   final VoidCallback? onMessage;
-  final double opacity;
   final ContentLifecycle lifecycle;
 
   const ProfileActions({
@@ -30,20 +29,16 @@ class ProfileActions extends ConsumerWidget {
     this.onEditProfile,
     this.onShare,
     this.onMessage,
-    this.opacity = 1.0,
     this.lifecycle = ContentLifecycle.active,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Opacity(
-      opacity: opacity,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: isOwnProfile
-            ? _buildOwnProfileButtons(context)
-            : _buildOtherProfileButtons(context),
-      ),
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: isOwnProfile
+          ? _buildOwnProfileButtons(context)
+          : _buildOtherProfileButtons(context),
     );
   }
 
@@ -67,15 +62,10 @@ class ProfileActions extends ConsumerWidget {
   List<Widget> _buildOtherProfileButtons(BuildContext context) {
     final disabled = lifecycle.isDegraded;
     return [
-      // Single authority: FollowButton canonical (big, solid). Gated via
-      // IgnorePointer+Opacity so degraded identities cannot be followed.
-      IgnorePointer(
-        ignoring: disabled,
-        child: Opacity(
-          opacity: disabled ? 0.4 : 1.0,
-          child: FollowButton(userId: userId),
-        ),
-      ),
+      // Single authority: FollowButton canonical. Degraded identities pass
+      // `enabled: false`, so the component renders the ONE canonical disabled
+      // language instead of a local opacity/ignore hack.
+      FollowButton(userId: userId, enabled: !disabled),
       const SizedBox(width: 8),
       _CompactButton(
         icon: Icons.chat_bubble_outline,
@@ -107,41 +97,48 @@ class _CompactButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final backgroundColor = isSecondary
+    // One disabled language (owner decision 2026-10-05): neutral
+    // surfaceContainerHighest fill + onSurfaceVariant content — never a local
+    // opacity fade.
+    final backgroundColor = disabled
+        ? scheme.surfaceContainerHighest
+        : isSecondary
         ? scheme.surfaceContainerHigh
         : scheme.primary;
-
-    final foregroundColor = isSecondary
+    final foregroundColor = disabled
+        ? scheme.onSurfaceVariant
+        : isSecondary
         ? scheme.onSurface
         : scheme.onPrimary;
 
-    final effectiveOpacity = disabled ? 0.4 : 1.0;
-
-    return Opacity(
-      opacity: effectiveOpacity,
-      child: Material(
-        color: backgroundColor,
+    return Material(
+      color: backgroundColor,
+      borderRadius: BorderRadius.circular(AppShape.r8),
+      child: InkWell(
+        onTap: disabled ? null : onTap,
         borderRadius: BorderRadius.circular(AppShape.r8),
-        child: InkWell(
-          onTap: disabled ? null : onTap,
-          borderRadius: BorderRadius.circular(AppShape.r8),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p8),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(icon, size: AppIconSize.inlineGlyph, color: foregroundColor),
-                const SizedBox(width: 4),
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: AppType.s14,
-                    fontWeight: FontWeight.w500,
-                    color: foregroundColor,
-                  ),
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppMetrics.p12,
+            vertical: AppMetrics.p8,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: AppIconSize.inlineGlyph,
+                color: foregroundColor,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                label,
+                style: context.typeRoles.bodyDense.copyWith(
+                  fontWeight: FontWeight.w500,
+                  color: foregroundColor,
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),

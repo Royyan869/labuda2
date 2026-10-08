@@ -43,25 +43,24 @@ func GetCategory(notifyType string) NotificationCategory {
 		strings.HasPrefix(notifyType, "verification."),
 		strings.HasPrefix(notifyType, "seller.verification."), // seller lifecycle (distinct from document-level verification.*)
 		strings.HasPrefix(notifyType, "seller.subscription."), // subscription lifecycle — system-initiated (uuid.Nil actor)
-		strings.HasPrefix(notifyType, "seller.tier."),        // B1: reputation tier change — affects seller trust and market authority
+		strings.HasPrefix(notifyType, "seller.tier."),         // B1: reputation tier change — affects seller trust and market authority
 		strings.HasPrefix(notifyType, "dispute."),
 		strings.HasPrefix(notifyType, "refund."), // D1A
 		strings.HasPrefix(notifyType, "negotiation."),
 		strings.HasPrefix(notifyType, "external_product.review."), // review decision — owner must not miss approval/rejection
-		notifyType == "auction.bid.placed",                    // seller must always receive bid notifications
-		notifyType == "auction.waiting_settlement",            // winner must always receive claim notification
-		notifyType == "auction.seller_has_winner",             // seller must know their auction has a winner pending claim
-		notifyType == "auction.ended_no_winner",               // seller must know their auction closed without a winner
-		notifyType == "auction.cancelled.seller",              // Scope B: seller must know their auction auto-cancelled (subscription expired)
-		notifyType == "auction.settlement_failed.buyer",       // buyer must know their settlement failed (violation/restriction)
-		notifyType == "auction.settlement_failed.seller_default", // seller must know their quote default caused DRAFT
-		notifyType == "auction.settlement_failed.relistable",  // seller must know the auction is back in DRAFT and relistable
-		notifyType == "support.ticket.created",    // admin must see all tickets regardless of submitter status
+		notifyType == "auction.bid.placed",                        // seller must always receive bid notifications
+		notifyType == "auction.waiting_settlement",                // winner must always receive claim notification
+		notifyType == "auction.seller_has_winner",                 // seller must know their auction has a winner pending claim
+		notifyType == "auction.ended_no_winner",                   // seller must know their auction closed without a winner
+		notifyType == "auction.settlement_failed.buyer",           // buyer must know their settlement failed (violation/restriction)
+		notifyType == "auction.settlement_failed.seller_default",  // seller must know their quote default caused a reschedule
+		notifyType == "auction.settlement_failed.relistable",      // seller must know the auction auto-rescheduled (new run live)
+		notifyType == "support.ticket.created",                    // admin must see all tickets regardless of submitter status
 		notifyType == "support.ticket.resolved",
 		notifyType == "support.ticket.closed",
 		notifyType == "support.ticket_waiting_user",
 		notifyType == "support.ticket.user_responded", // admin must see user replies regardless of status
-		notifyType == "money.refund_failed":            // admin-only: gateway refund failure requires immediate attention
+		notifyType == "money.refund_failed":           // admin-only: gateway refund failure requires immediate attention
 		return CommerceCritical
 
 	// ============================================================================
@@ -217,15 +216,8 @@ func RequiresPushByType(notifyType string) bool {
 		return true
 	}
 
-	// Priority: Auction auto-cancelled (subscription expired) — seller must
-	// know their listing died with the subscription so they can renew.
-	// Scope B.
-	if notifyType == "auction.cancelled.seller" {
-		return true
-	}
-
 	// Priority: Auction settlement failure — buyer/seller must know the outcome
-	// (violation/restriction applied, auction returned to DRAFT).
+	// (violation/restriction applied, auction auto-rescheduled for a new run).
 	if strings.HasPrefix(notifyType, "auction.settlement_failed") {
 		return true
 	}
@@ -260,5 +252,3 @@ func RequiresPushByType(notifyType string) bool {
 	// All other types: in-app only, no push
 	return false
 }
-
-

@@ -12,8 +12,8 @@ import (
 	auctionEntity "github.com/labuda/backend/internal/commerce/auction/entity"
 	forSaleApp "github.com/labuda/backend/internal/commerce/forsale/application"
 	forSaleEntity "github.com/labuda/backend/internal/commerce/forsale/entity"
-	userRepositoryPkg "github.com/labuda/backend/internal/identity/user/repository"
 	moderationRepo "github.com/labuda/backend/internal/governance/moderation/infrastructure/repository"
+	userRepositoryPkg "github.com/labuda/backend/internal/identity/user/repository"
 	"github.com/labuda/backend/internal/platform/capability/invariant"
 	platformevent "github.com/labuda/backend/internal/platform/event"
 	contentApp "github.com/labuda/backend/internal/social/content/application"
@@ -600,7 +600,7 @@ func (h *ModerationEventHandler) handleForSaleRemoved(
 // CANONICAL ENFORCEMENT LIFECYCLE: MarkProcessing → CancelForModeration → MarkSucceeded
 // All within one transaction for atomicity.
 //
-// IDEMPOTENT: Terminal states (ended, cancelled) return
+// IDEMPOTENT: Non-cancellable states (ended, cancelled) return
 // InvalidTransitionError which is handled INSIDE enforceLifecycle so that
 // the lifecycle always passes through processing → succeeded.
 func (h *ModerationEventHandler) handleAuctionRemoved(
@@ -629,7 +629,7 @@ func (h *ModerationEventHandler) handleAuctionRemoved(
 		return h.enforceLifecycle(ctx, tx, enforcementID, func() error {
 			cancelErr := h.auctionService.CancelForModeration(ctx, tx, auctionID)
 			if cancelErr != nil {
-				// IDEMPOTENCY: Terminal states (ended, cancelled) cannot
+				// IDEMPOTENCY: Non-cancellable states (ended, cancelled) cannot
 				// transition to cancelled. Auction is no longer active.
 				var ite *auctionEntity.InvalidTransitionError
 				if errors.As(cancelErr, &ite) {
@@ -785,7 +785,8 @@ func (h *ModerationEventHandler) handleForSaleRestored(
 	})
 
 	if err != nil {
-		// GUARD: sold or draft fixed-price sale — restoration not applicable, do not retry.
+		// GUARD: sold fixed-price sale (or unknown status) — restoration not
+		// applicable, do not retry.
 		// These are genuine cases (seller sold during moderation review, etc.).
 		if isNonRetryableRestoreError(err) {
 			h.log.Warn("Fixed-price sale not eligible for moderation restore (sold or unexpected status) — skipping",
@@ -812,7 +813,7 @@ func (h *ModerationEventHandler) handleForSaleRestored(
 }
 
 // isNonRetryableRestoreError returns true if the restore error should not
-// trigger a retry (sold inventory, draft, or not-found with no-op intent).
+// trigger a retry (sold inventory, unknown status, or not-found with no-op intent).
 func isNonRetryableRestoreError(err error) bool {
 	if err == nil {
 		return false
@@ -934,6 +935,3 @@ func (h *ModerationEventHandler) handleUserRestored(
 
 	return nil
 }
-
-
-

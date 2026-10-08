@@ -13,6 +13,9 @@ import (
 // UpsertReputationStateTx creates or overwrites the live reputation state for a seller.
 //
 // Uses INSERT ... ON CONFLICT (seller_id) DO UPDATE so repeated calls are safe.
+// seller_id is the canonical commerce seller identity: users.id (= the seller's
+// user id), matching orders.seller_id / order_ratings.seller_id / refunds.seller_id.
+// It is NOT seller_profiles.id.
 // The caller (SellerReputationRecomputeWorker) runs this inside a per-seller
 // transaction alongside UpdateTierTx, ensuring reputation state and tier badge
 // are always written atomically.
@@ -80,17 +83,17 @@ func (r *SellerRepositoryImpl) GetReputationStateForUpdate(
 	sellerID uuid.UUID,
 ) (*sellerEntity.SellerReputationState, error) {
 	var (
-		windowDays              int
-		windowStart, windowEnd  time.Time
-		completedOrders         int
-		cancelledTimeout        int
-		ratingAvg               float64
-		ratingCount             int
-		disputeLoss             int
-		fulfillmentRate         float64
-		currentTier             string
-		tierEvaluatedAt         *time.Time
-		reputationUpdatedAt     time.Time
+		windowDays             int
+		windowStart, windowEnd time.Time
+		completedOrders        int
+		cancelledTimeout       int
+		ratingAvg              float64
+		ratingCount            int
+		disputeLoss            int
+		fulfillmentRate        float64
+		currentTier            string
+		tierEvaluatedAt        *time.Time
+		reputationUpdatedAt    time.Time
 	)
 
 	err := tx.QueryRow(ctx, `
@@ -148,4 +151,78 @@ func (r *SellerRepositoryImpl) GetReputationStateForUpdate(
 	}, nil
 }
 
+// GetReputationState retrieves the current live reputation state WITHOUT a
+// row-level lock. Read projection only (e.g. Seller Performance). Returns nil
+// if the seller has no state row yet (first recompute has not run).
+func (r *SellerRepositoryImpl) GetReputationState(
+	ctx context.Context,
+	tx db.Tx,
+	sellerID uuid.UUID,
+) (*sellerEntity.SellerReputationState, error) {
+	var (
+		windowDays             int
+		windowStart, windowEnd time.Time
+		completedOrders        int
+		cancelledTimeout       int
+		ratingAvg              float64
+		ratingCount            int
+		disputeLoss            int
+		fulfillmentRate        float64
+		currentTier            string
+		tierEvaluatedAt        *time.Time
+		reputationUpdatedAt    time.Time
+	)
 
+	err := tx.QueryRow(ctx, `
+		SELECT
+			window_days,
+			window_start,
+			window_end,
+			rolling_completed_orders,
+			rolling_cancelled_timeout,
+			rolling_rating_average,
+			rolling_rating_count,
+			rolling_dispute_loss_count,
+			rolling_fulfillment_rate,
+			current_tier,
+			tier_last_evaluated_at,
+			reputation_updated_at
+		FROM seller_reputation_state
+		WHERE seller_id = $1
+	`, sellerID).Scan(
+		&windowDays,
+		&windowStart,
+		&windowEnd,
+		&completedOrders,
+		&cancelledTimeout,
+		&ratingAvg,
+		&ratingCount,
+		&disputeLoss,
+		&fulfillmentRate,
+		&currentTier,
+		&tierEvaluatedAt,
+		&reputationUpdatedAt,
+	)
+	if err != nil {
+		if err.Error() == "no rows in result set" {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("get seller reputation state failed: %w", err)
+	}
+
+	return &sellerEntity.SellerReputationState{
+		SellerID:                sellerID,
+		WindowDays:              windowDays,
+		WindowStart:             windowStart,
+		WindowEnd:               windowEnd,
+		RollingCompletedOrders:  completedOrders,
+		RollingCancelledTimeout: cancelledTimeout,
+		RollingRatingAverage:    ratingAvg,
+		RollingRatingCount:      ratingCount,
+		RollingDisputeLossCount: disputeLoss,
+		RollingFulfillmentRate:  fulfillmentRate,
+		CurrentTier:             sellerEntity.Tier(currentTier),
+		TierLastEvaluatedAt:     tierEvaluatedAt,
+		ReputationUpdatedAt:     reputationUpdatedAt,
+	}, nil
+}

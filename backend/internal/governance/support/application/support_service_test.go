@@ -95,6 +95,14 @@ func (m *mockRepository) ListTickets(ctx context.Context, tx interface{}, filter
 	return result, nil
 }
 
+func (m *mockRepository) ListTicketsForOrdering(ctx context.Context, tx interface{}, filter *supportRepo.TicketFilter) ([]*entity.Ticket, error) {
+	var result []*entity.Ticket
+	for _, ticket := range m.tickets {
+		result = append(result, ticket)
+	}
+	return result, nil
+}
+
 func (m *mockRepository) CountTickets(ctx context.Context, tx interface{}, filter *supportRepo.TicketFilter) (int64, error) {
 	return int64(len(m.tickets)), nil
 }

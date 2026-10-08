@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/navigation/navigation_provider.dart';
 import 'package:labuda/shared/domain/entities/resource_projection.dart';
+import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/widgets/empty_state.dart';
+import 'package:labuda/shared/widgets/page_error_state.dart';
 import 'package:labuda/domains/user/preference/saved_item/models/saved_item_model.dart';
 import 'package:labuda/domains/user/preference/saved_item/data/providers/saved_item_query_providers.dart';
 import 'package:labuda/domains/user/preference/saved_item/data/repositories/saved_item_repository_provider.dart';
 import 'package:labuda/shared/widgets/app_image.dart';
-import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Saved-items authority screen.
 ///
@@ -66,14 +66,29 @@ class _SavedItemScreenState extends ConsumerState<SavedItemScreen> {
       ),
       body: ref.watch(savedItemsProvider).when(
         loading: () => const Center(child: CircularProgressIndicator()),
+        // CANONICAL page-level error (PageErrorState): safe localized copy
+        // only, the raw [error] never reaches the screen.
         error: (error, stackTrace) => Center(
-          child: EmptyState.error(
-            title: 'Data belum bisa dimuat.',
-            subtitle: 'Periksa koneksi kamu lalu coba lagi.',
+          child: PageErrorState(
             onRetry: () => ref.invalidate(savedItemsProvider),
           ),
         ),
         data: (allItems) {
+          final l10n = context.l10n;
+
+          // Two different meanings, two different states:
+          // 1. the account saved nothing at all  → collection empty;
+          // 2. items exist but this type filter matches none → filter empty.
+          if (allItems.isEmpty) {
+            return Center(
+              child: EmptyState(
+                icon: Icons.bookmarks_outlined,
+                title: l10n.emptySavedTitle,
+                subtitle: l10n.emptySavedMessage,
+              ),
+            );
+          }
+
           final items = _selectedType == null
               ? allItems
               : allItems
@@ -86,12 +101,13 @@ class _SavedItemScreenState extends ConsumerState<SavedItemScreen> {
                     )
                     .toList();
           if (items.isEmpty) {
-            return const Center(
+            return Center(
               child: EmptyState(
-                icon: Icons.bookmarks_outlined,
-                title: 'Belum ada item yang disimpan',
-                subtitle:
-                    'Item For Sale dan lelang yang kamu simpan akan muncul di sini.',
+                icon: Icons.filter_alt_off_outlined,
+                title: l10n.emptySearchTitle,
+                subtitle: l10n.emptySearchMessage,
+                actionLabel: l10n.resetFilterAction,
+                onAction: () => setState(() => _selectedType = null),
               ),
             );
           }
@@ -165,7 +181,7 @@ class _SavedItemScreenState extends ConsumerState<SavedItemScreen> {
           ],
         ),
         trailing: IconButton(
-          icon: const Icon(Icons.bookmark_remove),
+          icon: const Icon(Icons.bookmark_remove, semanticLabel: 'Hapus dari simpanan'),
           onPressed: () => _removeItem(item),
         ),
         onTap: () {

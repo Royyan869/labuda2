@@ -38,7 +38,10 @@ class PreferenceToggleWidget extends StatelessWidget {
       child: InkWell(
         onTap: effectiveEnabled ? () => onChanged(!value) : null,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p12),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppMetrics.p16,
+            vertical: AppMetrics.p12,
+          ),
           child: Row(
             children: [
               // Icon
@@ -53,9 +56,7 @@ class PreferenceToggleWidget extends StatelessWidget {
                 ),
                 child: Icon(
                   icon,
-                  color: effectiveEnabled
-                      ? iconColor
-                      : scheme.onSurfaceVariant,
+                  color: effectiveEnabled ? iconColor : scheme.onSurfaceVariant,
                   size: AppIconSize.header,
                 ),
               ),
@@ -68,8 +69,7 @@ class PreferenceToggleWidget extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: TextStyle(
-                        fontSize: AppType.s16,
+                      style: context.typeRoles.titleCompact.copyWith(
                         fontWeight: FontWeight.w500,
                         color: effectiveEnabled
                             ? scheme.onSurface
@@ -79,8 +79,7 @@ class PreferenceToggleWidget extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       subtitle,
-                      style: TextStyle(
-                        fontSize: AppType.s14,
+                      style: context.typeRoles.bodyDense.copyWith(
                         color: effectiveEnabled
                             ? scheme.onSurfaceVariant
                             : scheme.onSurfaceVariant,
@@ -92,13 +91,11 @@ class PreferenceToggleWidget extends StatelessWidget {
               ),
               const SizedBox(width: 12),
 
-              // Toggle switch
+              // Toggle switch — colour/state comes from `switchTheme`
+              // (AppTheme), the one selection-control authority.
               Switch(
                 value: effectiveValue,
                 onChanged: effectiveEnabled ? onChanged : null,
-                activeTrackColor: scheme.primary,
-                activeThumbColor: scheme.onPrimary,
-                inactiveTrackColor: scheme.outlineVariant,
               ),
             ],
           ),

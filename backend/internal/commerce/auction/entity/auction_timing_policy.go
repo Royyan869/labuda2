@@ -78,6 +78,18 @@ func (e *ErrScheduledStartMustBeFuture) Error() string {
 		e.ScheduledStartAt.Format(time.RFC3339), e.Now.Format(time.RFC3339))
 }
 
+// ErrAuctionEndAlreadyPassed is returned when scheduling an auction whose
+// end_at has already elapsed — such an auction would end the instant it starts.
+type ErrAuctionEndAlreadyPassed struct {
+	EndAt time.Time
+	Now   time.Time
+}
+
+func (e *ErrAuctionEndAlreadyPassed) Error() string {
+	return fmt.Sprintf("auction end_at %s must be in the future (now: %s)",
+		e.EndAt.Format(time.RFC3339), e.Now.Format(time.RFC3339))
+}
+
 // ErrScheduledStartBeyondHorizon is returned when a scheduled auction start
 // time exceeds the owner-approved maximum horizon (30 days from server now).
 type ErrScheduledStartBeyondHorizon struct {
@@ -97,8 +109,8 @@ func (e *ErrScheduledStartBeyondHorizon) Error() string {
 //   - the resulting duration must be within [MinAuctionDuration, MaxAuctionDuration].
 //
 // This is the single source of truth for timing bounds — it is called from
-// ResolveAuctionTiming (create path) and directly from the UpdateDraft/
-// UpdateScheduled entity methods, so no create/update path can bypass it by
+// ResolveAuctionTiming (create path) and directly from the UpdateScheduled
+// entity method, so no create/update path can bypass it by
 // calling a service method directly. UI validation is a convenience only.
 func ValidateAuctionTiming(startAt, endAt time.Time) error {
 	if !endAt.After(startAt) {
@@ -118,6 +130,23 @@ func ValidateAuctionTiming(startAt, endAt time.Time) error {
 func RequireFutureScheduledStart(startAt, now time.Time) error {
 	if !startAt.After(now.Add(-scheduledStartClockSkewTolerance)) {
 		return &ErrScheduledStartMustBeFuture{ScheduledStartAt: startAt, Now: now}
+	}
+	return nil
+}
+
+// RequireFutureAuctionEnd validates that endAt is still ahead of the
+// authoritative clock (allowing the same schedule-time skew tolerance), so a
+// schedule action can never commit an auction that is already over.
+//
+// Deliberately distinct from RequireFutureScheduledStart: a START may
+// legitimately be now or already past — StartModeNow resolves start_at to the
+// server clock and create schedules it in the same transaction. An END
+// may not. This is the gate that stops a relisted auction, whose end_at
+// elapsed during the finished run, from being scheduled straight into an
+// instant end.
+func RequireFutureAuctionEnd(endAt, now time.Time) error {
+	if !endAt.After(now.Add(-scheduledStartClockSkewTolerance)) {
+		return &ErrAuctionEndAlreadyPassed{EndAt: endAt, Now: now}
 	}
 	return nil
 }

@@ -40,7 +40,7 @@ const (
 )
 
 // reputationAggregates holds the computed rolling-window inputs for a seller.
-// All fields are derived from base tables; none come from seller_monthly_metrics.
+// All fields are derived from base tables (orders, order_ratings, refunds).
 type reputationAggregates struct {
 	completedOrders  int
 	cancelledTimeout int
@@ -61,13 +61,36 @@ func (a *reputationAggregates) fulfillmentRate() float64 {
 
 // reputationAggregator is an interface for computing rolling-window metrics.
 // Separated from the worker to allow deterministic mocking in tests.
+//
+// The identity passed is the canonical commerce seller identity (users.id =
+// seller_profiles.user_id), NOT the seller_profiles surrogate primary key.
+// All commerce tables (orders, order_ratings, refunds) key their seller by
+// users.id.
 type reputationAggregator interface {
-	compute(ctx context.Context, tx db.Tx, sellerID uuid.UUID, windowStart time.Time) (*reputationAggregates, error)
+	compute(ctx context.Context, tx db.Tx, userID uuid.UUID, windowStart time.Time) (*reputationAggregates, error)
+}
+
+// sellerIdentity couples the two distinct seller identifiers that the worker
+// must never conflate:
+//
+//   - profileID: seller_profiles.id — the profile surrogate primary key. Used
+//     ONLY for seller_profiles-scoped operations (row lock, tier badge update).
+//   - userID: seller_profiles.user_id = users.id — the canonical commerce
+//     seller identity. Used for ALL commerce aggregation (orders, ratings,
+//     refunds) and for seller_reputation_state.seller_id.
+type sellerIdentity struct {
+	profileID uuid.UUID
+	userID    uuid.UUID
 }
 
 // reputationSellerStore is the minimal seller persistence surface used by
 // SellerReputationRecomputeWorker. Using a minimal interface (instead of the
 // full SellerRepository) keeps test mocks small and focused.
+//
+// IDENTITY: GetByIDForUpdate and UpdateTierTx are seller_profiles-scoped and
+// take seller_profiles.id (the surrogate key). UpsertReputationStateTx persists
+// seller_reputation_state.seller_id, which is the canonical commerce identity
+// (users.id) carried on state.SellerID.
 type reputationSellerStore interface {
 	GetByIDForUpdate(ctx context.Context, tx db.Tx, id uuid.UUID) (*sellerEntity.SellerProfile, error)
 	UpsertReputationStateTx(ctx context.Context, tx db.Tx, state *sellerEntity.SellerReputationState) error
@@ -90,13 +113,19 @@ type reputationOutboxStore interface {
 // Late refunds, rating invalidations, and dispute resolutions are automatically
 // reflected on the next recompute cycle — no special reconciliation needed.
 //
+// IDENTITY CONTRACT: the worker carries two distinct seller identifiers and
+// must never conflate them (see sellerIdentity). Commerce aggregation and
+// seller_reputation_state.seller_id use users.id (canonical); seller_profiles
+// row lock and tier badge update use seller_profiles.id (surrogate key).
+//
 // Lifecycle: Start() / Stop() / IsRunning() satisfy serverboot.Worker.
 // Schedule: runs nightly (DefaultReputationRecomputeInterval).
 //
 // Write surfaces: seller_reputation_state, seller_profiles.tier, outbox.
-// Invariant: seller_monthly_metrics is never read or written by this worker.
 type SellerReputationRecomputeWorker struct {
-	db         interface{ WithTx(ctx context.Context, fn func(tx db.Tx) error) error }
+	db interface {
+		WithTx(ctx context.Context, fn func(tx db.Tx) error) error
+	}
 	store      reputationSellerStore
 	outbox     reputationOutboxStore
 	aggregator reputationAggregator
@@ -114,7 +143,9 @@ type SellerReputationRecomputeWorker struct {
 // NewSellerReputationRecomputeWorker constructs the canonical reputation authority worker.
 // The passed sellerRepo and outboxRepo must satisfy the minimal store interfaces.
 func NewSellerReputationRecomputeWorker(
-	database interface{ WithTx(ctx context.Context, fn func(tx db.Tx) error) error },
+	database interface {
+		WithTx(ctx context.Context, fn func(tx db.Tx) error) error
+	},
 	store reputationSellerStore,
 	outbox reputationOutboxStore,
 	log *zap.Logger,
@@ -202,33 +233,33 @@ func (w *SellerReputationRecomputeWorker) run() {
 // Each seller is processed in its own transaction — one seller failure does
 // not block others.
 func (w *SellerReputationRecomputeWorker) RecomputeAllSellers(ctx context.Context) {
-	sellerIDs, err := w.fetchAllSellerIDs(ctx)
+	sellers, err := w.fetchAllSellers(ctx)
 	if err != nil {
-		w.log.Error("SellerReputationRecomputeWorker: failed to fetch seller IDs",
+		w.log.Error("SellerReputationRecomputeWorker: failed to fetch sellers",
 			zap.Error(err),
 		)
 		return
 	}
 
-	if len(sellerIDs) == 0 {
+	if len(sellers) == 0 {
 		w.log.Info("SellerReputationRecomputeWorker: no sellers to process")
 		return
 	}
 
 	w.log.Info("SellerReputationRecomputeWorker: starting recompute cycle",
-		zap.Int("seller_count", len(sellerIDs)),
+		zap.Int("seller_count", len(sellers)),
 		zap.Int("window_days", w.windowDays),
 	)
 
 	now := time.Now().UTC()
 	var processed, tierChanged, failed int
 
-	for _, sellerID := range sellerIDs {
-		changed, err := w.processOneSeller(ctx, sellerID, now)
+	for _, s := range sellers {
+		changed, err := w.processOneSeller(ctx, s.profileID, s.userID, now)
 		if err != nil {
 			failed++
 			w.log.Error("SellerReputationRecomputeWorker: seller processing failed",
-				zap.String("seller_id", sellerID.String()),
+				zap.String("seller_id", s.userID.String()),
 				zap.Error(err),
 			)
 			continue
@@ -248,36 +279,45 @@ func (w *SellerReputationRecomputeWorker) RecomputeAllSellers(ctx context.Contex
 
 // processOneSeller recomputes reputation state and evaluates tier for a single
 // seller. Returns true if the tier changed. All mutations are in one transaction.
+//
+// IDENTITY CONTRACT (do not conflate):
+//   - userID    (users.id)            → commerce aggregation + reputation state
+//     key. orders/order_ratings/refunds and seller_reputation_state.seller_id
+//     all use this identity.
+//   - profileID (seller_profiles.id)  → seller_profiles-scoped operations only
+//     (row lock + tier badge update).
 func (w *SellerReputationRecomputeWorker) processOneSeller(
 	ctx context.Context,
-	sellerID uuid.UUID,
+	profileID uuid.UUID,
+	userID uuid.UUID,
 	now time.Time,
 ) (tierChanged bool, err error) {
 	windowStart := now.Add(-time.Duration(w.windowDays) * 24 * time.Hour)
 
 	err = w.db.WithTx(ctx, func(tx db.Tx) error {
-		// 1. Compute rolling-window aggregates from base tables.
-		agg, err := w.aggregator.compute(ctx, tx, sellerID, windowStart)
+		// 1. Compute rolling-window aggregates from base tables using the
+		//    canonical commerce identity (users.id).
+		agg, err := w.aggregator.compute(ctx, tx, userID, windowStart)
 		if err != nil {
 			return fmt.Errorf("compute aggregates: %w", err)
 		}
 
-		// 2. Lock the seller profile to prevent concurrent tier mutations.
-		profile, err := w.store.GetByIDForUpdate(ctx, tx, sellerID)
+		// 2. Lock the seller profile by its surrogate primary key.
+		profile, err := w.store.GetByIDForUpdate(ctx, tx, profileID)
 		if err != nil {
 			return fmt.Errorf("lock seller profile: %w", err)
 		}
 		if profile == nil {
-			return fmt.Errorf("seller profile not found: %s", sellerID)
+			return fmt.Errorf("seller profile not found: %s", profileID)
 		}
 
 		// 3. Evaluate new tier from fresh aggregates.
 		newTier := evaluateTierFromAggregates(profile.Tier, agg)
 		evalTime := now
 
-		// 4. Build reputation state.
+		// 4. Build reputation state keyed by the canonical commerce identity.
 		state := &sellerEntity.SellerReputationState{
-			SellerID:                sellerID,
+			SellerID:                userID,
 			WindowDays:              w.windowDays,
 			WindowStart:             windowStart,
 			WindowEnd:               now,
@@ -302,7 +342,7 @@ func (w *SellerReputationRecomputeWorker) processOneSeller(
 			return nil
 		}
 
-		if err := w.store.UpdateTierTx(ctx, tx, sellerID, newTier); err != nil {
+		if err := w.store.UpdateTierTx(ctx, tx, profileID, newTier); err != nil {
 			return fmt.Errorf("update tier: %w", err)
 		}
 
@@ -313,12 +353,12 @@ func (w *SellerReputationRecomputeWorker) processOneSeller(
 
 		// Idempotency key: one tier-change event per seller per calendar day.
 		idempotencyKey := fmt.Sprintf("seller.tier.change.%s.%s",
-			sellerID.String(),
+			userID.String(),
 			now.Format("2006-01-02"),
 		)
 
 		payload := map[string]any{
-			"seller_id":     sellerID.String(),
+			"seller_id":     userID.String(),
 			"previous_tier": string(profile.Tier),
 			"new_tier":      string(newTier),
 			"evaluated_at":  now.UTC().Format(time.RFC3339),
@@ -332,7 +372,7 @@ func (w *SellerReputationRecomputeWorker) processOneSeller(
 		tierChanged = true
 
 		w.log.Info("SellerReputationRecomputeWorker: tier changed",
-			zap.String("seller_id", sellerID.String()),
+			zap.String("seller_id", userID.String()),
 			zap.String("previous_tier", string(profile.Tier)),
 			zap.String("new_tier", string(newTier)),
 			zap.String("event_type", eventType),
@@ -344,19 +384,24 @@ func (w *SellerReputationRecomputeWorker) processOneSeller(
 	return tierChanged, err
 }
 
-// fetchAllSellerIDs retrieves seller profile IDs for active accounts only,
-// ordered by ID for deterministic processing.
+// fetchAllSellers retrieves the canonical seller identities for active accounts
+// only, ordered by profile id for deterministic processing.
 //
 // Banned, suspended, and deleted users are excluded. Their existing
 // seller_reputation_state rows are preserved (no erasure) but will NOT be
 // recomputed or re-promoted while the account is in a non-active state.
 // This prevents "Elite but Banned" drift when tier is publicly exposed.
-func (w *SellerReputationRecomputeWorker) fetchAllSellerIDs(ctx context.Context) ([]uuid.UUID, error) {
-	var ids []uuid.UUID
+//
+// IDENTITY: both ids are carried because they are different identities.
+// seller_profiles.id is the profile surrogate key; seller_profiles.user_id
+// (= users.id) is the canonical commerce seller identity used by orders,
+// order_ratings and refunds.
+func (w *SellerReputationRecomputeWorker) fetchAllSellers(ctx context.Context) ([]sellerIdentity, error) {
+	var sellers []sellerIdentity
 
 	err := w.db.WithTx(ctx, func(tx db.Tx) error {
 		rows, err := tx.Query(ctx, `
-			SELECT sp.id
+			SELECT sp.id, sp.user_id
 			FROM seller_profiles sp
 			JOIN users u ON u.id = sp.user_id
 			WHERE u.account_status = 'active'
@@ -369,17 +414,17 @@ func (w *SellerReputationRecomputeWorker) fetchAllSellerIDs(ctx context.Context)
 		defer rows.Close()
 
 		for rows.Next() {
-			var id uuid.UUID
-			if err := rows.Scan(&id); err != nil {
+			var s sellerIdentity
+			if err := rows.Scan(&s.profileID, &s.userID); err != nil {
 				return err
 			}
-			ids = append(ids, id)
+			sellers = append(sellers, s)
 		}
 
 		return rows.Err()
 	})
 
-	return ids, err
+	return sellers, err
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -469,10 +514,15 @@ func isTierDowngrade(from, to sellerEntity.Tier) bool {
 // it does not constitute a domain ownership violation.
 type productionAggregator struct{}
 
+// compute aggregates the rolling-window metrics for the seller identified by
+// userID (users.id = seller_profiles.user_id) — the canonical commerce seller
+// identity. orders.seller_id, order_ratings.seller_id and refunds.seller_id all
+// reference users(id); passing the seller_profiles surrogate key here would
+// match zero rows.
 func (a *productionAggregator) compute(
 	ctx context.Context,
 	tx db.Tx,
-	sellerID uuid.UUID,
+	userID uuid.UUID,
 	windowStart time.Time,
 ) (*reputationAggregates, error) {
 	agg := &reputationAggregates{}
@@ -486,7 +536,7 @@ func (a *productionAggregator) compute(
 		WHERE seller_id = $1
 		  AND status = 'completed'
 		  AND completed_at >= $2
-	`, sellerID, windowStart).Scan(&agg.completedOrders); err != nil {
+	`, userID, windowStart).Scan(&agg.completedOrders); err != nil {
 		return nil, fmt.Errorf("count completed orders: %w", err)
 	}
 
@@ -498,7 +548,7 @@ func (a *productionAggregator) compute(
 		WHERE seller_id = $1
 		  AND status = 'cancelled_timeout'
 		  AND updated_at >= $2
-	`, sellerID, windowStart).Scan(&agg.cancelledTimeout); err != nil {
+	`, userID, windowStart).Scan(&agg.cancelledTimeout); err != nil {
 		return nil, fmt.Errorf("count cancelled timeout orders: %w", err)
 	}
 
@@ -512,7 +562,7 @@ func (a *productionAggregator) compute(
 		WHERE r.seller_id = $1
 		  AND o.completed_at >= $2
 		  AND r.invalidated_at IS NULL
-	`, sellerID, windowStart).Scan(&agg.ratingAverage, &agg.ratingCount); err != nil {
+	`, userID, windowStart).Scan(&agg.ratingAverage, &agg.ratingCount); err != nil {
 		return nil, fmt.Errorf("compute rolling rating: %w", err)
 	}
 
@@ -524,11 +574,9 @@ func (a *productionAggregator) compute(
 		WHERE seller_id = $1
 		  AND status = 'admin_refunded'
 		  AND admin_reviewed_at >= $2
-	`, sellerID, windowStart).Scan(&agg.disputeLosses); err != nil {
+	`, userID, windowStart).Scan(&agg.disputeLosses); err != nil {
 		return nil, fmt.Errorf("count dispute losses: %w", err)
 	}
 
 	return agg, nil
 }
-
-

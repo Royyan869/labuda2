@@ -26,11 +26,16 @@ class VerificationActionButtons extends StatelessWidget {
                 ? null
                 : () => Navigator.of(context).pop(false),
             style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p12),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppMetrics.p12,
+                vertical: AppMetrics.p12,
+              ),
             ),
-            child: const Text(
+            child: Text(
               'Cancel',
-              style: TextStyle(fontSize: AppType.s14, fontWeight: FontWeight.w600),
+              style: Theme.of(
+                context,
+              ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
               overflow: TextOverflow.ellipsis,
             ),
           ),
@@ -44,8 +49,10 @@ class VerificationActionButtons extends StatelessWidget {
                 ? onVerifyOTP
                 : onSendOTP,
             style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p12),
-              disabledBackgroundColor: scheme.primary.withValues(alpha: 0.5),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppMetrics.p12,
+                vertical: AppMetrics.p12,
+              ),
             ),
             child: state.isLoading || state.isVerifying
                 ? SizedBox(
@@ -53,13 +60,14 @@ class VerificationActionButtons extends StatelessWidget {
                     height: 16,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(scheme.onPrimary),
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        scheme.onSurfaceVariant,
+                      ),
                     ),
                   )
                 : Text(
                     state.codeSent ? 'Verify' : 'Send OTP',
-                    style: const TextStyle(
-                      fontSize: AppType.s14,
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
                       fontWeight: FontWeight.w600,
                     ),
                     overflow: TextOverflow.ellipsis,

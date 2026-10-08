@@ -63,12 +63,13 @@ class _LoginSessionsScreenState extends ConsumerState<LoginSessionsScreen> {
     AuthSessionDto session,
   ) async {
     final l10n = AppLocalizations.of(context)!;
-    final confirmed = await _showConfirmDialog(
+    final confirmed = await AppDialog.confirm(
       context: context,
       title: l10n.revokeSessionTitle,
       message: l10n.revokeSessionMessage,
       confirmLabel: l10n.revokeSession,
-      isDestructive: true,
+      cancelLabel: l10n.cancel,
+      intent: AppDialogIntent.destructive,
     );
     if (!confirmed) return;
     if (!mounted) return;
@@ -94,12 +95,13 @@ class _LoginSessionsScreenState extends ConsumerState<LoginSessionsScreen> {
 
   Future<void> _confirmLogoutAll(BuildContext context) async {
     final l10n = AppLocalizations.of(context)!;
-    final confirmed = await _showConfirmDialog(
+    final confirmed = await AppDialog.confirm(
       context: context,
       title: l10n.signOutAllDevicesTitle,
       message: l10n.signOutAllDevicesMessage,
       confirmLabel: l10n.signOutAllDevices,
-      isDestructive: true,
+      cancelLabel: l10n.cancel,
+      intent: AppDialogIntent.destructive,
     );
     if (!confirmed) return;
     if (!mounted) return;
@@ -112,42 +114,11 @@ class _LoginSessionsScreenState extends ConsumerState<LoginSessionsScreen> {
     await controller.signOutAll();
     if (!mounted) return;
     setState(() => _isMutating = false);
-    AppSnackBar.showSuccess(context, AppLocalizations.of(context)!.allSessionsRevokedSuccess);
-    _loadSessions();
-  }
-
-  Future<bool> _showConfirmDialog({
-    required BuildContext context,
-    required String title,
-    required String message,
-    required String confirmLabel,
-    required bool isDestructive,
-  }) async {
-    final l10n = AppLocalizations.of(context)!;
-    final scheme = Theme.of(context).colorScheme;
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(title),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(l10n.cancel),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text(
-              confirmLabel,
-              style: TextStyle(
-                color: isDestructive ? scheme.error : scheme.primary,
-              ),
-            ),
-          ),
-        ],
-      ),
+    AppSnackBar.showSuccess(
+      context,
+      AppLocalizations.of(context)!.allSessionsRevokedSuccess,
     );
-    return result ?? false;
+    _loadSessions();
   }
 
   @override
@@ -189,10 +160,7 @@ class _LoginSessionsScreenState extends ConsumerState<LoginSessionsScreen> {
     return _buildSessionList(context, l10n);
   }
 
-  Widget _buildErrorState(
-    BuildContext context,
-    AppLocalizations l10n,
-  ) {
+  Widget _buildErrorState(BuildContext context, AppLocalizations l10n) {
     final scheme = Theme.of(context).colorScheme;
     return Center(
       child: Padding(
@@ -200,14 +168,16 @@ class _LoginSessionsScreenState extends ConsumerState<LoginSessionsScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.error_outline, size: AppIconSize.display, color: scheme.error),
+            Icon(
+              Icons.error_outline,
+              size: AppIconSize.display,
+              color: scheme.error,
+            ),
             const SizedBox(height: 16),
             Text(
               l10n.failedToLoadSessions,
               textAlign: TextAlign.center,
-              style: TextStyle(
-                color: scheme.onSurface,
-              ),
+              style: TextStyle(color: scheme.onSurface),
             ),
             const SizedBox(height: 24),
             ElevatedButton.icon(
@@ -238,8 +208,7 @@ class _LoginSessionsScreenState extends ConsumerState<LoginSessionsScreen> {
             Text(
               l10n.noActiveSessions,
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: AppType.s16,
+              style: context.typeRoles.titleCompact.copyWith(
                 color: scheme.onSurface,
               ),
             ),
@@ -249,10 +218,7 @@ class _LoginSessionsScreenState extends ConsumerState<LoginSessionsScreen> {
     );
   }
 
-  Widget _buildSessionList(
-    BuildContext context,
-    AppLocalizations l10n,
-  ) {
+  Widget _buildSessionList(BuildContext context, AppLocalizations l10n) {
     final scheme = Theme.of(context).colorScheme;
     return ListView(
       padding: const EdgeInsets.all(AppMetrics.p16),
@@ -260,9 +226,8 @@ class _LoginSessionsScreenState extends ConsumerState<LoginSessionsScreen> {
         // Info header
         Text(
           l10n.manageActiveSessions,
-          style: TextStyle(
+          style: context.typeRoles.bodyDense.copyWith(
             color: scheme.onSurfaceVariant,
-            fontSize: AppType.s14,
           ),
         ),
         const SizedBox(height: 12),
@@ -286,7 +251,10 @@ class _LoginSessionsScreenState extends ConsumerState<LoginSessionsScreen> {
           style: OutlinedButton.styleFrom(
             foregroundColor: scheme.error,
             side: BorderSide(color: scheme.error.withValues(alpha: 0.5)),
-            padding: const EdgeInsets.symmetric(vertical: AppMetrics.p12, horizontal: AppMetrics.p16),
+            padding: const EdgeInsets.symmetric(
+              vertical: AppMetrics.p12,
+              horizontal: AppMetrics.p16,
+            ),
           ),
         ),
       ],
@@ -327,9 +295,7 @@ class _SessionCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: scheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(AppShape.r12),
-        border: Border.all(
-          color: scheme.outlineVariant,
-        ),
+        border: Border.all(color: scheme.outlineVariant),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -338,7 +304,7 @@ class _SessionCard extends StatelessWidget {
             children: [
               Icon(
                 _platformIcon(entity.platform),
-                size: 20,
+                size: AppIconSize.action,
                 color: scheme.onSurfaceVariant,
               ),
               const SizedBox(width: 8),
@@ -362,7 +328,7 @@ class _SessionCard extends StatelessWidget {
                 ),
                 child: Text(
                   l10n.revokeSession,
-                  style: const TextStyle(fontSize: AppType.s12),
+                  style: Theme.of(context).textTheme.labelLarge,
                 ),
               ),
             ],
@@ -371,8 +337,7 @@ class _SessionCard extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               'v${entity.appVersion}',
-              style: TextStyle(
-                fontSize: AppType.s12,
+              style: context.typeRoles.labelMicro.copyWith(
                 color: scheme.onSurfaceVariant,
               ),
             ),
@@ -395,17 +360,19 @@ class _SessionCard extends StatelessWidget {
     required String label,
     required DateTime date,
   }) {
+    // Standalone secondary fact → compact Metadata authority (one bounded
+    // line). The formatted string production below is intentionally
+    // untouched: absolute session timestamps keep their local format;
+    // the authority owns horizontal presentation only.
     final formatted = _formatDateTime(date);
     final textColor = Theme.of(context).colorScheme.onSurfaceVariant;
-    return Row(
-      children: [
-        Icon(icon, size: AppIconSize.inlineGlyph, color: textColor),
-        const SizedBox(width: 4),
-        Text(
-          '$label: $formatted',
-          style: TextStyle(fontSize: AppType.s12, color: textColor),
-        ),
-      ],
+    return MetadataView(
+      text: '$label: $formatted',
+      mode: MetadataMode.compact,
+      icon: icon,
+      iconSize: AppIconSize.inlineGlyph,
+      spacing: 4,
+      style: context.typeRoles.labelMicro.copyWith(color: textColor),
     );
   }
 
@@ -422,12 +389,10 @@ class _SessionCard extends StatelessWidget {
     }
   }
 
+  // Session timestamps render through the canonical absolute formatter.
+  // `.toLocal()` semantics are preserved: the backend emits UTC, the user
+  // reads wall-clock time.
   String _formatDateTime(DateTime dt) {
-    final local = dt.toLocal();
-    return '${local.day.toString().padLeft(2, '0')}/'
-        '${local.month.toString().padLeft(2, '0')}/'
-        '${local.year} '
-        '${local.hour.toString().padLeft(2, '0')}:'
-        '${local.minute.toString().padLeft(2, '0')}';
+    return AppFormatters.formatDateTime(dt.toLocal());
   }
 }

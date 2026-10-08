@@ -3,26 +3,23 @@ package entity
 // CancelReason classifies WHY an auction was cancelled.
 //
 // ONE AUTHORITY for cancellation cause: the producer stamps this reason into
-// the auction.cancelled outbox payload; the notification worker routes the
-// seller-facing auto-cancel notification on it. The reason is internal
-// outbox data — never a public wire field (buyers see only the coarse
+// the auction.cancelled outbox payload for the audit trail. The reason is
+// internal outbox data — never a public wire field (buyers see only the coarse
 // PublicPhase "cancelled"; why an auction died stays private).
 //
-// Buyer notifications on cancellation are intentionally NOT built (owner
-// decision): this vocabulary exists for producer→worker routing only.
+// NO notification routes on this vocabulary (purged Oct 2026): every remaining
+// cancel is seller-, moderation- or admin-initiated, each of which already
+// knows (self-action) or communicates through its canonical channel
+// (moderation.auction.removed / admin decision UX). The subscription-expired
+// direction is GONE: a lapsed subscription now lapses scheduled auctions
+// (StatusLapsed) instead of cancelling, so there is no silent system-cancel
+// left to notify about.
 type CancelReason string
 
 const (
 	// CancelReasonSeller — seller self-cancelled their own auction (Cancel()).
 	// Needs no echo notification: the seller performed the action.
 	CancelReasonSeller CancelReason = "seller"
-
-	// CancelReasonSubscriptionExpired — auction auto-cancelled by the
-	// activation worker because the seller's subscription (market authority)
-	// expired. The ONLY reason that triggers a seller notification today:
-	// the seller took no action and must learn their listing died with the
-	// subscription (Scope B).
-	CancelReasonSubscriptionExpired CancelReason = "subscription_expired"
 
 	// CancelReasonModeration — governance enforcement cancel
 	// (CancelForModeration). Outcome travels the canonical moderation
@@ -33,18 +30,7 @@ const (
 	// free-text admin reason is carried separately and stays internal.
 	CancelReasonAdmin CancelReason = "admin"
 
-	// CancelReasonLegacy is the zero value for historical auction.cancelled
-	// events produced before reasons existed (and for non-cancel lifecycle
-	// events). The worker parses it as a no-op — fail-closed (no
-	// notification, no error) without replay churn.
+	// CancelReasonLegacy is the zero value for auction.cancelled events
+	// produced without a reason (and for non-cancel lifecycle events).
 	CancelReasonLegacy CancelReason = ""
 )
-
-// NotifiesSeller reports whether this cancellation reason warrants a
-// seller-facing notification. Single routing authority for the notification
-// worker: only system-initiated auto-cancels notify (the seller took no
-// action); moderation/admin outcomes communicate through their own canonical
-// channels, and self-cancels need no echo.
-func (r CancelReason) NotifiesSeller() bool {
-	return r == CancelReasonSubscriptionExpired
-}

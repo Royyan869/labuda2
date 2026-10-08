@@ -47,7 +47,17 @@ enum CheckoutReadiness {
   /// The applied preview's pricing token has expired.
   expired,
 
-  /// A current, non-expired backend preview exists. Checkout may proceed.
+  /// The pre-order payment methods are being loaded for the current token.
+  loadingPaymentMethods,
+
+  /// The pre-order payment methods failed to load.
+  paymentMethodsError,
+
+  /// The methods are available but the buyer has not selected one yet.
+  missingPaymentMethod,
+
+  /// A current, non-expired backend preview exists AND a payment method is
+  /// selected, so the buyer knows the final payable. Checkout may proceed.
   ready;
 
   /// Whether the buyer may proceed to order creation.
@@ -57,7 +67,8 @@ enum CheckoutReadiness {
   bool get isRefreshable =>
       this == CheckoutReadiness.error ||
       this == CheckoutReadiness.stale ||
-      this == CheckoutReadiness.expired;
+      this == CheckoutReadiness.expired ||
+      this == CheckoutReadiness.paymentMethodsError;
 
   /// Short state title for the pricing indicator.
   String get title {
@@ -76,6 +87,12 @@ enum CheckoutReadiness {
         return 'Harga Perlu Diperbarui';
       case CheckoutReadiness.expired:
         return 'Harga Kadaluarsa';
+      case CheckoutReadiness.loadingPaymentMethods:
+        return 'Memuat Metode Pembayaran';
+      case CheckoutReadiness.paymentMethodsError:
+        return 'Gagal Memuat Metode Pembayaran';
+      case CheckoutReadiness.missingPaymentMethod:
+        return 'Pilih Metode Pembayaran';
       case CheckoutReadiness.ready:
         return 'Harga Terkunci';
     }
@@ -101,6 +118,12 @@ enum CheckoutReadiness {
         return 'Harga perlu diperbarui karena detail checkout berubah.';
       case CheckoutReadiness.expired:
         return 'Silakan refresh harga terbaru';
+      case CheckoutReadiness.loadingPaymentMethods:
+        return 'Memuat metode pembayaran dari server...';
+      case CheckoutReadiness.paymentMethodsError:
+        return 'Tap refresh untuk mencoba lagi';
+      case CheckoutReadiness.missingPaymentMethod:
+        return 'Pilih metode pembayaran untuk melihat total final.';
       case CheckoutReadiness.ready:
         return '';
     }
@@ -143,6 +166,15 @@ class CheckoutReadinessInputs {
   /// The last preview request failed.
   final bool hasPreviewError;
 
+  /// The pre-order payment methods are currently being loaded.
+  final bool isLoadingPaymentMethods;
+
+  /// The pre-order payment methods request failed.
+  final bool hasPaymentMethodsError;
+
+  /// A payment method is selected from the loaded pre-order pricing.
+  final bool hasSelectedPaymentMethod;
+
   const CheckoutReadinessInputs({
     required this.hasProductId,
     required this.hasAddress,
@@ -154,6 +186,9 @@ class CheckoutReadinessInputs {
     required this.hasPricingToken,
     required this.isLoadingPreview,
     required this.hasPreviewError,
+    this.isLoadingPaymentMethods = false,
+    this.hasPaymentMethodsError = false,
+    this.hasSelectedPaymentMethod = false,
   });
 }
 
@@ -195,6 +230,15 @@ CheckoutReadiness evaluateCheckoutReadiness(CheckoutReadinessInputs inputs) {
   if (!inputs.hasPricingToken) {
     // The backend preview cannot drive an order without its snapshot token.
     return CheckoutReadiness.error;
+  }
+  if (inputs.hasPaymentMethodsError) {
+    return CheckoutReadiness.paymentMethodsError;
+  }
+  if (inputs.isLoadingPaymentMethods) {
+    return CheckoutReadiness.loadingPaymentMethods;
+  }
+  if (!inputs.hasSelectedPaymentMethod) {
+    return CheckoutReadiness.missingPaymentMethod;
   }
   return CheckoutReadiness.ready;
 }

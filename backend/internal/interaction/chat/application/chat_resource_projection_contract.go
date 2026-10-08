@@ -32,14 +32,13 @@ type ResourceProjectionResolver interface {
 // fields) have NO alias on purpose: the compiler forces every construction
 // site onto the canonical shape.
 type (
-	ResourceProjection            = commerceshared.ResourceProjection
-	ProjectionState               = commerceshared.ProjectionState
-	ProjectionViewerCapabilities  = commerceshared.ProjectionViewerCapabilities
-	CommerceActionCapabilities    = commerceshared.CommerceActionCapabilities
-	NestedResourceIndicator       = commerceshared.NestedResourceIndicator
-	ProfileLivePayload            = commerceshared.ProfileLivePayload
-	ContentLivePayload            = commerceshared.ContentLivePayload
-	ForSaleLivePrice              = commerceshared.LivePrice
+	ResourceProjection           = commerceshared.ResourceProjection
+	ProjectionState              = commerceshared.ProjectionState
+	ProjectionViewerCapabilities = commerceshared.ProjectionViewerCapabilities
+	NestedResourceIndicator      = commerceshared.NestedResourceIndicator
+	ProfileLivePayload           = commerceshared.ProfileLivePayload
+	ContentLivePayload           = commerceshared.ContentLivePayload
+	ForSaleLivePrice             = commerceshared.LivePrice
 )
 
 const (

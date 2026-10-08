@@ -25,6 +25,7 @@ import 'package:labuda/domains/social/like/domain/entities/like.dart';
 import 'package:labuda/domains/social/like/domain/repositories/like_repository.dart';
 import 'package:labuda/domains/social/like/presentation/providers/like_notifier.dart';
 import 'package:labuda/features/home/home.dart';
+import 'package:labuda/generated/app_localizations.dart';
 import 'package:labuda/shared/services/logger_service.dart';
 
 // ============================================================================
@@ -156,8 +157,7 @@ class FakeFeedHttpAdapter implements HttpClientAdapter {
   /// Captured query parameters for /feed requests, in call order.
   final List<Map<String, dynamic>> capturedQueryParams = [];
 
-  FakeFeedHttpAdapter(List<_CannedResponse> responses)
-    : _responses = responses;
+  FakeFeedHttpAdapter(List<_CannedResponse> responses) : _responses = responses;
 
   ResponseBody _genericSuccess() {
     return ResponseBody.fromString(
@@ -167,7 +167,9 @@ class FakeFeedHttpAdapter implements HttpClientAdapter {
         'timestamp': '2026-08-05T00:00:00Z',
       }),
       200,
-      headers: {'content-type': ['application/json']},
+      headers: {
+        'content-type': ['application/json'],
+      },
     );
   }
 
@@ -182,15 +184,20 @@ class FakeFeedHttpAdapter implements HttpClientAdapter {
       return _genericSuccess();
     }
 
-    capturedQueryParams.add(Map<String, dynamic>.from(
-      options.queryParameters,
-    ));
+    capturedQueryParams.add(Map<String, dynamic>.from(options.queryParameters));
 
     if (_callCount >= _responses.length) {
-      final body = feedEnvelope(items: <Map<String, dynamic>>[], hasMore: false);
-      return ResponseBody.fromString(jsonEncode(body), 200, headers: {
-        'content-type': ['application/json'],
-      });
+      final body = feedEnvelope(
+        items: <Map<String, dynamic>>[],
+        hasMore: false,
+      );
+      return ResponseBody.fromString(
+        jsonEncode(body),
+        200,
+        headers: {
+          'content-type': ['application/json'],
+        },
+      );
     }
 
     final canned = _responses[_callCount];
@@ -207,7 +214,9 @@ class FakeFeedHttpAdapter implements HttpClientAdapter {
     return ResponseBody.fromString(
       jsonEncode(canned.body),
       canned.statusCode,
-      headers: {'content-type': ['application/json']},
+      headers: {
+        'content-type': ['application/json'],
+      },
     );
   }
 
@@ -361,7 +370,12 @@ Widget _buildHarness(
       // Logger service override.
       loggerServiceProvider.overrideWithValue(LoggerService.instance),
     ],
-    child: MaterialApp.router(routerConfig: router),
+    child: MaterialApp.router(
+      routerConfig: router,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      locale: const Locale('id'),
+    ),
   );
 }
 
@@ -443,7 +457,7 @@ void main() {
 
       // Empty/error states absent.
       expect(find.text('🎯 Kamu ingin apa hari ini?'), findsNothing);
-      expect(find.text('Feed belum bisa dimuat'), findsNothing);
+      expect(find.text('Terjadi Kesalahan'), findsNothing);
 
       // Verify request went to correct endpoint with correct params.
       expect(adapter.capturedQueryParams, isNotEmpty);
@@ -456,85 +470,86 @@ void main() {
   // SCENARIO 2: Mixed organic and promoted response
   // ==========================================================================
   group('SCENARIO 2: mixed organic and promoted response', () {
-    testWidgets(
-      'all four kinds survive the real pipeline with correct types',
-      (tester) async {
-        // Use default viewport (not large) to minimize VisibilityDetector
-        // surface area. The pipeline proof is via FeedState, not widget
-        // rendering for every item.
+    testWidgets('all four kinds survive the real pipeline with correct types', (
+      tester,
+    ) async {
+      // Use default viewport (not large) to minimize VisibilityDetector
+      // surface area. The pipeline proof is via FeedState, not widget
+      // rendering for every item.
 
-        final adapter = FakeFeedHttpAdapter([
-          _CannedResponse(
-            statusCode: 200,
-            body: feedEnvelope(
-              items: [
-                feedContentItem(id: 'organic-1', body: 'An organic post'),
-                feedPromotedListingItem(
-                  instanceId: 'pi-forSale',
-                  title: 'Promoted ForSale Koi',
-                ),
-                feedPromotedAuctionItem(
-                  instanceId: 'pi-auction',
-                  title: 'Promoted Auction Koi',
-                ),
-                feedContentItem(id: 'organic-2', body: 'Another post'),
-                feedPromotedExternalItem(
-                  instanceId: 'pi-external',
-                  title: 'External Shop Link',
-                ),
-              ],
-              hasMore: false,
-            ),
+      final adapter = FakeFeedHttpAdapter([
+        _CannedResponse(
+          statusCode: 200,
+          body: feedEnvelope(
+            items: [
+              feedContentItem(id: 'organic-1', body: 'An organic post'),
+              feedPromotedListingItem(
+                instanceId: 'pi-forSale',
+                title: 'Promoted ForSale Koi',
+              ),
+              feedPromotedAuctionItem(
+                instanceId: 'pi-auction',
+                title: 'Promoted Auction Koi',
+              ),
+              feedContentItem(id: 'organic-2', body: 'Another post'),
+              feedPromotedExternalItem(
+                instanceId: 'pi-external',
+                title: 'External Shop Link',
+              ),
+            ],
+            hasMore: false,
           ),
-        ]);
+        ),
+      ]);
 
-        await tester.pumpWidget(
-          _buildHarness(adapter, authenticated: true, router: _homeRouter()),
-        );
-        // Use _pump to process the async chain.
-        for (int i = 0; i < 12; i++) {
-          await tester.pump(const Duration(milliseconds: 50));
-        }
+      await tester.pumpWidget(
+        _buildHarness(adapter, authenticated: true, router: _homeRouter()),
+      );
+      // Use _pump to process the async chain.
+      for (int i = 0; i < 12; i++) {
+        await tester.pump(const Duration(milliseconds: 50));
+      }
 
-        // Proof: FeedState has all 5 items with correct types.
-        // This proves the ENTIRE pipeline: HTTP response → DTO parse →
-        // FeedResponseDto → HomeRepositoryImpl → mergeFeedItems → FeedNotifier.
-        final state = _container(tester).read(feedProvider);
-        expect(state.items, hasLength(5));
-        expect(state.items[0].type, FeedItemType.content);
-        expect(state.items[1].type, FeedItemType.promotedForSale);
-        expect(state.items[2].type, FeedItemType.promotedAuction);
-        expect(state.items[3].type, FeedItemType.content);
-        expect(state.items[4].type, FeedItemType.promotedExternal);
+      // Proof: FeedState has all 5 items with correct types.
+      // This proves the ENTIRE pipeline: HTTP response → DTO parse →
+      // FeedResponseDto → HomeRepositoryImpl → mergeFeedItems → FeedNotifier.
+      final state = _container(tester).read(feedProvider);
+      expect(state.items, hasLength(5));
+      expect(state.items[0].type, FeedItemType.content);
+      expect(state.items[1].type, FeedItemType.promotedForSale);
+      expect(state.items[2].type, FeedItemType.promotedAuction);
+      expect(state.items[3].type, FeedItemType.content);
+      expect(state.items[4].type, FeedItemType.promotedExternal);
 
-        // Proof: promoted items carry correct additionalData from DTO mapping.
-        expect(state.items[1].additionalData['isPromoted'], true);
-        expect(state.items[1].additionalData['title'], 'Promoted ForSale Koi');
-        expect(state.items[2].additionalData['auctionId'], 'auction-1');
-        expect(state.items[2].additionalData['bidCount'], 3);
-        expect(state.items[4].additionalData['externalUrl'],
-            'https://example.com/product');
+      // Proof: promoted items carry correct additionalData from DTO mapping.
+      expect(state.items[1].additionalData['isPromoted'], true);
+      expect(state.items[1].additionalData['title'], 'Promoted ForSale Koi');
+      expect(state.items[2].additionalData['auctionId'], 'auction-1');
+      expect(state.items[2].additionalData['bidCount'], 3);
+      expect(
+        state.items[4].additionalData['externalUrl'],
+        'https://example.com/product',
+      );
 
-        // Proof: no item fell back to another kind.
-        // All items are present with their canonical FeedItemType.
-        expect(state.isLoading, isFalse);
-        expect(state.errorMessage, isNull);
+      // Proof: no item fell back to another kind.
+      // All items are present with their canonical FeedItemType.
+      expect(state.isLoading, isFalse);
+      expect(state.errorMessage, isNull);
 
-        // Proof: at least the organic items render on screen.
-        expect(find.text('An organic post'), findsOneWidget);
+      // Proof: at least the organic items render on screen.
+      expect(find.text('An organic post'), findsOneWidget);
 
-        // Verify endpoint hit exactly once.
-        expect(adapter.requestCount, 1);
+      // Verify endpoint hit exactly once.
+      expect(adapter.requestCount, 1);
 
-        // Flush VisibilityDetector timers so the framework invariant passes.
-        // The double-shrink pattern breaks the cascade: each pumpWidget
-        // disposes old render objects, then pump consumes leftover timers.
-        await tester.pumpWidget(const SizedBox.shrink());
-        await tester.pump(const Duration(seconds: 3));
-        await tester.pumpWidget(const SizedBox.shrink());
-        await tester.pump(const Duration(milliseconds: 600));
-      },
-    );
+      // Flush VisibilityDetector timers so the framework invariant passes.
+      // The double-shrink pattern breaks the cascade: each pumpWidget
+      // disposes old render objects, then pump consumes leftover timers.
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump(const Duration(seconds: 3));
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump(const Duration(milliseconds: 600));
+    });
   });
 
   // ==========================================================================
@@ -568,7 +583,7 @@ void main() {
       expect(state.errorMessage, isNull);
 
       // Proof: no error, no loading.
-      expect(find.text('Feed belum bisa dimuat'), findsNothing);
+      expect(find.text('Terjadi Kesalahan'), findsNothing);
       expect(find.byType(CircularProgressIndicator), findsNothing);
       expect(adapter.requestCount, 1);
     });
@@ -598,7 +613,7 @@ void main() {
       await _pump(tester);
 
       // After first 500: initial full error appears.
-      expect(find.text('Feed belum bisa dimuat'), findsOneWidget);
+      expect(find.text('Terjadi Kesalahan'), findsOneWidget);
       // FeedState: error, no items.
       final errorState = _container(tester).read(feedProvider);
       expect(errorState.items, isEmpty);
@@ -614,7 +629,7 @@ void main() {
 
       // Second request occurred and content renders.
       expect(find.text('Recovered!'), findsOneWidget);
-      expect(find.text('Feed belum bisa dimuat'), findsNothing);
+      expect(find.text('Terjadi Kesalahan'), findsNothing);
 
       // FeedState: success, error cleared.
       final successState = _container(tester).read(feedProvider);
@@ -654,16 +669,14 @@ void main() {
 
       // Proof: genuine empty (data:null is normalized to empty list, not error)
       expect(find.text('🎯 Kamu ingin apa hari ini?'), findsOneWidget);
-      expect(find.text('Feed belum bisa dimuat'), findsNothing);
+      expect(find.text('Terjadi Kesalahan'), findsNothing);
       final state = _container(tester).read(feedProvider);
       expect(state.errorMessage, isNull);
       expect(state.items, isEmpty);
       expect(adapter.requestCount, 1);
     });
 
-    testWidgets('missing type field produces initial error', (
-      tester,
-    ) async {
+    testWidgets('missing type field produces initial error', (tester) async {
       _setLargeViewport(tester);
 
       final adapter = FakeFeedHttpAdapter([
@@ -690,7 +703,7 @@ void main() {
       );
       await _pump(tester);
 
-      expect(find.text('Feed belum bisa dimuat'), findsOneWidget);
+      expect(find.text('Terjadi Kesalahan'), findsOneWidget);
       expect(find.text('🎯 Kamu ingin apa hari ini?'), findsNothing);
       expect(adapter.requestCount, 1);
     });
@@ -700,71 +713,82 @@ void main() {
   // SCENARIO 6: Refresh failure preserves rendered items
   // ==========================================================================
   group('SCENARIO 6: refresh failure preserves items', () {
-    testWidgets(
-      'Content A visible after refresh 500, retry shows Content B',
-      (tester) async {
-        _setLargeViewport(tester);
+    testWidgets('Content A visible after refresh 500, retry shows Content B', (
+      tester,
+    ) async {
+      _setLargeViewport(tester);
 
-        final adapter = FakeFeedHttpAdapter([
-          // Initial load: Content A.
-          _CannedResponse(
-            statusCode: 200,
-            body: feedEnvelope(
-              items: [feedContentItem(id: 'a-1', body: 'Content A')],
-              nextCursor: 'cursor-a',
-              hasMore: true,
-            ),
+      final adapter = FakeFeedHttpAdapter([
+        // Initial load: Content A.
+        _CannedResponse(
+          statusCode: 200,
+          body: feedEnvelope(
+            items: [feedContentItem(id: 'a-1', body: 'Content A')],
+            nextCursor: 'cursor-a',
+            hasMore: true,
           ),
-          // Refresh: HTTP 500.
-          _CannedResponse(statusCode: 500, body: <String, dynamic>{}),
-          // Refresh retry: Content B.
-          _CannedResponse(
-            statusCode: 200,
-            body: feedEnvelope(
-              items: [feedContentItem(id: 'b-1', body: 'Content B')],
-              hasMore: false,
-            ),
+        ),
+        // Refresh: HTTP 500.
+        _CannedResponse(statusCode: 500, body: <String, dynamic>{}),
+        // Refresh retry: Content B.
+        _CannedResponse(
+          statusCode: 200,
+          body: feedEnvelope(
+            items: [feedContentItem(id: 'b-1', body: 'Content B')],
+            hasMore: false,
           ),
-        ]);
+        ),
+      ]);
 
-        await tester.pumpWidget(
-          _buildHarness(adapter, authenticated: true, router: _homeRouter()),
-        );
-        await _pump(tester);
+      await tester.pumpWidget(
+        _buildHarness(adapter, authenticated: true, router: _homeRouter()),
+      );
+      await _pump(tester);
 
-        // Initial load succeeded.
-        expect(find.text('Content A'), findsOneWidget);
+      // Initial load succeeded.
+      expect(find.text('Content A'), findsOneWidget);
 
-        // Trigger refresh programmatically.
-        final container = _container(tester);
-        unawaited(container.read(feedProvider.notifier).refresh());
-        await _pump(tester);
+      // Trigger refresh programmatically.
+      final container = _container(tester);
+      unawaited(container.read(feedProvider.notifier).refresh());
+      await _pump(tester);
 
-        // Proof: refresh failure clears items and shows initial error (current FeedNotifier.refresh clears before load)
-        expect(find.text('Content A'), findsNothing);
-        expect(find.text('Feed belum bisa dimuat'), findsOneWidget);
-        expect(find.text('🎯 Kamu ingin apa hari ini?'), findsNothing);
-        final refreshErrorState = container.read(feedProvider);
-        expect(refreshErrorState.items, isEmpty);
-        expect(refreshErrorState.errorMessage, isNotNull);
+      // Proof (Loading Foundation): refresh failure preserves last-known-
+      // good items with an inline indication — never a full-page error.
+      expect(find.text('Content A'), findsOneWidget);
+      expect(find.text('Terjadi Kesalahan'), findsNothing);
+      expect(find.text('🎯 Kamu ingin apa hari ini?'), findsNothing);
+      expect(
+        find.text('Data belum bisa dimuat. Silakan coba lagi.'),
+        findsOneWidget,
+      );
+      final refreshErrorState = container.read(feedProvider);
+      expect(refreshErrorState.items, isNotEmpty);
+      expect(refreshErrorState.items[0].content, 'Content A');
+      expect(refreshErrorState.errorMessage, isNull);
+      expect(refreshErrorState.refreshError, isNotNull);
+      expect(refreshErrorState.isRefreshing, isFalse);
 
-        // Tap retry in the refresh banner.
-        final retryButtons = find.text('Coba Lagi');
-        await tester.tap(retryButtons.last);
-        await _pump(tester);
+      // Tap retry in the refresh banner.
+      final retryButtons = find.text('Coba Lagi');
+      await tester.tap(retryButtons.last);
+      await _pump(tester);
 
-        // Proof: Content B replaces Content A (refresh contract).
-        expect(find.text('Content B'), findsOneWidget);
-        expect(find.text('Coba lagi beberapa saat.'), findsNothing);
+      // Proof: Content B replaces Content A (refresh contract).
+      expect(find.text('Content B'), findsOneWidget);
+      expect(
+        find.text('Data belum bisa dimuat. Silakan coba lagi.'),
+        findsNothing,
+      );
 
-        // FeedState: new items, error cleared.
-        final recoveredState = container.read(feedProvider);
-        expect(recoveredState.items[0].content, 'Content B');
-        expect(recoveredState.errorMessage, isNull);
+      // FeedState: new items, refresh error cleared.
+      final recoveredState = container.read(feedProvider);
+      expect(recoveredState.items[0].content, 'Content B');
+      expect(recoveredState.errorMessage, isNull);
+      expect(recoveredState.refreshError, isNull);
 
-        expect(adapter.requestCount, 3);
-      },
-    );
+      expect(adapter.requestCount, 3);
+    });
   });
 
   // ==========================================================================
@@ -849,9 +873,7 @@ void main() {
       expect(adapter.requestCount, 3);
     });
 
-    testWidgets('pagination error blocks repeat auto-requests', (
-      tester,
-    ) async {
+    testWidgets('pagination error blocks repeat auto-requests', (tester) async {
       _setLargeViewport(tester);
 
       final adapter = FakeFeedHttpAdapter([

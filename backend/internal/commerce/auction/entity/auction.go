@@ -15,19 +15,18 @@ import (
 // Status represents the auction status as a strict state machine.
 //
 // BOUNDARY NORMALIZATION (PHASE 1D):
-// Auction lifecycle follows explicit states with clear boundaries:
-//
-// WORKSPACE (draft):
-//   - Fully editable by seller
-//   - No market authority required
-//   - Can transition to: scheduled, cancelled
+// Auction lifecycle follows explicit states with clear boundaries.
+// THERE IS NO DRAFT STATE: create = publish (owner decision, Oct 2026) — a
+// created auction is validated against the market-entry gate and lands
+// directly in scheduled (or active for an immediate start).
 //
 // PRE-MARKET COMMITMENT (scheduled):
 //   - Seller has committed auction for future market run
 //   - Limited editing allowed (title, description, timing)
-//   - Market authority checked at schedule time
-//   - Can transition to: active, cancelled, draft
-//   - Market authority RE-CHECKED at activation time
+//   - Market authority checked at create/schedule/relist time
+//   - Can transition to: active, cancelled, lapsed
+//   - Market authority RE-CHECKED at activation time: if it expired the
+//     auction lapses (scheduled -> lapsed), it does NOT cancel
 //
 // LIVE MARKET (active):
 //   - Auction is currently accepting bids
@@ -35,10 +34,14 @@ import (
 //   - Can be cancelled only if no bids
 //   - Can transition to: ended, cancelled
 //
-// HISTORICAL/TERMINAL (ended, cancelled):
-//   - ended: Normal completion (time expired or buy now)
-//   - cancelled: Seller cancelled or subscription expired before activation
-//   - Terminal states with no further transitions
+// HISTORICAL (ended, cancelled):
+//   - ended: Normal completion (time expired or buy now, or settlement success)
+//   - cancelled: seller/admin/moderation cancellation — subscription expiry
+//     never cancels: a scheduled auction whose authority lapsed LAPSES
+//   - cancelled is terminal with no further transitions
+//   - ended allows exactly one further transition, ended -> scheduled, used
+//     ONLY by Relist() for an auction that ended with no bids
+//     (owner business truth: relist is REPUBLISH — no draft detour)
 //
 // IMPORTANT: Status is the AUTHORITY for all business decisions.
 // Time boundaries (start_at, end_at) are TRIGGERS for state transitions,
@@ -56,12 +59,9 @@ import (
 type Status string
 
 const (
-	// StatusDraft is the initial state when auction is created.
-	// Fully editable.
-	StatusDraft Status = "draft"
-
-	// StatusScheduled is when auction is scheduled but not yet started.
-	// Editable with restricted fields.
+	// StatusScheduled is the INITIAL state of a created auction (create =
+	// publish; there is no draft state) and the state of an auction that is
+	// scheduled but not yet started. Editable with restricted fields.
 	StatusScheduled Status = "scheduled"
 
 	// StatusActive is when auction is running.
@@ -74,23 +74,52 @@ const (
 
 	// StatusEnded is when auction completes normally (time expires, buy now,
 	// or payment succeeds after settlement).
-	// Terminal state - auction has been settled (order created + paid).
+	//
+	// NOT terminal: an ended auction that carries no bid, winner, or order can
+	// be republished through Relist() (ended -> scheduled) so the seller can
+	// run a new lifecycle. An ended auction that carries an outcome never can.
 	StatusEnded Status = "ended"
 
 	// StatusCancelled is when auction is cancelled.
 	// Terminal state.
 	StatusCancelled Status = "cancelled"
+
+	// StatusLapsed is a SCHEDULED auction whose seller's market authority
+	// (subscription) expired before it could go live. Owner decision
+	// (Oct 2026): this is NOT a cancellation — the seller never chose to
+	// stop, the system held the auction back. A lapsed auction never went
+	// live, is hidden from every viewer surface by the read-side
+	// market-authority filters, and becomes relistable (lapsed -> scheduled)
+	// after renewal. Reached only via Lapse().
+	StatusLapsed Status = "lapsed"
 )
 
 // transitionAllowed defines valid state transitions.
 // The state machine enforces business rules at the entity level.
+//
+// This map answers ONLY "which target states are structurally reachable".
+// Business preconditions are enforced by the method that performs the
+// transition — the same way CanCancel() gates active -> cancelled on
+// CurrentBid == nil. In particular, ended -> scheduled is reachable only
+// through Relist(), which rejects any auction carrying a bid, winner, or order.
 var transitionAllowed = map[Status][]Status{
-	StatusDraft:             {StatusScheduled, StatusCancelled},
-	StatusScheduled:         {StatusActive, StatusCancelled},
-	StatusActive:            {StatusWaitingSettlement, StatusEnded, StatusCancelled},
-	StatusWaitingSettlement: {StatusEnded, StatusDraft, StatusCancelled}, // After payment success OR settlement failure OR moderation enforcement
-	StatusEnded:             {},                                           // Terminal state
-	StatusCancelled:         {},                                           // Terminal state
+	// scheduled -> lapsed: seller market authority expired before
+	// activation (Lapse()). Not a cancellation — relistable after renewal.
+	StatusScheduled: {StatusActive, StatusCancelled, StatusLapsed},
+	// lapsed -> scheduled: the OWNER-APPROVED RELIST path after the seller
+	// renews (Relist with the create-like republish payload).
+	StatusLapsed: {StatusScheduled},
+	StatusActive: {StatusWaitingSettlement, StatusEnded, StatusCancelled},
+	// settlement failure auto-reschedules (RescheduleAfterSettlementFailure):
+	// the seller did nothing wrong, so the run re-enters the market at
+	// start=now. Market authority is re-checked at activation, which lapses
+	// the auction if the seller's subscription is still expired.
+	StatusWaitingSettlement: {StatusEnded, StatusScheduled, StatusCancelled}, // After payment success OR settlement failure OR moderation enforcement
+	// ended -> scheduled is the OWNER-APPROVED RELIST of an auction that ended
+	// with no bids. Relist is republish: no draft detour. See Relist() for the
+	// business gate.
+	StatusEnded:     {StatusScheduled},
+	StatusCancelled: {}, // Terminal state
 }
 
 // canTransition checks if a state transition is allowed.
@@ -111,8 +140,12 @@ func canTransition(from, to Status) bool {
 // are permitted.
 //
 // REPOST POLICY: Only scheduled and active auctions can be reposted.
-// Terminal states (ended, cancelled, waiting_settlement) and
-// draft/unknown statuses are not repostable.
+// Closed states (ended, cancelled, waiting_settlement) and unknown
+// statuses are not repostable.
+//
+// Note: "ended" is not terminal for the seller — Relist() republishes it to
+// scheduled — but ended itself stays non-repostable: repostability follows the
+// CURRENT status, and a republished run earns it back like any scheduled run.
 //
 // waiting_settlement is excluded because the auction's outcome is decided
 // (winner exists) but settlement hasn't completed — reposting is semantically
@@ -129,7 +162,7 @@ func (s Status) IsRepostable() bool {
 // auction status. The public vocabulary is intentionally narrow:
 //
 //	active       — buyable / bid-able now (active or awaiting winner settlement)
-//	unavailable  — not currently buyable (draft / scheduled / terminal states)
+//	unavailable  — not currently buyable (scheduled / terminal states)
 //	removed      — reserved for moderation/hard-delete; Status does not model
 //	               these today so this method never returns "removed".
 //
@@ -140,7 +173,7 @@ func (s Status) PublicLifecycle() string {
 	switch s {
 	case StatusActive, StatusWaitingSettlement:
 		return "active"
-	case StatusDraft, StatusScheduled, StatusEnded, StatusCancelled:
+	case StatusScheduled, StatusEnded, StatusCancelled, StatusLapsed:
 		return "unavailable"
 	default:
 		return "unavailable"
@@ -155,12 +188,13 @@ func (s Status) PublicLifecycle() string {
 // (countdown on scheduled, live bidding on active, winner settlement
 // window, terminal states).
 //
-// DRAFT IS NOT PART OF THE PUBLIC VOCABULARY. A draft is a private
-// workspace item: list SQL excludes it, detail 404s non-owners, search
-// excludes it. The defensive mapping below is deliberately conservative —
-// if a draft ever leaks through a bug it renders as cancelled (dead),
-// never as bid-able or upcoming. Owner surfaces must read the separate
-// owner-only `seller_status` wire field for the exact internal state.
+// There is no draft in the lifecycle (create = publish). The defensive
+// default mapping below is deliberately conservative — any unknown or
+// non-public internal state (e.g. lapsed, which the read-side
+// market-authority filter excludes from discovery) renders as cancelled
+// (dead), never as bid-able or upcoming. Owner surfaces must read the
+// separate owner-only `seller_status` wire field for the exact internal
+// state.
 func (s Status) PublicPhase() string {
 	switch s {
 	case StatusScheduled:
@@ -173,7 +207,12 @@ func (s Status) PublicPhase() string {
 		return "ended"
 	case StatusCancelled:
 		return "cancelled"
-	default: // StatusDraft and unknown — conservative defensive mapping
+	case StatusLapsed:
+		// Lapsed never reaches public discovery (the read-side
+		// market-authority filter excludes it); if one ever leaked through a
+		// bug it must render dead.
+		return "cancelled"
+	default: // unknown — conservative defensive mapping
 		return "cancelled"
 	}
 }
@@ -185,8 +224,8 @@ func (s Status) String() string {
 
 // IsPublicDiscoverable returns true when this auction status is eligible to
 // appear in anonymous public discovery (browse/search). Only pre-sale and
-// live-sale surfaces qualify: draft (workspace), cancelled, waiting_settlement
-// and ended (settled/no-winner) are non-public/historical states.
+// live-sale surfaces qualify: cancelled, waiting_settlement, lapsed and
+// ended (settled/no-winner) are non-public/historical states.
 func (s Status) IsPublicDiscoverable() bool {
 	switch s {
 	case StatusScheduled, StatusActive:
@@ -285,22 +324,24 @@ var ErrShippingAlreadyResolved = fmt.Errorf("auction shipping already resolved")
 // This is a Commerce Entry Layer - it creates orders but doesn't touch the ledger.
 //
 // STATE MACHINE:
-// - Draft: Fully editable, can schedule or cancel
-// - Scheduled: Limited editing, can activate, revert to draft, or cancel
-// - Active: Immutable except bid updates, can end or cancel (if no bids)
-// - WaitingSettlement: winner determined; order created and bound but payment
-//   not yet settled; can settle to ended on payment success, or return to
-//   draft on settlement failure
-// - Ended: Terminal, order created + paid (or no-winner end / buy-now)
-// - Cancelled: Terminal, no order created
+//   - Scheduled: initial state at create (create = publish); limited
+//     editing, can activate, relist-window edit, or cancel
+//   - Active: Immutable except bid updates, can end or cancel (if no bids)
+//   - WaitingSettlement: winner determined; order created and bound but payment
+//     not yet settled; settles to ended on payment success, or auto-
+//     reschedules to scheduled on settlement failure
+//   - Ended: order created + paid, or a run that produced no winner;
+//     a no-winner ended auction relists to scheduled (republish)
+//   - Cancelled: Terminal, no order created
 //
 // SETTLEMENT SAFETY:
-// - OrderID is set atomically when order is created
-// - Once OrderID is set, no further order creation is possible
-// - This prevents double settlement (multiple orders for same auction)
-// - Settlement failure returns the auction to DRAFT with all settlement
-//   context (OrderID, ShippingResolvedAt, CurrentBid, CurrentWinnerID,
-//   seller flags) cleared; bid history in auction_bids remains intact.
+//   - OrderID is set atomically when order is created
+//   - Once OrderID is set, no further order creation is possible
+//   - This prevents double settlement (multiple orders for same auction)
+//   - Settlement failure AUTO-RESCHEDULES the auction (scheduled, start=now)
+//     with all settlement context (OrderID, ShippingResolvedAt, CurrentBid,
+//     CurrentWinnerID, seller flags) cleared; bid history in auction_bids
+//     remains intact.
 type Auction struct {
 	ID uuid.UUID
 
@@ -313,7 +354,7 @@ type Auction struct {
 
 	// ShippingResolvedAt marks the moment shipping was resolved for the current
 	// settlement (canonical payment-deadline anchor: shipping_resolved_at + 24h).
-	// Cleared when the auction returns to DRAFT on settlement failure.
+	// Cleared when the auction auto-reschedules after a settlement failure.
 	ShippingResolvedAt *time.Time
 
 	// SellerActionRequired is set at auction end when the seller must provide a
@@ -322,8 +363,8 @@ type Auction struct {
 	SellerActionRequired bool
 
 	// SellerQuoteProvided is set once the seller has supplied a valid private
-	// quote for the current settlement. Cleared on return to DRAFT so an old
-	// quote never becomes the authority for a relist.
+	// quote for the current settlement. Cleared on settlement-failure
+	// reschedule so an old quote never becomes the authority for a relist.
 	SellerQuoteProvided bool
 
 	// Pricing (in minor unit, e.g., cents for IDR)
@@ -357,11 +398,15 @@ type Auction struct {
 	Product *productEntity.Product
 }
 
-// NewDraft creates a new draft auction.
+// NewScheduled creates an auction directly in its INITIAL market state
+// (scheduled) — CREATE = PUBLISH. There is no draft stage: the service layer
+// runs the market-entry gate (ownership, restriction, market authority,
+// shipping coverage) before persisting, and an immediate start progresses
+// scheduled -> active in the same transaction.
 // Product identity (title, description, media, koi attributes, preparation)
 // is owned by the Product entity — Auction only carries surface-specific
 // configuration (pricing, timing, bid state).
-func NewDraft(
+func NewScheduled(
 	sellerID, productID uuid.UUID,
 	startPrice, bidIncrement int64,
 	buyNowPrice *int64,
@@ -381,18 +426,25 @@ func NewDraft(
 		EndAt:           endAt,
 		CurrentBid:      nil,
 		CurrentWinnerID: nil,
-		Status:          StatusDraft,
+		Status:          StatusScheduled,
 		CreatedAt:       now,
 		UpdatedAt:       now,
 	}
 }
 
-// Schedule transitions the auction from draft to scheduled.
-func (a *Auction) Schedule() error {
-	if !canTransition(a.Status, StatusScheduled) {
-		return &InvalidTransitionError{CurrentStatus: a.Status, TargetStatus: StatusScheduled}
+// Lapse moves a scheduled auction to lapsed because the seller's market
+// authority (subscription) expired before the auction could go live.
+//
+// Owner decision (Oct 2026): this is deliberately NOT Cancel() — the seller
+// took no action, so the cancellation vocabulary (seller/moderation/admin)
+// must not absorb it. Only scheduled auctions lapse: a running auction
+// continues to completion (buyer fairness), and its bidless outcome ends as
+// 'ended' like any other no-bid run.
+func (a *Auction) Lapse() error {
+	if !canTransition(a.Status, StatusLapsed) {
+		return &InvalidTransitionError{CurrentStatus: a.Status, TargetStatus: StatusLapsed}
 	}
-	a.Status = StatusScheduled
+	a.Status = StatusLapsed
 	a.UpdatedAt = time.Now()
 	return nil
 }
@@ -439,12 +491,19 @@ func (a *Auction) SettlementDeadline() time.Time {
 	return a.EndAt.Add(24 * time.Hour)
 }
 
-// TransitionToDraftOnSettlementFailure returns the auction from
-// waiting_settlement to draft after a settlement failure (buyer shipping
+// RescheduleAfterSettlementFailure returns the auction from
+// waiting_settlement to SCHEDULED after a settlement failure (buyer shipping
 // timeout, seller quote default, or payment expiry).
 //
+// OWNER DECISION (Oct 2026): settlement failure auto-reschedules — the run is
+// over and the seller did nothing wrong, so there is no draft detour: the
+// auction immediately re-enters the market at start=now, end=now+previous
+// duration (clamped to the canonical 1-7 day bounds). Market authority is NOT
+// re-checked here — ActivateScheduledAuction is the single re-check and
+// lapses the auction if the seller's subscription is still expired.
+//
 // Relist model: the same auction record is reused. All current settlement
-// context is cleared so no stale settlement state carries into the relist:
+// context is cleared so no stale settlement state carries into the new run:
 //   - OrderID            = nil (old order stays historical/terminal; the next
 //     settlement must bind a NEW order — no order reuse)
 //   - ShippingResolvedAt = nil
@@ -454,15 +513,62 @@ func (a *Auction) SettlementDeadline() time.Time {
 //   - CurrentWinnerID    = nil
 //   - CurrentBid         = nil (MinimumBid() returns StartPrice again)
 //   - AntiSnipeExtensionTotal = 0 (anti-sniping budget is per-lifecycle;
-//     a relisted auction must start with a fresh extension budget —
+//     a new run must start with a fresh extension budget — otherwise
+//     accumulated extension would reduce or exhaust the new run's soft-close cap)
+//
+// Historical auction_bids rows are intentionally preserved (never deleted).
+func (a *Auction) RescheduleAfterSettlementFailure() error {
+	// PRECONDITION: settlement-failure path only. Status is checked explicitly
+	// (not via the transition map alone) so a mistaken caller cannot route an
+	// ended or relisted auction through the settlement-failure path.
+	if a.Status != StatusWaitingSettlement {
+		return &InvalidTransitionError{CurrentStatus: a.Status, TargetStatus: StatusScheduled}
+	}
+	// New run keeps the previous run's duration, clamped to the canonical
+	// bounds (anti-snipe extensions may have pushed end_at past MaxAuctionDuration).
+	duration := a.EndAt.Sub(a.StartAt)
+	if duration < MinAuctionDuration {
+		duration = MinAuctionDuration
+	}
+	if duration > MaxAuctionDuration {
+		duration = MaxAuctionDuration
+	}
+	now := time.Now()
+	startAt, endAt, err := ResolveAuctionTiming(StartModeNow, nil, duration, now)
+	if err != nil {
+		return err
+	}
+	a.resetForRelist()
+	a.StartAt = startAt
+	a.EndAt = endAt
+	a.Status = StatusScheduled
+	a.UpdatedAt = now
+	return nil
+}
+
+// resetForRelist clears every field that belongs to the finished lifecycle.
+// It is the SINGLE clearing authority for both ways of restarting a run:
+//   - RescheduleAfterSettlementFailure — waiting_settlement -> scheduled
+//   - Relist — ended/lapsed -> scheduled (republish)
+//
+// Status is deliberately NOT touched here — each transition sets its own
+// target state after this reset.
+//
+// Reset semantics:
+//   - OrderID            = nil (old order stays historical; the next
+//     settlement must bind a NEW order — no order reuse)
+//   - ShippingResolvedAt = nil
+//   - SellerActionRequired = false
+//   - SellerQuoteProvided  = false (an old quote is historical only and must
+//     never become the current settlement authority for a relist)
+//   - CurrentWinnerID    = nil
+//   - CurrentBid         = nil (MinimumBid() returns StartPrice again)
+//   - AntiSnipeExtensionTotal = 0 (anti-sniping budget is per-lifecycle;
 //     otherwise accumulated extension from the previous lifecycle would
 //     reduce or exhaust the new lifecycle's soft-close cap)
+//
 // Historical auction_bids rows are intentionally preserved (never deleted).
-func (a *Auction) TransitionToDraftOnSettlementFailure() error {
-	if !canTransition(a.Status, StatusDraft) {
-		return &InvalidTransitionError{CurrentStatus: a.Status, TargetStatus: StatusDraft}
-	}
-	a.Status = StatusDraft
+func (a *Auction) resetForRelist() {
 	a.OrderID = nil
 	a.ShippingResolvedAt = nil
 	a.SellerActionRequired = false
@@ -470,6 +576,53 @@ func (a *Auction) TransitionToDraftOnSettlementFailure() error {
 	a.CurrentWinnerID = nil
 	a.CurrentBid = nil
 	a.AntiSnipeExtensionTotal = 0
+	a.UpdatedAt = time.Now()
+}
+
+// ErrAuctionNotRelistable is returned when a seller tries to relist an
+// auction that cannot start a new lifecycle: it carries the outcome of the
+// finished run (a bid, a winner, or a bound order).
+var ErrAuctionNotRelistable = errors.New("auction is not relistable: only an ended auction with no bids, or a lapsed auction, can be republished")
+
+// Relist REPUBLISHES a finished auction for a new lifecycle: ended (with no
+// bid/winner/order) or lapsed (never went live) -> scheduled, with the caller-
+// supplied run timing and pricing committed in the same step.
+//
+// OWNER BUSINESS TRUTH: relist IS republish. There is no draft detour — the
+// seller comes from the create form (autofilled, duration re-chosen), so the
+// same auction record is reused, resetForRelist() clears the previous
+// lifecycle, and the new run is market-visible immediately after the service
+// applies the schedule gates (market authority, restriction, shipping
+// coverage). Historical auction_bids rows are kept.
+//
+// timing must already come from ResolveAuctionTiming (create authority);
+// RequireFutureAuctionEnd is re-checked here as belt-and-suspenders so a stale
+// end_at can never commit a run that would end the instant it starts.
+func (a *Auction) Relist(startAt, endAt time.Time, startPrice, bidIncrement int64, buyNowPrice *int64) error {
+	switch a.Status {
+	case StatusEnded:
+		if a.CurrentBid != nil || a.CurrentWinnerID != nil || a.OrderID != nil {
+			return ErrAuctionNotRelistable
+		}
+	case StatusLapsed:
+		// A lapsed auction never went live, so it carries no bid, winner, or
+		// order by construction — checked anyway so the gate is one rule.
+		if a.CurrentBid != nil || a.CurrentWinnerID != nil || a.OrderID != nil {
+			return ErrAuctionNotRelistable
+		}
+	default:
+		return &InvalidTransitionError{CurrentStatus: a.Status, TargetStatus: StatusScheduled}
+	}
+	if err := RequireFutureAuctionEnd(endAt, time.Now()); err != nil {
+		return err
+	}
+	a.resetForRelist()
+	a.StartPrice = startPrice
+	a.BidIncrement = bidIncrement
+	a.BuyNowPrice = buyNowPrice
+	a.StartAt = startAt
+	a.EndAt = endAt
+	a.Status = StatusScheduled
 	a.UpdatedAt = time.Now()
 	return nil
 }
@@ -515,7 +668,7 @@ var ErrOrderBindingMismatch = errors.New("auction: order binding mismatch")
 // For bid-win auctions still in waiting_settlement, the caller (order expiry/
 // cancel rollback) is responsible for the full settlement-failure path:
 // release the binding, record the buyer violation, apply the restriction, and
-// call TransitionToDraftOnSettlementFailure() so the auction can relist.
+// call RescheduleAfterSettlementFailure() so the auction re-enters the market.
 //
 // Idempotent: a no-op if OrderID is already nil (already released, e.g. a
 // retried worker call after a prior partial failure). Returns
@@ -533,40 +686,12 @@ func (a *Auction) ReleaseUnpaidOrder(orderID uuid.UUID) error {
 }
 
 // Cancel transitions the auction to cancelled state.
-// Can only be cancelled from draft, scheduled, or active (with no bids).
+// Can only be cancelled from scheduled or active (with no bids).
 func (a *Auction) Cancel() error {
 	if !canTransition(a.Status, StatusCancelled) {
 		return &InvalidTransitionError{CurrentStatus: a.Status, TargetStatus: StatusCancelled}
 	}
 	a.Status = StatusCancelled
-	a.UpdatedAt = time.Now()
-	return nil
-}
-
-// UpdateDraft updates draft auction fields.
-// Product content (title, description, koi attributes) is updated via
-// Product entity — this method only updates surface-specific fields.
-func (a *Auction) UpdateDraft(
-	startPrice, bidIncrement int64,
-	buyNowPrice *int64,
-	startAt, endAt time.Time,
-) error {
-	if a.Status != StatusDraft {
-		return &InvalidOperationError{
-			Status: a.Status,
-			Reason: "can only update draft auctions",
-		}
-	}
-
-	if err := ValidateAuctionTiming(startAt, endAt); err != nil {
-		return err
-	}
-
-	a.StartPrice = startPrice
-	a.BidIncrement = bidIncrement
-	a.BuyNowPrice = buyNowPrice
-	a.StartAt = startAt
-	a.EndAt = endAt
 	a.UpdatedAt = time.Now()
 	return nil
 }
@@ -679,12 +804,12 @@ func (a *Auction) applyAntiSnipingExtension(now time.Time) bool {
 // Active auctions can only be cancelled if there are no bids.
 func (a *Auction) CanCancel() bool {
 	switch a.Status {
-	case StatusDraft, StatusScheduled:
+	case StatusScheduled:
 		return true
 	case StatusActive:
 		return a.CurrentBid == nil // Can cancel active auction only if no bids
 	default:
-		return false // Ended and Cancelled are terminal
+		return false // Ended/Lapsed cannot be cancelled (they only allow relist); Cancelled is terminal
 	}
 }
 
@@ -702,6 +827,3 @@ func (a *Auction) WinnerID() *uuid.UUID {
 func (a *Auction) WinningBid() *int64 {
 	return a.CurrentBid
 }
-
-
-

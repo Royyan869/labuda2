@@ -25,5 +25,9 @@ export 'providers/payment_initiation_state.dart';
 export 'providers/payment_providers.dart' show paymentRepositoryProvider;
 
 // PASS_18V: canonical payment method + backend-calculated fee (checkout flow)
-export '../domain/entities/payment.dart' show PaymentMethodOption;
+export '../domain/entities/payment.dart'
+    show
+        PaymentMethodOption,
+        PreOrderPaymentMethodOption,
+        PreOrderPaymentPricing;
 

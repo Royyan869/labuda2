@@ -77,9 +77,8 @@ Payment _payment({
 
 Future<_FakePaymentResultNotifier> _pumpScreen(
   WidgetTester tester,
-  PaymentResultState state, {
-  String? returnToChat,
-}) async {
+  PaymentResultState state,
+) async {
   final notifier = _FakePaymentResultNotifier(state);
   // Codebase factual: "Lanjutkan Pembayaran" opens the payment URL via
   // GoRouter push to the internal payment WebView — the harness must
@@ -94,24 +93,20 @@ Future<_FakePaymentResultNotifier> _pumpScreen(
             paymentResultProvider.overrideWith(() => notifier),
             authControllerProvider.overrideWith(_FakeAuthController.new),
           ],
-          child: PaymentResultScreen(
+          child: const PaymentResultScreen(
             orderId: 'order-1',
             orderNumber: 'ORD-1',
-            returnToChat: returnToChat,
           ),
         ),
       ),
       GoRoute(
         path: '/payment-webview',
-        builder: (context, state) => const Scaffold(
-          body: Text('PAYMENT_WEBVIEW_TARGET'),
-        ),
+        builder: (context, state) =>
+            const Scaffold(body: Text('PAYMENT_WEBVIEW_TARGET')),
       ),
     ],
   );
-  await tester.pumpWidget(
-    MaterialApp.router(routerConfig: router),
-  );
+  await tester.pumpWidget(MaterialApp.router(routerConfig: router));
   await tester.pump();
   return notifier;
 }
@@ -293,20 +288,7 @@ void main() {
   });
 
   group('PaymentResultScreen - success state', () {
-    testWidgets('Kembali ke Chat appears only when returnToChat is provided', (
-      tester,
-    ) async {
-      await _pumpScreen(
-        tester,
-        const PaymentResultState(status: PaymentResultScreenStatus.success),
-        returnToChat: 'chat-1',
-      );
-
-      expect(find.text('Lihat Pesanan'), findsOneWidget);
-      expect(find.text('Kembali ke Chat'), findsOneWidget);
-    });
-
-    testWidgets('Kembali ke Chat is absent without a chat context', (
+    testWidgets('shows "Lihat Pesanan" and no purged chat-return button', (
       tester,
     ) async {
       await _pumpScreen(
@@ -315,6 +297,8 @@ void main() {
       );
 
       expect(find.text('Lihat Pesanan'), findsOneWidget);
+      // The checkout-owned chat-return continuity is purged: payment now runs
+      // from Order Detail, and the payment-result surface has no chat button.
       expect(find.text('Kembali ke Chat'), findsNothing);
     });
   });

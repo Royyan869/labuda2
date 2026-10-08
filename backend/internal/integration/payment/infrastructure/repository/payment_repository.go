@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/labuda/backend/pkg/db"
 	"github.com/labuda/backend/pkg/money"
 )
@@ -49,6 +50,9 @@ type CreatePaymentInput struct {
 	// billing / promote balance top-up (PASS_18V), and seller subscription
 	// (PMF-02). There is no flow for which it is intentionally nil.
 	PaymentMethodCode *string
+	// SubscriptionDurationDays is the purchased seller-subscription entitlement
+	// length snapshotted at initiation. Set by subscription payments only.
+	SubscriptionDurationDays *int
 }
 
 // CreatePayment creates a new payment with strict validation.
@@ -98,18 +102,21 @@ func (r *PaymentRepository) CreatePayment(
 			id, user_id, payment_number, midtrans_order_id,
 			gross_amount, service_fee_amount, coins_to_use, coin_discount_amount,
 			status, reference_type, reference_id, price_snapshot_id,
-			expired_at, created_at, updated_at, payment_method_code
+			expired_at, created_at, updated_at, payment_method_code,
+			subscription_duration_days
 		) VALUES (
 			$1, $2, $3, $4,
 			$5, $6, $7, $8,
 			$9, $10, $11, $12,
-			$13, NOW(), NOW(), $14
+			$13, NOW(), NOW(), $14,
+			$15
 		)
 		RETURNING id, user_id, payment_number, midtrans_order_id,
 		          gross_amount, service_fee_amount, coins_to_use, coin_discount_amount,
 		          status, reference_type, reference_id, price_snapshot_id,
 		          payment_url, transaction_id, payment_type,
-		          paid_at, expired_at, created_at, updated_at, payment_method_code
+		          paid_at, expired_at, created_at, updated_at, payment_method_code,
+		          subscription_duration_days
 	`
 
 	row := tx.QueryRow(ctx, query,
@@ -127,6 +134,7 @@ func (r *PaymentRepository) CreatePayment(
 		input.PriceSnapshotID,
 		input.ExpiredAt,
 		input.PaymentMethodCode,
+		input.SubscriptionDurationDays,
 	)
 
 	payment, err := scanPayment(row)
@@ -164,7 +172,8 @@ func (r *PaymentRepository) FindExistingPaymentForOrder(
 		       gross_amount, service_fee_amount, coins_to_use, coin_discount_amount,
 		       status, reference_type, reference_id, price_snapshot_id,
 		       payment_url, transaction_id, payment_type,
-		       paid_at, expired_at, created_at, updated_at, payment_method_code
+		       paid_at, expired_at, created_at, updated_at, payment_method_code,
+		       subscription_duration_days
 		FROM payments
 		WHERE reference_type = $1
 		  AND reference_id = $2
@@ -189,7 +198,8 @@ func (r *PaymentRepository) FindPendingSubscriptionPayment(
 		       gross_amount, service_fee_amount, coins_to_use, coin_discount_amount,
 		       status, reference_type, reference_id, price_snapshot_id,
 		       payment_url, transaction_id, payment_type,
-		       paid_at, expired_at, created_at, updated_at, payment_method_code
+		       paid_at, expired_at, created_at, updated_at, payment_method_code,
+		       subscription_duration_days
 		FROM payments
 		WHERE reference_type = $1
 		  AND user_id = $2
@@ -201,6 +211,50 @@ func (r *PaymentRepository) FindPendingSubscriptionPayment(
 
 	row := tx.QueryRow(ctx, query, ReferenceTypeSubscription, userID)
 	return scanPayment(row)
+}
+
+// FindPendingBillingPayment retrieves the ONE reusable pending billing payment
+// for a billing transaction, or nil when none is eligible for reuse.
+//
+// REUSE ELIGIBILITY (deterministic): only a non-expired, status='pending'
+// payment can be reused. Terminal history rows (deny/cancel/expire) and expired
+// pending rows are never returned, so a stale terminal row can never be chosen
+// as the reuse candidate. At most one row can match: the DB enforces
+// idx_active_payment_per_billing (one active payment per billing), and
+// ORDER BY created_at DESC makes the selection deterministic even if historical
+// rows coexist.
+//
+// Returns (nil, nil) when there is no reusable payment (pgx.ErrNoRows is
+// translated to a clean miss), so callers do not need to know the driver error.
+func (r *PaymentRepository) FindPendingBillingPayment(
+	ctx context.Context,
+	tx db.Tx,
+	billingID uuid.UUID,
+) (*Payment, error) {
+	query := `
+		SELECT id, user_id, payment_number, midtrans_order_id,
+		       gross_amount, service_fee_amount, coins_to_use, coin_discount_amount,
+		       status, reference_type, reference_id, price_snapshot_id,
+		       payment_url, transaction_id, payment_type,
+		       paid_at, expired_at, created_at, updated_at, payment_method_code,
+		       subscription_duration_days
+		FROM payments
+		WHERE reference_type = $1
+		  AND reference_id = $2
+		  AND status = 'pending'
+		  AND expired_at > NOW()
+		ORDER BY created_at DESC
+		LIMIT 1
+	`
+
+	payment, err := scanPayment(tx.QueryRow(ctx, query, ReferenceTypeBilling, billingID))
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return payment, nil
 }
 
 // UpdatePaymentURL sets the payment_url field after Midtrans Snap token generation.
@@ -397,7 +451,8 @@ func (r *PaymentRepository) GetPaymentByReference(
 		       gross_amount, service_fee_amount, coins_to_use, coin_discount_amount,
 		       status, reference_type, reference_id, price_snapshot_id,
 		       payment_url, transaction_id, payment_type,
-		       paid_at, expired_at, created_at, updated_at, payment_method_code
+		       paid_at, expired_at, created_at, updated_at, payment_method_code,
+		       subscription_duration_days
 		FROM payments
 		WHERE reference_type = $1 AND reference_id = $2
 	`
@@ -431,7 +486,8 @@ func (r *PaymentRepository) GetByMidtransOrderID(
 		       gross_amount, service_fee_amount, coins_to_use, coin_discount_amount,
 		       status, reference_type, reference_id, price_snapshot_id,
 		       payment_url, transaction_id, payment_type,
-		       paid_at, expired_at, created_at, updated_at, payment_method_code
+		       paid_at, expired_at, created_at, updated_at, payment_method_code,
+		       subscription_duration_days
 		FROM payments
 		WHERE midtrans_order_id = $1
 	`
@@ -464,7 +520,8 @@ func (r *PaymentRepository) GetForUpdate(
 		       gross_amount, service_fee_amount, coins_to_use, coin_discount_amount,
 		       status, reference_type, reference_id, price_snapshot_id,
 		       payment_url, transaction_id, payment_type,
-		       paid_at, expired_at, created_at, updated_at, payment_method_code
+		       paid_at, expired_at, created_at, updated_at, payment_method_code,
+		       subscription_duration_days
 		FROM payments
 		WHERE midtrans_order_id = $1
 		FOR UPDATE
@@ -486,7 +543,8 @@ func (r *PaymentRepository) GetByID(
 		       gross_amount, service_fee_amount, coins_to_use, coin_discount_amount,
 		       status, reference_type, reference_id, price_snapshot_id,
 		       payment_url, transaction_id, payment_type,
-		       paid_at, expired_at, created_at, updated_at, payment_method_code
+		       paid_at, expired_at, created_at, updated_at, payment_method_code,
+		       subscription_duration_days
 		FROM payments
 		WHERE id = $1
 	`
@@ -507,7 +565,8 @@ func (r *PaymentRepository) GetByIDForUpdate(
 		       gross_amount, service_fee_amount, coins_to_use, coin_discount_amount,
 		       status, reference_type, reference_id, price_snapshot_id,
 		       payment_url, transaction_id, payment_type,
-		       paid_at, expired_at, created_at, updated_at, payment_method_code
+		       paid_at, expired_at, created_at, updated_at, payment_method_code,
+		       subscription_duration_days
 		FROM payments
 		WHERE id = $1
 		FOR UPDATE

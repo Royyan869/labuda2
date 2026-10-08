@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:labuda/core/core.dart';
+import 'package:labuda/shared/widgets/app_dialog.dart';
 import 'package:labuda/shared/widgets/app_snackbar.dart';
 import 'package:labuda/shared/widgets/empty_state.dart';
+import 'package:labuda/shared/widgets/page_error_state.dart';
 import 'package:labuda/domains/commerce/pricing/discount/domain/entities/discount_entity.dart';
 import 'package:labuda/domains/commerce/pricing/discount/presentation/providers/discount_provider.dart';
-import 'package:labuda/domains/commerce/pricing/discount/presentation/screens/create_discount_screen.dart';
-import 'package:labuda/domains/commerce/pricing/discount/presentation/screens/edit_discount_screen.dart';
 import 'package:labuda/domains/commerce/pricing/discount/presentation/widgets/discount_card.dart';
-import 'package:labuda/domains/commerce/pricing/discount/presentation/widgets/discount_management_info_tooltip.dart';
 
 /// Screen untuk list semua discount milik seller
 class SellerDiscountListScreen extends ConsumerStatefulWidget {
@@ -55,7 +55,15 @@ class _SellerDiscountListScreenState
     return Scaffold(
       appBar: AppBar(
         title: const Text('Kelola Diskon'),
-        actions: const [DiscountManagementInfoTooltip()],
+        // Canonical Page Info trigger: the page owns the action, the
+        // information surface is the canonical AppDialog.info.
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.help_outline),
+            tooltip: 'Panduan Kelola Diskon',
+            onPressed: _showDiscountInfo,
+          ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           tabs: const [
@@ -100,17 +108,14 @@ class _SellerDiscountListScreenState
             );
           },
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (error, stack) => EmptyState.error(
-                title: 'Data belum bisa dimuat.',
-              ),
+          // CANONICAL page-level error (PageErrorState): safe localized copy
+          // only. This screen never offered a retry action for the load
+          // failure, so no onRetry is passed — behaviour unchanged.
+          error: (error, stack) => const PageErrorState(),
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const CreateDiscountScreen()),
-          );
-        },
+        onPressed: () => context.push(RoutePaths.sellerDiscountCreate),
         icon: const Icon(Icons.add),
         label: const Text('Create Discount'),
       ),
@@ -152,37 +157,26 @@ class _SellerDiscountListScreenState
   }
 
   void _handleEdit(Discount discount) {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => EditDiscountScreen(discount: discount)),
-    );
+    // Canonical edit route: the path identifies the discount, the loaded
+    // entity travels as extra (owner-only management form).
+    context.push(RoutePaths.sellerDiscountEditPath(discount.id), extra: discount);
   }
 
   Future<void> _handleToggleActive(Discount discount, bool isActive) async {
     // Show confirmation if deactivating used discount
     if (!isActive && discount.currentUsageCount > 0) {
-      final confirm = await showDialog<bool>(
+      final confirm = await AppDialog.confirm(
         context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Deactivate Discount'),
-          content: Text(
+        title: 'Deactivate Discount',
+        message:
             'Diskon ini sudah digunakan ${discount.currentUsageCount} kali. '
             'Buyer yang sedang checkout dengan diskon ini tidak akan bisa submit order. '
             'Lanjutkan?',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Deactivate'),
-            ),
-          ],
-        ),
+        confirmLabel: 'Deactivate',
+        cancelLabel: 'Cancel',
       );
 
-      if (confirm != true) return;
+      if (!confirm) return;
     }
 
     // Create updated discount with toggled isActive status
@@ -225,13 +219,9 @@ class _SellerDiscountListScreenState
       },
       (updatedDiscount) {
         // Show success message
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              isActive ? 'Discount activated' : 'Discount deactivated',
-            ),
-            duration: const Duration(seconds: 3),
-          ),
+        AppSnackBar.showSuccess(
+          context,
+          isActive ? 'Diskon diaktifkan' : 'Diskon dinonaktifkan',
         );
 
         // Refresh list
@@ -243,35 +233,30 @@ class _SellerDiscountListScreenState
   }
 
   Future<void> _handleDelete(Discount discount) async {
-    // Confirm deletion
-    final confirm = await showDialog<bool>(
+    // A used discount can never be deleted: the dialog is a notice, not a
+    // decision. An unused one is a destructive confirmation.
+    if (discount.currentUsageCount > 0) {
+      await AppDialog.info(
+        context: context,
+        title: 'Delete Discount',
+        message:
+            'This discount has been used ${discount.currentUsageCount} times and cannot be deleted.',
+        closeLabel: 'Cancel',
+      );
+      return;
+    }
+
+    final confirm = await AppDialog.confirm(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Discount'),
-        content: Text(
-          discount.currentUsageCount > 0
-              ? 'This discount has been used ${discount.currentUsageCount} times and cannot be deleted.'
-              : 'Are you sure you want to delete discount "${discount.code}"? This action cannot be undone.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          if (discount.currentUsageCount == 0)
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: context.statusColors.error,
-                foregroundColor: Theme.of(context).colorScheme.onError,
-              ),
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Delete'),
-            ),
-        ],
-      ),
+      title: 'Delete Discount',
+      message:
+          'Are you sure you want to delete discount "${discount.code}"? This action cannot be undone.',
+      confirmLabel: 'Delete',
+      cancelLabel: 'Cancel',
+      intent: AppDialogIntent.destructive,
     );
 
-    if (confirm != true) return;
+    if (!confirm) return;
 
     final authState = ref.read(authControllerProvider);
     final currentUser = authState is AuthStateAuthenticated
@@ -295,18 +280,155 @@ class _SellerDiscountListScreenState
       },
       (_) {
         // Show success message
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Discount deleted successfully'),
-            duration: Duration(seconds: 3),
-          ),
-        );
+        AppSnackBar.showSuccess(context, 'Diskon dihapus');
 
         // Refresh list
         if (currentUser != null) {
           ref.invalidate(sellerDiscountsProvider(currentUser.id));
         }
       },
+    );
+  }
+
+  /// Canonical Page Info / Help entry for this page.
+  ///
+  /// The surface is [AppDialog.info]; the page owns only the trigger and the
+  /// information content (no local dialog authority).
+  void _showDiscountInfo() {
+    AppDialog.info(
+      context: context,
+      title: 'Discount Management Guide',
+      content: _buildDiscountInfoContent(context),
+      closeLabel: 'Got It',
+    );
+  }
+
+  Widget _buildDiscountInfoContent(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _buildDiscountFeatureSection(
+          context: context,
+          icon: Icons.edit_outlined,
+          iconColor: Theme.of(context).colorScheme.onSurfaceVariant,
+          title: 'Edit',
+          description: 'Change discount information that has been created.',
+          rules: [
+            '• Discount never used: All fields can be changed',
+            '• Discount used: Only some fields can be changed (status, description, extend period, add limit)',
+          ],
+        ),
+        const SizedBox(height: 16),
+        _buildDiscountFeatureSection(
+          context: context,
+          icon: Icons.visibility_off_outlined,
+          iconColor: Theme.of(context).colorScheme.onSurfaceVariant,
+          title: 'Deactivate / Activate',
+          description: 'Change active/inactive status of discount.',
+          rules: [
+            '• Activate: Discount can be used by buyers',
+            '• Deactivate: Buyers cannot use this discount',
+            '• If discount has been used, warning will appear when deactivating',
+          ],
+        ),
+        const SizedBox(height: 16),
+        _buildDiscountFeatureSection(
+          context: context,
+          icon: Icons.delete_outline,
+          iconColor: context.statusColors.error,
+          title: 'Hapus',
+          description: 'Permanently delete discount from system.',
+          rules: [
+            '• Can only delete discounts that have never been used',
+            '• Used discounts cannot be deleted (for audit trail)',
+            '• This action cannot be undone',
+          ],
+        ),
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.all(AppMetrics.p12),
+          decoration: BoxDecoration(
+            color: context.statusColors.warning.withValues(alpha: 0.1),
+            border: Border.all(color: context.statusColors.warning),
+            borderRadius: BorderRadius.circular(AppShape.r8),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                Icons.lightbulb_outline,
+                color: context.statusColors.warning,
+                size: AppIconSize.action,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Tip: Use "Deactivate" to stop discount temporarily, and "Delete" to clean up incorrectly input or testing discounts.',
+                  style: context.typeRoles.bodyDense.copyWith(
+                    color: context.statusColors.warning,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDiscountFeatureSection({
+    required BuildContext context,
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required String description,
+    required List<String> rules,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, color: iconColor, size: AppIconSize.action),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                title,
+                style: context.typeRoles.titleSection.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+                softWrap: true,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Text(
+          description,
+          style: context.typeRoles.bodyDense.copyWith(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+          softWrap: true,
+        ),
+        const SizedBox(height: 8),
+        ...rules.map(
+          (rule) => Padding(
+            padding: const EdgeInsets.only(
+              left: AppMetrics.p8,
+              top: AppMetrics.p4,
+            ),
+            child: Text(
+              rule,
+              style: context.typeRoles.bodyDense.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              softWrap: true,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

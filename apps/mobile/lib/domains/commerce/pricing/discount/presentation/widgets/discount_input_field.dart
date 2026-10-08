@@ -112,13 +112,14 @@ class _DiscountInputFieldState extends ConsumerState<DiscountInputField> {
             Expanded(
               child: TextField(
                 controller: _controller,
+                // Border/fill come from `inputDecorationTheme` (AppTheme) —
+                // the one form-field authority.
                 decoration: InputDecoration(
                   labelText: 'Discount Code (Optional)',
                   hintText: 'Enter code',
-                  border: const OutlineInputBorder(),
                   suffixIcon: _controller.text.isNotEmpty
                       ? IconButton(
-                          icon: const Icon(Icons.close),
+                          icon: const Icon(Icons.close, semanticLabel: 'Bersihkan'),
                           onPressed: _clearDiscount,
                         )
                       : null,
@@ -166,12 +167,18 @@ class _DiscountInputFieldState extends ConsumerState<DiscountInputField> {
         ),
         child: Row(
           children: [
-            Icon(Icons.error_outline, color: context.statusColors.error, size: AppIconSize.action),
+            Icon(
+              Icons.error_outline,
+              color: context.statusColors.error,
+              size: AppIconSize.action,
+            ),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
                 result.errorMessage ?? 'Invalid discount code',
-                style: TextStyle(color: context.statusColors.error, fontSize: AppType.s14),
+                style: context.typeRoles.bodyDense.copyWith(
+                  color: context.statusColors.error,
+                ),
               ),
             ),
           ],
@@ -198,9 +205,8 @@ class _DiscountInputFieldState extends ConsumerState<DiscountInputField> {
           Expanded(
             child: Text(
               discount.description,
-              style: TextStyle(
+              style: context.typeRoles.bodyDense.copyWith(
                 color: context.statusColors.success,
-                fontSize: AppType.s14,
                 fontWeight: FontWeight.w600,
               ),
             ),

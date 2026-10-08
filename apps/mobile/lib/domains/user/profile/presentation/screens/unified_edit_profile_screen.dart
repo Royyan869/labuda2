@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/shared.dart';
-import 'package:labuda/domains/user/profile/profile.dart'
-    show profileStreamProvider;
+import 'package:labuda/domains/user/profile/presentation/providers/profile_view_provider.dart';
 import 'package:labuda/domains/user/profile/domain/entities/profile_entity.dart';
 // R4.3: Import providers instead of services directly
 import 'package:labuda/domains/user/profile/data/profile_providers.dart'
@@ -25,12 +24,16 @@ import 'edit_profile/edit_profile_save_handler.dart';
 /// Which section of the single-scroll edit page to bring into view on open.
 enum UnifiedEditProfileSection { personal, business }
 
-/// Unified Edit Profile Screen - Single page scroll design
-/// No tabs - all fields visible in one scrollable page
+/// Unified Edit Profile Screen - Single page scroll design.
+///
 /// - Avatars at top (side by side for sellers)
 /// - Personal Information section
 /// - Farm Information section (sellers only)
-/// - Single Save button validates and saves all data
+/// - Contact & Social Media section
+/// - Single Save button; enabled only when dirty and valid.
+///
+/// Loading is non-blocking: the form stays usable and shows an inline
+/// indicator while the canonical profile fetch is pending.
 class UnifiedEditProfileScreen extends ConsumerStatefulWidget {
   final String userId;
   final UnifiedEditProfileSection initialSection;
@@ -50,7 +53,6 @@ class _UnifiedEditProfileScreenState
     extends ConsumerState<UnifiedEditProfileScreen>
     with EditProfileSaveHandler {
   final _formKey = GlobalKey<FormState>();
-  final _personalSectionKey = GlobalKey();
   final _businessSectionKey = GlobalKey();
 
   // Resolved userId (handles 'current_user' placeholder)
@@ -60,16 +62,19 @@ class _UnifiedEditProfileScreenState
   late final TextEditingController _usernameController;
   late final TextEditingController _bioController;
   late final TextEditingController _farmNameController;
-  late final TextEditingController _websiteController;
   late final TextEditingController _instagramController;
   late final TextEditingController _facebookController;
   late final TextEditingController _tiktokController;
   late final TextEditingController _twitterController;
 
+  // Dirty tracking — snapshot taken once the initial data is hydrated.
+  String? _initialSnapshot;
+
   // State
   bool _isLoading = false;
   bool _isSeller = false;
-  ProfileEntity? _cachedProfile; // Cached profile for save operations
+  bool _didHydrate = false;
+  ProfileEntity? _cachedProfile;
   String? _avatarUrl;
   String? _selectedAvatarPath;
   bool _isAvatarMarkedForRemoval = false;
@@ -79,12 +84,8 @@ class _UnifiedEditProfileScreenState
   String? _coverPhotoUrl;
   String? _selectedCoverPath;
   bool _isCoverMarkedForRemoval = false;
-  DateTime? _establishedDate;
-  bool _isEmailPublic = false;
-  bool _isPhonePublic = false;
-  bool _isSocialMediaPublic = true;
 
-  ProviderSubscription<AsyncValue<ProfileEntity?>>? _profileSubscription;
+  ProviderSubscription<AsyncValue<ProfileViewData?>>? _profileSubscription;
 
   // Implement getters required by EditProfileSaveHandler mixin
   @override
@@ -101,8 +102,6 @@ class _UnifiedEditProfileScreenState
   TextEditingController get bioController => _bioController;
   @override
   TextEditingController get farmNameController => _farmNameController;
-  @override
-  TextEditingController get websiteController => _websiteController;
   @override
   TextEditingController get instagramController => _instagramController;
   @override
@@ -130,14 +129,6 @@ class _UnifiedEditProfileScreenState
   @override
   bool get isStorePhotoMarkedForRemoval => _isStorePhotoMarkedForRemoval;
   @override
-  DateTime? get establishedDate => _establishedDate;
-  @override
-  bool get isEmailPublic => _isEmailPublic;
-  @override
-  bool get isPhonePublic => _isPhonePublic;
-  @override
-  bool get isSocialMediaPublic => _isSocialMediaPublic;
-  @override
   // R4.3: Use providers instead of inline service creation
   CoverPhotoUploadService get coverPhotoUploadService =>
       ref.read(coverPhotoUploadServiceProvider);
@@ -155,9 +146,8 @@ class _UnifiedEditProfileScreenState
     super.initState();
     _actualUserId = _resolveUserId();
     _initializeControllers();
-    // R4.3: Removed _initializeServices() - services now provided via Riverpod
-    _setupProfileListener(); // Setup listener first to catch initial data
     _loadData();
+    _listenToProfile();
     if (widget.initialSection == UnifiedEditProfileSection.business) {
       WidgetsBinding.instance.addPostFrameCallback(
         (_) => _scrollToInitialSection(),
@@ -191,60 +181,48 @@ class _UnifiedEditProfileScreenState
     return widget.userId;
   }
 
-  /// Listen to profile stream and update state when data arrives
-  void _setupProfileListener() {
+  /// ONE fetch for this page: the canonical `GET /users/{id}` via
+  /// [profileViewDataProvider]. Used to hydrate cover + profile extension
+  /// fields, then cached for the save operation. This is the same provider the
+  /// Profile screen reads, so opening Edit Profile does not add a second
+  /// source of truth.
+  void _listenToProfile() {
     _profileSubscription = ref.listenManual(
-      profileStreamProvider(_actualUserId),
+      profileViewDataProvider(_actualUserId),
       (previous, next) {
-        // Always update when data is available (empty check is inside _updateFromProfile)
-        if (next.hasValue && next.value != null) {
-          setState(() {
-            _cachedProfile = next.value; // Cache for save operations
-          });
-          _updateFromProfile(next.value!);
-        }
+        if (!next.hasValue || next.value == null) return;
+        _updateFromProfile(next.value!.profile);
       },
       fireImmediately: true,
     );
   }
 
-  /// Update state from profile entity
+  /// Update state from the canonical profile entity. Only hydrates fields the
+  /// user has not already changed.
   void _updateFromProfile(ProfileEntity profile) {
     if (!mounted) return;
 
     setState(() {
-      // Cover photo - only update if not manually changed
+      _cachedProfile = profile;
+
       if (_selectedCoverPath == null && !_isCoverMarkedForRemoval) {
         _coverPhotoUrl = profile.coverPhotoUrl;
       }
 
-      // Farm info for sellers - always update to catch new seller upgrades
-      if (profile.farmInfo != null) {
-        final farm = profile.farmInfo!;
-
-        // Update farm photo if not manually changed
+      // Farm info for sellers — store name + photo only.
+      final farm = profile.farmInfo;
+      if (farm != null) {
         if (_selectedStorePhotoPath == null && !_isStorePhotoMarkedForRemoval) {
           _farmPhotoUrl = farm.farmPhotoUrl;
         }
-
-        // Update text fields only if empty to preserve user edits
         if (_farmNameController.text.isEmpty) {
           _farmNameController.text = farm.farmName;
         }
-        if (_websiteController.text.isEmpty) {
-          _websiteController.text = farm.farmWebsite ?? '';
-        }
-        _establishedDate ??= farm.establishedDate;
       }
 
-      // Contact info - always update to catch changes
-      if (profile.contactInfo != null) {
-        final contactInfo = profile.contactInfo!;
-        _isEmailPublic = contactInfo.isEmailPublic;
-        _isPhonePublic = contactInfo.isPhonePublic;
-        _isSocialMediaPublic = contactInfo.isSocialMediaPublic;
-
-        // Update social media handles only if empty
+      // Social media handles — only if not already edited.
+      final contactInfo = profile.contactInfo;
+      if (contactInfo != null) {
         if (_instagramController.text.isEmpty) {
           _instagramController.text = contactInfo.instagramHandle ?? '';
         }
@@ -258,6 +236,11 @@ class _UnifiedEditProfileScreenState
           _twitterController.text = contactInfo.twitterHandle ?? '';
         }
       }
+
+      if (!_didHydrate) {
+        _didHydrate = true;
+        _initialSnapshot = _snapshot();
+      }
     });
   }
 
@@ -265,14 +248,23 @@ class _UnifiedEditProfileScreenState
     _usernameController = TextEditingController();
     _bioController = TextEditingController();
     _farmNameController = TextEditingController();
-    _websiteController = TextEditingController();
     _instagramController = TextEditingController();
     _facebookController = TextEditingController();
     _tiktokController = TextEditingController();
     _twitterController = TextEditingController();
-  }
 
-  // R4.3: Removed _initializeServices() - services now provided via Riverpod providers
+    // Text edits must refresh the dirty state / Save enabledment.
+    for (final controller in [
+      _bioController,
+      _farmNameController,
+      _instagramController,
+      _facebookController,
+      _tiktokController,
+      _twitterController,
+    ]) {
+      controller.addListener(_onChanged);
+    }
+  }
 
   void _loadData() {
     final authState = ref.read(authControllerProvider);
@@ -284,12 +276,30 @@ class _UnifiedEditProfileScreenState
       _avatarUrl = user.avatarUrl;
     });
 
+    // Username is canonical and read-only; bio is the only identity text.
     _usernameController.text = user.username;
     _bioController.text = user.bio ?? '';
-
-    // Profile data will be loaded by _setupProfileListener
-    // No need to load it here to avoid race conditions
   }
+
+  /// Snapshot of every editable value, used for dirty detection.
+  String _snapshot() => [
+    _bioController.text,
+    _farmNameController.text,
+    _instagramController.text,
+    _facebookController.text,
+    _tiktokController.text,
+    _twitterController.text,
+    _coverPhotoUrl ?? '',
+    _selectedCoverPath ?? '',
+    _isCoverMarkedForRemoval ? '1' : '0',
+    _selectedAvatarPath ?? '',
+    _isAvatarMarkedForRemoval ? '1' : '0',
+    _selectedStorePhotoPath ?? '',
+    _isStorePhotoMarkedForRemoval ? '1' : '0',
+  ].join('\u0000');
+
+  bool get _isDirty =>
+      _didHydrate && _initialSnapshot != null && _snapshot() != _initialSnapshot;
 
   @override
   void dispose() {
@@ -297,7 +307,6 @@ class _UnifiedEditProfileScreenState
     _usernameController.dispose();
     _bioController.dispose();
     _farmNameController.dispose();
-    _websiteController.dispose();
     _instagramController.dispose();
     _facebookController.dispose();
     _tiktokController.dispose();
@@ -308,124 +317,143 @@ class _UnifiedEditProfileScreenState
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final profileAsync = ref.watch(profileStreamProvider(_actualUserId));
+    final profileAsync = ref.watch(profileViewDataProvider(_actualUserId));
 
     return Scaffold(
       backgroundColor: scheme.surfaceContainerLowest,
       appBar: AppBar(
         title: const Text('Edit Profile'),
+        bottom: profileAsync.isLoading && !_didHydrate
+            ? const PreferredSize(
+                preferredSize: Size.fromHeight(2),
+                child: LinearProgressIndicator(minHeight: 2),
+              )
+            : null,
       ),
-      body: Stack(
-        children: [
-          Form(
-            key: _formKey,
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(AppMetrics.p16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Cover Photo Section
-                  EditProfileCoverSection(
-                    coverPhotoUrl: _coverPhotoUrl,
-                    selectedCoverPath: _selectedCoverPath,
-                    isCoverMarkedForRemoval: _isCoverMarkedForRemoval,
-                    onChangeCover: _changeCover,
-                    onRemoveCover: _removeCover,
-                  ),
+      body: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(AppMetrics.p16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Cover Photo Section
+              EditProfileCoverSection(
+                coverPhotoUrl: _coverPhotoUrl,
+                selectedCoverPath: _selectedCoverPath,
+                isCoverMarkedForRemoval: _isCoverMarkedForRemoval,
+                onChangeCover: _changeCover,
+                onRemoveCover: _removeCover,
+              ),
 
-                  const SizedBox(height: 24),
+              const SizedBox(height: 24),
 
-                  // Avatar Section
-                  EditProfileAvatarSection(
-                    isSeller: _isSeller,
-                    avatarUrl: _avatarUrl,
-                    selectedAvatarPath: _selectedAvatarPath,
-                    isAvatarMarkedForRemoval: _isAvatarMarkedForRemoval,
-                    farmPhotoUrl: _farmPhotoUrl,
-                    selectedStorePhotoPath: _selectedStorePhotoPath,
-                    isStorePhotoMarkedForRemoval: _isStorePhotoMarkedForRemoval,
-                    onChangeAvatar: _changeAvatar,
-                    onRemoveAvatar: _removeAvatar,
-                    onChangeStorePhoto: _changeStorePhoto,
-                    onRemoveStorePhoto: _removeStorePhoto,
-                  ),
+              // Avatar Section
+              EditProfileAvatarSection(
+                isSeller: _isSeller,
+                avatarUrl: _avatarUrl,
+                selectedAvatarPath: _selectedAvatarPath,
+                isAvatarMarkedForRemoval: _isAvatarMarkedForRemoval,
+                farmPhotoUrl: _farmPhotoUrl,
+                selectedStorePhotoPath: _selectedStorePhotoPath,
+                isStorePhotoMarkedForRemoval: _isStorePhotoMarkedForRemoval,
+                onChangeAvatar: _changeAvatar,
+                onRemoveAvatar: _removeAvatar,
+                onChangeStorePhoto: _changeStorePhoto,
+                onRemoveStorePhoto: _removeStorePhoto,
+              ),
 
-                  const SizedBox(height: 24),
+              const SizedBox(height: 24),
 
-                  // Personal Information Section
-                  KeyedSubtree(
-                    key: _personalSectionKey,
-                    child: _buildSectionHeader(
-                      'Informasi Profile',
-                      Icons.person_outline,
-                      scheme,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  EditProfilePersonalSection(
-                    usernameController: _usernameController,
-                    bioController: _bioController,
-                  ),
+              // Personal Information Section
+              _buildSectionHeader(
+                'Informasi Profile',
+                Icons.person_outline,
+                scheme,
+              ),
+              const SizedBox(height: 16),
+              EditProfilePersonalSection(
+                usernameController: _usernameController,
+                bioController: _bioController,
+                onChanged: _onChanged,
+              ),
 
-                  // Farm Information Section (Seller only)
-                  if (_isSeller) ...[
-                    const SizedBox(height: 32),
-                    KeyedSubtree(
-                      key: _businessSectionKey,
-                      child: _buildSectionHeader(
-                        'Farm Information',
-                        Icons.store_outlined,
-                        scheme,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    EditProfileFarmSection(
-                      farmNameController: _farmNameController,
-                      websiteController: _websiteController,
-                      establishedDate: _establishedDate,
-                      onEstablishedDateChanged: (date) =>
-                          setState(() => _establishedDate = date),
-                    ),
-                  ],
-
-                  // Contact & Social Media Section
-                  const SizedBox(height: 32),
-                  _buildSectionHeader(
-                    'Contact & Social Media',
-                    Icons.contact_phone_outlined,
+              // Farm Information Section (Seller only)
+              if (_isSeller) ...[
+                const SizedBox(height: 32),
+                KeyedSubtree(
+                  key: _businessSectionKey,
+                  child: _buildSectionHeader(
+                    'Farm Information',
+                    Icons.store_outlined,
                     scheme,
                   ),
-                  const SizedBox(height: 16),
-                  EditProfileContactSection(
-                    isEmailPublic: _isEmailPublic,
-                    isPhonePublic: _isPhonePublic,
-                    isSocialMediaPublic: _isSocialMediaPublic,
-                    instagramController: _instagramController,
-                    facebookController: _facebookController,
-                    tiktokController: _tiktokController,
-                    twitterController: _twitterController,
-                    onEmailPublicChanged: (value) =>
-                        setState(() => _isEmailPublic = value),
-                    onPhonePublicChanged: (value) =>
-                        setState(() => _isPhonePublic = value),
-                    onSocialMediaPublicChanged: (value) =>
-                        setState(() => _isSocialMediaPublic = value),
-                  ),
+                ),
+                const SizedBox(height: 16),
+                EditProfileFarmSection(
+                  farmNameController: _farmNameController,
+                ),
+              ],
 
-                  const SizedBox(height: 24),
-                ],
+              // Contact & Social Media Section
+              const SizedBox(height: 32),
+              _buildSectionHeader(
+                'Contact & Social Media',
+                Icons.contact_phone_outlined,
+                scheme,
               ),
-            ),
+              const SizedBox(height: 16),
+              EditProfileContactSection(
+                instagramController: _instagramController,
+                facebookController: _facebookController,
+                tiktokController: _tiktokController,
+                twitterController: _twitterController,
+              ),
+
+              const SizedBox(height: 24),
+            ],
           ),
-          // Loading overlay
-          if (profileAsync.isLoading && _cachedProfile == null)
-            Container(
-color: scheme.scrim.withValues(alpha: 0.7),
-              child: const Center(child: CircularProgressIndicator()),
-            ),
-        ],
+        ),
       ),
       bottomNavigationBar: _buildActionBar(),
+    );
+  }
+
+  void _onChanged([String? _]) {
+    if (mounted) setState(() {});
+  }
+
+  Widget _buildSectionHeader(String title, IconData icon, ColorScheme scheme) {
+    return Row(
+      children: [
+        Icon(icon, size: AppIconSize.action, color: scheme.primary),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: context.typeRoles.titleCompact.copyWith(
+            fontWeight: FontWeight.bold,
+            color: scheme.onSurface,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildActionBar() {
+    final canSave = _isDirty && !_isLoading;
+    // Chrome owned by [BottomActionBar]. Dirty-state guard + double-submit
+    // guard stay here: Save is disabled until something changed and never
+    // re-enters while saving.
+    return BottomActionBar(
+      secondary: BottomBarAction(
+        label: 'Cancel',
+        onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
+      ),
+      primary: BottomBarAction(
+        label: 'Save',
+        onPressed: canSave ? save : null,
+        isLoading: _isLoading,
+      ),
     );
   }
 
@@ -451,63 +479,6 @@ color: scheme.scrim.withValues(alpha: 0.7),
       _selectedCoverPath = null;
       _isCoverMarkedForRemoval = true;
     });
-  }
-
-  Widget _buildSectionHeader(String title, IconData icon, ColorScheme scheme) {
-    return Row(
-      children: [
-        Icon(icon, size: AppIconSize.action, color: scheme.primary),
-        const SizedBox(width: 8),
-        Text(
-          title,
-          style: TextStyle(
-            fontSize: AppType.s16,
-            fontWeight: FontWeight.bold,
-            color: scheme.onSurface,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildActionBar() {
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.all(AppMetrics.p16),
-        child: Row(
-          children: [
-            Expanded(
-              child: OutlinedButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Cancel'),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: ElevatedButton(
-                // Stage 4D: guard against double-submit. The save flow runs
-                // two async phases (personal + profile fields) with a
-                // Navigator.pop at the end; an unguarded onPressed would let a
-                // rapid second tap re-enter save() and duplicate uploads.
-                onPressed: _isLoading ? null : save,
-                child: _isLoading
-                    ? SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation(
-                            Theme.of(context).colorScheme.onPrimary,
-                          ),
-                        ),
-                      )
-                    : const Text('Save'),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   void _changeAvatar() {

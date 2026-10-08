@@ -1,6 +1,8 @@
 package repository
 
 import (
+	"os"
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
@@ -251,4 +253,40 @@ func TestMoneyUtil(t *testing.T) {
 
 func strPtr(s string) *string {
 	return &s
+}
+
+// TestFindPendingBillingPayment_DeterministicActiveOnly is a source contract
+// for F2: the billing reuse lookup must select only an active (pending,
+// non-expired) payment and must be deterministic when historical terminal rows
+// coexist. A terminal billing payment (deny/cancel/expire) must never be a
+// reuse candidate.
+func TestFindPendingBillingPayment_DeterministicActiveOnly(t *testing.T) {
+	src, err := os.ReadFile("payment_repository.go")
+	if err != nil {
+		t.Fatalf("read payment_repository.go: %v", err)
+	}
+	code := string(src)
+
+	start := strings.Index(code, "func (r *PaymentRepository) FindPendingBillingPayment(")
+	if start < 0 {
+		t.Fatal("FindPendingBillingPayment not found")
+	}
+	body := code[start:]
+	if next := strings.Index(body, "\nfunc "); next >= 0 {
+		body = body[:next]
+	}
+
+	for _, want := range []string{
+		"status = 'pending'",
+		"expired_at > NOW()",
+		"ORDER BY created_at DESC",
+		"LIMIT 1",
+	} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("FindPendingBillingPayment must be active-only and deterministic (%q missing)", want)
+		}
+	}
+	if !strings.Contains(body, "errors.Is(err, pgx.ErrNoRows)") {
+		t.Fatal("FindPendingBillingPayment must translate a clean miss to (nil, nil)")
+	}
 }

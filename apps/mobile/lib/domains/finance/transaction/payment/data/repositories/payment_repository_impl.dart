@@ -116,6 +116,36 @@ class PaymentRepositoryImpl implements PaymentRepository {
     }
   }
 
+  @override
+  Future<Result<PreOrderPaymentPricing>> getPreOrderPaymentPricing(
+    String pricingToken, {
+    bool useCoins = false,
+  }) async {
+    try {
+      if (pricingToken.isEmpty) {
+        return Result.error('Pricing token is required');
+      }
+
+      final result = await _datasource.getPreOrderPaymentMethods(
+        pricingToken,
+        useCoins: useCoins,
+      );
+
+      if (result.isSuccess && result.data != null) {
+        return Result.success(result.data!.toEntity());
+      }
+
+      return _forwardFailure<PreOrderPaymentPricing>(result);
+    } catch (e, stackTrace) {
+      _logger.error(
+        'Error getting pre-order payment pricing',
+        extra: {'error': e.toString()},
+        stackTrace: stackTrace,
+      );
+      return Result.error(e.toString());
+    }
+  }
+
   /// Forward the API layer's failure verbatim.
   ///
   /// The backend `code` is the authority for *what kind* of failure this is.

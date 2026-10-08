@@ -18,7 +18,6 @@ import 'package:labuda/domains/commerce/catalog/for_sale/domain/domain.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/presentation/create_for_sale_route_contract.dart';
 import 'package:labuda/features/home/home.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/presentation/providers/for_sale_providers.dart';
-import 'package:labuda/domains/commerce/catalog/shared/presentation/sender_address_provider.dart';
 import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_access_gate.dart';
 import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_certificate_selector.dart';
 import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_preparation_time_selector.dart';
@@ -91,9 +90,7 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
   /// complete — required fields filled AND at least one shipping option
   /// selected. The backend re-validates everything (defense in depth).
   bool get _canSubmit {
-    final senderAddressId = ref.watch(senderAddressIdProvider).value;
     return !_isSubmitting &&
-        senderAddressId != null &&
         _titleController.text.trim().isNotEmpty &&
         _descriptionController.text.trim().isNotEmpty &&
         _mediaUrls.isNotEmpty &&
@@ -151,22 +148,26 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
       // CREATE = PUBLISH: one request carries everything — content, price,
       // shipping selection — and the backend publishes in the same
       // transaction. There is no draft stage in this flow.
+      //
+      // SUBMISSION SNAPSHOT: the request must not change if the user edits
+      // media/certificates/shipping while the await is in flight. The screen
+      // holds those as mutable lists, so copy them into value lists here —
+      // the in-flight request then owns an immutable snapshot.
       final request = CreateForSaleRequest(
         title: _titleController.text.trim(),
         description: _descriptionController.text.trim(),
         price: _price!,
         quantity: _quantity,
         negotiationEnabled: _isNegotiable,
-        mediaUrls: _mediaUrls,
+        mediaUrls: List<String>.of(_mediaUrls),
         variety: _variety,
         sizeCm: _sizeInCm,
         ageMonths: _ageInMonths ?? 0,
         gender: _gender,
         breeder: _breeder,
         bloodline: _bloodline,
-        certificates: _certificates,
-        farmAddressId: ref.read(senderAddressIdProvider).value,
-        shippingSetupIds: _selectedShippingSetupIds,
+        certificates: List<String>.of(_certificates),
+        shippingSetupIds: List<String>.of(_selectedShippingSetupIds),
         preparationTime: _preparationTime,
       );
 
@@ -311,177 +312,177 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
       appBar: AppBar(
         title: const Text('Buat ForSale Baru'),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back, semanticLabel: 'Kembali'),
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(AppMetrics.p16),
-          children: [
-            // Basic Info Section
-            const _SectionTitle('Informasi Dasar'),
-            const SizedBox(height: 12),
-            _TitleField(controller: _titleController),
-            const SizedBox(height: 16),
-            _DescriptionField(controller: _descriptionController),
+      // Twin authority with CreateAuctionScreen: the body SafeArea consumes
+      // the live system bottom inset exactly once for the form surface (the
+      // ListView's explicit padding below does NOT consume it).
+      body: SafeArea(
+        child: Form(
+          key: _formKey,
+          child: ListView(
+            padding: const EdgeInsets.all(AppMetrics.p16),
+            children: [
+              // Basic Info Section
+              const _SectionTitle('Informasi Dasar'),
+              const SizedBox(height: 12),
+              _TitleField(controller: _titleController),
+              const SizedBox(height: 16),
+              _DescriptionField(controller: _descriptionController),
 
-            const SizedBox(height: 24),
+              const SizedBox(height: 24),
 
-            // Media Upload Section — foto+video via 1 mesin (orchestrator)
-            const _SectionTitle('Media Produk'),
-            const SizedBox(height: 12),
-            MediaGridUploader(
-              mediaUrls: _mediaUrls,
-              onMediaAdded: (url) => setState(() => _mediaUrls.add(url)),
-              onMediaRemoved: (index) =>
-                  setState(() => _mediaUrls.removeAt(index)),
-              onMediaReordered: (oldIndex, newIndex) => setState(() {
-                final item = _mediaUrls.removeAt(oldIndex);
-                _mediaUrls.insert(newIndex, item);
-              }),
-            ),
-
-            const SizedBox(height: 24),
-
-            // Price & Negotiable (required for forSales)
-            const _SectionTitle('Harga'),
-            const SizedBox(height: 12),
-            _PriceField(
-              initialValue: _price,
-              onChanged: (value) => setState(() => _price = value),
-            ),
-            const SizedBox(height: 16),
-            _NegotiableToggle(
-              initialValue: _isNegotiable,
-              onChanged: (value) => setState(() => _isNegotiable = value),
-            ),
-            const SizedBox(height: 16),
-            _StockField(
-              initialValue: _quantity,
-              onChanged: (value) => setState(() => _quantity = value),
-            ),
-
-            const SizedBox(height: 24),
-
-            // Koi Details (required for forSales)
-            const _SectionTitle('Detail Koi'),
-            const SizedBox(height: 12),
-            _KoiDetailsForm(
-              variety: _variety,
-              sizeInCm: _sizeInCm,
-              ageInMonths: _ageInMonths,
-              gender: _gender,
-              breeder: _breeder,
-              bloodline: _bloodline,
-              onVarietyChanged: (value) => setState(() => _variety = value),
-              onSizeChanged: (value) => setState(() => _sizeInCm = value),
-              onAgeChanged: (value) => setState(() => _ageInMonths = value),
-              onGenderChanged: (value) => setState(() => _gender = value),
-              onBreederChanged: (value) => setState(() => _breeder = value),
-              onBloodlineChanged: (value) => setState(() => _bloodline = value),
-            ),
-
-            const SizedBox(height: 16),
-
-            CommerceCertificateSelector(
-              selectedCertificates: _certificates,
-              onChanged: (value) => setState(() => _certificates = value),
-              helperText:
-                  'Pilih jenis sertifikat yang ikan ini miliki. Sertifikat adalah '
-                  'keterangan dari seller, bukan unggahan dokumen.',
-            ),
-
-            const SizedBox(height: 24),
-
-            // Shipping Readiness Section
-            const _SectionTitle('Kesiapan Pengiriman'),
-            const SizedBox(height: 8),
-            Padding(
-              padding: const EdgeInsets.only(bottom: AppMetrics.p12),
-              child: Text(
-                'Informasikan kepada pembeli berapa lama waktu yang Anda butuhkan untuk menyiapkan ikan sebelum dikirim.',
-                style: TextStyle(
-                  fontSize: AppType.s14,
-                  color: scheme.onSurfaceVariant,
-                ),
+              // Media Upload Section — foto+video via 1 mesin (orchestrator)
+              const _SectionTitle('Media Produk'),
+              const SizedBox(height: 12),
+              MediaGridUploader(
+                mediaUrls: _mediaUrls,
+                onMediaAdded: (url) => setState(() => _mediaUrls.add(url)),
+                onMediaRemoved: (index) =>
+                    setState(() => _mediaUrls.removeAt(index)),
+                onMediaReordered: (oldIndex, newIndex) => setState(() {
+                  final item = _mediaUrls.removeAt(oldIndex);
+                  _mediaUrls.insert(newIndex, item);
+                }),
               ),
-            ),
-            CommercePreparationTimeSelector(
-              selected: _preparationTime,
-              onChanged: (value) => setState(() => _preparationTime = value),
-            ),
 
-            const SizedBox(height: 24),
+              const SizedBox(height: 24),
 
-            // Phase 2: ForSale-level shipping option subset
-            const _SectionTitle('Opsi Pengiriman untuk ForSale Ini'),
-            const SizedBox(height: 8),
-            SellerShippingSetupsSelector(
-              helperText:
-                  'Pilih opsi pengiriman dari katalog Anda yang berlaku untuk '
-                  'forSale ini. Pembeli hanya bisa memilih dari opsi terpilih. '
-                  'Untuk kasus khusus, gunakan kirim quote di chat.',
-              onSelectionChanged: (ids) =>
-                  setState(() => _selectedShippingSetupIds = ids),
-            ),
+              // Price & Negotiable (required for forSales)
+              const _SectionTitle('Harga'),
+              const SizedBox(height: 12),
+              _PriceField(
+                initialValue: _price,
+                onChanged: (value) => setState(() => _price = value),
+              ),
+              const SizedBox(height: 16),
+              _NegotiableToggle(
+                initialValue: _isNegotiable,
+                onChanged: (value) => setState(() => _isNegotiable = value),
+              ),
+              const SizedBox(height: 16),
+              _StockField(
+                initialValue: _quantity,
+                onChanged: (value) => setState(() => _quantity = value),
+              ),
 
-            const SizedBox(height: 32),
+              const SizedBox(height: 24),
 
-            // Error message
-            if (_errorMessage != null)
-              Container(
-                padding: const EdgeInsets.all(AppMetrics.p12),
-                decoration: BoxDecoration(
-                  color: scheme.error.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(AppShape.r8),
-                  border: Border.all(
-                    color: scheme.error.withValues(alpha: 0.3),
-                  ),
-                ),
+              // Koi Details (required for forSales)
+              const _SectionTitle('Detail Koi'),
+              const SizedBox(height: 12),
+              _KoiDetailsForm(
+                variety: _variety,
+                sizeInCm: _sizeInCm,
+                ageInMonths: _ageInMonths,
+                gender: _gender,
+                breeder: _breeder,
+                bloodline: _bloodline,
+                onVarietyChanged: (value) => setState(() => _variety = value),
+                onSizeChanged: (value) => setState(() => _sizeInCm = value),
+                onAgeChanged: (value) => setState(() => _ageInMonths = value),
+                onGenderChanged: (value) => setState(() => _gender = value),
+                onBreederChanged: (value) => setState(() => _breeder = value),
+                onBloodlineChanged: (value) =>
+                    setState(() => _bloodline = value),
+              ),
+
+              const SizedBox(height: 16),
+
+              CommerceCertificateSelector(
+                selectedCertificates: _certificates,
+                onChanged: (value) => setState(() => _certificates = value),
+                helperText:
+                    'Pilih jenis sertifikat yang ikan ini miliki. Sertifikat adalah '
+                    'keterangan dari seller, bukan unggahan dokumen.',
+              ),
+
+              const SizedBox(height: 24),
+
+              // Shipping Readiness Section
+              const _SectionTitle('Kesiapan Pengiriman'),
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.only(bottom: AppMetrics.p12),
                 child: Text(
-                  _errorMessage!,
-                  style: TextStyle(
-                    color: scheme.onSurface,
-                    fontSize: AppType.s14,
+                  'Informasikan kepada pembeli berapa lama waktu yang Anda butuhkan untuk menyiapkan ikan sebelum dikirim.',
+                  style: context.typeRoles.bodyDense.copyWith(
+                    color: scheme.onSurfaceVariant,
                   ),
                 ),
               ),
-
-            const SizedBox(height: 16),
-
-            // Submit button — disabled until the form is complete.
-            ElevatedButton(
-              onPressed: _canSubmit ? _submitForm : null,
-              style: ElevatedButton.styleFrom(
-                minimumSize: const Size.fromHeight(50),
-                disabledBackgroundColor: scheme.surfaceContainerHighest,
-                disabledForegroundColor: scheme.onSurfaceVariant,
+              CommercePreparationTimeSelector(
+                selected: _preparationTime,
+                onChanged: (value) => setState(() => _preparationTime = value),
               ),
-              child: _isSubmitting
-                  ? SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          scheme.onPrimary,
+
+              const SizedBox(height: 24),
+
+              // Phase 2: ForSale-level shipping option subset
+              const _SectionTitle('Opsi Pengiriman untuk ForSale Ini'),
+              const SizedBox(height: 8),
+              SellerShippingSetupsSelector(
+                helperText:
+                    'Pilih opsi pengiriman dari katalog Anda yang berlaku untuk '
+                    'forSale ini. Pembeli hanya bisa memilih dari opsi terpilih. '
+                    'Untuk kasus khusus, gunakan kirim quote di chat.',
+                onSelectionChanged: (ids) =>
+                    setState(() => _selectedShippingSetupIds = ids),
+              ),
+
+              const SizedBox(height: 32),
+
+              // Error message
+              if (_errorMessage != null)
+                Container(
+                  padding: const EdgeInsets.all(AppMetrics.p12),
+                  decoration: BoxDecoration(
+                    color: scheme.error.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(AppShape.r8),
+                    border: Border.all(
+                      color: scheme.error.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Text(
+                    _errorMessage!,
+                    style: context.typeRoles.bodyDense.copyWith(
+                      color: scheme.onSurface,
+                    ),
+                  ),
+                ),
+
+              const SizedBox(height: 16),
+
+              // Submit button — disabled until the form is complete.
+              ElevatedButton(
+                onPressed: _canSubmit ? _submitForm : null,
+                style: ElevatedButton.styleFrom(
+                  minimumSize: const Size.fromHeight(50),
+                ),
+                child: _isSubmitting
+                    ? SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            scheme.onSurfaceVariant,
+                          ),
+                        ),
+                      )
+                    : Text(
+                        'Publikasikan ForSale',
+                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                    )
-                  : Text(
-                      'Publikasikan ForSale',
-                      style: TextStyle(
-                        fontSize: AppType.s16,
-                        fontWeight: FontWeight.w600,
-                        color: scheme.onPrimary,
-                      ),
-                    ),
-            ),
+              ),
 
-            const SizedBox(height: 32),
-          ],
+              const SizedBox(height: 32),
+            ],
+          ),
         ),
       ),
     );
@@ -516,8 +517,7 @@ class _SectionTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       title,
-      style: const TextStyle(
-        fontSize: AppType.s20,
+      style: context.typeRoles.titleSection.copyWith(
         fontWeight: FontWeight.bold,
       ),
     );
@@ -531,13 +531,10 @@ class _TitleField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return TextFormField(
+    return AppTextField(
       controller: controller,
-      decoration: const InputDecoration(
-        labelText: 'Judul *',
-        hintText: 'Contoh: Kohaku 50cm Grade A',
-        border: OutlineInputBorder(),
-      ),
+      labelText: 'Judul *',
+      hintText: 'Contoh: Kohaku 50cm Grade A',
       validator: (value) {
         if (value == null || value.trim().isEmpty) {
           return 'Judul wajib diisi';
@@ -558,14 +555,11 @@ class _DescriptionField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return TextFormField(
+    return AppTextField(
       controller: controller,
       maxLines: 4,
-      decoration: const InputDecoration(
-        labelText: 'Deskripsi',
-        hintText: 'Ceritakan tentang koi Anda...',
-        border: OutlineInputBorder(),
-      ),
+      labelText: 'Deskripsi',
+      hintText: 'Ceritakan tentang koi Anda...',
       validator: (value) {
         if (value != null && value.trim().length > 2000) {
           return 'Deskripsi maksimal 2000 karakter';
@@ -592,7 +586,6 @@ class _NegotiableToggle extends StatelessWidget {
       subtitle: const Text('Pembeli dapat melakukan negosiasi harga'),
       value: initialValue,
       onChanged: onChanged,
-      activeTrackColor: Theme.of(context).colorScheme.primary,
     );
   }
 }
@@ -629,16 +622,13 @@ class _StockFieldState extends State<_StockField> {
 
   @override
   Widget build(BuildContext context) {
-    return TextFormField(
+    return AppTextField(
       controller: _controller,
       keyboardType: TextInputType.number,
-      decoration: const InputDecoration(
-        labelText: 'Stok *',
-        hintText: 'Jumlah tersedia',
-        helperText:
-            'Untuk koi unik, biarkan 1. Untuk produk stok, sesuaikan jumlahnya.',
-        border: OutlineInputBorder(),
-      ),
+      labelText: 'Stok *',
+      hintText: 'Jumlah tersedia',
+      helperText:
+          'Untuk koi unik, biarkan 1. Untuk produk stok, sesuaikan jumlahnya.',
       validator: (value) {
         if (value == null || value.trim().isEmpty) {
           return 'Stok wajib diisi';
@@ -676,33 +666,37 @@ class _PriceFieldState extends State<_PriceField> {
   void initState() {
     super.initState();
     if (widget.initialValue != null) {
-      _controller.text = widget.initialValue.toString();
+      // Canonical money-input display: grouped while the business value stays
+      // a plain number (parse below).
+      _controller.text = MoneyInputFormatter.display(
+        widget.initialValue!.round(),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return TextFormField(
+    return AppTextField(
       controller: _controller,
       keyboardType: TextInputType.number,
-      decoration: const InputDecoration(
-        labelText: 'Harga (Rp) *',
-        hintText: 'Contoh: 500000',
-        prefixText: 'Rp ',
-        border: OutlineInputBorder(),
-      ),
+      inputFormatters: const [MoneyInputFormatter()],
+      labelText: 'Harga (Rp) *',
+      hintText: 'Contoh: 500000',
+      prefixText: 'Rp ',
       validator: (value) {
         if (value == null || value.isEmpty) {
           return 'Harga wajib diisi';
         }
-        final price = double.tryParse(value);
+        final price = MoneyInputFormatter.parseAmount(value);
         if (price == null || price < 10000) {
           return 'Minimal harga Rp 10.000';
         }
         return null;
       },
       onChanged: (value) {
-        widget.onChanged(double.tryParse(value));
+        // Punctuation-free business value; the display grouping never leaves
+        // the input.
+        widget.onChanged(MoneyInputFormatter.parseAmount(value)?.toDouble());
       },
     );
   }
@@ -746,7 +740,6 @@ class _KoiDetailsForm extends StatelessWidget {
           initialValue: variety,
           decoration: const InputDecoration(
             labelText: 'Varietas *',
-            border: OutlineInputBorder(),
           ),
           items: _koiVarieties.map((v) {
             return DropdownMenuItem(value: v, child: Text(v));
@@ -761,15 +754,12 @@ class _KoiDetailsForm extends StatelessWidget {
         const SizedBox(height: 16),
 
         // Size field
-        TextFormField(
+        AppTextField(
           initialValue: sizeInCm?.toString(),
           keyboardType: TextInputType.number,
-          decoration: const InputDecoration(
-            labelText: 'Ukuran (cm) *',
-            hintText: 'Contoh: 50',
-            suffixText: 'cm',
-            border: OutlineInputBorder(),
-          ),
+          labelText: 'Ukuran (cm) *',
+          hintText: 'Contoh: 50',
+          suffixText: 'cm',
           validator: (value) {
             if (value == null || value.isEmpty) {
               return 'Ukuran wajib diisi';
@@ -786,15 +776,12 @@ class _KoiDetailsForm extends StatelessWidget {
         const SizedBox(height: 16),
 
         // Age field
-        TextFormField(
+        AppTextField(
           initialValue: ageInMonths?.toString(),
           keyboardType: TextInputType.number,
-          decoration: const InputDecoration(
-            labelText: 'Usia (bulan)',
-            hintText: 'Contoh: 24',
-            suffixText: 'bulan',
-            border: OutlineInputBorder(),
-          ),
+          labelText: 'Usia (bulan)',
+          hintText: 'Contoh: 24',
+          suffixText: 'bulan',
           onChanged: (value) => onAgeChanged(int.tryParse(value)),
         ),
 
@@ -805,7 +792,6 @@ class _KoiDetailsForm extends StatelessWidget {
           initialValue: gender,
           decoration: const InputDecoration(
             labelText: 'Jenis Kelamin',
-            border: OutlineInputBorder(),
           ),
           items: _koiGenders.map((g) {
             return DropdownMenuItem(
@@ -821,26 +807,20 @@ class _KoiDetailsForm extends StatelessWidget {
         const SizedBox(height: 16),
 
         // Breeder field
-        TextFormField(
+        AppTextField(
           initialValue: breeder,
-          decoration: const InputDecoration(
-            labelText: 'Breeder',
-            hintText: 'Nama breeder',
-            border: OutlineInputBorder(),
-          ),
+          labelText: 'Breeder',
+          hintText: 'Nama breeder',
           onChanged: (value) => onBreederChanged(value.trim()),
         ),
 
         const SizedBox(height: 16),
 
         // Bloodline field
-        TextFormField(
+        AppTextField(
           initialValue: bloodline,
-          decoration: const InputDecoration(
-            labelText: 'Bloodline',
-            hintText: 'Keturunan/bloodline',
-            border: OutlineInputBorder(),
-          ),
+          labelText: 'Bloodline',
+          hintText: 'Keturunan/bloodline',
           onChanged: (value) => onBloodlineChanged(value.trim()),
         ),
       ],
@@ -886,4 +866,3 @@ const _koiGenders = [
   {'value': 'female', 'label': 'Betina'},
   {'value': 'unknown', 'label': 'Tidak Diketahui'},
 ];
-

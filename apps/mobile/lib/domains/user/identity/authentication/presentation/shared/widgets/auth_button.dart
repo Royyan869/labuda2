@@ -39,7 +39,7 @@ class AuthButton extends StatelessWidget {
     this.isEnabled = true,
     this.type = AuthButtonType.primary,
     this.width,
-    this.height = 52,
+    this.height = AppContentSize.control,
     this.icon,
   });
 
@@ -51,7 +51,7 @@ class AuthButton extends StatelessWidget {
     this.isLoading = false,
     this.isEnabled = true,
     this.width,
-    this.height = 52,
+    this.height = AppContentSize.control,
     this.icon,
   }) : type = AuthButtonType.primary;
 
@@ -63,7 +63,7 @@ class AuthButton extends StatelessWidget {
     this.isLoading = false,
     this.isEnabled = true,
     this.width,
-    this.height = 52,
+    this.height = AppContentSize.control,
     this.icon,
   }) : type = AuthButtonType.secondary;
 
@@ -75,7 +75,7 @@ class AuthButton extends StatelessWidget {
     this.onPressed,
     this.isEnabled = true,
     this.width,
-    this.height = 52,
+    this.height = AppContentSize.control,
   }) : type = AuthButtonType.secondary,
        isLoading = false;
 
@@ -84,13 +84,18 @@ class AuthButton extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final isActive = isEnabled && !isLoading;
 
-    Widget child = isLoading
+    // Fill / ink / disabled treatment / geometry are owned by the button themes
+    // (AppTheme). This component owns only the auth-domain composition: the
+    // loading spinner, the enabled gate, and the icon+label row.
+    final Widget child = isLoading
         ? SizedBox(
             height: 20,
             width: 20,
             child: CircularProgressIndicator(
               strokeWidth: 2,
-              valueColor: AlwaysStoppedAnimation<Color>(scheme.onPrimary),
+              valueColor: AlwaysStoppedAnimation<Color>(
+                scheme.onSurfaceVariant,
+              ),
             ),
           )
         : Row(
@@ -103,10 +108,9 @@ class AuthButton extends StatelessWidget {
               ],
               Text(
                 text,
-                style: const TextStyle(
-                  fontSize: AppType.s16,
-                  fontWeight: FontWeight.w600,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
               ),
             ],
           );
@@ -114,47 +118,17 @@ class AuthButton extends StatelessWidget {
     return SizedBox(
       width: width ?? double.infinity,
       height: height,
-      child: _buildButton(context, isActive, child),
+      child: switch (type) {
+        AuthButtonType.primary => ElevatedButton(
+          onPressed: isActive ? onPressed : null,
+          child: child,
+        ),
+        AuthButtonType.secondary => OutlinedButton(
+          onPressed: isActive ? onPressed : null,
+          child: child,
+        ),
+      },
     );
-  }
-
-  Widget _buildButton(
-    BuildContext context,
-    bool isActive,
-    Widget child,
-  ) {
-    final scheme = Theme.of(context).colorScheme;
-    switch (type) {
-      case AuthButtonType.primary:
-        return ElevatedButton(
-          onPressed: isActive ? onPressed : null,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: isActive
-                ? scheme.primary
-                : scheme.surfaceContainerHighest,
-            foregroundColor: isActive
-                ? scheme.onPrimary
-                : scheme.onSurfaceVariant,
-            elevation: AppElevation.none,
-          ),
-          child: child,
-        );
-
-      case AuthButtonType.secondary:
-        return OutlinedButton(
-          onPressed: isActive ? onPressed : null,
-          style: OutlinedButton.styleFrom(
-            foregroundColor: isActive
-                ? scheme.onSurface
-                : scheme.onSurfaceVariant,
-            side: BorderSide(
-              color: scheme.outlineVariant,
-              width: 1.5,
-            ),
-          ),
-          child: child,
-        );
-    }
   }
 }
 

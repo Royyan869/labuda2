@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/labuda/backend/internal/commerce/auction/entity"
 	auctionRepo "github.com/labuda/backend/internal/commerce/auction/infrastructure/repository"
 	productEntity "github.com/labuda/backend/internal/commerce/product/entity"
@@ -88,38 +87,22 @@ func contains(s, substr string) bool {
 	return false
 }
 
-// failingAuctionTx wraps auctionUpdateSpyTx and injects failure on UPDATE auctions
-type failingAuctionTx struct {
-	*auctionUpdateSpyTx
-	failErr error
-}
-
-func (t *failingAuctionTx) Exec(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error) {
-	if t.failErr != nil && contains(sql, "UPDATE auctions") {
-		t.execSQL = append(t.execSQL, sql)
-		t.execArgs = append(t.execArgs, args)
-		return pgconn.CommandTag{}, t.failErr
-	}
-	return t.auctionUpdateSpyTx.Exec(ctx, sql, args...)
-}
-
-var _ db.Tx = (*failingAuctionTx)(nil)
-
 func newConvergenceAuction(status entity.Status, sellerID uuid.UUID) *entity.Auction {
 	// Use a future start time so scheduled validation passes regardless of
-	// when the test suite runs. Draft tests ignore the future check.
+	// when the test suite runs.
 	now := time.Now().Add(48 * time.Hour)
-	if status == entity.StatusDraft {
-		now = time.Date(2026, 8, 1, 12, 0, 0, 0, time.UTC)
-	}
-	productID := uuid.New()
-	buyNow := int64(2_000_000)
+	productID := uuid.UUID{}
 	start := now.Add(2 * time.Hour)
 	end := now.Add(26 * time.Hour)
-	if status == entity.StatusScheduled {
+	if status == entity.StatusScheduled || status == entity.StatusActive {
 		start = time.Now().Add(2 * time.Hour)
 		end = start.Add(24 * time.Hour)
+	} else {
+		start = time.Date(2026, 8, 1, 12, 0, 0, 0, time.UTC)
+		end = start.Add(24 * time.Hour)
 	}
+	productID = uuid.New()
+	buyNow := int64(2_000_000)
 	return &entity.Auction{
 		ID:           uuid.New(),
 		SellerID:     sellerID,
@@ -142,180 +125,9 @@ func newConvergenceAuction(status entity.Status, sellerID uuid.UUID) *entity.Auc
 }
 
 // ---------------------------------------------------------------------------
-// A. Draft content persistence
+// Scheduled update authority (create = publish: scheduled is the only
+// editable lifecycle state)
 // ---------------------------------------------------------------------------
-
-func TestUpdateDraft_ContentPersistsToProducts(t *testing.T) {
-	sellerID := uuid.New()
-	auction := newConvergenceAuction(entity.StatusDraft, sellerID)
-	productRepo := newConvergenceProductRepo(sellerID, auction.ProductID, "Original Title", "Original desc")
-	tx := &auctionUpdateSpyTx{row: auctionUpdateSpyRow{auction: auction}}
-	svc := &AuctionService{
-		auctionRepo: &auctionRepo.AuctionRepository{},
-		productRepo: productRepo,
-		ownership:   auth.NewOwnershipValidator(),
-		log:         zap.NewNop(),
-	}
-
-	newTitle := "New Canonical Title"
-	newDesc := "New canonical description"
-	err := svc.UpdateDraft(context.Background(), tx, UpdateDraftInput{
-		AuctionID:    auction.ID,
-		CallerID:     sellerID,
-		Title:        &newTitle,
-		Description:  &newDesc,
-		StartPrice:   auction.StartPrice,
-		BidIncrement: auction.BidIncrement,
-		BuyNowPrice:  auction.BuyNowPrice,
-		StartAt:      auction.StartAt,
-		EndAt:        auction.EndAt,
-	})
-	require.NoError(t, err)
-	require.NotNil(t, productRepo.lastUpdated)
-	assert.Equal(t, newTitle, productRepo.lastUpdated.Title)
-	assert.Equal(t, newDesc, productRepo.lastUpdated.Description)
-	assert.Equal(t, 1, productRepo.updateCalls, "product Update must be called exactly once")
-	found := false
-	for _, sql := range tx.execSQL {
-		if contains(sql, "UPDATE auctions") {
-			found = true
-		}
-	}
-	assert.True(t, found, "UPDATE auctions must be executed")
-}
-
-// ---------------------------------------------------------------------------
-// B. Auction surface persistence in same request
-// ---------------------------------------------------------------------------
-
-func TestUpdateDraft_SurfacePersistsAlongsideContent(t *testing.T) {
-	sellerID := uuid.New()
-	auction := newConvergenceAuction(entity.StatusDraft, sellerID)
-	productRepo := newConvergenceProductRepo(sellerID, auction.ProductID, "Original Title", "Original desc")
-	tx := &auctionUpdateSpyTx{row: auctionUpdateSpyRow{auction: auction}}
-	svc := &AuctionService{
-		auctionRepo: &auctionRepo.AuctionRepository{},
-		productRepo: productRepo,
-		ownership:   auth.NewOwnershipValidator(),
-		log:         zap.NewNop(),
-	}
-
-	newTitle := "Title B"
-	err := svc.UpdateDraft(context.Background(), tx, UpdateDraftInput{
-		AuctionID:    auction.ID,
-		CallerID:     sellerID,
-		Title:        &newTitle,
-		Description:  nil,
-		StartPrice:   1_500_000,
-		BidIncrement: 200_000,
-		BuyNowPrice:  nil,
-		StartAt:      auction.StartAt.Add(time.Hour),
-		EndAt:        auction.EndAt.Add(time.Hour),
-	})
-	require.NoError(t, err)
-	require.NotNil(t, productRepo.lastUpdated)
-	assert.Equal(t, "Title B", productRepo.lastUpdated.Title)
-	assert.Equal(t, "Original desc", productRepo.lastUpdated.Description, "unchanged description must stay")
-	require.Len(t, tx.execArgs, 1)
-	assert.Equal(t, int64(1_500_000), tx.execArgs[0][2])
-	assert.Equal(t, int64(200_000), tx.execArgs[0][3])
-}
-
-// ---------------------------------------------------------------------------
-// C. Atomic rollback — failure after Product mutation must not leave partial
-// ---------------------------------------------------------------------------
-
-func TestUpdateDraft_AtomicRollback_WhenAuctionPersistFails(t *testing.T) {
-	sellerID := uuid.New()
-	auction := newConvergenceAuction(entity.StatusDraft, sellerID)
-	productRepo := newConvergenceProductRepo(sellerID, auction.ProductID, "Original Title", "Original desc")
-	inner := &auctionUpdateSpyTx{row: auctionUpdateSpyRow{auction: auction}}
-	tx := &failingAuctionTx{auctionUpdateSpyTx: inner, failErr: fmt.Errorf("injected auction persistence failure")}
-	svc := &AuctionService{
-		auctionRepo: &auctionRepo.AuctionRepository{},
-		productRepo: productRepo,
-		ownership:   auth.NewOwnershipValidator(),
-		log:         zap.NewNop(),
-	}
-
-	newTitle := "Should Rollback"
-	err := svc.UpdateDraft(context.Background(), tx, UpdateDraftInput{
-		AuctionID:    auction.ID,
-		CallerID:     sellerID,
-		Title:        &newTitle,
-		Description:  nil,
-		StartPrice:   auction.StartPrice,
-		BidIncrement: auction.BidIncrement,
-		StartAt:      auction.StartAt,
-		EndAt:        auction.EndAt,
-	})
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "injected auction persistence failure")
-	// In a real DB tx the product mutation would have been rolled back
-	// atomically. Our product repo already applied the mutation in-memory
-	// before the auction failure — but the service returned an error, so
-	// the caller (h.db.WithTx) would Rollback the whole tx.
-}
-
-func TestUpdateDraft_AtomicRollback_WhenProductUpdateFails(t *testing.T) {
-	sellerID := uuid.New()
-	auction := newConvergenceAuction(entity.StatusDraft, sellerID)
-	productRepo := newConvergenceProductRepo(sellerID, auction.ProductID, "Original Title", "Original desc")
-	productRepo.failUpdate = fmt.Errorf("injected product failure")
-	tx := &auctionUpdateSpyTx{row: auctionUpdateSpyRow{auction: auction}}
-	svc := &AuctionService{
-		auctionRepo: &auctionRepo.AuctionRepository{},
-		productRepo: productRepo,
-		ownership:   auth.NewOwnershipValidator(),
-		log:         zap.NewNop(),
-	}
-
-	newTitle := "Nope"
-	err := svc.UpdateDraft(context.Background(), tx, UpdateDraftInput{
-		AuctionID:   auction.ID,
-		CallerID:    sellerID,
-		Title:       &newTitle,
-		StartPrice:  auction.StartPrice,
-		BidIncrement: auction.BidIncrement,
-		StartAt:     auction.StartAt,
-		EndAt:       auction.EndAt,
-	})
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "injected product failure")
-	assert.Empty(t, tx.execSQL, "UPDATE auctions must not execute if product update failed")
-}
-
-// ---------------------------------------------------------------------------
-// D. Authorization — non-owner must not mutate product or auction
-// ---------------------------------------------------------------------------
-
-func TestUpdateDraft_NonOwnerDoesNotMutateProduct(t *testing.T) {
-	sellerID := uuid.New()
-	otherID := uuid.New()
-	auction := newConvergenceAuction(entity.StatusDraft, sellerID)
-	productRepo := newConvergenceProductRepo(sellerID, auction.ProductID, "Original Title", "Original desc")
-	tx := &auctionUpdateSpyTx{row: auctionUpdateSpyRow{auction: auction}}
-	svc := &AuctionService{
-		auctionRepo: &auctionRepo.AuctionRepository{},
-		productRepo: productRepo,
-		ownership:   auth.NewOwnershipValidator(),
-		log:         zap.NewNop(),
-	}
-
-	newTitle := "Hacker Title"
-	err := svc.UpdateDraft(context.Background(), tx, UpdateDraftInput{
-		AuctionID:   auction.ID,
-		CallerID:    otherID,
-		Title:       &newTitle,
-		StartPrice:  auction.StartPrice,
-		BidIncrement: auction.BidIncrement,
-		StartAt:     auction.StartAt,
-		EndAt:       auction.EndAt,
-	})
-	require.ErrorIs(t, err, auth.ErrSellerRequired)
-	assert.Equal(t, 0, productRepo.updateCalls)
-	assert.Empty(t, tx.execSQL)
-}
 
 func TestUpdateScheduled_NonOwnerDoesNotMutateProduct(t *testing.T) {
 	sellerID := uuid.New()
@@ -341,10 +153,6 @@ func TestUpdateScheduled_NonOwnerDoesNotMutateProduct(t *testing.T) {
 	assert.Equal(t, 0, productRepo.updateCalls)
 	assert.Empty(t, tx.execSQL)
 }
-
-// ---------------------------------------------------------------------------
-// E. Scheduled content persistence
-// ---------------------------------------------------------------------------
 
 func TestUpdateScheduled_ContentAndTimingPersist(t *testing.T) {
 	sellerID := uuid.New()
@@ -384,9 +192,9 @@ func TestUpdateScheduled_ContentAndTimingPersist(t *testing.T) {
 	assert.True(t, found)
 }
 
-func TestUpdateDraft_ValidationRejectsTooLongTitle(t *testing.T) {
+func TestUpdateScheduled_ValidationRejectsTooLongTitle(t *testing.T) {
 	sellerID := uuid.New()
-	auction := newConvergenceAuction(entity.StatusDraft, sellerID)
+	auction := newConvergenceAuction(entity.StatusScheduled, sellerID)
 	productRepo := newConvergenceProductRepo(sellerID, auction.ProductID, "Original Title", "Original desc")
 	tx := &auctionUpdateSpyTx{row: auctionUpdateSpyRow{auction: auction}}
 	svc := &AuctionService{
@@ -401,14 +209,12 @@ func TestUpdateDraft_ValidationRejectsTooLongTitle(t *testing.T) {
 		long[i] = 'a'
 	}
 	s := string(long)
-	err := svc.UpdateDraft(context.Background(), tx, UpdateDraftInput{
-		AuctionID:   auction.ID,
-		CallerID:    sellerID,
-		Title:       &s,
-		StartPrice:  auction.StartPrice,
-		BidIncrement: auction.BidIncrement,
-		StartAt:     auction.StartAt,
-		EndAt:       auction.EndAt,
+	err := svc.UpdateScheduled(context.Background(), tx, UpdateScheduledInput{
+		AuctionID: auction.ID,
+		CallerID:  sellerID,
+		Title:     &s,
+		StartAt:   auction.StartAt,
+		EndAt:     auction.EndAt,
 	})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "200")
@@ -438,100 +244,9 @@ func TestUpdateScheduled_WithoutContent_OnlyTimingPersists(t *testing.T) {
 	assert.NotEmpty(t, tx.execSQL)
 }
 
-func TestUpdateDraft_FullProductFieldsPersists(t *testing.T) {
-	sellerID := uuid.New()
-	auction := newConvergenceAuction(entity.StatusDraft, sellerID)
-	// Seed product with variety etc.
-	productRepo := newConvergenceProductRepo(sellerID, auction.ProductID, "Original Title", "Original desc")
-	// Add full product fields to repo's product
-	p := productRepo.products[auction.ProductID]
-	p.MediaURLs = []productEntity.ProductMedia{{URL: "https://old.jpg"}}
-	p.Variety = "Kohaku"
-	p.Certificates = []string{"breeder"}
-	p.PreparationTime = "1_3_days"
-	tx := &auctionUpdateSpyTx{row: auctionUpdateSpyRow{auction: auction}}
-	svc := &AuctionService{
-		auctionRepo: &auctionRepo.AuctionRepository{},
-		productRepo: productRepo,
-		ownership:   auth.NewOwnershipValidator(),
-		log:         zap.NewNop(),
-	}
-	media := []productEntity.ProductMedia{{URL: "https://new1.jpg"}, {URL: "https://new2.mp4"}}
-	variety := "Showa"
-	size := 45
-	age := 12
-	gender := "male"
-	breeder := "Sakai"
-	bloodline := "Matsunosuke"
-	certs := []string{"contest", "health"}
-	prep := "1_3_days"
-	newTitle := "New Title Full"
-	newDesc := "New Desc Full"
-	err := svc.UpdateDraft(context.Background(), tx, UpdateDraftInput{
-		AuctionID:       auction.ID,
-		CallerID:        sellerID,
-		Title:           &newTitle,
-		Description:     &newDesc,
-		Media:           &media,
-		Variety:         &variety,
-		SizeCM:          &size,
-		AgeMonths:       &age,
-		Gender:          &gender,
-		Breeder:         &breeder,
-		Bloodline:       &bloodline,
-		Certificates:    &certs,
-		PreparationTime: &prep,
-		StartPrice:   auction.StartPrice,
-		BidIncrement: auction.BidIncrement,
-		BuyNowPrice:  auction.BuyNowPrice,
-		StartAt:      auction.StartAt,
-		EndAt:        auction.EndAt,
-	})
-	require.NoError(t, err)
-	require.NotNil(t, productRepo.lastUpdated)
-	assert.Equal(t, newTitle, productRepo.lastUpdated.Title)
-	assert.Equal(t, newDesc, productRepo.lastUpdated.Description)
-	assert.Equal(t, media, productRepo.lastUpdated.MediaURLs)
-	assert.Equal(t, variety, productRepo.lastUpdated.Variety)
-	assert.Equal(t, size, *productRepo.lastUpdated.SizeCm)
-	assert.Equal(t, age, *productRepo.lastUpdated.AgeMonths)
-	assert.Equal(t, gender, *productRepo.lastUpdated.Gender)
-	assert.Equal(t, breeder, *productRepo.lastUpdated.Breeder)
-	assert.Equal(t, bloodline, *productRepo.lastUpdated.Bloodline)
-	assert.Equal(t, certs, productRepo.lastUpdated.Certificates)
-	assert.Equal(t, prep, productRepo.lastUpdated.PreparationTime)
-}
-
-func TestUpdateDraft_GuardOrder_NoProductWriteWhenNotDraft(t *testing.T) {
-	sellerID := uuid.New()
-	auction := newConvergenceAuction(entity.StatusScheduled, sellerID)
-	productRepo := newConvergenceProductRepo(sellerID, auction.ProductID, "Original Title", "Original desc")
-	tx := &auctionUpdateSpyTx{row: auctionUpdateSpyRow{auction: auction}}
-	svc := &AuctionService{
-		auctionRepo: &auctionRepo.AuctionRepository{},
-		productRepo: productRepo,
-		ownership:   auth.NewOwnershipValidator(),
-		log:         zap.NewNop(),
-	}
-	title := "Should Not Persist"
-	err := svc.UpdateDraft(context.Background(), tx, UpdateDraftInput{
-		AuctionID:    auction.ID,
-		CallerID:     sellerID,
-		Title:        &title,
-		StartPrice:   auction.StartPrice,
-		BidIncrement: auction.BidIncrement,
-		StartAt:      auction.StartAt,
-		EndAt:        auction.EndAt,
-	})
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "can only update draft auctions")
-	assert.Equal(t, 0, productRepo.updateCalls, "ProductRepository.Update must NOT be called when lifecycle guard fails")
-	assert.Empty(t, tx.execSQL, "Auction UPDATE must not be executed")
-}
-
 func TestUpdateScheduled_GuardOrder_NoProductWriteWhenNotScheduled(t *testing.T) {
 	sellerID := uuid.New()
-	auction := newConvergenceAuction(entity.StatusDraft, sellerID)
+	auction := newConvergenceAuction(entity.StatusActive, sellerID)
 	productRepo := newConvergenceProductRepo(sellerID, auction.ProductID, "Original Title", "Original desc")
 	tx := &auctionUpdateSpyTx{row: auctionUpdateSpyRow{auction: auction}}
 	svc := &AuctionService{
@@ -542,62 +257,14 @@ func TestUpdateScheduled_GuardOrder_NoProductWriteWhenNotScheduled(t *testing.T)
 	}
 	title := "Should Not Persist"
 	err := svc.UpdateScheduled(context.Background(), tx, UpdateScheduledInput{
-		AuctionID:   auction.ID,
-		CallerID:    sellerID,
-		Title:       &title,
-		StartAt:     auction.StartAt,
-		EndAt:       auction.EndAt,
+		AuctionID: auction.ID,
+		CallerID:  sellerID,
+		Title:     &title,
+		StartAt:   auction.StartAt,
+		EndAt:     auction.EndAt,
 	})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "can only update scheduled auctions")
 	assert.Equal(t, 0, productRepo.updateCalls)
 	assert.Empty(t, tx.execSQL)
-}
-
-func TestUpdateDraft_Certificates_Validation(t *testing.T) {
-	sellerID := uuid.New()
-	auction := newConvergenceAuction(entity.StatusDraft, sellerID)
-	productRepo := newConvergenceProductRepo(sellerID, auction.ProductID, "Original Title", "Original desc")
-	tx := &auctionUpdateSpyTx{row: auctionUpdateSpyRow{auction: auction}}
-	svc := &AuctionService{
-		auctionRepo: &auctionRepo.AuctionRepository{},
-		productRepo: productRepo,
-		ownership:   auth.NewOwnershipValidator(),
-		log:         zap.NewNop(),
-	}
-	valid := []string{"breeder", "health"}
-	invalid := []string{"fake"}
-	// valid
-	err := svc.UpdateDraft(context.Background(), tx, UpdateDraftInput{
-		AuctionID:    auction.ID,
-		CallerID:     sellerID,
-		Certificates: &valid,
-		StartPrice:   auction.StartPrice,
-		BidIncrement: auction.BidIncrement,
-		StartAt:      auction.StartAt,
-		EndAt:        auction.EndAt,
-	})
-	require.NoError(t, err)
-	// invalid
-	auction2 := newConvergenceAuction(entity.StatusDraft, sellerID)
-	tx2 := &auctionUpdateSpyTx{row: auctionUpdateSpyRow{auction: auction2}}
-	productRepo2 := newConvergenceProductRepo(sellerID, auction2.ProductID, "Original Title", "Original desc")
-	svc2 := &AuctionService{
-		auctionRepo: &auctionRepo.AuctionRepository{},
-		productRepo: productRepo2,
-		ownership:   auth.NewOwnershipValidator(),
-		log:         zap.NewNop(),
-	}
-	err = svc2.UpdateDraft(context.Background(), tx2, UpdateDraftInput{
-		AuctionID:    auction2.ID,
-		CallerID:     sellerID,
-		Certificates: &invalid,
-		StartPrice:   auction2.StartPrice,
-		BidIncrement: auction2.BidIncrement,
-		StartAt:      auction2.StartAt,
-		EndAt:        auction2.EndAt,
-	})
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "certificate")
-	assert.Equal(t, 0, productRepo2.updateCalls)
 }

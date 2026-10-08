@@ -13,12 +13,12 @@ import (
 
 // SCOPE 3 — auction status boundary.
 //
-// The raw internal state machine value ("draft", "waiting_settlement", …)
+// The raw internal state machine value ("lapsed", "waiting_settlement", …)
 // must never cross the public wire as `status`. The public wire vocabulary
-// is Status.PublicPhase() — a closed set that excludes draft entirely. The
-// exact internal state crosses the wire ONLY as `seller_status`, and only
-// for the owning seller (owner workspace surfaces); every other viewer —
-// including anonymous — reads null there.
+// is Status.PublicPhase() — a closed set that never carries an internal-only
+// state. The exact internal state crosses the wire ONLY as `seller_status`,
+// and only for the owning seller (owner workspace surfaces); every other
+// viewer — including anonymous — reads null there.
 
 func ownerAuction(status entity.Status) *entity.Auction {
 	return &entity.Auction{
@@ -63,20 +63,20 @@ func decodeAuction(t *testing.T, resp map[string]interface{}) map[string]interfa
 }
 
 // TestPublicStatusVocabulary_StatusNeverCarriesRawInternalState locks the
-// public `status` vocabulary across all six internal states, for the
-// anonymous viewer. Draft MUST coarsen (defensively) and MUST NOT appear in
-// the emitted value set.
+// public `status` vocabulary across every internal state, for the anonymous
+// viewer. Internal-only states (lapsed) MUST coarsen (defensively) and MUST
+// NOT appear in the emitted value set.
 func TestPublicStatusVocabulary_StatusNeverCarriesRawInternalState(t *testing.T) {
 	cases := []struct {
 		internal entity.Status
 		wantPub  string
 	}{
-		{entity.StatusDraft, "cancelled"}, // conservative defensive mapping — never "draft"
 		{entity.StatusScheduled, "scheduled"},
 		{entity.StatusActive, "active"},
 		{entity.StatusWaitingSettlement, "waiting_settlement"},
 		{entity.StatusEnded, "ended"},
 		{entity.StatusCancelled, "cancelled"},
+		{entity.StatusLapsed, "cancelled"}, // conservative defensive mapping — never "lapsed"
 	}
 	for _, tc := range cases {
 		a := ownerAuction(tc.internal)
@@ -86,8 +86,8 @@ func TestPublicStatusVocabulary_StatusNeverCarriesRawInternalState(t *testing.T)
 		if decoded["status"] != tc.wantPub {
 			t.Fatalf("internal=%s status = %v, want %s", tc.internal, decoded["status"], tc.wantPub)
 		}
-		if decoded["status"] == string(tc.internal) && tc.internal == entity.StatusDraft {
-			t.Fatalf("raw internal draft leaked to public wire: %v", decoded["status"])
+		if tc.internal == entity.StatusLapsed && decoded["status"] == string(tc.internal) {
+			t.Fatalf("raw internal lapsed leaked to public wire: %v", decoded["status"])
 		}
 		if decoded["seller_status"] != nil {
 			t.Fatalf("internal=%s seller_status must be null for anonymous viewer, got %v", tc.internal, decoded["seller_status"])
@@ -99,19 +99,19 @@ func TestPublicStatusVocabulary_StatusNeverCarriesRawInternalState(t *testing.T)
 // owning seller reads the exact internal state via `seller_status`; any other
 // authenticated viewer reads null.
 func TestPublicStatusVocabulary_SellerStatusOwnerOnly(t *testing.T) {
-	a := ownerAuction(entity.StatusDraft)
+	a := ownerAuction(entity.StatusLapsed)
 	seller := sellerOf(a)
 
 	// Owner sees the exact internal state (seller workspace correctness).
 	ownerResp := auctionToResponseWithSeller(a, a.Product, seller, &a.SellerID)
 	owner := decodeAuction(t, ownerResp)
-	if owner["seller_status"] != "draft" {
-		t.Fatalf("owner seller_status = %v, want draft", owner["seller_status"])
+	if owner["seller_status"] != "lapsed" {
+		t.Fatalf("owner seller_status = %v, want lapsed", owner["seller_status"])
 	}
 	// The public `status` still coarsens even for the owner — one public
 	// vocabulary for everyone, owner detail lives only in seller_status.
-	if owner["status"] == "draft" {
-		t.Fatalf("public status must never carry raw draft, even for owner")
+	if owner["status"] == "lapsed" {
+		t.Fatalf("public status must never carry raw lapsed, even for owner")
 	}
 
 	// Another authenticated viewer does NOT see the internal state.

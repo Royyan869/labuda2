@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/Table'
 import { useSLAMetrics } from '@/hooks/useSLA'
 import { formatDate } from '@/lib/utils'
+import { AdminLoadingState, AdminErrorState, AdminEmptyState, PageHeader } from '@/components/common'
 
 /**
  * Format milliseconds to human-readable duration
@@ -67,30 +68,14 @@ export function SLADashboardPage() {
   const { metrics, loading, error, refetch } = useSLAMetrics()
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
-          <p className="mt-4 text-muted-foreground">Loading SLA metrics...</p>
-        </div>
-      </div>
-    )
+    return <AdminLoadingState />
   }
 
   if (error) {
     return (
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">SLA Analytics</h1>
-          <p className="text-muted-foreground mt-1">Service Level Agreement performance metrics</p>
-        </div>
-        <Card>
-          <CardContent className="p-6">
-            <div className="text-center text-destructive">
-              <p>Error loading SLA metrics: {error.message}</p>
-            </div>
-          </CardContent>
-        </Card>
+        <PageHeader title="SLA Analytics" description="Service Level Agreement performance metrics" />
+        <AdminErrorState title="Failed to load SLA metrics" message={error.message} onRetry={refetch} />
       </div>
     )
   }
@@ -102,27 +87,27 @@ export function SLADashboardPage() {
   return (
     <div className="space-y-6">
       {/* Header with System Health */}
-      <div className="flex items-center justify-between">
-        <div className="flex-1">
-          <h1 className="text-3xl font-bold text-foreground">SLA Analytics</h1>
-          <p className="text-muted-foreground mt-1">Service Level Agreement performance metrics</p>
-        </div>
-        <div className="flex items-center gap-4">
-          {/* System Health Badge */}
-          {systemHealth && (
-            <div className="flex items-center gap-2">
-              <Badge variant={systemHealth.status === 'good' ? 'success' : systemHealth.status === 'warning' ? 'warning' : 'error'}>
-                {systemHealth.status.toUpperCase()}
-              </Badge>
-              <span className="text-sm text-muted-foreground">Score: {systemHealth.score.toFixed(0)}/100</span>
-            </div>
-          )}
-          <Button onClick={refetch} variant="secondary" size="sm">
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title="SLA Analytics"
+        description="Service Level Agreement performance metrics"
+        actions={
+          <>
+            {/* System Health Badge */}
+            {systemHealth && (
+              <div className="flex items-center gap-2">
+                <Badge variant={systemHealth.status === 'good' ? 'success' : systemHealth.status === 'warning' ? 'warning' : 'error'}>
+                  {systemHealth.status.toUpperCase()}
+                </Badge>
+                <span className="type-secondary">Score: {systemHealth.score.toFixed(0)}/100</span>
+              </div>
+            )}
+            <Button onClick={refetch} variant="secondary" size="sm">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh
+            </Button>
+          </>
+        }
+      />
 
       {/* System Health Alert */}
       {systemHealth && systemHealth.issues.length > 0 && (
@@ -165,8 +150,8 @@ export function SLADashboardPage() {
           <CardContent>
             <div className="space-y-2">
               <div className="flex items-baseline justify-between">
-                <span className="text-2xl font-bold">{supportData?.total_count || 0}</span>
-                <span className="text-sm text-muted-foreground">Total</span>
+                <span className="type-metric">{supportData?.total_count || 0}</span>
+                <span className="type-secondary">Total</span>
               </div>
               <div className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-2">
@@ -193,8 +178,8 @@ export function SLADashboardPage() {
           <CardContent>
             <div className="space-y-2">
               <div className="flex items-baseline justify-between">
-                <span className="text-2xl font-bold text-destructive">{supportData?.overdue_count || 0}</span>
-                <span className="text-sm text-muted-foreground">of {supportData?.total_count || 0}</span>
+                <span className="type-metric text-destructive">{supportData?.overdue_count || 0}</span>
+                <span className="type-secondary">of {supportData?.total_count || 0}</span>
               </div>
               <div className="text-sm">
                 <span className="font-semibold text-destructive">{formatRate(supportData?.overdue_rate || 0)}</span>
@@ -222,8 +207,8 @@ export function SLADashboardPage() {
           <CardContent>
             <div className="space-y-2">
               <div className="flex items-baseline justify-between">
-                <span className="text-2xl font-bold">{disputeData?.total_count || 0}</span>
-                <span className="text-sm text-muted-foreground">Total</span>
+                <span className="type-metric">{disputeData?.total_count || 0}</span>
+                <span className="type-secondary">Total</span>
               </div>
               <div className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-2">
@@ -250,8 +235,8 @@ export function SLADashboardPage() {
           <CardContent>
             <div className="space-y-2">
               <div className="flex items-baseline justify-between">
-                <span className="text-2xl font-bold text-destructive">{disputeData?.overdue_count || 0}</span>
-                <span className="text-sm text-muted-foreground">of {disputeData?.total_count || 0}</span>
+                <span className="type-metric text-destructive">{disputeData?.overdue_count || 0}</span>
+                <span className="type-secondary">of {disputeData?.total_count || 0}</span>
               </div>
               <div className="text-sm">
                 <span className="font-semibold text-destructive">{formatRate(disputeData?.overdue_rate || 0)}</span>
@@ -273,7 +258,7 @@ export function SLADashboardPage() {
               {/* Response Time Trend */}
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground mb-1">Response Time</p>
+                  <p className="type-secondary mb-1">Response Time</p>
                   <p className="text-lg font-semibold">
                     {formatDuration(metrics.trends.last_24_hours?.avg_first_response_time || null)}
                   </p>
@@ -296,7 +281,7 @@ export function SLADashboardPage() {
               {/* Resolution Time Trend */}
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground mb-1">Resolution Time</p>
+                  <p className="type-secondary mb-1">Resolution Time</p>
                   <p className="text-lg font-semibold">
                     {formatDuration(metrics.trends.last_24_hours?.avg_resolution_time || null)}
                   </p>
@@ -319,7 +304,7 @@ export function SLADashboardPage() {
               {/* Overdue Rate Trend */}
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground mb-1">Overdue Rate</p>
+                  <p className="type-secondary mb-1">Overdue Rate</p>
                   <p className="text-lg font-semibold">
                     {formatRate(metrics.trends.last_24_hours?.overdue_rate || 0)}
                   </p>
@@ -354,27 +339,27 @@ export function SLADashboardPage() {
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-xs text-muted-foreground mb-1">Avg First Response</p>
+                  <p className="type-caption mb-1">Avg First Response</p>
                   <p className="text-lg font-semibold">
                     {formatDuration(supportData?.avg_first_response_time || null)}
                   </p>
                   {supportData?.p95_first_response_time && (
-                    <p className="text-xs text-muted-foreground">P95: {formatDuration(supportData.p95_first_response_time)}</p>
+                    <p className="type-caption">P95: {formatDuration(supportData.p95_first_response_time)}</p>
                   )}
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground mb-1">Avg Resolution</p>
+                  <p className="type-caption mb-1">Avg Resolution</p>
                   <p className="text-lg font-semibold">
                     {formatDuration(supportData?.avg_resolution_time || null)}
                   </p>
                   {supportData?.p95_resolution_time && (
-                    <p className="text-xs text-muted-foreground">P95: {formatDuration(supportData.p95_resolution_time)}</p>
+                    <p className="type-caption">P95: {formatDuration(supportData.p95_resolution_time)}</p>
                   )}
                 </div>
               </div>
               <div className="pt-4 border-t">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Overdue Rate</span>
+                  <span className="type-secondary">Overdue Rate</span>
                   <Badge variant={supportData?.health_status === 'good' ? 'success' : supportData?.health_status === 'warning' ? 'warning' : 'error'}>
                     {formatRate(supportData?.overdue_rate || 0)}
                   </Badge>
@@ -393,27 +378,27 @@ export function SLADashboardPage() {
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-xs text-muted-foreground mb-1">Avg First Response</p>
+                  <p className="type-caption mb-1">Avg First Response</p>
                   <p className="text-lg font-semibold">
                     {formatDuration(disputeData?.avg_first_response_time || null)}
                   </p>
                   {disputeData?.p95_first_response_time && (
-                    <p className="text-xs text-muted-foreground">P95: {formatDuration(disputeData.p95_first_response_time)}</p>
+                    <p className="type-caption">P95: {formatDuration(disputeData.p95_first_response_time)}</p>
                   )}
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground mb-1">Avg Resolution</p>
+                  <p className="type-caption mb-1">Avg Resolution</p>
                   <p className="text-lg font-semibold">
                     {formatDuration(disputeData?.avg_resolution_time || null)}
                   </p>
                   {disputeData?.p95_resolution_time && (
-                    <p className="text-xs text-muted-foreground">P95: {formatDuration(disputeData.p95_resolution_time)}</p>
+                    <p className="type-caption">P95: {formatDuration(disputeData.p95_resolution_time)}</p>
                   )}
                 </div>
               </div>
               <div className="pt-4 border-t">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Overdue Rate</span>
+                  <span className="type-secondary">Overdue Rate</span>
                   <Badge variant={disputeData?.health_status === 'good' ? 'success' : disputeData?.health_status === 'warning' ? 'warning' : 'error'}>
                     {formatRate(disputeData?.overdue_rate || 0)}
                   </Badge>
@@ -488,15 +473,13 @@ export function SLADashboardPage() {
               </TableBody>
             </Table>
           ) : (
-            <div className="text-center py-8 text-muted-foreground">
-              No admin performance data available
-            </div>
+            <AdminEmptyState title="No admin performance data available" />
           )}
         </CardContent>
       </Card>
 
       {/* Last Updated */}
-      <div className="text-sm text-muted-foreground text-right">
+      <div className="type-secondary text-right">
         Last updated: {metrics?.generated_at ? formatDate(new Date(metrics.generated_at)) : 'N/A'}
       </div>
     </div>

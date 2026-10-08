@@ -67,33 +67,6 @@ class _FakeSellerRemoteDatasource extends SellerRemoteDatasource {
 
 void main() {
   group('Seller endpoint contract', () {
-    test('dashboard endpoint uses self route (no sellerId segment)', () async {
-      final client = _RecordingApiClient()
-        ..getPayload = {
-          'data': {
-            'total_orders': 0,
-            'pending_orders': 0,
-            'processing_orders': 0,
-            'completed_orders': 0,
-            'cancelled_orders': 0,
-            'refunded_orders': 0,
-            'problematic_orders': 0,
-            'total_revenue': 0,
-            'pending_revenue': 0,
-            'refunded_revenue': 0,
-            'total_collections': 0,
-            'active_collections': 0,
-            'sold_collections': 0,
-            'total_auctions': 0,
-            'active_auctions': 0,
-          },
-        };
-      final ds = SellerRemoteDatasource(apiClient: client);
-
-      await ds.getDashboardStats('seller-123');
-      expect(client.lastGetPath, '/seller/dashboard');
-    });
-
     test(
       'subscription/performance endpoints use self route (no sellerId segment)',
       () async {
@@ -187,27 +160,6 @@ void main() {
               'MISSING_REQUIREMENTS',
             ),
           ),
-        );
-      },
-    );
-
-    test(
-      'unsupported legacy seller endpoints throw explicit UnsupportedError',
-      () async {
-        final client = _RecordingApiClient();
-        final ds = SellerRemoteDatasource(apiClient: client);
-
-        expect(
-          () => ds.getSalesTrendData(sellerId: 's1'),
-          throwsA(isA<UnsupportedError>()),
-        );
-        expect(
-          () => ds.getRecentActivity('s1'),
-          throwsA(isA<UnsupportedError>()),
-        );
-        expect(
-          () => ds.getActivityHistory('s1'),
-          throwsA(isA<UnsupportedError>()),
         );
       },
     );

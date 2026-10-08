@@ -50,6 +50,7 @@ class _FakeForSaleRepository implements ForSaleRepository {
     String sellerId, {
     int page = 1,
     int pageSize = 20,
+    bool includeWithdrawn = false,
   }) async {
     return Result.success(const []);
   }
@@ -69,14 +70,6 @@ class _FakeForSaleRepository implements ForSaleRepository {
 
   @override
   Future<Result<void>> deleteForSale(String forSaleId) async {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<Result<ForSale>> updateForSaleStatus(
-    String fixedPriceSaleId,
-    ForSaleStatus status,
-  ) async {
     throw UnimplementedError();
   }
 

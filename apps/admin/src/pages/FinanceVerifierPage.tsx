@@ -3,8 +3,10 @@ import { ShieldCheck, ShieldAlert, Play, ChevronDown, ChevronRight } from 'lucid
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
+import { Select } from '@/components/ui/Select'
 import { useFinanceVerifier } from '@/hooks/useFinanceVerifier'
 import type { VerifierSection } from '@/hooks/useFinanceVerifier'
+import { AdminLoadingState, AdminErrorState, PageHeader } from '@/components/common'
 
 function SectionRow({ section }: { section: VerifierSection }) {
   const [expanded, setExpanded] = useState(!section.passed)
@@ -37,10 +39,10 @@ function SectionRow({ section }: { section: VerifierSection }) {
                 {f.level}
               </Badge>
               <div className="min-w-0">
-                <span className="font-mono text-xs text-muted-foreground">[{f.code}]</span>{' '}
+                <span className="font-mono type-caption">[{f.code}]</span>{' '}
                 <span className="text-foreground">{f.detail}</span>
                 {f.class && (
-                  <span className="ml-2 text-xs text-muted-foreground">({f.class})</span>
+                  <span className="ml-2 type-caption">({f.class})</span>
                 )}
               </div>
             </div>
@@ -48,7 +50,7 @@ function SectionRow({ section }: { section: VerifierSection }) {
         </div>
       )}
       {expanded && findings.length === 0 && (
-        <div className="border-t border-border px-4 py-3 text-sm text-muted-foreground">
+        <div className="border-t border-border px-4 py-3 type-secondary">
           No findings.
         </div>
       )}
@@ -63,28 +65,21 @@ export function FinanceVerifierPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-foreground">Finance Verifier</h1>
-        <p className="text-muted-foreground mt-1">Run financial invariant checks (read-only)</p>
-      </div>
+      <PageHeader title="Finance Verifier" description="Run financial invariant checks (read-only)" />
 
       {/* Controls */}
       <Card>
         <CardContent className="pt-6">
-          <div className="flex items-center gap-4 flex-wrap">
-            <label htmlFor="mode-select" className="text-sm font-medium text-foreground">
-              Mode:
-            </label>
-            <select
-              id="mode-select"
+          <div className="flex items-end gap-4 flex-wrap">
+            <Select
+              label="Mode:"
               value={mode}
               onChange={(e) => setMode(e.target.value as 'forensic' | 'strict')}
-              className="px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               disabled={loading}
             >
               <option value="forensic">Forensic (default)</option>
               <option value="strict">Strict (all findings = error)</option>
-            </select>
+            </Select>
             <Button onClick={() => run(mode)} disabled={loading} className="gap-2">
               <Play className="h-4 w-4" />
               {loading ? 'Running...' : 'Run Verification'}
@@ -95,24 +90,11 @@ export function FinanceVerifierPage() {
 
       {/* Error state */}
       {error && (
-        <Card>
-          <CardContent className="p-6">
-            <div className="text-center text-destructive">
-              <p>Error: {error}</p>
-            </div>
-          </CardContent>
-        </Card>
+        <AdminErrorState title="Failed to run verification" message={error} onRetry={() => run(mode)} />
       )}
 
       {/* Loading state */}
-      {loading && (
-        <div className="flex items-center justify-center min-h-[200px]">
-          <div className="text-center">
-            <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
-            <p className="mt-4 text-muted-foreground">Running invariant checks...</p>
-          </div>
-        </div>
-      )}
+      {loading && <AdminLoadingState label="Running invariant checks" />}
 
       {/* Result */}
       {result && !loading && (

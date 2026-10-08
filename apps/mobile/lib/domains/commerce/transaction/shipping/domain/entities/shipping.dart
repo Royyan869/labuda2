@@ -200,9 +200,6 @@ class ShippingSetup extends Equatable {
   final String? sellerId;
   final ShippingType type;
 
-  /// ID dari farm address (untuk referensi lokasi asal)
-  final String? farmAddressId;
-
   /// Coverage areas dengan rates
   final List<ShippingCoverage> coverageAreas;
 
@@ -220,7 +217,6 @@ class ShippingSetup extends Equatable {
     required this.name,
     this.sellerId,
     required this.type,
-    this.farmAddressId,
     required this.coverageAreas,
     this.isActive = true,
     this.internalNote,
@@ -275,7 +271,6 @@ class ShippingSetup extends Equatable {
     String? name,
     String? sellerId,
     ShippingType? type,
-    String? farmAddressId,
     List<ShippingCoverage>? coverageAreas,
     bool? isActive,
     String? internalNote,
@@ -287,7 +282,6 @@ class ShippingSetup extends Equatable {
       name: name ?? this.name,
       sellerId: sellerId ?? this.sellerId,
       type: type ?? this.type,
-      farmAddressId: farmAddressId ?? this.farmAddressId,
       coverageAreas: coverageAreas ?? this.coverageAreas,
       isActive: isActive ?? this.isActive,
       internalNote: internalNote ?? this.internalNote,
@@ -302,7 +296,6 @@ class ShippingSetup extends Equatable {
     name,
     sellerId,
     type,
-    farmAddressId,
     coverageAreas,
     isActive,
     internalNote,

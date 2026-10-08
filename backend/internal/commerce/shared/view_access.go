@@ -6,7 +6,6 @@ import (
 )
 
 const (
-	forSaleStatusDraft     = "draft"
 	forSaleStatusActive    = "active"
 	forSaleStatusSold      = "sold"
 	forSaleStatusWithdrawn = "withdrawn"
@@ -14,7 +13,6 @@ const (
 	forSaleVisibilityPublic  = "public"
 	forSaleVisibilityPrivate = "private"
 
-	auctionStatusDraft             = "draft"
 	auctionStatusScheduled         = "scheduled"
 	auctionStatusActive            = "active"
 	auctionStatusWaitingSettlement = "waiting_settlement"
@@ -56,8 +54,6 @@ func EvaluateForSaleViewAccess(input ForSaleViewAccessInput) bool {
 	}
 
 	switch input.Status {
-	case forSaleStatusDraft:
-		return input.ViewerID == input.SellerID
 	case forSaleStatusActive, forSaleStatusSold, forSaleStatusWithdrawn:
 		if input.Visibility == forSaleVisibilityPrivate {
 			return input.ViewerID == input.SellerID
@@ -88,8 +84,6 @@ func EvaluateAuctionViewAccess(input AuctionViewAccessInput) bool {
 	}
 
 	switch input.Status {
-	case auctionStatusDraft:
-		return input.ViewerID == input.SellerID
 	case auctionStatusScheduled, auctionStatusActive, auctionStatusWaitingSettlement, auctionStatusEnded, auctionStatusCancelled:
 		return true
 	default:

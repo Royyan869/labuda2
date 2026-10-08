@@ -12,6 +12,7 @@ import (
 	entity "github.com/labuda/backend/internal/commerce/forsale/entity"
 	for_saleRepo "github.com/labuda/backend/internal/commerce/forsale/repository"
 	productEntity "github.com/labuda/backend/internal/commerce/product/entity"
+	sharedpkg "github.com/labuda/backend/internal/commerce/shared"
 	"github.com/labuda/backend/pkg/db"
 	"github.com/labuda/backend/pkg/money"
 )
@@ -222,6 +223,7 @@ func (r *ForSaleRepositoryImpl) GetPublic(ctx context.Context, tx db.Tx, limit, 
 		  AND fps.quantity_available > 0
 		  AND u.account_status = 'active'
 		  AND u.deleted_at IS NULL
+		  AND `+sharedpkg.ActiveSellerMarketAuthoritySQL("fps.seller_id")+`
 		ORDER BY fps.created_at DESC
 		LIMIT $1 OFFSET $2
 	`, limit, offset)
@@ -234,8 +236,8 @@ func (r *ForSaleRepositoryImpl) GetPublic(ctx context.Context, tx db.Tx, limit, 
 
 // GetPublicBySellerID returns publicly discoverable fixed-price sales of one
 // seller: active + in-stock + seller account active/not-deleted. Used by the
-// public browsable seller page. This is NOT a seller-inventory query — draft,
-// sold and withdrawn surfaces are excluded by construction.
+// public browsable seller page. This is NOT a seller-inventory query — sold
+// and withdrawn surfaces are excluded by construction.
 func (r *ForSaleRepositoryImpl) GetPublicBySellerID(ctx context.Context, tx db.Tx, sellerID uuid.UUID, limit, offset int) ([]*entity.ForSale, error) {
 	rows, err := tx.Query(ctx, `
 		SELECT `+joinedSaleSelectColumns()+`
@@ -247,6 +249,7 @@ func (r *ForSaleRepositoryImpl) GetPublicBySellerID(ctx context.Context, tx db.T
 		  AND fps.quantity_available > 0
 		  AND u.account_status = 'active'
 		  AND u.deleted_at IS NULL
+		  AND `+sharedpkg.ActiveSellerMarketAuthoritySQL("fps.seller_id")+`
 		ORDER BY fps.created_at DESC
 		LIMIT $2 OFFSET $3
 	`, sellerID, limit, offset)
@@ -266,7 +269,7 @@ func (r *ForSaleRepositoryImpl) Search(ctx context.Context, tx db.Tx, filters fo
 		limit = 100
 	}
 
-	query := joinedSalesQueryBase() + ` WHERE fps.status = 'active' AND fps.quantity_available > 0 AND u.account_status = 'active' AND u.deleted_at IS NULL`
+	query := joinedSalesQueryBase() + ` WHERE fps.status = 'active' AND fps.quantity_available > 0 AND u.account_status = 'active' AND u.deleted_at IS NULL AND ` + sharedpkg.ActiveSellerMarketAuthoritySQL("fps.seller_id")
 	args := make([]any, 0, 4)
 	argIdx := 1
 
@@ -387,7 +390,6 @@ func joinedSaleSelectColumns() string {
 		p.breeder,
 		p.bloodline,
 		p.certificates,
-		p.farm_address_id,
 		p.preparation_time,
 		p.selling_surface,
 		p.created_at,
@@ -438,7 +440,6 @@ func scanJoinedSaleFromRow(scanner interface {
 	var quantityAvailable int
 	var productCreatedAt, productUpdatedAt time.Time
 	var saleCreatedAt, saleUpdatedAt time.Time
-	var productFarmAddressID *uuid.UUID
 	var productID uuid.UUID
 	var productSellerID uuid.UUID
 	var sellingSurfaceRaw *string
@@ -472,7 +473,6 @@ func scanJoinedSaleFromRow(scanner interface {
 		&breeder,
 		&bloodline,
 		&certificates,
-		&productFarmAddressID,
 		&productPreparationTime,
 		&sellingSurfaceRaw,
 		&productCreatedAt,
@@ -509,7 +509,6 @@ func scanJoinedSaleFromRow(scanner interface {
 		Breeder:         breeder,
 		Bloodline:       bloodline,
 		Certificates:    certificates,
-		FarmAddressID:   productFarmAddressID,
 		PreparationTime: productPreparationTime,
 		SellingSurface:  sellingSurface,
 		CreatedAt:       productCreatedAt,

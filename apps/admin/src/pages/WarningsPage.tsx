@@ -4,6 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/Table'
+import { Select } from '@/components/ui/Select'
+import { AdminLoadingState, AdminErrorState, AdminEmptyState, AdminPagination, PageHeader } from '@/components/common'
 import { useWarnings, useRevokeWarning } from '@/hooks/useWarnings'
 import { formatDate } from '@/lib/utils'
 import {
@@ -21,10 +23,18 @@ export function WarningsPage() {
   const [activeFilter, setActiveFilter] = useState<boolean | null>(true)
   const [revokingId, setRevokingId] = useState<string | null>(null)
 
-  const { warnings, loading, error, count, refetch } = useWarnings(
+  const { warnings, loading, error, page, setPage, limit, count, refetch } = useWarnings(
     activeFilter !== null ? { is_active: activeFilter } : {}
   )
   const { revokeWarning } = useRevokeWarning()
+
+  // `count` is the truthful server-side total for the current filter.
+  const totalPages = limit > 0 ? Math.ceil(count / limit) : 0
+
+  const handleClearFilters = () => {
+    setActiveFilter(null)
+    setPage(1)
+  }
 
   const handleRevoke = async (warningId: string) => {
     if (!confirm('Are you sure you want to revoke this warning?')) {
@@ -43,31 +53,15 @@ export function WarningsPage() {
     }
   }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
-          <p className="mt-4 text-muted-foreground">Loading warnings...</p>
-        </div>
-      </div>
-    )
+  if (loading && warnings.length === 0) {
+    return <AdminLoadingState />
   }
 
   if (error) {
     return (
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">User Warnings</h1>
-          <p className="text-muted-foreground mt-1">Manage user warnings and policy violations</p>
-        </div>
-        <Card>
-          <CardContent className="p-6">
-            <div className="text-center text-destructive">
-              <p>Error loading warnings: {error.message}</p>
-            </div>
-          </CardContent>
-        </Card>
+        <PageHeader title="User Warnings" description="Manage user warnings and policy violations" />
+        <AdminErrorState title="Failed to load warnings" message={error.message} onRetry={refetch} />
       </div>
     )
   }
@@ -77,10 +71,7 @@ export function WarningsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-foreground">User Warnings</h1>
-        <p className="text-muted-foreground mt-1">Manage user warnings and policy violations</p>
-      </div>
+      <PageHeader title="User Warnings" description="Manage user warnings and policy violations" />
 
       {/* Stats Card */}
       <Card>
@@ -88,8 +79,8 @@ export function WarningsPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-muted-foreground">Total Warnings</p>
-              <p className="text-3xl font-bold text-primary mt-1">{count}</p>
-              <p className="text-xs text-muted-foreground mt-1">{activeCount} currently active</p>
+              <p className="type-metric-lg text-primary mt-1">{count}</p>
+              <p className="type-caption mt-1">{activeCount} currently active</p>
             </div>
             <div className="p-4 rounded-lg bg-warning-bg">
               <AlertTriangle className="h-8 w-8 text-warning" />
@@ -101,23 +92,22 @@ export function WarningsPage() {
       {/* Filters */}
       <Card>
         <CardContent className="pt-6">
-          <div className="flex items-center gap-4">
-            <Filter className="h-5 w-5 text-muted-foreground" />
-            <label htmlFor="active-filter" className="text-sm font-medium text-foreground">
-              Filter:
-            </label>
-            <select
-              id="active-filter"
+          <div className="flex items-end gap-4">
+            <Filter className="h-5 w-5 text-muted-foreground mb-2" />
+            <Select
+              label="Filter:"
               value={activeFilter === null ? 'null' : activeFilter.toString()}
-              onChange={(e) => setActiveFilter(e.target.value === 'null' ? null : e.target.value === 'true')}
-              className="px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              onChange={(e) => {
+                setActiveFilter(e.target.value === 'null' ? null : e.target.value === 'true')
+                setPage(1)
+              }}
             >
               {ACTIVE_FILTERS.map((filter) => (
                 <option key={filter.value?.toString() ?? 'null'} value={filter.value?.toString() ?? 'null'}>
                   {filter.label}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
         </CardContent>
       </Card>
@@ -129,13 +119,19 @@ export function WarningsPage() {
         </CardHeader>
         <CardContent>
           {warnings.length === 0 ? (
-            <div className="text-center py-12">
-              <AlertTriangle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-foreground mb-2">No Warnings Found</h3>
-              <p className="text-muted-foreground">
-                {activeFilter === true ? 'No active warnings.' : 'No warnings found.'}
-              </p>
-            </div>
+            <AdminEmptyState
+              icon={AlertTriangle}
+              title="No Warnings Found"
+              description={
+                activeFilter === true
+                  ? 'No active warnings.'
+                  : activeFilter === false
+                  ? 'No inactive warnings.'
+                  : 'No warnings in the system.'
+              }
+              filtered={activeFilter !== null}
+              onClearFilters={handleClearFilters}
+            />
           ) : (
             <div className="border border-border rounded-lg overflow-hidden">
               <Table>
@@ -175,10 +171,10 @@ export function WarningsPage() {
                           {warning.is_active ? 'Active' : 'Inactive'}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
+                      <TableCell className="type-secondary">
                         {formatDate(warning.created_at)}
                       </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
+                      <TableCell className="type-secondary">
                         {warning.expires_at ? formatDate(warning.expires_at) : <span className="text-muted-foreground">Never</span>}
                       </TableCell>
                       <TableCell className="text-right">
@@ -209,6 +205,16 @@ export function WarningsPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <AdminPagination
+          page={page}
+          totalPages={totalPages}
+          onPageChange={setPage}
+          disabled={loading}
+        />
+      )}
     </div>
   )
 }

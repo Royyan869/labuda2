@@ -208,11 +208,18 @@ export interface WhitelistAuditRow {
   created_at: string
 }
 
+/**
+ * Keyset-paginated whitelist audit response.
+ *
+ * The log is an append-only immutable compliance trail ordered by
+ * (created_at DESC, id DESC). It exposes an opaque continuation token and
+ * `has_more` — deliberately no total and no page number.
+ */
 export interface WhitelistAuditResponse {
   audit_log: WhitelistAuditRow[]
   limit: number
-  offset: number
-  count: number
+  has_more: boolean
+  next_cursor: string | null
 }
 
 export type WhitelistAuditAction = 'WHITELIST_INITIALIZED' | 'SELLER_ADDED' | 'SELLER_REMOVED'

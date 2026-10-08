@@ -31,7 +31,10 @@ export function useSupportTickets(params: SupportTicketsQueryParams = {}) {
   const [tickets, setTickets] = useState<SupportTicketListItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
+  const [page, setPage] = useState(params.page || 1)
+  const [pageSize] = useState(params.page_size || 50)
   const [total, setTotal] = useState(0)
+  const [totalPages, setTotalPages] = useState(0)
 
   const queryParams = useMemo(
     () => ({
@@ -41,6 +44,8 @@ export function useSupportTickets(params: SupportTicketsQueryParams = {}) {
       is_unassigned: params.is_unassigned,
       date_from: params.date_from,
       date_to: params.date_to,
+      page,
+      page_size: pageSize,
     }),
     [
       params.status,
@@ -49,6 +54,8 @@ export function useSupportTickets(params: SupportTicketsQueryParams = {}) {
       params.is_unassigned,
       params.date_from,
       params.date_to,
+      page,
+      pageSize,
     ]
   )
 
@@ -58,7 +65,8 @@ export function useSupportTickets(params: SupportTicketsQueryParams = {}) {
     try {
       const response = await listSupportTickets(queryParams)
       setTickets(response.tickets || [])
-      setTotal(response.tickets?.length || 0)
+      setTotal(response.total)
+      setTotalPages(response.totalPages)
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Failed to fetch support tickets'))
     } finally {
@@ -82,7 +90,11 @@ export function useSupportTickets(params: SupportTicketsQueryParams = {}) {
     tickets,
     loading,
     error,
+    page,
+    setPage,
+    pageSize,
     total,
+    totalPages,
     refetch: fetchTickets,
   }
 }

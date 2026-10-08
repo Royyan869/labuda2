@@ -260,6 +260,38 @@ func (r *ShippingQuoteRepositoryImpl) GetByID(
 	return quote, nil
 }
 
+// GetByIDs retrieves shipping quotes by ID in ONE batch query, keyed by quote
+// id. Missing ids are absent from the result.
+func (r *ShippingQuoteRepositoryImpl) GetByIDs(
+	ctx context.Context,
+	tx db.Tx,
+	ids []uuid.UUID,
+) (map[uuid.UUID]*entity.ShippingQuote, error) {
+	out := make(map[uuid.UUID]*entity.ShippingQuote, len(ids))
+	if len(ids) == 0 {
+		return out, nil
+	}
+	rows, err := tx.Query(ctx, shippingQuoteSelectColumns+`
+		FROM shipping_quotes
+		WHERE id = ANY($1)
+	`, ids)
+	if err != nil {
+		return nil, fmt.Errorf("get shipping quotes by ids failed: %w", err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		quote, scanErr := scanShippingQuote(rows)
+		if scanErr != nil {
+			return nil, fmt.Errorf("scan shipping quote in batch: %w", scanErr)
+		}
+		out[quote.ID] = quote
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate shipping quotes batch: %w", err)
+	}
+	return out, nil
+}
+
 // GetByIDForUpdate retrieves a shipping quote by ID with FOR UPDATE lock.
 func (r *ShippingQuoteRepositoryImpl) GetByIDForUpdate(
 	ctx context.Context,

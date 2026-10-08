@@ -33,6 +33,12 @@ class CheckoutRequest extends Equatable {
   /// Order creation will fail without a valid pricing token
   final String pricingToken;
 
+  /// PAYMENT METHOD: the canonical method the buyer selected BEFORE order
+  /// creation (from GET /payments/pre-order-methods). The backend computes the
+  /// buyer fee from this method and binds the final amount onto the order, so
+  /// the pre-order total the buyer saw cannot silently change.
+  final String paymentMethodCode;
+
   /// AUCTION ID: Optional auction context for auction checkout (winning bid or buy now)
   final String? auctionId;
 
@@ -57,6 +63,7 @@ class CheckoutRequest extends Equatable {
     this.notes,
     required this.addressId,
     required this.pricingToken,
+    required this.paymentMethodCode,
     this.auctionId,
     this.negotiationId,
     this.shippingQuoteId,
@@ -77,6 +84,7 @@ class CheckoutRequest extends Equatable {
     notes,
     addressId,
     pricingToken,
+    paymentMethodCode,
     auctionId,
     negotiationId,
     shippingQuoteId,

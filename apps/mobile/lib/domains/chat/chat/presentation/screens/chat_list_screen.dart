@@ -5,7 +5,6 @@ import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/chat/chat/presentation/providers/chat_state.dart';
 import 'package:labuda/domains/chat/chat/domain/entities/chat_entities.dart';
 import 'package:labuda/domains/chat/chat/presentation/providers/chat_providers.dart';
-import 'package:labuda/domains/chat/chat/presentation/utils/chat_identity_display.dart';
 import 'package:labuda/domains/chat/chat/presentation/widgets/chat_card.dart';
 import 'package:labuda/shared/shared.dart';
 
@@ -32,14 +31,16 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
     });
   }
 
-  Future<void> _loadChats() async {
+  Future<void> _loadChats({bool isRefresh = false}) async {
     try {
       final userId = ref.read(currentUserIdProvider);
       if (userId.isEmpty) {
         // User ID not available yet - will retry when auth state changes
         return;
       }
-      await ref.read(chatListProvider.notifier).loadChats(userId);
+      await ref
+          .read(chatListProvider.notifier)
+          .loadChats(userId, isRefresh: isRefresh);
     } catch (e) {
       // Error will be reflected in state through the notifier
       // State handles the error and shows error UI
@@ -91,16 +92,18 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8, vertical: AppMetrics.p4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppMetrics.p8,
+                  vertical: AppMetrics.p4,
+                ),
                 decoration: BoxDecoration(
                   color: Theme.of(context).colorScheme.error,
                   borderRadius: BorderRadius.circular(AppShape.r12),
                 ),
                 child: Text(
                   totalUnread > 99 ? '99+' : totalUnread.toString(),
-                  style: TextStyle(
+                  style: context.typeRoles.labelMicro.copyWith(
                     color: Theme.of(context).colorScheme.onPrimary,
-                    fontSize: AppType.s12,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -126,16 +129,16 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
                       child: TextField(
                         controller: _searchController,
                         autofocus: true,
-                        decoration: const InputDecoration(
+                        decoration: AppTheme.searchDecoration(
+                          Theme.of(context).colorScheme,
                           hintText: 'Search chats...',
-                          border: InputBorder.none,
                         ),
                         onChanged: _onSearchChanged,
                       ),
                     ),
                     if (_searchQuery.isNotEmpty)
                       IconButton(
-                        icon: const Icon(Icons.close),
+                        icon: const Icon(Icons.close, semanticLabel: 'Tutup'),
                         onPressed: () {
                           _searchController.clear();
                           _onSearchChanged('');
@@ -149,38 +152,48 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
   }
 
   Widget _buildBody(ChatListState state) {
-    if (state.isLoading && state.chats.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    if (state.error != null && state.chats.isEmpty) {
-      return _buildErrorView(state.error!);
+    // LOADING FOUNDATION (owner-locked):
+    // - No chats yet → first-load states only: loading, PageErrorState, or
+    //   EmptyState.
+    // - Chats present → they stay visible during refresh; update progress and
+    //   refresh failure render inline, never as full-page loading/error.
+    if (state.chats.isEmpty) {
+      if (state.isLoading || state.isRefreshing) {
+        return const Center(child: LoadingIndicator());
+      }
+      if (state.error != null) {
+        return _buildErrorView();
+      }
+      return _buildEmptyView(true);
     }
 
     final filteredChats = _filterChats(state.chats);
 
     if (filteredChats.isEmpty) {
-      return _buildEmptyView(state.chats.isEmpty);
+      return _buildEmptyView(false);
     }
 
     return RefreshIndicator(
-      onRefresh: () async {
-        try {
-          final userId = ref.read(currentUserIdProvider);
-          if (userId.isEmpty) {
-            throw Exception('User ID tidak tersedia');
-          }
-          await ref.read(chatListProvider.notifier).loadChats(userId);
-        } catch (e) {
-          // RefreshIndicator will handle the error by showing the error state
-          // Re-throw to let RefreshIndicator show the failure
-          rethrow;
-        }
-      },
+      onRefresh: () => _refreshChats(),
       child: ListView.builder(
-        itemCount: filteredChats.length,
+        itemCount:
+            filteredChats.length +
+            (state.isRefreshing || state.refreshError != null ? 1 : 0),
         itemBuilder: (context, index) {
-          final chat = filteredChats[index];
+          if (index == 0 &&
+              (state.isRefreshing || state.refreshError != null)) {
+            return Column(
+              children: [
+                if (state.isRefreshing)
+                  const LinearProgressIndicator(minHeight: 2),
+                if (state.refreshError != null) _buildRefreshErrorBanner(),
+              ],
+            );
+          }
+          final offset = (state.isRefreshing || state.refreshError != null)
+              ? 1
+              : 0;
+          final chat = filteredChats[index - offset];
           return ChatCard(
             chat: chat,
             onTap: () => _openChatDetail(chat),
@@ -191,112 +204,109 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
     );
   }
 
-  Widget _buildErrorView(String error) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.error_outline,
-            size: AppIconSize.display,
-            color: Theme.of(context).colorScheme.error,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Failed to load chats',
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            error,
-            style: Theme.of(context).textTheme.bodyMedium,
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 16),
-          ElevatedButton(onPressed: _loadChats, child: const Text('Retry')),
-        ],
+  Future<void> _refreshChats() async {
+    try {
+      final userId = ref.read(currentUserIdProvider);
+      if (userId.isEmpty) {
+        throw Exception('User ID tidak tersedia');
+      }
+      await ref
+          .read(chatListProvider.notifier)
+          .loadChats(userId, isRefresh: true);
+    } catch (e) {
+      // RefreshIndicator will handle the error by showing the error state
+      // Re-throw to let RefreshIndicator show the failure
+      rethrow;
+    }
+  }
+
+  /// Minimum bounded refresh-failure indication: persistent inline banner
+  /// with safe localized copy ([pageErrorMessage]) and a retry action.
+  /// Not a new foundation — composition of canonical tokens for this screen.
+  Widget _buildRefreshErrorBanner() {
+    final scheme = Theme.of(context).colorScheme;
+    final l10n = context.l10n;
+    return Semantics(
+      container: true,
+      liveRegion: true,
+      child: Container(
+        width: double.infinity,
+        margin: const EdgeInsets.fromLTRB(
+          AppMetrics.p16,
+          AppMetrics.p12,
+          AppMetrics.p16,
+          AppMetrics.p4,
+        ),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppMetrics.p12,
+          vertical: AppMetrics.p8,
+        ),
+        decoration: BoxDecoration(
+          color: scheme.errorContainer,
+          borderRadius: BorderRadius.circular(AppShape.r12),
+          border: Border.all(color: scheme.error),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.refresh_outlined,
+              size: AppIconSize.action,
+              color: scheme.onErrorContainer,
+            ),
+            const SizedBox(width: AppMetrics.p8),
+            Expanded(
+              child: Text(
+                l10n.pageErrorMessage,
+                style: context.typeRoles.bodyDense.copyWith(
+                  color: scheme.onErrorContainer,
+                ),
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                ref.read(chatListProvider.notifier).clearRefreshError();
+                _loadChats(isRefresh: true);
+              },
+              child: Text(l10n.retryAction),
+            ),
+          ],
+        ),
       ),
     );
   }
 
+  /// CANONICAL page-level load error (PageErrorState). The raw chat
+  /// state.error never reaches the screen — safe localized copy only.
+  Widget _buildErrorView() {
+    return PageErrorState(onRetry: _loadChats);
+  }
+
   Widget _buildEmptyView(bool hasNoChats) {
+    final l10n = context.l10n;
 
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p48),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Icon with background
-            Container(
-              padding: const EdgeInsets.all(AppMetrics.p16),
-              decoration: BoxDecoration(
-                color: Theme.of(
-                  context,
-                ).colorScheme.onSurfaceVariant.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                hasNoChats ? Icons.message_outlined : Icons.search_off,
-                size: AppIconSize.display,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 24),
+    // First-use empty: this account has no chat yet → ONE primary action
+    // (start one). The FAB stays the persistent screen-level affordance.
+    if (hasNoChats) {
+      return EmptyState(
+        icon: Icons.message_outlined,
+        title: l10n.emptyChatsTitle,
+        subtitle: l10n.emptyChatsMessage,
+        actionLabel: l10n.startChatAction,
+        onAction: () => _showNewChatDialog(context),
+      );
+    }
 
-            // Title
-            Text(
-              hasNoChats ? 'Belum Ada Pesan' : 'Tidak Ada Chat Ditemukan',
-              style: TextStyle(
-                fontSize: AppType.s20,
-                fontWeight: FontWeight.w600,
-                color: Theme.of(context).colorScheme.onSurface,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 12),
-
-            // Subtitle with clearer guidance
-            Text(
-              hasNoChats
-                  ? 'Hubungi penjual untuk menanyakan produk'
-                  : 'Coba kata kunci pencarian lain',
-              style: TextStyle(
-                fontSize: AppType.s14,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-              textAlign: TextAlign.center,
-            ),
-
-            // Action button for empty chats
-            if (hasNoChats) ...[
-              const SizedBox(height: 32),
-              SizedBox(
-                width: AppContentSize.actionWidth,
-                child: FilledButton.icon(
-                  icon: const Icon(Icons.chat_outlined, size: AppIconSize.action),
-                  label: const Text('Mulai Chat'),
-                  onPressed: () => _showNewChatDialog(context),
-                  style: FilledButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: AppMetrics.p16,
-                      horizontal: AppMetrics.p24,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'atau jelajahi marketplace untuk menemukan penjual',
-                style: TextStyle(
-                  fontSize: AppType.s12,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
+    // Search empty: chats exist, the active query matched none → reset the
+    // query instead of pretending the inbox is empty.
+    return EmptyState(
+      icon: Icons.search_off,
+      title: l10n.emptyChatSearchTitle,
+      subtitle: l10n.emptySearchMessage,
+      actionLabel: l10n.resetFilterAction,
+      onAction: () {
+        _searchController.clear();
+        _onSearchChanged('');
+      },
     );
   }
 
@@ -318,7 +328,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
     if (!isEmailVerified) {
       AppSnackBar.showWarning(
         context,
-        'Please verify your email to start new conversations.',
+        'Verifikasi email Anda untuk memulai percakapan baru.',
       );
       return;
     }
@@ -328,32 +338,20 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
   }
 
   void _showChatOptions(Chat chat) {
-    showModalBottomSheet(
+    AppBottomSheetActions.showActions<void>(
       context: context,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.delete_outline),
-              title: const Text('Delete chat'),
-              onTap: () {
-                Navigator.pop(context);
-                _handleDeleteChat(chat);
-              },
-            ),
-            if (!chat.isSupportChat)
-              ListTile(
-                leading: const Icon(Icons.block),
-                title: const Text('Block user'),
-                onTap: () {
-                  Navigator.pop(context);
-                  _handleBlockUser(chat);
-                },
-              ),
-          ],
+      actions: [
+        BottomSheetAction<void>(
+          title: 'Delete chat',
+          icon: Icons.delete_outline,
+          style: BottomSheetActionStyle.destructive,
+          onPressed: () {
+            // Dismiss the action sheet, then run the destructive confirmation.
+            Navigator.of(context).pop();
+            _handleDeleteChat(chat);
+          },
         ),
-      ),
+      ],
     );
   }
 
@@ -375,79 +373,28 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
   }
 
   Future<void> _handleDeleteChat(Chat chat) async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await AppDialog.confirm(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete chat?'),
-        content: const Text(
+      title: 'Delete chat?',
+      message:
           'This will delete the chat for you. The other person will still be able to see it.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
+      confirmLabel: 'Delete',
+      cancelLabel: 'Cancel',
+      intent: AppDialogIntent.destructive,
     );
 
-    if (confirmed == true) {
-      try {
-        ref.read(chatListProvider.notifier).removeChat(chat.id);
-        if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('Chat dihapus')));
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Gagal menghapus chat. Silakan coba lagi.'),
-            ),
-          );
-        }
-      }
-    }
-  }
+    if (!confirmed) return;
 
-  Future<void> _handleBlockUser(Chat chat) async {
-    final blockedUserHandle = formatChatHandle(
-      chat.getOtherParticipantName(ref.read(currentUserIdProvider)),
-    );
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Block user?'),
-        content: Text('Are you sure you want to block $blockedUserHandle?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(
-              foregroundColor: Theme.of(context).colorScheme.error,
-            ),
-            child: const Text('Block'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true) {
-      // Block user feature requires backend API implementation
-      // Currently shows info message until backend is ready
+    try {
+      ref.read(chatListProvider.notifier).removeChat(chat.id);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Block user feature is not available yet'),
-          ),
+        AppSnackBar.showSuccess(context, 'Chat dihapus');
+      }
+    } catch (e) {
+      if (mounted) {
+        AppSnackBar.showError(
+          context,
+          'Gagal menghapus chat. Silakan coba lagi.',
         );
       }
     }

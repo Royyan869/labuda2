@@ -1,9 +1,11 @@
 import { useState } from 'react'
-import { ChevronLeft, ChevronRight, MailWarning, RefreshCw } from 'lucide-react'
+import { MailWarning, RefreshCw } from 'lucide-react'
+import { AdminLoadingState, AdminErrorState, AdminEmptyState, AdminPagination, PageHeader } from '@/components/common'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/Table'
+import { Select } from '@/components/ui/Select'
 import { useFailedDeliveries } from '@/hooks/useFailedDeliveries'
 import { formatDate } from '@/lib/utils'
 
@@ -28,35 +30,21 @@ export function FailedDeliveriesPage() {
     setPage(1)
   }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
-          <p className="mt-4 text-muted-foreground">Loading failed deliveries...</p>
-        </div>
-      </div>
-    )
+  // One description for every render state, so the header never changes copy
+  // depending on whether the request succeeded.
+  const description = total > 0
+    ? `Notification delivery failures (${total} total)`
+    : 'Notification delivery failures'
+
+  if (loading && deliveries.length === 0) {
+    return <AdminLoadingState />
   }
 
   if (error) {
     return (
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Failed Deliveries</h1>
-          <p className="text-muted-foreground mt-1">Notification delivery failures</p>
-        </div>
-        <Card>
-          <CardContent className="p-6">
-            <div className="text-center text-destructive">
-              <p>Error loading failed deliveries: {error.message}</p>
-              <Button variant="secondary" onClick={refetch} className="mt-4 gap-2">
-                <RefreshCw className="h-4 w-4" />
-                Retry
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <PageHeader title="Failed Deliveries" description={description} />
+        <AdminErrorState title="Failed to load failed deliveries" message={error.message} onRetry={refetch} />
       </div>
     )
   }
@@ -64,36 +52,32 @@ export function FailedDeliveriesPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Failed Deliveries</h1>
-          <p className="text-muted-foreground mt-1">Notification delivery failures ({total} total)</p>
-        </div>
-        <Button variant="secondary" onClick={refetch} className="gap-2">
-          <RefreshCw className="h-4 w-4" />
-          Refresh
-        </Button>
-      </div>
+      <PageHeader
+        title="Failed Deliveries"
+        description={description}
+        actions={
+          <Button variant="secondary" onClick={refetch} className="gap-2">
+            <RefreshCw className="h-4 w-4" />
+            Refresh
+          </Button>
+        }
+      />
 
       {/* Time filter */}
       <Card>
         <CardContent className="pt-6">
           <div className="flex items-center gap-4">
-            <label htmlFor="since-filter" className="text-sm font-medium text-foreground">
-              Since:
-            </label>
-            <select
-              id="since-filter"
+            <Select
+              label="Since:"
               value={sinceHours}
               onChange={(e) => handleSinceChange(Number(e.target.value))}
-              className="px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             >
               <option value={1}>Last 1 hour</option>
               <option value={6}>Last 6 hours</option>
               <option value={24}>Last 24 hours</option>
               <option value={72}>Last 3 days</option>
               <option value={168}>Last 7 days</option>
-            </select>
+            </Select>
           </div>
         </CardContent>
       </Card>
@@ -105,13 +89,12 @@ export function FailedDeliveriesPage() {
         </CardHeader>
         <CardContent>
           {deliveries.length === 0 ? (
-            <div className="text-center py-12">
-              <MailWarning className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-foreground mb-2">No Failed Deliveries</h3>
-              <p className="text-muted-foreground">
-                No notification delivery failures in the selected time range.
-              </p>
-            </div>
+            <AdminEmptyState
+              icon={MailWarning}
+              title="No Failed Deliveries"
+              description="No notification delivery failures in the selected time range."
+              filtered
+            />
           ) : (
             <div className="border border-border rounded-lg overflow-hidden">
               <Table>
@@ -139,13 +122,13 @@ export function FailedDeliveriesPage() {
                       <TableCell>
                         <Badge variant="error">{d.status}</Badge>
                       </TableCell>
-                      <TableCell className="max-w-[300px] truncate text-sm text-foreground">
+                      <TableCell className="max-w-[300px] truncate type-body">
                         {d.reason || '-'}
                       </TableCell>
                       <TableCell className="font-mono text-sm">
                         {d.notification_id.slice(0, 8)}...
                       </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
+                      <TableCell className="type-secondary">
                         {formatDate(d.created_at)}
                       </TableCell>
                     </TableRow>
@@ -159,29 +142,12 @@ export function FailedDeliveriesPage() {
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-4">
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => setPage(p => p - 1)}
-            disabled={page <= 1}
-          >
-            <ChevronLeft className="h-4 w-4 mr-1" />
-            Previous
-          </Button>
-          <span className="text-sm text-muted-foreground font-medium">
-            Page {page} of {totalPages}
-          </span>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => setPage(p => p + 1)}
-            disabled={page >= totalPages}
-          >
-            Next
-            <ChevronRight className="h-4 w-4 ml-1" />
-          </Button>
-        </div>
+        <AdminPagination
+          page={page}
+          totalPages={totalPages}
+          onPageChange={setPage}
+          disabled={loading}
+        />
       )}
     </div>
   )

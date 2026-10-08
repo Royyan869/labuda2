@@ -18,7 +18,7 @@ import (
 // This is a write-only service for setting shipping options on products.
 type ProductShippingService struct {
 	productRepo         ForSaleRepository
-	shippingSetupRepo  shippingRepo.ShippingSetupRepository
+	shippingSetupRepo   shippingRepo.ShippingSetupRepository
 	productShippingRepo shippingRepo.ProductShippingSetupRepository
 	orderRepo           orderRepo.OrderRepository
 }
@@ -37,7 +37,7 @@ func NewProductShippingService(
 ) *ProductShippingService {
 	return &ProductShippingService{
 		productRepo:         productRepo,
-		shippingSetupRepo:  shippingSetupRepo,
+		shippingSetupRepo:   shippingSetupRepo,
 		productShippingRepo: productShippingRepo,
 		orderRepo:           orderRepo,
 	}
@@ -82,7 +82,7 @@ func (s *ProductShippingService) SetProductShippingSetups(
 
 	// Step 2b: Canonical lifecycle guard — shipping is part of seller-controlled
 	// product definition. Acquire row lock on owning selling surface and enforce
-	// draft-only mutability. This prevents TOCTOU where status is checked without lock.
+	// live immutability. This prevents TOCTOU where status is checked without lock.
 	if err := s.checkShippingMutable(ctx, tx, input.ProductID); err != nil {
 		return err
 	}
@@ -130,8 +130,10 @@ func (s *ProductShippingService) SetProductShippingSetups(
 // It runs inside the same transaction as the subsequent DELETE/CREATE.
 //
 // Policy:
-//   ForSale: draft → allowed, active/sold/withdrawn → immutable
-//   Auction: draft → allowed, scheduled/active/waiting_settlement/ended/cancelled → immutable
+//   There is no draft state in either lifecycle (create = publish), so a
+//   product that owns a selling surface is always live: shipping is immutable.
+//   Only a product with no surface yet (not created through a selling surface)
+//   may be mutated here.
 //
 // It acquires FOR UPDATE on the owning surface row (for_sales or auctions) so the
 // lifecycle decision and the shipping mutation are atomic (no TOCTOU).
@@ -140,10 +142,8 @@ func (s *ProductShippingService) checkShippingMutable(ctx context.Context, tx db
 	var fsStatus string
 	err := tx.QueryRow(ctx, `SELECT status FROM for_sales WHERE product_id = $1 FOR UPDATE`, productID).Scan(&fsStatus)
 	if err == nil {
-		if forsaleEntity.ForSaleStatus(fsStatus) != forsaleEntity.ForSaleStatusDraft {
-			return fmt.Errorf("%w: for_sale status=%s is immutable", ErrShippingLiveImmutable, fsStatus)
-		}
-		return nil
+		// Every for_sale is born published: an owning surface means LIVE.
+		return fmt.Errorf("%w: for_sale status=%s is immutable", ErrShippingLiveImmutable, fsStatus)
 	}
 	if !errors.Is(err, pgx.ErrNoRows) {
 		return fmt.Errorf("failed to check for_sale shipping mutability: %w", err)
@@ -152,11 +152,8 @@ func (s *ProductShippingService) checkShippingMutable(ctx context.Context, tx db
 	var aucStatus string
 	err = tx.QueryRow(ctx, `SELECT status FROM auctions WHERE product_id = $1 FOR UPDATE`, productID).Scan(&aucStatus)
 	if err == nil {
-		// Auction: only draft is mutable; scheduled and beyond are immutable per locked design
-		if aucStatus != "draft" {
-			return fmt.Errorf("%w: auction status=%s is immutable", ErrShippingLiveImmutable, aucStatus)
-		}
-		return nil
+		// Every auction is born scheduled/active: an owning surface means LIVE.
+		return fmt.Errorf("%w: auction status=%s is immutable", ErrShippingLiveImmutable, aucStatus)
 	}
 	if !errors.Is(err, pgx.ErrNoRows) {
 		return fmt.Errorf("failed to check auction shipping mutability: %w", err)

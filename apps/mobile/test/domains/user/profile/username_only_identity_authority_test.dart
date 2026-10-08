@@ -218,6 +218,11 @@ class _RecordingAuthApiDatasource extends AuthApiDatasource {
     String? photoUrl,
     String? phoneNumber,
     String? location,
+    String? coverPhotoUrl,
+    String? instagramHandle,
+    String? facebookHandle,
+    String? tiktokHandle,
+    String? twitterHandle,
     DateTime? phoneVerifiedAt,
     DateTime? dateOfBirth,
   }) async {

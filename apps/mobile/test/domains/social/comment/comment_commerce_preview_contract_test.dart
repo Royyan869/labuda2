@@ -10,8 +10,8 @@ import 'package:labuda/shared/object/presentation/widgets/object_preview_card.da
 
 /// Canonical fixtures — the wire shapes the backend projection authority emits
 /// for a commerce-reference comment (see CommentResponse.resource_projection).
-/// Capabilities live on the envelope; a TOMBSTONE carries none of the live
-/// halves (canonical_url, commerce_actions, payload) but always keeps the id.
+/// Product attributes live on the payload; a TOMBSTONE carries none of the
+/// live halves (canonical_url, payload) but always keeps the id.
 Map<String, dynamic> _liveEnvelope(String resourceType, String id) => {
   'state': 'LIVE',
   'resource_type': resourceType,
@@ -38,26 +38,20 @@ Map<String, dynamic> _tombstoneEnvelope(String resourceType, String id) => {
 ResourceProjection _forSaleProjection({
   String id = 'sale-1',
   String state = 'LIVE',
+  bool negotiationEnabled = true,
 }) {
   if (state == 'TOMBSTONE') {
     return ResourceProjection.fromJson(_tombstoneEnvelope('for_sale', id));
   }
   return ResourceProjection.fromJson({
     ..._liveEnvelope('for_sale', id),
-    'commerce_actions': const {
-      'role': 'buyer',
-      'can_chat': true,
-      'can_negotiate': true,
-      'can_buy': true,
-      'can_bid': false,
-      'can_manage': false,
-    },
-    'for_sale': const {
+    'for_sale': {
       'title': 'Kohaku 50cm',
       'media': <Map<String, dynamic>>[],
       'price': {'amount': 500000, 'currency': 'IDR'},
       'status': 'active',
       'quantity_available': 3,
+      'negotiation_enabled': negotiationEnabled,
       'seller': {
         'user': {'id': 'seller-1', 'username': 'seller'},
       },
@@ -68,14 +62,6 @@ ResourceProjection _forSaleProjection({
 ResourceProjection _auctionProjection({String id = 'auction-1'}) {
   return ResourceProjection.fromJson({
     ..._liveEnvelope('auction', id),
-    'commerce_actions': const {
-      'role': 'buyer',
-      'can_chat': true,
-      'can_negotiate': false,
-      'can_buy': false,
-      'can_bid': true,
-      'can_manage': false,
-    },
     'auction': const {
       'title': 'Lelang Kohaku',
       'media': <Map<String, dynamic>>[],
@@ -213,6 +199,37 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(tapped, 'auction-1');
+      },
+    );
+
+    testWidgets(
+      'the generic product reference renders the Nego product attribute',
+      (tester) async {
+        await tester.pumpWidget(
+          _wrap(
+            CommentCard(
+              comment: _commerceComment(
+                _forSaleProjection(negotiationEnabled: true),
+              ),
+              userName: '@seller',
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(find.text('Nego'), findsOneWidget);
+
+        await tester.pumpWidget(
+          _wrap(
+            CommentCard(
+              comment: _commerceComment(
+                _forSaleProjection(negotiationEnabled: false),
+              ),
+              userName: '@seller',
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(find.text('Nego'), findsNothing);
       },
     );
 

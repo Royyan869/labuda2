@@ -1,83 +1,11 @@
 /// Seller API Models
 ///
-/// RECOVERY STEP 2E - Stub models for compiler compatibility
-/// These are placeholder models to satisfy type checking during refactoring.
-/// TODO: Migrate from old implementation or implement proper API models
-library;
-
-/// Seller Analytics API Model
+/// Canonical API models for the seller domain.
 ///
-/// Stub model for seller analytics data from API
-class SellerAnalyticsApiModel {
-  final double totalSales;
-  final int totalOrders;
-  final double averageOrderValue;
-  final List<SalesDataPointApiModel> salesData;
-  final DateTime calculatedAt;
-
-  const SellerAnalyticsApiModel({
-    required this.totalSales,
-    required this.totalOrders,
-    required this.averageOrderValue,
-    required this.salesData,
-    required this.calculatedAt,
-  });
-
-  factory SellerAnalyticsApiModel.fromJson(Map<String, dynamic> json) {
-    return SellerAnalyticsApiModel(
-      totalSales: (json['total_sales'] as num?)?.toDouble() ?? 0.0,
-      totalOrders: json['total_orders'] as int? ?? 0,
-      averageOrderValue:
-          (json['average_order_value'] as num?)?.toDouble() ?? 0.0,
-      salesData:
-          (json['sales_data'] as List?)
-              ?.map(
-                (e) =>
-                    SalesDataPointApiModel.fromJson(e as Map<String, dynamic>),
-              )
-              .toList() ??
-          [],
-      calculatedAt: json['calculated_at'] != null
-          ? DateTime.parse(json['calculated_at'] as String)
-          : DateTime.now(),
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'total_sales': totalSales,
-      'total_orders': totalOrders,
-      'average_order_value': averageOrderValue,
-      'sales_data': salesData.map((e) => e.toJson()).toList(),
-      'calculated_at': calculatedAt.toIso8601String(),
-    };
-  }
-}
-
-/// Sales Data Point API Model
-class SalesDataPointApiModel {
-  final String date;
-  final double sales;
-  final int orders;
-
-  const SalesDataPointApiModel({
-    required this.date,
-    required this.sales,
-    required this.orders,
-  });
-
-  factory SalesDataPointApiModel.fromJson(Map<String, dynamic> json) {
-    return SalesDataPointApiModel(
-      date: json['date'] as String,
-      sales: (json['sales'] as num?)?.toDouble() ?? 0.0,
-      orders: json['orders'] as int? ?? 0,
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {'date': date, 'sales': sales, 'orders': orders};
-  }
-}
+/// Seller analytics models were PURGED: there is no seller-analytics endpoint,
+/// and Product View is owned by the canonical `product_view_events` authority,
+/// not by this domain.
+library;
 
 /// Seller Earnings API Model
 ///
@@ -130,45 +58,6 @@ class SellerEarningsApiModel {
       if (grossPayable != null) 'gross_payable': grossPayable,
       if (withdrawableBalance != null)
         'withdrawable_balance': withdrawableBalance,
-    };
-  }
-}
-
-/// Top Product Item API Model
-///
-/// Stub model for top product data from API
-class TopProductItemApiModel {
-  final String productId;
-  final String productName;
-  final String? imageUrl;
-  final int totalSold;
-  final double totalRevenue;
-
-  const TopProductItemApiModel({
-    required this.productId,
-    required this.productName,
-    this.imageUrl,
-    required this.totalSold,
-    required this.totalRevenue,
-  });
-
-  factory TopProductItemApiModel.fromJson(Map<String, dynamic> json) {
-    return TopProductItemApiModel(
-      productId: json['product_id'] as String,
-      productName: json['product_name'] as String,
-      imageUrl: json['image_url'] as String?,
-      totalSold: json['total_sold'] as int? ?? 0,
-      totalRevenue: (json['total_revenue'] as num?)?.toDouble() ?? 0.0,
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'product_id': productId,
-      'product_name': productName,
-      if (imageUrl != null) 'image_url': imageUrl,
-      'total_sold': totalSold,
-      'total_revenue': totalRevenue,
     };
   }
 }

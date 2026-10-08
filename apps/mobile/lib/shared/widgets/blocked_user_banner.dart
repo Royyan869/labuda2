@@ -22,7 +22,10 @@ class BlockedUserBanner extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p12),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppMetrics.p16,
+        vertical: AppMetrics.p12,
+      ),
       decoration: BoxDecoration(
         color: context.statusColors.warning.withValues(alpha: 0.12),
         border: Border(
@@ -33,14 +36,20 @@ class BlockedUserBanner extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(Icons.block, size: AppIconSize.action, color: context.statusColors.warning),
+          Icon(
+            Icons.block,
+            size: AppIconSize.action,
+            color: context.statusColors.warning,
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               displayName != null
                   ? 'Kamu telah memblokir $displayName'
                   : 'Kamu telah memblokir user ini',
-              style: TextStyle(fontSize: AppType.s14, color: scheme.onSurface),
+              style: context.typeRoles.bodyDense.copyWith(
+                color: scheme.onSurface,
+              ),
             ),
           ),
           if (onUnblock != null) ...[
@@ -64,10 +73,9 @@ class BlockedUserBanner extends StatelessWidget {
                         color: scheme.primary,
                       ),
                     )
-                  : const Text(
+                  : Text(
                       'Unblock',
-                      style: TextStyle(
-                        fontSize: AppType.s14,
+                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
                         fontWeight: FontWeight.w600,
                       ),
                     ),

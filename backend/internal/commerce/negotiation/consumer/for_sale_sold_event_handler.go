@@ -134,6 +134,13 @@ func (h *ForSaleSoldEventHandler) HandleEvent(ctx context.Context, payload []byt
 			// The seller is the real actor the system speaks for in this
 			// buyer↔seller room (sender_id is NOT NULL + FK; uuid.Nil violates
 			// the constraint — see chat.SendSystemMessage root-cause note).
+			// INTENTIONALLY self-transacting: each "item sold" system message is
+			// a best-effort notification to one OTHER buyer. A failure here is
+			// logged and the loop continues, so one bad notification can never
+			// abort the authoritative bulk-cancel below or the notifications to
+			// the other buyers. This is why it does NOT use a tx-aware sender:
+			// per-message isolation is the required semantic, in contrast to the
+			// atomic quote+message persistence used for Shipping Quotes.
 			if err := h.chatService.SendSystemMessage(ctx, *neg.ChatRoomID, neg.SellerID, systemMessage); err != nil {
 				h.log.Error("failed to send system message",
 					zap.String("chat_room_id", neg.ChatRoomID.String()),

@@ -551,7 +551,7 @@ func TestChatResourceProjectionHTTPMatrix(t *testing.T) {
 		viewerID := fixture.seedUser(t, "active", nil, uniqueUsername("h10-viewer"), nil, nil, nil)
 		sellerID := fixture.seedActiveSeller(t, uniqueUsername("h10-seller"), "H10 Store")
 		saleID := fixture.seedSale(t, sellerID, "h10-sale")
-		fixture.setForSaleStatus(t, saleID, fpsEntity.ForSaleStatusDraft)
+		fixture.setForSaleStatus(t, saleID, fpsEntity.ForSaleStatusWithdrawn)
 		roomID := fixture.seedRoom(t, viewerID, sellerID)
 		messageID := fixture.seedMessageWithOccurrence(t, roomID, sellerID, strPtr("sale"), nil, time.Now().UTC(), chatEntity.ResourceOccurrenceOperationShareToChat, chatEntity.ResourceOccurrenceResourceTypeForSale, saleID)
 
@@ -596,7 +596,7 @@ func TestChatResourceProjectionHTTPMatrix(t *testing.T) {
 		viewerID := fixture.seedUser(t, "active", nil, uniqueUsername("h13-viewer"), nil, nil, nil)
 		sellerID := fixture.seedActiveSeller(t, uniqueUsername("h13-seller"), "H13 Store")
 		auctionID := fixture.seedAuction(t, sellerID, "h13-auction")
-		fixture.setAuctionStatus(t, auctionID, auctionEntity.StatusDraft)
+		fixture.setAuctionStatus(t, auctionID, auctionEntity.StatusLapsed)
 		roomID := fixture.seedRoom(t, viewerID, sellerID)
 		messageID := fixture.seedMessageWithOccurrence(t, roomID, sellerID, strPtr("auction"), nil, time.Now().UTC(), chatEntity.ResourceOccurrenceOperationShareToChat, chatEntity.ResourceOccurrenceResourceTypeAuction, auctionID)
 
@@ -877,7 +877,6 @@ func TestChatResourceProjectionHTTPQueryCounts(t *testing.T) {
 	qh1 := measure("QH1")
 	buildNormalMessages(1)
 	qh1 = measure("QH1")
-	fixture.appDB = fixture.appDB
 	qh2 := measure("QH2")
 	_ = qh1
 	_ = qh2

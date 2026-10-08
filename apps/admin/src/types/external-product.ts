@@ -61,6 +61,7 @@ export interface AdminExternalProduct {
 
 export interface AdminExternalProductListResponse {
   items: AdminExternalProduct[]
+  /** Truthful server-side total for the current filter (never the page length). */
   count: number
   page: number
   limit: number

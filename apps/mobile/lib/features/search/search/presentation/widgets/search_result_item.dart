@@ -141,7 +141,7 @@ class SearchResultItem extends ConsumerWidget {
       child: Icon(
         SearchResultTypeHelper.getIcon(result.type),
         color: scheme.onSurfaceVariant,
-        size: 24,
+        size: AppIconSize.header,
       ),
     );
   }
@@ -193,8 +193,7 @@ class SearchResultItem extends ConsumerWidget {
           const SizedBox(height: 2),
           Text(
             'Tidak tersedia',
-            style: TextStyle(
-              fontSize: AppType.s12,
+            style: context.typeRoles.labelMicro.copyWith(
               fontWeight: FontWeight.w600,
               color: scheme.onSurfaceVariant,
             ),
@@ -205,8 +204,7 @@ class SearchResultItem extends ConsumerWidget {
           const SizedBox(height: 2),
           Text(
             sellerRedactionSubtitle,
-            style: TextStyle(
-              fontSize: AppType.s14,
+            style: context.typeRoles.bodyDense.copyWith(
               fontStyle: FontStyle.italic,
               color: scheme.onSurfaceVariant,
             ),
@@ -217,8 +215,7 @@ class SearchResultItem extends ConsumerWidget {
           const SizedBox(height: 2),
           Text(
             contentAuthorRedactionSubtitle,
-            style: TextStyle(
-              fontSize: AppType.s14,
+            style: context.typeRoles.bodyDense.copyWith(
               fontStyle: FontStyle.italic,
               color: scheme.onSurfaceVariant,
             ),
@@ -229,8 +226,7 @@ class SearchResultItem extends ConsumerWidget {
           const SizedBox(height: 2),
           Text(
             result.subtitle!,
-            style: TextStyle(
-              fontSize: AppType.s14,
+            style: context.typeRoles.bodyDense.copyWith(
               color: scheme.onSurfaceVariant,
             ),
             maxLines: subtitleMaxLines,
@@ -258,8 +254,7 @@ class SearchResultItem extends ConsumerWidget {
       ),
       child: Text(
         label,
-        style: TextStyle(
-          fontSize: AppType.s12,
+        style: context.typeRoles.labelMicro.copyWith(
           fontWeight: FontWeight.w600,
           color: color,
         ),

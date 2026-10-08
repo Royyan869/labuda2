@@ -20,6 +20,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/core/core.dart';
+import 'package:labuda/domains/system/shared/domain/services/time_format_service.dart';
 import 'package:labuda/shared/shared.dart';
 import 'package:labuda/features/home/domain/domain.dart'; // R3.1: Import FeedItem from home domain
 import 'package:go_router/go_router.dart';
@@ -28,8 +29,7 @@ import 'package:labuda/shared/domain/entities/resource_projection.dart';
 import 'package:labuda/domains/social/content/presentation/widgets/content_resource_projection_card.dart';
 import 'package:labuda/features/home/presentation/widgets/feed_media_mosaic.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
-import 'package:labuda/domains/social/like/domain/entities/like.dart';
-import 'package:labuda/domains/social/like/presentation/providers/like_notifier.dart';
+import 'package:labuda/domains/social/content/presentation/widgets/content_engagement_actions.dart';
 import 'package:labuda/domains/social/share/share.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
@@ -92,6 +92,16 @@ class FeedCardFactory {
 ///
 /// Home Feed Card - Social-first, honest rendering
 ///
+/// DOMAIN-CANONICAL for the home feed (card-foundation decision): the feed
+/// row (author + text + media mosaic + projection + action footer) is a
+/// different semantic family from the commerce discovery grid, so it keeps
+/// its own frame and MUST NOT be forced onto
+/// `CommerceMarketplaceCardShell`. Nested InkWells (outer detail tap +
+/// inner author/like/comment/share taps) are the deliberate
+/// semantic-specific interaction: the inner gesture wins, the outer opens
+/// the detail.
+///
+
 /// SEMANTIC RULES:
 /// - Home feed shows ONLY universal social content and reposts
 /// - Commerce objects (auction, collection) belong in Marketplace, NOT here
@@ -127,79 +137,88 @@ class FeedCard extends ConsumerWidget {
     }
     final isUnavailable = item.lifecycle.isUnavailable;
 
-    return Card(
-      margin: const EdgeInsets.symmetric(
-        horizontal: CommerceMarketplaceMetrics.gridEdgePadding,
-        vertical: CommerceMarketplaceMetrics.stackedCardMargin,
-      ),
-      elevation: AppElevation.none,
-      color: scheme.surface,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(
-          CommerceMarketplaceMetrics.cardRadius,
+    // Grouped for assistive tech; inner actions stay individually
+    // focusable. Unavailable cards expose no tap (InkWell already null).
+    return Semantics(
+      container: true,
+      label:
+          'Postingan oleh ${item.authorUsername != null ? '@${item.authorUsername}' : 'pengguna'}',
+      child: Card(
+        margin: const EdgeInsets.symmetric(
+          horizontal: CommerceMarketplaceMetrics.gridEdgePadding,
+          vertical: CommerceMarketplaceMetrics.stackedCardMargin,
         ),
-        side: BorderSide(color: scheme.outlineVariant),
-      ),
-      child: InkWell(
-        onTap: isUnavailable ? null : () => _navigateToDetail(context),
-        borderRadius: BorderRadius.circular(
-          CommerceMarketplaceMetrics.cardRadius,
+        elevation: AppElevation.none,
+        color: scheme.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(
+            CommerceMarketplaceMetrics.cardRadius,
+          ),
+          side: BorderSide(color: scheme.outlineVariant),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Governance unavailable banner sits above the content
-            // affordances so the user sees "tidak tersedia" first.
-            if (isUnavailable) _buildUnavailableBanner(context),
-            // SHARE CONTRACT V1: Canonical RepostAttributionBar
-            if (isRepost)
-              RepostAttributionBar(
-                originalAuthorId: originalAuthorId,
-                originalAuthorName: _getOriginalAuthorName(),
-                onTap: (!isUnavailable && resourceProjection != null)
-                    ? () => _navigateToResource(context, resourceProjection)
-                    : null,
-              ),
-            // AUTHOR + TEXT — canonical order: identity first, then content
-            Padding(
-              padding: const EdgeInsets.all(
-                CommerceMarketplaceMetrics.contentPadding,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildAuthorInfo(context),
-                  const SizedBox(height: CommerceMarketplaceMetrics.contentGap),
-                  _buildContentText(context),
-                ],
-              ),
-            ),
-            // MEDIA — mosaic of the full list below avatar/username + text.
-            // Single 4:5 contain, pairs, triples, 2x2+N — never cropped.
-            if (item.media.isNotEmpty) FeedMediaMosaic(media: item.media),
-            if (resourceProjection != null)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  CommerceMarketplaceMetrics.contentPadding,
-                  CommerceMarketplaceMetrics.contentPadding,
-                  CommerceMarketplaceMetrics.contentPadding,
-                  AppMetrics.p0,
-                ),
-                child: ContentResourceProjectionCard(
-                  resourceProjection: resourceProjection,
-                  onTap: !isUnavailable
+        child: InkWell(
+          onTap: isUnavailable ? null : () => _navigateToDetail(context),
+          borderRadius: BorderRadius.circular(
+            CommerceMarketplaceMetrics.cardRadius,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Governance unavailable banner sits above the content
+              // affordances so the user sees "tidak tersedia" first.
+              if (isUnavailable) _buildUnavailableBanner(context),
+              // SHARE CONTRACT V1: Canonical RepostAttributionBar
+              if (isRepost)
+                RepostAttributionBar(
+                  originalAuthorId: originalAuthorId,
+                  originalAuthorName: _getOriginalAuthorName(),
+                  onTap: (!isUnavailable && resourceProjection != null)
                       ? () => _navigateToResource(context, resourceProjection)
                       : null,
                 ),
+              // AUTHOR + TEXT — canonical order: identity first, then content
+              Padding(
+                padding: const EdgeInsets.all(
+                  CommerceMarketplaceMetrics.contentPadding,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildAuthorInfo(context),
+                    const SizedBox(
+                      height: CommerceMarketplaceMetrics.contentGap,
+                    ),
+                    _buildContentText(context),
+                  ],
+                ),
               ),
-            // Footer with Like, Comment, Share — canonical icon+count
-            Padding(
-              padding: const EdgeInsets.all(
-                CommerceMarketplaceMetrics.contentPadding,
+              // MEDIA — mosaic of the full list below avatar/username + text.
+              // Single 4:5 contain, pairs, triples, 2x2+N — never cropped.
+              if (item.media.isNotEmpty) FeedMediaMosaic(media: item.media),
+              if (resourceProjection != null)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    CommerceMarketplaceMetrics.contentPadding,
+                    CommerceMarketplaceMetrics.contentPadding,
+                    CommerceMarketplaceMetrics.contentPadding,
+                    AppMetrics.p0,
+                  ),
+                  child: ContentResourceProjectionCard(
+                    resourceProjection: resourceProjection,
+                    onTap: !isUnavailable
+                        ? () => _navigateToResource(context, resourceProjection)
+                        : null,
+                  ),
+                ),
+              // Footer with Like, Comment, Share — canonical icon+count
+              Padding(
+                padding: const EdgeInsets.all(
+                  CommerceMarketplaceMetrics.contentPadding,
+                ),
+                child: _buildHonestFooter(context),
               ),
-              child: _buildHonestFooter(context, ref),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -234,7 +253,10 @@ class FeedCard extends ConsumerWidget {
     final scheme = Theme.of(context).colorScheme;
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p8),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppMetrics.p12,
+        vertical: AppMetrics.p8,
+      ),
       decoration: BoxDecoration(
         color: scheme.surfaceContainerHigh,
         border: Border(bottom: BorderSide(color: scheme.outlineVariant)),
@@ -256,8 +278,7 @@ class FeedCard extends ConsumerWidget {
           const SizedBox(width: 8),
           Text(
             'Tidak tersedia',
-            style: TextStyle(
-              fontSize: AppType.s14,
+            style: context.typeRoles.bodyDense.copyWith(
               fontWeight: FontWeight.w600,
               color: scheme.onSurface,
             ),
@@ -310,9 +331,8 @@ class FeedCard extends ConsumerWidget {
                             : (item.authorUsername != null
                                   ? '@${item.authorUsername}'
                                   : ''),
-                        style: TextStyle(
+                        style: context.typeRoles.bodyDense.copyWith(
                           fontWeight: FontWeight.w600,
-                          fontSize: AppType.s14,
                           fontStyle: authorRedacted
                               ? FontStyle.italic
                               : FontStyle.normal,
@@ -335,9 +355,18 @@ class FeedCard extends ConsumerWidget {
                   ],
                 ),
               ),
-              Text(
-                _formatTime(item.createdAt),
-                style: TextStyle(fontSize: AppType.s12, color: scheme.onSurfaceVariant),
+              // Trailing timestamp is compact secondary metadata: flex-bounded
+              // so it can never push the author row out of bounds, with the
+              // same single-line ellipsis strategy as the username body.
+              Flexible(
+                child: Text(
+                  const TimeFormatService().formatTimeAgo(item.createdAt),
+                  style: context.typeRoles.labelMicro.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ],
           ),
@@ -379,190 +408,26 @@ class FeedCard extends ConsumerWidget {
       item.content,
       maxLines: 3,
       overflow: TextOverflow.ellipsis,
-      style: TextStyle(fontSize: AppType.s14, color: scheme.onSurface),
+      style: context.typeRoles.bodyDense.copyWith(color: scheme.onSurface),
     );
   }
 
   /// Footer with Like, Comment, and Share actions.
-  /// Like uses live stats from the canonical Like domain.
-  Widget _buildHonestFooter(BuildContext context, WidgetRef ref) {
-    final scheme = Theme.of(context).colorScheme;
-    // Watch like stats for this content (only if authenticated)
-    final authState = ref.watch(authControllerProvider);
-    final currentUserId = authState is AuthStateAuthenticated
-        ? authState.user.id
-        : null;
-    final currentUserName = authState is AuthStateAuthenticated
-        ? authState.user.username
-        : null;
-    final isAuthenticated = currentUserId != null && currentUserId.isNotEmpty;
-
-    final likeStatsAsync = isAuthenticated
-        ? ref.watch(
-            likeStatsProvider(
-              LikeStatsParams(
-                targetId: item.id,
-                targetType: LikeTargetType.content,
-                currentUserId: currentUserId,
-              ),
-            ),
-          )
-        : null;
-
-    final stats = likeStatsAsync?.maybeWhen(data: (s) => s, orElse: () => null);
-    final likeCount = stats?.totalLikes ?? 0;
-    final isLiked = stats?.isLikedByCurrentUser ?? false;
-
-    // Canonical: icon+count only, no text label, no Spacer overflow
-    return Row(
-      children: [
-        // Like — icon + count if >0
-        InkWell(
-          onTap: isAuthenticated
-              ? () => _handleLike(context, ref, currentUserId, currentUserName)
-              : null,
-          borderRadius: BorderRadius.circular(AppShape.r8),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p4, vertical: AppMetrics.p8),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  isLiked ? Icons.favorite : Icons.favorite_border,
-                  size: AppIconSize.inlineGlyph,
-                  color: isLiked
-                      ? scheme.primary
-                      : (isAuthenticated
-                            ? scheme.primary
-                            : scheme.onSurfaceVariant),
-                ),
-                if (likeCount > 0) ...[
-                  const SizedBox(width: 4),
-                  Text(
-                    '$likeCount',
-                    style: TextStyle(
-                      fontSize: AppType.s12,
-                      color: isLiked
-                          ? scheme.primary
-                          : (isAuthenticated
-                                ? scheme.primary
-                                : scheme.onSurfaceVariant),
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(width: 16),
-        // Comment — icon + count if available via additionalData, else icon only (no "Komentar" label)
-        InkWell(
-          onTap: () => _navigateToComments(context),
-          borderRadius: BorderRadius.circular(AppShape.r8),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p4, vertical: AppMetrics.p8),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.chat_bubble_outline,
-                  size: AppIconSize.inlineGlyph,
-                  color: scheme.primary,
-                ),
-                if ((item.additionalData['commentCount'] as int? ?? 0) > 0) ...[
-                  const SizedBox(width: 4),
-                  Text(
-                    '${item.additionalData['commentCount']}',
-                    style: TextStyle(
-                      fontSize: AppType.s12,
-                      color: scheme.primary,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(width: 16),
-        // Share — icon only (no label, no Spacer)
-        InkWell(
-          onTap: () => _handleShareContent(context),
-          borderRadius: BorderRadius.circular(AppShape.r8),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p4, vertical: AppMetrics.p8),
-            child: Icon(
-              Icons.share_outlined,
-              size: AppIconSize.inlineGlyph,
-              color: scheme.onSurfaceVariant,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  /// Handle like toggle for this content.
   ///
-  /// Industry optimistic UX: 0ms local update + server reconcile.
-  /// D2 HARD GATE (design scope v2): no client-side email-verification
-  /// preflight — every authenticated user is already verified.
-  void _handleLike(
-    BuildContext context,
-    WidgetRef ref,
-    String currentUserId,
-    String? currentUserName,
-  ) async {
-    final params = LikeStatsParams(
+  /// The row itself is produced by the canonical
+  /// [ContentEngagementActions]; the feed surface only binds the feed item's
+  /// identity, its server engagement fallbacks, and the two navigation
+  /// callbacks. The like behavior (optimistic + reconcile + rollback) is owned
+  /// there too — this file no longer re-implements it.
+  Widget _buildHonestFooter(BuildContext context) {
+    return ContentEngagementActions(
       targetId: item.id,
-      targetType: LikeTargetType.content,
-      currentUserId: currentUserId,
-    );
-    final repository = ref.read(likeRepositoryProvider);
-    final currentStats = ref.read(likeStatsProvider(params)).asData?.value;
-
-    // 0ms optimistic push
-    LikeStats? optimistic;
-    if (currentStats != null) {
-      optimistic = repository.optimisticToggled(currentStats);
-      repository.pushOptimisticLikeStats(optimistic);
-    }
-
-    final notifier = ref.read(likeNotifierProvider.notifier);
-    final result = await notifier.toggleLike(
-      targetId: item.id,
-      targetType: LikeTargetType.content,
-      userId: currentUserId,
-      likerName: currentUserName ?? '',
       targetOwnerId: item.authorId,
+      likeCount: (item.additionalData['likeCount'] as int?) ?? 0,
+      commentCount: (item.additionalData['commentCount'] as int?) ?? 0,
+      onComment: () => _navigateToComments(context),
+      onShare: () => _handleShareContent(context),
     );
-
-    if (result.isSuccess) {
-      // Reconcile with authoritative server count (fixes race with other users)
-      await repository.refreshLikeStats(
-        targetId: item.id,
-        targetType: LikeTargetType.content,
-        currentUserId: currentUserId,
-      );
-    } else {
-      // Rollback optimistic on failure
-      if (currentStats != null) {
-        repository.pushOptimisticLikeStats(currentStats);
-      }
-      if (context.mounted) {
-        if (result.errorCode == 'EMAIL_VERIFICATION_REQUIRED') {
-          AppSnackBar.showError(
-            context,
-            'Verifikasi email kamu diperlukan sebelum menyukai konten.',
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Gagal menyukai konten')),
-          );
-        }
-      }
-    }
   }
 
   /// Handle share action - opens ShareBottomSheet for content
@@ -606,17 +471,6 @@ class FeedCard extends ConsumerWidget {
   /// Navigate to DiscussionScreen for this content
   void _navigateToComments(BuildContext context) {
     context.push('/comment/content/${item.id}');
-  }
-
-  String _formatTime(DateTime dateTime) {
-    final now = DateTime.now();
-    final difference = now.difference(dateTime);
-
-    if (difference.inMinutes < 1) return 'baru saja';
-    if (difference.inMinutes < 60) return '${difference.inMinutes}m';
-    if (difference.inHours < 24) return '${difference.inHours}j';
-    if (difference.inDays < 7) return '${difference.inDays}h';
-    return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
   }
 
   void _navigateToDetail(BuildContext context) {
@@ -737,7 +591,10 @@ class _PromotedBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8, vertical: AppMetrics.p4),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppMetrics.p8,
+        vertical: AppMetrics.p4,
+      ),
       decoration: BoxDecoration(
         color: scheme.primary.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(AppShape.r4),
@@ -745,17 +602,70 @@ class _PromotedBadge extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.campaign_outlined, size: AppIconSize.inlineGlyph, color: scheme.primary),
+          Icon(
+            Icons.campaign_outlined,
+            size: AppIconSize.inlineGlyph,
+            color: scheme.primary,
+          ),
           const SizedBox(width: 4),
           Text(
             'Dipromosikan',
-            style: TextStyle(
+            style: context.typeRoles.labelMicro.copyWith(
               color: scheme.primary,
-              fontSize: AppType.s12,
               fontWeight: FontWeight.w600,
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Shared frame for the three promoted feed cards — one family, one frame.
+///
+/// The ForSale / Auction / External promoted rows previously restated the
+/// same `Card`+`InkWell` contract three times. Media and body content stay
+/// per-card (cover-180 media, seller rows, timers differ by channel); only
+/// the surface, margin, shape, tap wiring and the semantics grouping live
+/// here. Seller identity on promoted rows is allowed (feed context differs
+/// from the discovery grid — card-foundation decision).
+class _PromotedCardFrame extends StatelessWidget {
+  final VoidCallback? onTap;
+  final String semanticLabel;
+  final Widget child;
+
+  const _PromotedCardFrame({
+    required this.child,
+    required this.semanticLabel,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Semantics(
+      container: true,
+      label: semanticLabel,
+      child: Card(
+        margin: const EdgeInsets.symmetric(
+          horizontal: CommerceMarketplaceMetrics.gridEdgePadding,
+          vertical: CommerceMarketplaceMetrics.stackedCardMargin,
+        ),
+        elevation: AppElevation.none,
+        color: scheme.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(
+            CommerceMarketplaceMetrics.cardRadius,
+          ),
+          side: BorderSide(color: scheme.outlineVariant),
+        ),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(
+            CommerceMarketplaceMetrics.cardRadius,
+          ),
+          child: child,
+        ),
       ),
     );
   }
@@ -802,122 +712,97 @@ class PromotedForSaleCard extends ConsumerWidget {
           );
         }
       },
-      child: Card(
-        margin: const EdgeInsets.symmetric(
-          horizontal: CommerceMarketplaceMetrics.gridEdgePadding,
-          vertical: CommerceMarketplaceMetrics.stackedCardMargin,
-        ),
-        elevation: AppElevation.none,
-        color: scheme.surface,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(
-            CommerceMarketplaceMetrics.cardRadius,
-          ),
-          side: BorderSide(color: scheme.outlineVariant),
-        ),
-        child: InkWell(
-          onTap: forSaleId != null
-              ? () {
-                  _recordPromotionClick(
-                    ref,
-                    contractId,
-                    'feed',
-                    canonicalExposureId: canonicalExposureId,
-                  );
-                  context.push(
-                    RoutePaths.forSaleDetail.replaceFirst(
-                      ':forSaleId',
-                      forSaleId,
-                    ),
-                  );
-                }
-              : null,
-          borderRadius: BorderRadius.circular(
-            CommerceMarketplaceMetrics.cardRadius,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (imageUrl != null && imageUrl.isNotEmpty)
-                ClipRRect(
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(CommerceMarketplaceMetrics.cardRadius),
+      child: _PromotedCardFrame(
+        semanticLabel: title,
+        onTap: forSaleId != null
+            ? () {
+                _recordPromotionClick(
+                  ref,
+                  contractId,
+                  'feed',
+                  canonicalExposureId: canonicalExposureId,
+                );
+                context.push(
+                  RoutePaths.forSaleDetail.replaceFirst(
+                    ':forSaleId',
+                    forSaleId,
                   ),
-                  child: AppImage(
-                    imageUrl: imageUrl,
+                );
+              }
+            : null,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (imageUrl != null && imageUrl.isNotEmpty)
+              ClipRRect(
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(CommerceMarketplaceMetrics.cardRadius),
+                ),
+                child: AppImage(
+                  imageUrl: imageUrl,
+                  width: double.infinity,
+                  height: 180,
+                  fit: BoxFit.cover,
+                  backgroundColor: scheme.surfaceContainerHighest,
+                  errorWidget: Container(
                     width: double.infinity,
                     height: 180,
-                    fit: BoxFit.cover,
-                    backgroundColor: scheme.surfaceContainerHighest,
-                    errorWidget: Container(
-                      width: double.infinity,
-                      height: 180,
-                      color: scheme.surfaceContainerHighest,
-                      child: Icon(
-                        Icons.image_not_supported,
-                        size: AppIconSize.display,
-                        color: scheme.onSurfaceVariant,
-                      ),
+                    color: scheme.surfaceContainerHighest,
+                    child: Icon(
+                      Icons.image_not_supported,
+                      size: AppIconSize.display,
+                      color: scheme.onSurfaceVariant,
                     ),
                   ),
                 ),
-              Padding(
-                padding: const EdgeInsets.all(
-                  CommerceMarketplaceMetrics.contentPadding,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const _PromotedBadge(),
-                    const SizedBox(
-                      height: CommerceMarketplaceMetrics.contentGap,
+              ),
+            Padding(
+              padding: const EdgeInsets.all(
+                CommerceMarketplaceMetrics.contentPadding,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const _PromotedBadge(),
+                  const SizedBox(height: CommerceMarketplaceMetrics.contentGap),
+                  Text(
+                    title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: context.typeRoles.titleCompact.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: scheme.onSurface,
                     ),
-                    Text(
-                      title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: AppType.s16,
-                        fontWeight: FontWeight.w600,
-                        color: scheme.onSurface,
+                  ),
+                  const SizedBox(height: CommerceMarketplaceMetrics.contentGap),
+                  Text(
+                    _formatPrice(pricePerUnit),
+                    style: context.typeRoles.titleCompact.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: scheme.primary,
+                    ),
+                  ),
+                  const SizedBox(height: CommerceMarketplaceMetrics.contentGap),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.storefront_outlined,
+                        size: AppIconSize.inlineGlyph,
+                        color: scheme.onSurfaceVariant,
                       ),
-                    ),
-                    const SizedBox(
-                      height: CommerceMarketplaceMetrics.contentGap,
-                    ),
-                    Text(
-                      _formatPrice(pricePerUnit),
-                      style: TextStyle(
-                        fontSize: AppType.s16,
-                        fontWeight: FontWeight.w700,
-                        color: scheme.primary,
-                      ),
-                    ),
-                    const SizedBox(
-                      height: CommerceMarketplaceMetrics.contentGap,
-                    ),
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.storefront_outlined,
-                          size: AppIconSize.inlineGlyph,
+                      const SizedBox(width: 4),
+                      Text(
+                        sellerLabel,
+                        style: context.typeRoles.bodyDense.copyWith(
                           color: scheme.onSurfaceVariant,
                         ),
-                        const SizedBox(width: 4),
-                        Text(
-                          sellerLabel,
-                          style: TextStyle(
-                            fontSize: AppType.s14,
-                            color: scheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -978,160 +863,132 @@ class PromotedAuctionCard extends ConsumerWidget {
           );
         }
       },
-      child: Card(
-        margin: const EdgeInsets.symmetric(
-          horizontal: CommerceMarketplaceMetrics.gridEdgePadding,
-          vertical: CommerceMarketplaceMetrics.stackedCardMargin,
-        ),
-        elevation: AppElevation.none,
-        color: scheme.surface,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(
-            CommerceMarketplaceMetrics.cardRadius,
-          ),
-          side: BorderSide(color: scheme.outlineVariant),
-        ),
-        child: InkWell(
-          onTap: auctionId != null
-              ? () {
-                  _recordPromotionClick(
-                    ref,
-                    contractId,
-                    'feed',
-                    canonicalExposureId: canonicalExposureId,
-                  );
-                  context.push('/auction/$auctionId');
-                }
-              : null,
-          borderRadius: BorderRadius.circular(
-            CommerceMarketplaceMetrics.cardRadius,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (imageUrl != null && imageUrl.isNotEmpty)
-                ClipRRect(
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(CommerceMarketplaceMetrics.cardRadius),
-                  ),
-                  child: AppImage(
-                    imageUrl: imageUrl,
+      child: _PromotedCardFrame(
+        semanticLabel: title,
+        onTap: auctionId != null
+            ? () {
+                _recordPromotionClick(
+                  ref,
+                  contractId,
+                  'feed',
+                  canonicalExposureId: canonicalExposureId,
+                );
+                context.push('/auction/$auctionId');
+              }
+            : null,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (imageUrl != null && imageUrl.isNotEmpty)
+              ClipRRect(
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(CommerceMarketplaceMetrics.cardRadius),
+                ),
+                child: AppImage(
+                  imageUrl: imageUrl,
+                  width: double.infinity,
+                  height: 180,
+                  fit: BoxFit.cover,
+                  backgroundColor: scheme.surfaceContainerHighest,
+                  errorWidget: Container(
                     width: double.infinity,
                     height: 180,
-                    fit: BoxFit.cover,
-                    backgroundColor: scheme.surfaceContainerHighest,
-                    errorWidget: Container(
-                      width: double.infinity,
-                      height: 180,
-                      color: scheme.surfaceContainerHighest,
-                      child: Icon(
-                        Icons.image_not_supported,
-                        size: AppIconSize.display,
-                        color: scheme.onSurfaceVariant,
-                      ),
+                    color: scheme.surfaceContainerHighest,
+                    child: Icon(
+                      Icons.image_not_supported,
+                      size: AppIconSize.display,
+                      color: scheme.onSurfaceVariant,
                     ),
                   ),
                 ),
-              Padding(
-                padding: const EdgeInsets.all(
-                  CommerceMarketplaceMetrics.contentPadding,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        const _PromotedBadge(),
-                        const Spacer(),
-                        if (timeRemaining.isNotEmpty)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: AppMetrics.p8,
-                              vertical: AppMetrics.p4,
+              ),
+            Padding(
+              padding: const EdgeInsets.all(
+                CommerceMarketplaceMetrics.contentPadding,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const _PromotedBadge(),
+                      const Spacer(),
+                      if (timeRemaining.isNotEmpty)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppMetrics.p8,
+                            vertical: AppMetrics.p4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: context.statusColors.warning.withValues(
+                              alpha: 0.1,
                             ),
-                            decoration: BoxDecoration(
-                              color: context.statusColors.warning.withValues(
-                                alpha: 0.1,
-                              ),
-                              borderRadius: BorderRadius.circular(AppShape.r4),
-                            ),
-                            child: Text(
-                              timeRemaining,
-                              style: TextStyle(
-                                color: context.statusColors.warning,
-                                fontSize: AppType.s12,
-                                fontWeight: FontWeight.w600,
-                              ),
+                            borderRadius: BorderRadius.circular(AppShape.r4),
+                          ),
+                          child: Text(
+                            timeRemaining,
+                            style: context.typeRoles.labelMicro.copyWith(
+                              color: context.statusColors.warning,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
-                      ],
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: CommerceMarketplaceMetrics.contentGap),
+                  Text(
+                    title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: context.typeRoles.titleCompact.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: scheme.onSurface,
                     ),
-                    const SizedBox(
-                      height: CommerceMarketplaceMetrics.contentGap,
+                  ),
+                  const SizedBox(height: CommerceMarketplaceMetrics.contentGap),
+                  Text(
+                    priceLabel,
+                    style: context.typeRoles.labelMicro.copyWith(
+                      color: scheme.onSurfaceVariant,
                     ),
-                    Text(
-                      title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: AppType.s16,
-                        fontWeight: FontWeight.w600,
-                        color: scheme.onSurface,
-                      ),
+                  ),
+                  Text(
+                    _formatPrice(displayPrice),
+                    style: context.typeRoles.titleCompact.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: scheme.primary,
                     ),
-                    const SizedBox(
-                      height: CommerceMarketplaceMetrics.contentGap,
-                    ),
-                    Text(
-                      priceLabel,
-                      style: TextStyle(
-                        fontSize: AppType.s12,
+                  ),
+                  const SizedBox(height: CommerceMarketplaceMetrics.contentGap),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.storefront_outlined,
+                        size: AppIconSize.inlineGlyph,
                         color: scheme.onSurfaceVariant,
                       ),
-                    ),
-                    Text(
-                      _formatPrice(displayPrice),
-                      style: TextStyle(
-                        fontSize: AppType.s16,
-                        fontWeight: FontWeight.w700,
-                        color: scheme.primary,
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          sellerLabel,
+                          style: context.typeRoles.bodyDense.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
                       ),
-                    ),
-                    const SizedBox(
-                      height: CommerceMarketplaceMetrics.contentGap,
-                    ),
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.storefront_outlined,
-                          size: AppIconSize.inlineGlyph,
-                          color: scheme.onSurfaceVariant,
-                        ),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: Text(
-                            sellerLabel,
-                            style: TextStyle(
-                              fontSize: AppType.s14,
-                              color: scheme.onSurfaceVariant,
-                            ),
+                      if (bidCount > 0)
+                        Text(
+                          '$bidCount bid',
+                          style: context.typeRoles.labelMicro.copyWith(
+                            color: scheme.onSurfaceVariant,
                           ),
                         ),
-                        if (bidCount > 0)
-                          Text(
-                            '$bidCount bid',
-                            style: TextStyle(
-                              fontSize: AppType.s12,
-                              color: scheme.onSurfaceVariant,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -1177,103 +1034,83 @@ class PromotedExternalCard extends ConsumerWidget {
           );
         }
       },
-      child: Card(
-        margin: const EdgeInsets.symmetric(
-          horizontal: CommerceMarketplaceMetrics.gridEdgePadding,
-          vertical: CommerceMarketplaceMetrics.stackedCardMargin,
-        ),
-        elevation: AppElevation.none,
-        color: scheme.surface,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(
-            CommerceMarketplaceMetrics.cardRadius,
-          ),
-          side: BorderSide(color: scheme.outlineVariant),
-        ),
-        child: InkWell(
-          onTap: externalUrl != null
-              ? () {
-                  _recordPromotionClick(
-                    ref,
-                    contractId,
-                    'feed',
-                    canonicalExposureId: canonicalExposureId,
-                  );
-                  showExternalLinkInterstitial(context, url: externalUrl);
-                }
-              : null,
-          borderRadius: BorderRadius.circular(
-            CommerceMarketplaceMetrics.cardRadius,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (externalMediaUrl != null && externalMediaUrl.isNotEmpty)
-                ClipRRect(
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(CommerceMarketplaceMetrics.cardRadius),
-                  ),
-                  child: AppImage(
-                    imageUrl: externalMediaUrl,
-                    width: double.infinity,
-                    height: 180,
-                    fit: BoxFit.cover,
-                    backgroundColor: scheme.surfaceContainerHighest,
-                    errorWidget: const SizedBox.shrink(),
-                  ),
+      child: _PromotedCardFrame(
+        semanticLabel: title,
+        onTap: externalUrl != null
+            ? () {
+                _recordPromotionClick(
+                  ref,
+                  contractId,
+                  'feed',
+                  canonicalExposureId: canonicalExposureId,
+                );
+                showExternalLinkInterstitial(context, url: externalUrl);
+              }
+            : null,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (externalMediaUrl != null && externalMediaUrl.isNotEmpty)
+              ClipRRect(
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(CommerceMarketplaceMetrics.cardRadius),
                 ),
-              Padding(
-                padding: const EdgeInsets.all(
-                  CommerceMarketplaceMetrics.contentPadding,
+                child: AppImage(
+                  imageUrl: externalMediaUrl,
+                  width: double.infinity,
+                  height: 180,
+                  fit: BoxFit.cover,
+                  backgroundColor: scheme.surfaceContainerHighest,
+                  errorWidget: const SizedBox.shrink(),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const _PromotedBadge(),
+              ),
+            Padding(
+              padding: const EdgeInsets.all(
+                CommerceMarketplaceMetrics.contentPadding,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const _PromotedBadge(),
+                  const SizedBox(height: CommerceMarketplaceMetrics.contentGap),
+                  Text(
+                    title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: context.typeRoles.titleCompact.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: scheme.onSurface,
+                    ),
+                  ),
+                  if (externalUrl != null) ...[
                     const SizedBox(
                       height: CommerceMarketplaceMetrics.contentGap,
                     ),
-                    Text(
-                      title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: AppType.s16,
-                        fontWeight: FontWeight.w600,
-                        color: scheme.onSurface,
-                      ),
-                    ),
-                    if (externalUrl != null) ...[
-                      const SizedBox(
-                        height: CommerceMarketplaceMetrics.contentGap,
-                      ),
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.open_in_new,
-                            size: AppIconSize.inlineGlyph,
-                            color: scheme.onSurfaceVariant,
-                          ),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            child: Text(
-                              Uri.tryParse(externalUrl)?.host ?? externalUrl,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: AppType.s12,
-                                color: scheme.onSurfaceVariant,
-                              ),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.open_in_new,
+                          size: AppIconSize.inlineGlyph,
+                          color: scheme.onSurfaceVariant,
+                        ),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            Uri.tryParse(externalUrl)?.host ?? externalUrl,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: context.typeRoles.labelMicro.copyWith(
+                              color: scheme.onSurfaceVariant,
                             ),
                           ),
-                        ],
-                      ),
-                    ],
+                        ),
+                      ],
+                    ),
                   ],
-                ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

@@ -25,6 +25,7 @@ class SettingsAppPreferencesSection extends StatelessWidget {
         const LanguageSelectorTile(),
         if (onNavigate != null)
           _buildSettingsTile(
+            context,
             icon: Icons.notifications_outlined,
             title: 'Notification Settings',
             subtitle: 'Manage notification preferences',
@@ -42,21 +43,21 @@ class SettingsAppPreferencesSection extends StatelessWidget {
     ColorScheme scheme,
   ) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p16, AppMetrics.p16, AppMetrics.p8),
+      padding: const EdgeInsets.fromLTRB(
+        AppMetrics.p16,
+        AppMetrics.p16,
+        AppMetrics.p16,
+        AppMetrics.p8,
+      ),
       child: Row(
         children: [
-          Icon(
-            icon,
-            size: AppIconSize.action,
-            color: scheme.onSurfaceVariant,
-          ),
+          Icon(icon, size: AppIconSize.action, color: scheme.onSurfaceVariant),
           const SizedBox(width: 8),
           Text(
             title,
-            style: TextStyle(
-              fontSize: AppType.s14,
+            style: context.typeRoles.bodyDense.copyWith(
               fontWeight: FontWeight.w600,
-color: scheme.onSurfaceVariant,
+              color: scheme.onSurfaceVariant,
             ),
           ),
         ],
@@ -64,7 +65,8 @@ color: scheme.onSurfaceVariant,
     );
   }
 
-  Widget _buildSettingsTile({
+  Widget _buildSettingsTile(
+    BuildContext context, {
     required IconData icon,
     required String title,
     required String subtitle,
@@ -72,21 +74,12 @@ color: scheme.onSurfaceVariant,
     required ColorScheme scheme,
   }) {
     return ListTile(
-      leading: Icon(
-        icon,
-        color: scheme.onSurfaceVariant,
-      ),
-      title: Text(
-        title,
-        style: TextStyle(
-          color: scheme.onSurface,
-        ),
-      ),
+      leading: Icon(icon, color: scheme.onSurfaceVariant),
+      title: Text(title, style: TextStyle(color: scheme.onSurface)),
       subtitle: Text(
         subtitle,
-        style: TextStyle(
+        style: context.typeRoles.bodyDense.copyWith(
           color: scheme.onSurfaceVariant,
-          fontSize: AppType.s14,
         ),
       ),
       trailing: Icon(

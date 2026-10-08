@@ -81,7 +81,7 @@ type AuctionQuoteReader interface {
 	// GetForUpdate locks the auction row FOR UPDATE within the caller's
 	// transaction. Required for shipping quote validation to prevent a stale
 	// unlocked read from allowing a quote against an auction that the
-	// settlement worker has already transitioned back to draft.
+	// settlement worker has already auto-rescheduled.
 	GetForUpdate(ctx context.Context, tx db.Tx, auctionID uuid.UUID) (*auctionEntity.Auction, error)
 	// MarkSellerQuoteProvided records that the seller has supplied a private
 	// shipping quote for the auction's current settlement, so the deadline
@@ -89,10 +89,19 @@ type AuctionQuoteReader interface {
 	MarkSellerQuoteProvided(ctx context.Context, tx db.Tx, auctionID uuid.UUID) error
 }
 
-// ChatMessageSender defines the narrow chat message capability needed by shipping quote creation.
+// ChatMessageSender defines the narrow chat message capability needed by
+// shipping quote creation.
+//
+// It is TRANSACTION-AWARE by design: the shipping_quote conversation message is
+// persisted INSIDE the same transaction that persists the quote, so the quote
+// and its conversation representation commit or roll back together as ONE
+// business operation. Calling a self-transacting sender here would open a
+// second transaction whose chat_messages → chat_rooms FK lock self-blocks
+// against this transaction's chat-room FOR UPDATE and hangs forever.
 type ChatMessageSender interface {
-	SendMessage(
+	SendMessageInTx(
 		ctx context.Context,
+		tx db.Tx,
 		roomID, senderID uuid.UUID,
 		messageType chatEntity.MessageType,
 		body *string,
@@ -239,12 +248,12 @@ func (s *Service) CreateShippingQuote(ctx context.Context, input CreateShippingQ
 		var quote *shippingQuoteEntity.ShippingQuote
 		// Auction quotes use the same constructor; source_type=source_id provides canonical identity.
 		quote = shippingQuoteEntity.NewShippingQuote(
-				input.ChatID,
-				input.ProductID,
-				input.SourceType,
-				input.SourceID,
-				input.SellerID,
-				buyerID,			input.Cost,
+			input.ChatID,
+			input.ProductID,
+			input.SourceType,
+			input.SourceID,
+			input.SellerID,
+			buyerID, input.Cost,
 			input.Note,
 			input.DestinationCityID,
 			input.DestinationProvinceID,
@@ -280,8 +289,9 @@ func (s *Service) CreateShippingQuote(ctx context.Context, input CreateShippingQ
 
 		idempotencyKey := fmt.Sprintf("shipping-quote.%s", quote.ID.String())
 
-		_, err = s.chatService.SendMessage(
+		_, err = s.chatService.SendMessageInTx(
 			ctx,
+			tx,
 			quote.ChatID,
 			quote.SellerID,
 			chatEntity.MessageTypeShippingQuote,
@@ -302,15 +312,15 @@ func (s *Service) CreateShippingQuote(ctx context.Context, input CreateShippingQ
 	}
 
 	s.log.Info("shipping quote created",
-			zap.String("quote_id", createdQuote.ID.String()),
-			zap.String("chat_id", createdQuote.ChatID.String()),
-			zap.String("product_id", createdQuote.ProductID.String()),
-			zap.String("source_type", derefString(createdQuote.SourceType)),
-			zap.String("source_id", derefUUID(createdQuote.SourceID)),
-			zap.String("seller_id", createdQuote.SellerID.String()),
-			zap.Int64("cost", createdQuote.Cost.Int64()),
-			zap.String("status", string(createdQuote.Status)),
-		)
+		zap.String("quote_id", createdQuote.ID.String()),
+		zap.String("chat_id", createdQuote.ChatID.String()),
+		zap.String("product_id", createdQuote.ProductID.String()),
+		zap.String("source_type", derefString(createdQuote.SourceType)),
+		zap.String("source_id", derefUUID(createdQuote.SourceID)),
+		zap.String("seller_id", createdQuote.SellerID.String()),
+		zap.Int64("cost", createdQuote.Cost.Int64()),
+		zap.String("status", string(createdQuote.Status)),
+	)
 
 	return createdQuote, nil
 }
@@ -327,9 +337,10 @@ func (s *Service) validateAuctionForQuote(
 	}
 
 	// AUTHORITATIVE LOCK: GetForUpdate serializes against a concurrent
-	// settlement worker that may transition the auction back to draft.
+	// settlement worker that may auto-reschedule the auction (settlement
+	// failure clears seller flags and reopens the run).
 	// Using the unlocked GetByID here was a race — the settlement worker
-	// could commit a draft transition between our status check and our
+	// could commit the reschedule between our status check and our
 	// MarkSellerQuoteProvided call, producing a stale quote and a silent
 	// no-op on the seller_quote_provided flag.
 	auction, err := s.auctionRepo.GetForUpdate(ctx, tx, auctionID)
@@ -410,8 +421,71 @@ func (s *Service) GetByID(ctx context.Context, quoteID uuid.UUID) (*shippingQuot
 	return quote, nil
 }
 
+// QuoteActionability is the canonical, viewer-scoped shipping quote projection
+// for conversation surfaces. Commerce owns the decision; consumers only render
+// it (they must never compute "is this the active quote" themselves).
+type QuoteActionability struct {
+	QuoteID          uuid.UUID
+	IsCurrent        bool
+	ViewerActionable bool
+}
+
+// EvaluateQuoteActionability projects a quote's current/actionable state for a
+// viewer using ONLY the shipping entity's canonical predicates
+// (IsCurrent + IsBuyerUsableAt). It is not a second state machine: those
+// predicates remain the single Commerce authority for quote lifecycle.
+//
+// ViewerActionable is true iff the viewer is the quote's BUYER and the quote is
+// structurally buyer-usable right now. A seller (or any non-buyer) can never
+// act on their own quote.
+func EvaluateQuoteActionability(
+	quote *shippingQuoteEntity.ShippingQuote,
+	viewerID uuid.UUID,
+	now time.Time,
+) QuoteActionability {
+	if quote == nil {
+		return QuoteActionability{}
+	}
+	return QuoteActionability{
+		QuoteID:          quote.ID,
+		IsCurrent:        quote.IsCurrent(),
+		ViewerActionable: viewerID != uuid.Nil && quote.BuyerID == viewerID && quote.IsBuyerUsableAt(now),
+	}
+}
+
+// ProjectForViewer batch-resolves the canonical actionability projection for a
+// set of quote ids, scoped to ONE viewer. This is the single entry point the
+// conversation layer uses: it reads quote lifecycle through the repository and
+// delegates each decision to EvaluateQuoteActionability — it does not
+// re-implement any lifecycle rule.
+func (s *Service) ProjectForViewer(
+	ctx context.Context,
+	viewerID uuid.UUID,
+	quoteIDs []uuid.UUID,
+) (map[uuid.UUID]QuoteActionability, error) {
+	out := make(map[uuid.UUID]QuoteActionability, len(quoteIDs))
+	if len(quoteIDs) == 0 {
+		return out, nil
+	}
+	err := s.db.WithTx(ctx, func(tx db.Tx) error {
+		quotes, qErr := s.quoteRepo.GetByIDs(ctx, tx, quoteIDs)
+		if qErr != nil {
+			return qErr
+		}
+		now := time.Now()
+		for id, q := range quotes {
+			out[id] = EvaluateQuoteActionability(q, viewerID, now)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // InvalidateQuotesByProduct marks all ACTIVE unsuperseded quotes for a product
-// as INVALID. Called during auction settlement failure (return-to-draft) to
+// as INVALID. Called during auction settlement failure (auto-reschedule) to
 // ensure no shipping quote from the previous settlement lifecycle can be used
 // in the next lifecycle.
 func (s *Service) InvalidateQuotesByProduct(ctx context.Context, tx db.Tx, productID uuid.UUID) error {
@@ -500,41 +574,6 @@ func buildShippingQuoteAttachmentJSONV2(
 // TASK C - LIFECYCLE MANAGEMENT
 // ============================================================================
 
-// MarkQuoteUsed marks a shipping quote as USED.
-// Called during order creation to prevent quote reuse (TASK C).
-func (s *Service) MarkQuoteUsed(ctx context.Context, quoteID uuid.UUID) error {
-	err := s.db.WithTx(ctx, func(tx db.Tx) error {
-		// Fetch quote first to validate status
-		quote, err := s.quoteRepo.GetByID(ctx, tx, quoteID)
-		if err != nil {
-			return fmt.Errorf("failed to fetch quote: %w", err)
-		}
-		if quote == nil {
-			return fmt.Errorf("quote not found: %s", quoteID)
-		}
-
-		// Mark as used using entity method
-		now := time.Now()
-		if err := quote.MarkUsed(now); err != nil {
-			return err
-		}
-
-		// Update in database
-		usedAt := interface{}(now)
-		return s.quoteRepo.UpdateStatus(ctx, tx, quoteID, quote.Status, &usedAt)
-	})
-
-	if err != nil {
-		return err
-	}
-
-	s.log.Info("shipping quote marked as used",
-		zap.String("quote_id", quoteID.String()),
-	)
-
-	return nil
-}
-
 // MarkQuoteExpired marks a shipping quote as EXPIRED.
 // Can be called manually or by a background worker (TASK C).
 func (s *Service) MarkQuoteExpired(ctx context.Context, quoteID uuid.UUID) error {
@@ -569,118 +608,145 @@ func (s *Service) MarkQuoteExpired(ctx context.Context, quoteID uuid.UUID) error
 }
 
 // ============================================================================
-// TASK G - SECURITY VALIDATION FOR CHECKOUT
+// TASK G - CHECKOUT CONSUMPTION (THE ONE AUTHORITY)
 // ============================================================================
 
-// ValidateQuoteForCheckout performs comprehensive validation of a shipping quote
-// before it can be used for checkout.
+// ConsumeQuoteForCheckout is the ONE authority for shipping-quote checkout
+// validation AND the ACTIVE -> USED transition. Order creation never
+// re-implements quote lifecycle rules; it delegates here inside the order's
+// transaction.
 //
-// VALIDATIONS (TASK G):
-// 1. Quote exists and is ACTIVE
-// 2. Quote is not expired (if expires_at is set)
-// 3. Quote belongs to the buyer
-// 4. Quote belongs to the for_sale/auction
-// 5. Checkout address matches locked destination (TASK D)
+// It runs in the CALLER'S transaction (tx) so that quote consumption and the
+// order mutation commit atomically. The quote row is read FOR UPDATE, which
+// serializes concurrent checkouts and makes the quote single-use.
 //
-// Returns the validated quote for use in order creation.
-func (s *Service) ValidateQuoteForCheckout(
+// VALIDATIONS (all against the quote entity's canonical predicates):
+//  1. quote exists (re-fetched under lock — never trusts client input)
+//  2. not superseded
+//  3. current (ACTIVE and unsuperseded)
+//  4. not expired
+//  5. chat matches, when the caller supplies the expected chat (provenance)
+//  6. seller matches the sale surface / auction seller
+//  7. product matches
+//  8. source (type + id) matches the for_sale surface or the auction
+//  9. buyer matches (this is the "opponent of the Chat" invariant)
+//  10. checkout destination matches the quote's locked destination
+//
+// On success it marks the quote USED in the same transaction and returns it.
+func (s *Service) ConsumeQuoteForCheckout(
 	ctx context.Context,
-	quoteID uuid.UUID,
-	buyerID uuid.UUID,
-	productID uuid.UUID,
-	sourceType string,
-	sourceID uuid.UUID,
-	shippingAddressProvinceID, shippingAddressCityID string,
+	tx db.Tx,
+	in shippingQuoteEntity.CheckoutContext,
 ) (*shippingQuoteEntity.ShippingQuote, error) {
-	var quote *shippingQuoteEntity.ShippingQuote
-
-	err := s.db.WithTx(ctx, func(tx db.Tx) error {
-		var err error
-		quote, err = s.quoteRepo.GetByID(ctx, tx, quoteID)
-		return err
-	})
-
+	// STEP 1: re-fetch under lock; never trust the pricing token.
+	quote, err := s.quoteRepo.GetByIDForUpdate(ctx, tx, in.QuoteID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch quote: %w", err)
+		return nil, &shippingQuoteEntity.CheckoutRejectionError{
+			Field:  "fetch_failed",
+			Reason: fmt.Sprintf("database error during quote retrieval: %v", err),
+		}
 	}
-
 	if quote == nil {
-		return nil, fmt.Errorf("quote not found: %s", quoteID)
-	}
-
-	// VALIDATION 1: Quote must be ACTIVE
-	if !quote.IsCurrent() {
-		return nil, &QuoteValidationError{
-			Reason:  fmt.Sprintf("quote is not current: current_status=%s", quote.Status),
-			QuoteID: quoteID,
-			Field:   "status",
+		return nil, &shippingQuoteEntity.CheckoutRejectionError{
+			Field:  "not_found",
+			Reason: "quote does not exist in database",
 		}
 	}
 
-	// VALIDATION 2: Quote must not be expired
 	now := time.Now()
-	if quote.IsExpiredAt(now) {
-		return nil, &QuoteValidationError{
-			Reason:  "quote has expired",
-			QuoteID: quoteID,
-			Field:   "expires_at",
-		}
-	}
 
 	if quote.IsSuperseded() {
-		return nil, &QuoteValidationError{
-			Reason:  fmt.Sprintf("quote is superseded: superseded_by=%v", quote.SupersededByID),
-			QuoteID: quoteID,
-			Field:   "superseded_at",
+		return nil, &shippingQuoteEntity.CheckoutRejectionError{
+			Field:  "superseded",
+			Reason: fmt.Sprintf("quote superseded by %v", quote.SupersededByID),
+		}
+	}
+	if !quote.IsCurrent() {
+		return nil, &shippingQuoteEntity.CheckoutRejectionError{
+			Field:  "invalid_status",
+			Reason: fmt.Sprintf("quote status is %s (not current ACTIVE revision)", quote.Status),
+		}
+	}
+	if quote.IsExpiredAt(now) {
+		return nil, &shippingQuoteEntity.CheckoutRejectionError{
+			Field:  "expired",
+			Reason: fmt.Sprintf("quote expired at %v", quote.ExpiresAt),
+		}
+	}
+	if in.ChatID == nil {
+		return nil, &shippingQuoteEntity.CheckoutRejectionError{
+			Field:  "chat_required",
+			Reason: "shipping quote checkout requires the originating conversation id",
+		}
+	}
+	if quote.ChatID != *in.ChatID {
+		return nil, &shippingQuoteEntity.CheckoutRejectionError{
+			Field:  "chat_mismatch",
+			Reason: fmt.Sprintf("quote chat_id=%s does not match checkout chat_id=%s", quote.ChatID, *in.ChatID),
+		}
+	}
+	if quote.SellerID != in.SellerID {
+		return nil, &shippingQuoteEntity.CheckoutRejectionError{
+			Field:  "seller_mismatch",
+			Reason: fmt.Sprintf("quote seller_id=%s does not match sale surface seller_id=%s", quote.SellerID, in.SellerID),
+		}
+	}
+	if quote.ProductID != in.ProductID {
+		return nil, &shippingQuoteEntity.CheckoutRejectionError{
+			Field:  "product_mismatch",
+			Reason: fmt.Sprintf("quote product_id=%s does not match checkout product_id=%s", quote.ProductID, in.ProductID),
+		}
+	}
+	if in.SourceType == "auction" {
+		if quote.SourceType == nil || quote.SourceID == nil || *quote.SourceType != "auction" || *quote.SourceID != in.SourceID {
+			return nil, &shippingQuoteEntity.CheckoutRejectionError{
+				Field:  "auction_mismatch",
+				Reason: fmt.Sprintf("quote source=%s:%s does not match checkout auction_id=%s", derefString(quote.SourceType), derefUUID(quote.SourceID), in.SourceID),
+			}
+		}
+	} else {
+		if quote.SourceType == nil || quote.SourceID == nil || *quote.SourceType != "for_sale" || *quote.SourceID != in.SourceID {
+			return nil, &shippingQuoteEntity.CheckoutRejectionError{
+				Field:  "source_mismatch",
+				Reason: fmt.Sprintf("quote source=%s:%s does not match checkout source_id=%s", derefString(quote.SourceType), derefUUID(quote.SourceID), in.SourceID),
+			}
+		}
+	}
+	if quote.BuyerID != in.BuyerID {
+		return nil, &shippingQuoteEntity.CheckoutRejectionError{
+			Field:  "buyer_mismatch",
+			Reason: fmt.Sprintf("quote buyer_id=%s does not match checkout buyer_id=%s", quote.BuyerID, in.BuyerID),
+		}
+	}
+	if err := quote.ValidateDestinationAddress(in.ShippingProvinceID, in.ShippingCityID); err != nil {
+		return nil, &shippingQuoteEntity.CheckoutRejectionError{
+			Field:  "address_mismatch",
+			Reason: err.Error(),
 		}
 	}
 
-	// VALIDATION 3: Quote must belong to the buyer
-	if quote.BuyerID != buyerID {
-		return nil, &QuoteValidationError{
-			Reason:  fmt.Sprintf("quote buyer mismatch: quote_buyer=%s, checkout_buyer=%s", quote.BuyerID, buyerID),
-			QuoteID: quoteID,
-			Field:   "buyer_id",
+	// STEP 2: mark USED inside the same transaction (single-use guarantee).
+	if err := quote.MarkUsed(now); err != nil {
+		return nil, &shippingQuoteEntity.CheckoutRejectionError{
+			Field:  "invalid_status",
+			Reason: err.Error(),
+		}
+	}
+	usedAt := interface{}(now)
+	if err := s.quoteRepo.UpdateStatus(ctx, tx, in.QuoteID, quote.Status, &usedAt); err != nil {
+		return nil, &shippingQuoteEntity.CheckoutRejectionError{
+			Field:  "mark_used_failed",
+			Reason: fmt.Sprintf("database error during status update: %v", err),
 		}
 	}
 
-	// VALIDATION 4: Quote must belong to the product/sale-surface
-	if quote.ProductID != productID {
-		return nil, &QuoteValidationError{
-			Reason:  fmt.Sprintf("quote product mismatch: quote_product=%s, checkout_product=%s", quote.ProductID, productID),
-			QuoteID: quoteID,
-			Field:   "product_id",
-		}
-	}
-	if quote.SourceType == nil || quote.SourceID == nil || *quote.SourceType != sourceType || *quote.SourceID != sourceID {
-		return nil, &QuoteValidationError{
-			Reason:  fmt.Sprintf("quote source mismatch: quote=%s:%s, checkout=%s:%s", derefString(quote.SourceType), derefUUID(quote.SourceID), sourceType, sourceID.String()),
-			QuoteID: quoteID,
-			Field:   "source_id",
-		}
-	}
-
-	// VALIDATION 5: Checkout address must match locked destination (TASK D)
-	if err := quote.ValidateDestinationAddress(shippingAddressProvinceID, shippingAddressCityID); err != nil {
-		return nil, &QuoteValidationError{
-			Reason:  err.Error(),
-			QuoteID: quoteID,
-			Field:   "destination_address",
-		}
-	}
+	s.log.Info("shipping quote consumed at checkout",
+		zap.String("quote_id", in.QuoteID.String()),
+		zap.String("buyer_id", in.BuyerID.String()),
+		zap.String("seller_id", quote.SellerID.String()),
+	)
 
 	return quote, nil
-}
-
-// QuoteValidationError is returned when quote validation fails during checkout.
-type QuoteValidationError struct {
-	Reason  string
-	QuoteID uuid.UUID
-	Field   string
-}
-
-func (e *QuoteValidationError) Error() string {
-	return fmt.Sprintf("quote validation failed for %s: %s", e.QuoteID, e.Reason)
 }
 
 // ============================================================================

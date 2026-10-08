@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:labuda/shared/entities/post_location.dart';
+import 'package:labuda/shared/widgets/address_location_view.dart';
+import 'package:labuda/shared/widgets/app_snackbar.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:labuda/core/src/theme/app_theme.dart';
 
@@ -55,12 +57,7 @@ class ClickableLocationWidget extends StatelessWidget {
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Cannot open Google Maps'),
-            duration: Duration(seconds: 4),
-          ),
-        );
+        AppSnackBar.showError(context, 'Tidak dapat membuka Google Maps');
       }
     }
   }
@@ -75,27 +72,27 @@ class ClickableLocationWidget extends StatelessWidget {
         onTap: () => _openInMaps(context),
         borderRadius: BorderRadius.circular(AppShape.r4),
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: AppMetrics.p4, horizontal: AppMetrics.p0),
-          child: Row(
+          padding: const EdgeInsets.symmetric(
+            vertical: AppMetrics.p4,
+            horizontal: AppMetrics.p0,
+          ),
+          child: AddressLocationView(
+            location: location.address,
+            mode: AddressLocationMode.compact,
+            icon: Icons.location_on,
+            iconSize: AppIconSize.inlineGlyph,
+            iconColor: scheme.primary,
+            spacing: 4,
             mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.location_on, size: AppIconSize.inlineGlyph, color: scheme.primary),
-              const SizedBox(width: 4),
-              Flexible(
-                child: Text(
-                  location.address,
-                  style: TextStyle(
-                    fontSize: AppType.s14,
-                    color: scheme.secondary,
-                    decoration: TextDecoration.underline,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const SizedBox(width: 4),
-              Icon(Icons.open_in_new, size: AppIconSize.inlineGlyph, color: scheme.secondary),
-            ],
+            trailing: Icon(
+              Icons.open_in_new,
+              size: AppIconSize.inlineGlyph,
+              color: scheme.secondary,
+            ),
+            style: context.typeRoles.bodyDense.copyWith(
+              color: scheme.secondary,
+              decoration: TextDecoration.underline,
+            ),
           ),
         ),
       );
@@ -110,9 +107,7 @@ class ClickableLocationWidget extends StatelessWidget {
         decoration: BoxDecoration(
           color: scheme.secondary.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(AppShape.r8),
-          border: Border.all(
-            color: scheme.secondary.withValues(alpha: 0.3),
-          ),
+          border: Border.all(color: scheme.secondary.withValues(alpha: 0.3)),
         ),
         child: Row(
           children: [
@@ -133,22 +128,20 @@ class ClickableLocationWidget extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    location.address,
-                    style: TextStyle(
-                      fontSize: AppType.s14,
+                  AddressLocationText(
+                    location: location.address,
+                    mode: AddressLocationMode.detail,
+                    maxLines: 2,
+                    style: context.typeRoles.bodyDense.copyWith(
                       fontWeight: FontWeight.w500,
                       color: scheme.onSurface,
                     ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
                   ),
                   if (location.hasCoordinates) ...[
                     const SizedBox(height: 4),
                     Text(
                       '${location.latitude!.toStringAsFixed(6)}, ${location.longitude!.toStringAsFixed(6)}',
-                      style: TextStyle(
-                        fontSize: AppType.s12,
+                      style: context.typeRoles.labelMicro.copyWith(
                         fontFamily: 'monospace',
                         color: scheme.onSurfaceVariant,
                       ),
@@ -158,7 +151,11 @@ class ClickableLocationWidget extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-            Icon(Icons.open_in_new, color: scheme.secondary, size: AppIconSize.action),
+            Icon(
+              Icons.open_in_new,
+              color: scheme.secondary,
+              size: AppIconSize.action,
+            ),
           ],
         ),
       ),

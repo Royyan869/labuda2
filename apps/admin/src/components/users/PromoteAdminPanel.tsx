@@ -3,6 +3,7 @@ import { Search, UserPlus, AlertTriangle } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
+import { Input } from '@/components/ui/Input'
 import { api, setUserRole } from '@/lib/api'
 import type { UserListItem } from '@/types'
 
@@ -85,7 +86,7 @@ export function PromoteAdminPanel({ onPromoted }: PromoteAdminPanelProps) {
           <UserPlus className="h-5 w-5" />
           Promote an existing user to admin
         </CardTitle>
-        <p className="text-sm text-muted-foreground">
+        <p className="type-secondary">
           Normal recruitment path: promote membership here, then grant capabilities. Admin membership alone grants no
           capabilities.
         </p>
@@ -99,13 +100,13 @@ export function PromoteAdminPanel({ onPromoted }: PromoteAdminPanelProps) {
           }}
         >
           <div className="relative flex-1 max-w-md">
-            <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <input
+            <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground z-10" />
+            <Input
               type="text"
               value={query}
               onChange={e => setQuery(e.target.value)}
               placeholder="Search by name or email..."
-              className="pl-9 pr-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary w-full"
+              className="pl-9"
             />
           </div>
           <Button type="submit" size="sm" variant="secondary" disabled={searching}>
@@ -114,18 +115,18 @@ export function PromoteAdminPanel({ onPromoted }: PromoteAdminPanelProps) {
         </form>
 
         {error && (
-          <div className="bg-[hsl(var(--destructive-bg))] border border-[hsl(var(--destructive))] text-[hsl(var(--destructive))] p-3 rounded-lg flex items-center gap-2">
+          <div className="bg-destructive-bg border border-destructive text-destructive p-3 rounded-lg flex items-center gap-2">
             <AlertTriangle className="h-4 w-4 flex-shrink-0" />
             <span className="text-sm">{error}</span>
           </div>
         )}
 
         {notice && (
-          <div className="bg-[hsl(var(--success-bg))] border border-[hsl(var(--success))] text-[hsl(var(--success))] p-3 rounded-lg text-sm">{notice}</div>
+          <div className="bg-success-bg border border-success text-success p-3 rounded-lg text-sm">{notice}</div>
         )}
 
         {searched && results.length === 0 && !error && (
-          <p className="text-sm text-muted-foreground">No promotable users match that search.</p>
+          <p className="type-secondary">No promotable users match that search.</p>
         )}
 
         {results.length > 0 && (
@@ -136,7 +137,7 @@ export function PromoteAdminPanel({ onPromoted }: PromoteAdminPanelProps) {
                 className="flex items-center justify-between gap-3 p-3 rounded-lg border border-border"
               >
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">
+                  <p className="type-label truncate">
                     {u.username ? `@${u.username}` : u.id.slice(0, 8)}
                   </p>
                   <p className="text-xs font-mono text-muted-foreground truncate">{u.email}</p>

@@ -143,8 +143,7 @@ class _SellerShippingSetupsSelectorState
             padding: const EdgeInsets.only(bottom: AppMetrics.p12),
             child: Text(
               widget.helperText!,
-              style: TextStyle(
-                fontSize: AppType.s14,
+              style: context.typeRoles.bodyDense.copyWith(
                 color: colorScheme.onSurfaceVariant,
               ),
             ),
@@ -167,8 +166,7 @@ class _SellerShippingSetupsSelectorState
           const SizedBox(height: 8),
           Text(
             'Pilih minimal 1 opsi pengiriman agar bisa dipublish.',
-            style: TextStyle(
-              fontSize: AppType.s12,
+            style: context.typeRoles.labelMicro.copyWith(
               color: context.statusColors.warning,
               fontStyle: FontStyle.italic,
             ),
@@ -220,8 +218,7 @@ class _LoadingPlaceholder extends StatelessWidget {
           const SizedBox(width: 12),
           Text(
             'Memuat opsi pengiriman...',
-            style: TextStyle(
-              fontSize: AppType.s14,
+            style: context.typeRoles.bodyDense.copyWith(
               color: colorScheme.onSurfaceVariant,
             ),
           ),
@@ -251,8 +248,7 @@ class _ErrorPlaceholder extends StatelessWidget {
         children: [
           Text(
             'Gagal memuat opsi pengiriman.',
-            style: TextStyle(
-              fontSize: AppType.s14,
+            style: context.typeRoles.bodyDense.copyWith(
               fontWeight: FontWeight.w600,
               color: colorScheme.error,
             ),
@@ -260,8 +256,7 @@ class _ErrorPlaceholder extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             message,
-            style: TextStyle(
-              fontSize: AppType.s12,
+            style: context.typeRoles.labelMicro.copyWith(
               color: colorScheme.onSurfaceVariant,
             ),
           ),
@@ -312,8 +307,7 @@ class _EmptyOptionsBanner extends StatelessWidget {
               Expanded(
                 child: Text(
                   'Belum Ada Opsi Pengiriman Aktif',
-                  style: TextStyle(
-                    fontSize: AppType.s14,
+                  style: context.typeRoles.bodyDense.copyWith(
                     fontWeight: FontWeight.w600,
                     color: context.statusColors.warning,
                   ),
@@ -324,8 +318,7 @@ class _EmptyOptionsBanner extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             'Belum ada opsi pengiriman aktif. Atur opsi pengiriman dulu sebelum publish.',
-            style: TextStyle(
-              fontSize: AppType.s12,
+            style: context.typeRoles.labelMicro.copyWith(
               color: colorScheme.onSurfaceVariant,
             ),
           ),

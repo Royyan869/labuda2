@@ -458,48 +458,34 @@ func (r *AppealRepositoryImpl) ListAll(
 	return appeals, nil
 }
 
-// ListPending retrieves pending appeals awaiting review.
-// Ordered by created_at ASC (oldest first).
-func (r *AppealRepositoryImpl) ListPending(
+// CountAll returns the truthful total number of appeals matching the optional
+// status filter. Mirrors the predicate of ListAll exactly.
+func (r *AppealRepositoryImpl) CountAll(
 	ctx context.Context,
 	tx interface{},
-	limit, offset int,
-) ([]*entity.Appeal, error) {
+	statusFilter *entity.AppealStatus,
+) (int, error) {
 	dbTx, ok := tx.(db.Tx)
 	if !ok {
-		return nil, fmt.Errorf("invalid transaction type")
+		return 0, fmt.Errorf("invalid transaction type")
 	}
 
-	query := `
-		SELECT id, decision_id, appealed_by, status,
-		       message, admin_response, reviewed_by,
-		       created_at, reviewed_at
-		FROM appeals
-		WHERE status = $1
-		ORDER BY created_at ASC
-		LIMIT $2 OFFSET $3
-	`
-
-	rows, err := dbTx.Query(ctx, query, entity.AppealStatusPending, limit, offset)
-	if err != nil {
-		return nil, fmt.Errorf("list pending appeals failed: %w", err)
-	}
-	defer rows.Close()
-
-	var appeals []*entity.Appeal
-	for rows.Next() {
-		appeal, err := r.scanRow(rows)
-		if err != nil {
-			return nil, fmt.Errorf("scan appeal failed: %w", err)
-		}
-		appeals = append(appeals, appeal)
+	var (
+		query string
+		args  []interface{}
+	)
+	if statusFilter != nil {
+		query = `SELECT COUNT(*) FROM appeals WHERE status = $1`
+		args = []interface{}{string(*statusFilter)}
+	} else {
+		query = `SELECT COUNT(*) FROM appeals`
 	}
 
-	if rows.Err() != nil {
-		return nil, fmt.Errorf("list pending appeals scan failed: %w", rows.Err())
+	var total int
+	if err := dbTx.QueryRow(ctx, query, args...).Scan(&total); err != nil {
+		return 0, fmt.Errorf("count all appeals failed: %w", err)
 	}
-
-	return appeals, nil
+	return total, nil
 }
 
 // scanRow scans an appeal from a row.

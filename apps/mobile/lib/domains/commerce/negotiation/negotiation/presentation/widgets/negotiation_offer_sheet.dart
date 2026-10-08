@@ -13,6 +13,9 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:labuda/core/core.dart';
+import 'package:labuda/shared/utils/money_input_formatter.dart';
+import 'package:labuda/shared/widgets/app_bottom_sheet_base.dart';
+import 'package:labuda/shared/widgets/app_text_field.dart';
 
 class NegotiationOfferSheet extends StatefulWidget {
   const NegotiationOfferSheet({
@@ -33,25 +36,20 @@ class NegotiationOfferSheet extends StatefulWidget {
     required String productTitle,
     required Future<String?> Function(int price) onSubmit,
   }) async {
-    final sent = await showModalBottomSheet<bool>(
+    final sent = await AppBottomSheetBase.show<bool>(
       context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (context) => NegotiationOfferSheet(
-        productTitle: productTitle,
-        onSubmit: onSubmit,
-      ),
+      title: 'Negosiasi Harga',
+      content:
+          NegotiationOfferSheet(productTitle: productTitle, onSubmit: onSubmit),
     );
     return sent ?? false;
   }
 
   @override
-  State<NegotiationOfferSheet> createState() =>
-      _NegotiationOfferSheetState();
+  State<NegotiationOfferSheet> createState() => _NegotiationOfferSheetState();
 }
 
-class _NegotiationOfferSheetState
-    extends State<NegotiationOfferSheet> {
+class _NegotiationOfferSheetState extends State<NegotiationOfferSheet> {
   final _formKey = GlobalKey<FormState>();
   final _priceController = TextEditingController();
   bool _submitting = false;
@@ -66,7 +64,8 @@ class _NegotiationOfferSheetState
   Future<void> _submit() async {
     if (_submitting) return;
     if (!(_formKey.currentState?.validate() ?? false)) return;
-    final price = (double.tryParse(_priceController.text) ?? 0).toInt();
+    // Canonical money parse — grouped display in, integer business value out.
+    final price = MoneyInputFormatter.parseAmount(_priceController.text) ?? 0;
     setState(() {
       _submitting = true;
       _failure = null;
@@ -86,63 +85,39 @@ class _NegotiationOfferSheetState
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-      ),
-      child: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(
-            AppMetrics.p16,
-            AppMetrics.p0,
-            AppMetrics.p16,
-            AppMetrics.p16,
-          ),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Negosiasi Harga',
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  widget.productTitle,
-                  style: const TextStyle(
-                    fontSize: AppType.s14,
+    return Form(
+      key: _formKey,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            widget.productTitle,
+                  style: context.typeRoles.titleCompact.copyWith(
                     fontWeight: FontWeight.w500,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'Masukkan harga tawaran Anda',
-                  style: TextStyle(
-                    fontSize: AppType.s12,
+                  style: context.typeRoles.bodyDense.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
                 ),
                 const SizedBox(height: 16),
-                TextFormField(
+                AppTextField(
                   controller: _priceController,
                   keyboardType: TextInputType.number,
+                  inputFormatters: const [MoneyInputFormatter()],
                   enabled: !_submitting,
                   autofocus: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Tawaran harga Anda',
-                    prefixText: 'Rp ',
-                    border: OutlineInputBorder(),
-                  ),
+                  labelText: 'Tawaran harga Anda',
+                  prefixText: 'Rp ',
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Masukkan harga tawaran';
                     }
-                    final price = double.tryParse(value);
+                    final price = MoneyInputFormatter.parseAmount(value);
                     if (price == null) return 'Harga tidak valid';
                     if (price <= 0) return 'Harga harus lebih dari 0';
                     return null;
@@ -176,7 +151,9 @@ class _NegotiationOfferSheetState
                             ? const SizedBox(
                                 height: 18,
                                 width: 18,
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
                               )
                             : const Text(
                                 'Kirim Penawaran',
@@ -188,9 +165,6 @@ class _NegotiationOfferSheetState
                 ),
               ],
             ),
-          ),
-        ),
-      ),
     );
   }
 }

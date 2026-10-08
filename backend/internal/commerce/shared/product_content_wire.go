@@ -4,9 +4,11 @@ package shared
 //
 // CANONICAL TRUTH (owner-locked):
 //   - Product is the single content authority (title, description, media,
-//     fish attributes, farm address, preparation).
+//     fish attributes, preparation).
 //   - BOTH sale channels (for_sale + auction) emit the SAME key set.
 //   - BOTH payload classes (list/search + detail) emit the SAME key set.
+//   - There is no product-level origin address: every product's origin is the
+//     seller account's primary address.
 //
 // What legitimately differs per channel is the economics slot (price/quantity/
 // negotiation vs start_price/bid_increment/current_bid/end_at) and what
@@ -26,6 +28,5 @@ var ProductContentWireKeys = []string{
 	"breeder",
 	"bloodline",
 	"certificates",
-	"farm_address_id",
 	"preparation_time",
 }

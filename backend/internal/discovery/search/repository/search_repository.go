@@ -30,6 +30,6 @@ type SearchRepository interface {
 	// Auction Search
 	// AUCTION SEARCH ELIGIBILITY (Phase 3.5):
 	// Only searches auctions with status IN ('scheduled', 'active', 'ended')
-	// Draft and cancelled auctions are NOT searchable
+	// Cancelled, lapsed and waiting_settlement auctions are NOT searchable
 	SearchAuctions(ctx context.Context, tx db.Tx, filters entity.SearchFilters) ([]*entity.AuctionPreview, int, error)
 }

@@ -93,6 +93,7 @@ class ForSaleController {
     String sellerId, {
     int page = 1,
     int pageSize = 20,
+    bool includeWithdrawn = false,
   }) async {
     try {
       _logger.info(
@@ -103,6 +104,7 @@ class ForSaleController {
         sellerId,
         page: page,
         pageSize: pageSize,
+        includeWithdrawn: includeWithdrawn,
       );
 
       result.fold(
@@ -243,36 +245,4 @@ class ForSaleController {
     }
   }
 
-  /// Update fixed-price sale status
-  Future<Result<ForSale>> updateForSaleStatus(
-    String forSaleId,
-    ForSaleStatus status,
-  ) async {
-    try {
-      _logger.info(
-        'Updating fixed-price sale status',
-        extra: {'id': forSaleId, 'status': status.name},
-      );
-      final result = await _repository.updateForSaleStatus(forSaleId, status);
-
-      result.fold(
-        (error) => _logger.error(
-          'Failed to update fixed-price sale status',
-          extra: {'error': error},
-        ),
-        (forSale) => _logger.info(
-          'Successfully updated fixed-price sale status',
-          extra: {'id': forSale.forSaleId, 'status': status.name},
-        ),
-      );
-
-      return result;
-    } catch (e, stackTrace) {
-      _logger.error(
-        'Unexpected error in updateForSaleStatus',
-        extra: {'error': e.toString(), 'stackTrace': stackTrace.toString()},
-      );
-      return Result.error('Unexpected error: ${e.toString()}');
-    }
-  }
 }

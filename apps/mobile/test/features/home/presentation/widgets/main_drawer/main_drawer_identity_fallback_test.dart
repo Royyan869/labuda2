@@ -105,7 +105,6 @@ Widget _wrap(AuthController controller) {
           onHandleSignOut: () {},
           onHandleSettings: () {},
           onHandleProfile: () {},
-          onHandleComingSoon: (context, message) {},
         ),
       ),
     ),

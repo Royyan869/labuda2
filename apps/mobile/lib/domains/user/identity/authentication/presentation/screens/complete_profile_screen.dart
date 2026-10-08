@@ -132,22 +132,23 @@ class _CompleteProfileScreenState extends ConsumerState<CompleteProfileScreen> {
     if (_inlineError != null) {
       return Text(
         _inlineError!,
-        style: TextStyle(color: scheme.error, fontSize: AppType.s12),
+        style: context.typeRoles.labelMicro.copyWith(color: scheme.error),
       );
     }
     if (_isUsernameValid) {
       return Text(
         'Username terlihat baik — ketersediaan diputuskan server saat disimpan.',
-        style: TextStyle(
+        style: context.typeRoles.labelMicro.copyWith(
           color: scheme.onSurfaceVariant,
-          fontSize: AppType.s12,
         ),
       );
     }
     if (_usernameController.text.isNotEmpty) {
       return Text(
         'Gunakan 3-30 karakter: huruf kecil, angka, dan underscore.',
-        style: TextStyle(color: context.statusColors.warning, fontSize: AppType.s12),
+        style: context.typeRoles.labelMicro.copyWith(
+          color: context.statusColors.warning,
+        ),
       );
     }
     return const SizedBox.shrink();
@@ -170,10 +171,7 @@ class _CompleteProfileScreenState extends ConsumerState<CompleteProfileScreen> {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              scheme.surfaceContainerLow,
-              scheme.surface,
-            ],
+            colors: [scheme.surfaceContainerLow, scheme.surface],
           ),
         ),
         child: SafeArea(
@@ -238,9 +236,7 @@ class _CompleteProfileScreenState extends ConsumerState<CompleteProfileScreen> {
                       decoration: BoxDecoration(
                         color: scheme.surfaceContainerLow,
                         borderRadius: BorderRadius.circular(AppShape.r12),
-                        border: Border.all(
-                          color: scheme.outlineVariant,
-                        ),
+                        border: Border.all(color: scheme.outlineVariant),
                       ),
                       child: Row(
                         children: [
@@ -253,8 +249,7 @@ class _CompleteProfileScreenState extends ConsumerState<CompleteProfileScreen> {
                           Expanded(
                             child: Text(
                               'Signed in with: $email',
-                              style: TextStyle(
-                                fontSize: AppType.s14,
+                              style: context.typeRoles.bodyDense.copyWith(
                                 color: scheme.onSurface,
                               ),
                             ),
@@ -274,9 +269,9 @@ class _CompleteProfileScreenState extends ConsumerState<CompleteProfileScreen> {
                           ? _submitProfile
                           : null,
                       style: ElevatedButton.styleFrom(
-                        disabledBackgroundColor:
-                            scheme.surfaceContainerHighest,
-                        padding: const EdgeInsets.symmetric(vertical: AppMetrics.p16),
+                        padding: const EdgeInsets.symmetric(
+                          vertical: AppMetrics.p16,
+                        ),
                       ),
                       child: _isSubmitting
                           ? SizedBox(
@@ -284,7 +279,7 @@ class _CompleteProfileScreenState extends ConsumerState<CompleteProfileScreen> {
                               height: 20,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                color: scheme.onPrimary,
+                                color: scheme.onSurfaceVariant,
                               ),
                             )
                           : const Text('Complete Profile'),
@@ -304,12 +299,13 @@ class _CompleteProfileScreenState extends ConsumerState<CompleteProfileScreen> {
                                   .signOut();
                             },
                       style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: AppMetrics.p16),
+                        padding: const EdgeInsets.symmetric(
+                          vertical: AppMetrics.p16,
+                        ),
                       ),
                       child: Text(
                         'Sign Out',
-                        style: TextStyle(
-                          fontSize: AppType.s16,
+                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
                           color: scheme.onSurfaceVariant,
                         ),
                       ),

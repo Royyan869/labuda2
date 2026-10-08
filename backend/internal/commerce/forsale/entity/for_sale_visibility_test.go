@@ -12,7 +12,7 @@ func TestDeriveVisibility(t *testing.T) {
 
 	require.Equal(t, ForSaleVisibilityPublic, DeriveVisibility(ForSaleStatusActive, &publishedAt))
 	require.Equal(t, ForSaleVisibilityPrivate, DeriveVisibility(ForSaleStatusActive, nil))
-	require.Equal(t, ForSaleVisibilityPrivate, DeriveVisibility(ForSaleStatusDraft, &publishedAt))
+	require.Equal(t, ForSaleVisibilityPrivate, DeriveVisibility(ForSaleStatus("unknown"), &publishedAt))
 	require.Equal(t, ForSaleVisibilityPublic, DeriveVisibility(ForSaleStatusSold, &publishedAt))
 	require.Equal(t, ForSaleVisibilityPublic, DeriveVisibility(ForSaleStatusWithdrawn, &publishedAt))
 }

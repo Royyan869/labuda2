@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -6,6 +9,12 @@ import 'package:labuda/domains/social/follow/data/follow_providers.dart';
 import 'package:labuda/domains/social/follow/domain/entities/follow_entity.dart';
 import 'package:labuda/domains/social/follow/domain/repositories/i_follow_repository.dart';
 import 'package:labuda/domains/social/follow/presentation/screens/follow_list_screen.dart';
+import 'package:labuda/domains/user/identity/authentication/domain/entities/account_status.dart';
+import 'package:labuda/generated/app_localizations.dart';
+import 'package:labuda/shared/governance/content_lifecycle.dart';
+import 'package:labuda/shared/widgets/empty_state.dart';
+import 'package:labuda/shared/widgets/loading_indicator.dart';
+import 'package:labuda/shared/widgets/page_error_state.dart';
 
 class _FakeAuthController extends AuthController {
   _FakeAuthController(this.stateValue);
@@ -20,28 +29,13 @@ class _RecordingNavigationHandler implements NavigationHandler {
   String? lastUserId;
 
   @override
-  void navigateBack() {}
-
-  @override
-  void navigateToAddressPayment() {}
-
-  @override
   void navigateToAuction(String auctionId) {}
-
-  @override
-  void navigateToBusinessDocuments() {}
 
   @override
   void navigateToChat() {}
 
   @override
   void navigateToChatConversation(String conversationId) {}
-
-  @override
-  void navigateToCheckout() {}
-
-  @override
-  void navigateToCoinBalance() {}
 
   @override
   void navigateToCoinHistory() {}
@@ -53,9 +47,6 @@ class _RecordingNavigationHandler implements NavigationHandler {
   void navigateToCreateContent() {}
 
   @override
-  void navigateToEditProfile() {}
-
-  @override
   void navigateToExternalProductDetail(String productId) {}
 
   @override
@@ -65,16 +56,10 @@ class _RecordingNavigationHandler implements NavigationHandler {
   void navigateToHome() {}
 
   @override
-  void navigateToKycVerification({String? userId}) {}
-
-  @override
   void navigateToForSaleDetail(String fixedPriceSaleId) {}
 
   @override
   void navigateToSellerRenewal() {}
-
-  @override
-  void navigateToLogin() {}
 
   @override
   void navigateToNotifications() {}
@@ -86,43 +71,19 @@ class _RecordingNavigationHandler implements NavigationHandler {
   void navigateToOrderDetail(String orderId) {}
 
   @override
-  void navigateToOrderHistory() {}
-
-  @override
   void navigateToOrders() {}
-
-  @override
-  void navigateToPayment(paymentRequest) {}
-
-  @override
-  void navigateToPrivacySettings() {}
-
-  @override
-  void navigateToBlockedUsers() {}
 
   @override
   void navigateToProfile() {}
 
   @override
-  void navigateToRegister() {}
-
-  @override
   void navigateToSavedItems() {}
-
-  @override
-  void navigateToSecurity() {}
 
   @override
   void navigateToSellerDashboard() {}
 
   @override
   void navigateToSellerEarnings() {}
-
-  @override
-  void navigateToSellerForSales() {}
-
-  @override
-  void navigateToSellerRefundList() {}
 
   @override
   void navigateToSellerUpgrade() {}
@@ -152,39 +113,74 @@ class _RecordingNavigationHandler implements NavigationHandler {
 
   @override
   void navigateToWelcome() {}
-
-  @override
-  void showBottomSheet<T>(Widget Function(BuildContext p1) builder) {}
-
-  @override
-  void showModalDialog<T>(Widget Function(BuildContext p1) builder) {}
-
-  @override
-  void showSnackBar(String message, {bool isError = false}) {}
 }
 
-class _FakeFollowRepository implements IFollowRepository {
-  _FakeFollowRepository({required this.followers, required this.following});
+/// Scripted repository: the screen runs the REAL stream providers, so every
+/// watch subscription (initial, refresh, retry, post-mutation invalidation)
+/// is observable per call.
+class _ScriptedFollowRepository implements IFollowRepository {
+  _ScriptedFollowRepository({this.onWatchFollowers, this.onWatchFollowing});
 
-  final Stream<List<FollowableUser>> followers;
-  final Stream<List<FollowableUser>> following;
+  Stream<List<FollowableUser>> Function(int call)? onWatchFollowers;
+  Stream<List<FollowableUser>> Function(int call)? onWatchFollowing;
+
+  int watchFollowersCalls = 0;
+  int watchFollowingCalls = 0;
+  final List<({String followerId, String followingId})> followCalls = [];
+  final List<({String followerId, String followingId})> unfollowCalls = [];
+  bool followSucceeds = true;
+  bool unfollowSucceeds = true;
+  String followErrorText = 'boom-follow';
+  bool statusResult = false;
 
   @override
-  Future<Result<bool>> blockUser({
-    required String userId,
-    required String targetUserId,
-  }) async => Result.success(true);
+  Stream<List<FollowableUser>> watchFollowers(String userId) {
+    watchFollowersCalls++;
+    final handler = onWatchFollowers;
+    if (handler != null) return handler(watchFollowersCalls);
+    return Stream.value(const []);
+  }
 
   @override
-  Future<Result<bool>> checkFollowStatus({
-    required String followerId,
-    required String followingId,
-  }) async => Result.success(false);
+  Stream<List<FollowableUser>> watchFollowing(String userId) {
+    watchFollowingCalls++;
+    final handler = onWatchFollowing;
+    if (handler != null) return handler(watchFollowingCalls);
+    return Stream.value(const []);
+  }
 
   @override
   Future<Result<bool>> followUser({
     required String followerId,
     required String followingId,
+  }) async {
+    followCalls.add((followerId: followerId, followingId: followingId));
+    return followSucceeds
+        ? Result.success(true)
+        : Result.error(followErrorText);
+  }
+
+  @override
+  Future<Result<bool>> unfollowUser({
+    required String followerId,
+    required String followingId,
+  }) async {
+    unfollowCalls.add((followerId: followerId, followingId: followingId));
+    return unfollowSucceeds
+        ? Result.success(true)
+        : Result.error(followErrorText);
+  }
+
+  @override
+  Future<Result<bool>> checkFollowStatus({
+    required String followerId,
+    required String followingId,
+  }) async => Result.success(statusResult);
+
+  @override
+  Future<Result<bool>> blockUser({
+    required String userId,
+    required String targetUserId,
   }) async => Result.success(true);
 
   @override
@@ -229,12 +225,6 @@ class _FakeFollowRepository implements IFollowRepository {
   }) async => Result.success(const []);
 
   @override
-  Future<Result<bool>> unfollowUser({
-    required String followerId,
-    required String followingId,
-  }) async => Result.success(true);
-
-  @override
   Future<Result<bool>> unblockUser({
     required String userId,
     required String targetUserId,
@@ -259,32 +249,57 @@ class _FakeFollowRepository implements IFollowRepository {
       lastUpdated: DateTime.now(),
     ),
   );
-
-  @override
-  Stream<List<FollowableUser>> watchFollowers(String userId) => followers;
-
-  @override
-  Stream<List<FollowableUser>> watchFollowing(String userId) => following;
 }
 
 AuthState _unauthenticated() => const AuthState.unauthenticated();
+
+AuthUser _me() => AuthUser(
+  id: 'me-1',
+  createdAt: DateTime.utc(2026, 1, 1),
+  updatedAt: DateTime.utc(2026, 1, 1),
+  email: 'me@example.com',
+  username: 'me',
+  isEmailVerified: true,
+  accountStatus: AccountStatus.active,
+  roles: const [UserRole.user],
+  provider: AuthProvider.email,
+  lifecycle: ContentLifecycle.active,
+);
 
 Widget _wrap({
   required Widget child,
   required IFollowRepository repository,
   required _RecordingNavigationHandler navigation,
+  AuthState? authState,
 }) {
   return ProviderScope(
+    // Retry is disabled so a failed stream does not schedule timers.
+    retry: (retryCount, error) => null,
     overrides: [
       authControllerProvider.overrideWith(
-        () => _FakeAuthController(_unauthenticated()),
+        () => _FakeAuthController(authState ?? _unauthenticated()),
       ),
       followRepositoryProvider.overrideWithValue(repository),
       navigationHandlerProvider.overrideWithValue(navigation),
     ],
-    child: MaterialApp(home: child),
+    child: MaterialApp(
+      home: child,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      locale: const Locale('id'),
+    ),
   );
 }
+
+FollowableUser _user(String id, String username) => FollowableUser(
+  id: id,
+  username: username,
+  avatar: null,
+  userType: UserType.buyer,
+  lifecycle: 'active',
+  followersCount: 1,
+  followingCount: 2,
+);
 
 List<FollowableUser> _followersFixture() {
   return [
@@ -330,14 +345,46 @@ List<FollowableUser> _followingFixture() {
   ];
 }
 
+_ScriptedFollowRepository _repoOf({
+  List<FollowableUser>? followers,
+  List<FollowableUser>? following,
+}) => _ScriptedFollowRepository(
+  onWatchFollowers: (_) => Stream.value(followers ?? const []),
+  onWatchFollowing: (_) => Stream.value(following ?? const []),
+);
+
+Future<void> _pumpFollowers(
+  WidgetTester tester, {
+  required _ScriptedFollowRepository repository,
+  required _RecordingNavigationHandler navigation,
+  AuthState? authState,
+  String userId = 'owner-1',
+  String? username = 'Owner',
+  bool settle = true,
+}) async {
+  await tester.pumpWidget(
+    _wrap(
+      repository: repository,
+      navigation: navigation,
+      authState: authState,
+      child: FollowListScreen(
+        userId: userId,
+        type: FollowListType.followers,
+        username: username,
+      ),
+    ),
+  );
+  if (settle) await tester.pumpAndSettle();
+}
+
 void main() {
   testWidgets(
     'followers mode preserves order, handles empty username, and navigates with stable ID',
     (tester) async {
       final navigation = _RecordingNavigationHandler();
-      final repository = _FakeFollowRepository(
-        followers: Stream.value(_followersFixture()),
-        following: Stream.value(_followingFixture()),
+      final repository = _ScriptedFollowRepository(
+        onWatchFollowers: (_) => Stream.value(_followersFixture()),
+        onWatchFollowing: (_) => Stream.value(_followingFixture()),
       );
 
       await tester.pumpWidget(
@@ -381,9 +428,9 @@ void main() {
     tester,
   ) async {
     final navigation = _RecordingNavigationHandler();
-    final repository = _FakeFollowRepository(
-      followers: Stream.value(_followersFixture()),
-      following: Stream.value(_followingFixture()),
+    final repository = _ScriptedFollowRepository(
+      onWatchFollowers: (_) => Stream.value(_followersFixture()),
+      onWatchFollowing: (_) => Stream.value(_followingFixture()),
     );
 
     await tester.pumpWidget(
@@ -416,9 +463,9 @@ void main() {
     tester,
   ) async {
     final navigation = _RecordingNavigationHandler();
-    final repository = _FakeFollowRepository(
-      followers: Stream.value(_followersFixture()),
-      following: Stream.value(_followingFixture()),
+    final repository = _ScriptedFollowRepository(
+      onWatchFollowers: (_) => Stream.value(_followersFixture()),
+      onWatchFollowing: (_) => Stream.value(_followingFixture()),
     );
 
     await tester.pumpWidget(
@@ -437,5 +484,347 @@ void main() {
     expect(find.text("Owner's Following"), findsOneWidget);
     expect(find.text('@charlie'), findsOneWidget);
     expect(find.text('@bob'), findsNothing);
+  });
+
+  group('FollowListScreen — initial state', () {
+    testWidgets('first request shows LoadingIndicator, never empty/error', (
+      tester,
+    ) async {
+      final gate = StreamController<List<FollowableUser>>();
+      final repository = _ScriptedFollowRepository(
+        onWatchFollowers: (_) => gate.stream,
+      );
+      await _pumpFollowers(
+        tester,
+        repository: repository,
+        navigation: _RecordingNavigationHandler(),
+        settle: false,
+      );
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.byType(LoadingIndicator), findsOneWidget);
+      expect(find.byType(EmptyState), findsNothing);
+      expect(find.byType(PageErrorState), findsNothing);
+
+      gate.add(_followersFixture());
+      await tester.pumpAndSettle();
+      expect(find.text('@bob'), findsOneWidget);
+      await gate.close();
+    });
+
+    testWidgets('successful zero-result shows EmptyState per type', (
+      tester,
+    ) async {
+      final navigation = _RecordingNavigationHandler();
+      await _pumpFollowers(
+        tester,
+        repository: _repoOf(followers: const []),
+        navigation: navigation,
+      );
+
+      expect(find.byType(EmptyState), findsOneWidget);
+      expect(find.text('Belum ada pengikut'), findsOneWidget);
+      expect(find.byType(PageErrorState), findsNothing);
+      expect(find.byType(LoadingIndicator), findsNothing);
+
+      await tester.pumpWidget(
+        _wrap(
+          repository: _repoOf(following: const []),
+          navigation: navigation,
+          child: const FollowListScreen(
+            userId: 'owner-2',
+            type: FollowListType.following,
+            username: 'Owner',
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(EmptyState), findsOneWidget);
+      expect(find.text('Belum mengikuti siapa pun'), findsOneWidget);
+    });
+  });
+
+  group('FollowListScreen — initial failure', () {
+    testWidgets('failure with no data shows PageErrorState, retry reloads', (
+      tester,
+    ) async {
+      final repository = _ScriptedFollowRepository(
+        onWatchFollowers: (call) => call == 1
+            ? Stream<List<FollowableUser>>.error(Exception('boom-initial'))
+            : Stream.value([_user('user-x', 'xena')]),
+      );
+      await _pumpFollowers(
+        tester,
+        repository: repository,
+        navigation: _RecordingNavigationHandler(),
+      );
+
+      // CANONICAL error surface: safe localized copy only — the raw
+      // backend text must never reach the screen.
+      expect(find.byType(PageErrorState), findsOneWidget);
+      expect(find.text('Terjadi Kesalahan'), findsOneWidget);
+      expect(
+        find.text('Data belum bisa dimuat. Silakan coba lagi.'),
+        findsOneWidget,
+      );
+      expect(find.text('Coba Lagi'), findsOneWidget);
+      expect(find.textContaining('boom-initial'), findsNothing);
+      expect(find.byType(EmptyState), findsNothing);
+
+      // Retry executes the actual initial-load operation.
+      expect(repository.watchFollowersCalls, 1);
+      await tester.tap(find.widgetWithText(ElevatedButton, 'Coba Lagi'));
+      await tester.pumpAndSettle();
+
+      expect(repository.watchFollowersCalls, 2);
+      expect(find.byType(PageErrorState), findsNothing);
+      expect(find.text('@xena'), findsOneWidget);
+    });
+  });
+
+  group('FollowListScreen — refresh', () {
+    testWidgets('existing rows stay visible with refresh indicator', (
+      tester,
+    ) async {
+      final gate = StreamController<List<FollowableUser>>();
+      final repository = _ScriptedFollowRepository(
+        onWatchFollowers: (call) =>
+            call == 1 ? Stream.value([_user('user-a', 'anna')]) : gate.stream,
+      );
+      await _pumpFollowers(
+        tester,
+        repository: repository,
+        navigation: _RecordingNavigationHandler(),
+      );
+      expect(find.text('@anna'), findsOneWidget);
+
+      await tester.fling(
+        find.byType(CustomScrollView),
+        const Offset(0, 300),
+        1000,
+      );
+      // Allow the RefreshIndicator to fire onRefresh and the resubscribe to
+      // start (bounded: the gate stays open, so never settle here).
+      for (var i = 0; i < 50 && repository.watchFollowersCalls < 2; i++) {
+        await tester.pump(const Duration(milliseconds: 50));
+      }
+      expect(repository.watchFollowersCalls, 2);
+
+      // Refresh must not clear the list into full loading.
+      expect(find.text('@anna'), findsOneWidget);
+      expect(find.byType(LinearProgressIndicator), findsOneWidget);
+      expect(find.byType(LoadingIndicator), findsNothing);
+      expect(find.byType(PageErrorState), findsNothing);
+
+      gate.add([_user('user-b', 'bima')]);
+      await tester.pumpAndSettle();
+
+      expect(find.text('@bima'), findsOneWidget);
+      expect(find.text('@anna'), findsNothing);
+      expect(find.byType(LinearProgressIndicator), findsNothing);
+      await gate.close();
+    });
+
+    testWidgets(
+      'refresh failure keeps rows with inline banner, retry recovers',
+      (tester) async {
+        final repository = _ScriptedFollowRepository(
+          onWatchFollowers: (call) {
+            if (call == 1) {
+              return Stream.value([_user('user-a', 'anna')]);
+            }
+            if (call == 2) {
+              return Stream<List<FollowableUser>>.error(
+                Exception('boom-refresh'),
+              );
+            }
+            return Stream.value([_user('user-b', 'bima')]);
+          },
+        );
+        await _pumpFollowers(
+          tester,
+          repository: repository,
+          navigation: _RecordingNavigationHandler(),
+        );
+        expect(find.text('@anna'), findsOneWidget);
+
+        await tester.fling(
+          find.byType(CustomScrollView),
+          const Offset(0, 300),
+          1000,
+        );
+        await tester.pumpAndSettle();
+
+        // Valid data is preserved; failure renders inline, never full-page.
+        expect(find.text('@anna'), findsOneWidget);
+        expect(find.byType(PageErrorState), findsNothing);
+        expect(
+          find.text('Data belum bisa dimuat. Silakan coba lagi.'),
+          findsOneWidget,
+        );
+        expect(find.widgetWithText(TextButton, 'Coba Lagi'), findsOneWidget);
+        expect(find.textContaining('boom-refresh'), findsNothing);
+
+        // Retry executes refresh; success replaces stale data and clears banner.
+        await tester.tap(find.widgetWithText(TextButton, 'Coba Lagi'));
+        await tester.pumpAndSettle();
+
+        expect(repository.watchFollowersCalls, 3);
+        expect(find.text('@bima'), findsOneWidget);
+        expect(find.text('@anna'), findsNothing);
+        expect(
+          find.text('Data belum bisa dimuat. Silakan coba lagi.'),
+          findsNothing,
+        );
+      },
+    );
+  });
+
+  group('FollowListScreen — follow / unfollow mutation', () {
+    testWidgets('follow reloads through the canonical stream path', (
+      tester,
+    ) async {
+      final repository = _ScriptedFollowRepository(
+        onWatchFollowers: (_) => Stream.value([_user('user-x', 'xena')]),
+      );
+      // Viewing the signed-in owner's own list: the mutation invalidates
+      // this exact watched key.
+      await _pumpFollowers(
+        tester,
+        repository: repository,
+        navigation: _RecordingNavigationHandler(),
+        authState: AuthState.authenticated(_me(), emailVerified: true),
+        userId: 'me-1',
+      );
+      expect(find.text('@xena'), findsOneWidget);
+      expect(find.text('Follow'), findsOneWidget);
+
+      await tester.tap(find.text('Follow'));
+      await tester.pumpAndSettle();
+
+      expect(repository.followCalls, [
+        (followerId: 'me-1', followingId: 'user-x'),
+      ]);
+      // The mutation invalidated the canonical stream key: one reload.
+      expect(repository.watchFollowersCalls, 2);
+      expect(find.text('Mulai mengikuti'), findsOneWidget);
+      expect(find.text('@xena'), findsOneWidget);
+      expect(find.byType(PageErrorState), findsNothing);
+    });
+
+    testWidgets('unfollow reloads through the canonical stream path', (
+      tester,
+    ) async {
+      final repository = _ScriptedFollowRepository(
+        onWatchFollowers: (_) => Stream.value([_user('user-x', 'xena')]),
+      )..statusResult = true;
+      await _pumpFollowers(
+        tester,
+        repository: repository,
+        navigation: _RecordingNavigationHandler(),
+        authState: AuthState.authenticated(_me(), emailVerified: true),
+        userId: 'me-1',
+      );
+      expect(find.text('Following'), findsOneWidget);
+
+      await tester.tap(find.text('Following'));
+      await tester.pumpAndSettle();
+
+      expect(repository.unfollowCalls, [
+        (followerId: 'me-1', followingId: 'user-x'),
+      ]);
+      expect(repository.watchFollowersCalls, 2);
+      expect(find.text('Berhenti mengikuti'), findsOneWidget);
+      expect(find.text('@xena'), findsOneWidget);
+    });
+
+    testWidgets('failed mutation keeps rows and never reloads into empty', (
+      tester,
+    ) async {
+      final repository = _ScriptedFollowRepository(
+        onWatchFollowers: (_) => Stream.value([_user('user-x', 'xena')]),
+      )..followSucceeds = false;
+      await _pumpFollowers(
+        tester,
+        repository: repository,
+        navigation: _RecordingNavigationHandler(),
+        authState: AuthState.authenticated(_me(), emailVerified: true),
+      );
+
+      await tester.tap(find.text('Follow'));
+      await tester.pumpAndSettle();
+
+      expect(repository.followCalls, hasLength(1));
+      // Failure invalidates nothing: no reload, no wipe, no full-page error.
+      expect(repository.watchFollowersCalls, 1);
+      expect(find.text('@xena'), findsOneWidget);
+      expect(find.byType(PageErrorState), findsNothing);
+      expect(find.byType(EmptyState), findsNothing);
+    });
+  });
+
+  group('FollowListScreen — negative proof (static contract)', () {
+    String screenSource() => File(
+      'lib/domains/social/follow/presentation/screens/follow_list_screen.dart',
+    ).readAsStringSync().replaceAll('\r\n', '\n');
+
+    String statusSource() => File(
+      'lib/domains/social/follow/presentation/providers/follow_status_provider.dart',
+    ).readAsStringSync().replaceAll('\r\n', '\n');
+
+    test('canonical renderers own every page state', () {
+      final src = screenSource();
+      expect(src.contains('LoadingIndicator('), isTrue);
+      expect(src.contains('PageErrorState('), isTrue);
+      expect(src.contains('EmptyState('), isTrue);
+    });
+
+    test('no raw first-load spinner or local error renderer remains', () {
+      final src = screenSource();
+      expect(src.contains('CircularProgressIndicator('), isFalse);
+      expect(src.contains('_buildErrorState'), isFalse);
+    });
+
+    test('no raw technical error reaches the widget tree', () {
+      final src = screenSource();
+      expect(src.contains('error.toString()'), isFalse);
+      expect(src.contains('Text(error'), isFalse);
+    });
+
+    test('single reload path: refresh, never invalidate-and-clear', () {
+      final src = screenSource();
+      expect('ref.refresh('.allMatches(src).length, 1);
+      expect(src.contains('ref.invalidate(followersStreamProvider'), isFalse);
+      expect(src.contains('ref.invalidate(followingStreamProvider'), isFalse);
+    });
+
+    test('no duplicate authority in the touched surface', () {
+      final screen = screenSource();
+      expect(screen.contains('NotifierProvider'), isFalse);
+      expect(screen.contains('followListsProvider'), isFalse);
+      expect(screen.contains('FollowListsNotifier'), isFalse);
+      expect(statusSource().contains('followListsProvider'), isFalse);
+      expect(
+        File(
+          'lib/domains/social/follow/presentation/providers/follow_lists_provider.dart',
+        ).existsSync(),
+        isFalse,
+      );
+      expect(
+        File(
+          'lib/domains/social/follow/presentation/providers/follow_lists_provider.g.dart',
+        ).existsSync(),
+        isFalse,
+      );
+    });
+
+    test('mutations invalidate the canonical stream keys', () {
+      final src = statusSource();
+      expect(src.contains('ref.invalidate(followersStreamProvider('), isTrue);
+      expect(src.contains('ref.invalidate(followingStreamProvider('), isTrue);
+      expect(src.contains('ref.invalidate(followStatsStreamProvider('), isTrue);
+    });
   });
 }

@@ -1,94 +1,67 @@
-/// Simple Wilayah Provider
+/// Canonical Geography Providers
 ///
-/// Simplified version menggunakan FutureProvider saja
-/// Untuk state management yang simple tanpa StateNotifier complexity
-///
-/// UPDATED: Using LocalWilayahService for offline-first approach
+/// Province/city/district/village state, backed by the ONE canonical Geography
+/// API. There is no local dataset and no offline fallback — a second geography
+/// authority is forbidden.
 library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/models/wilayah_models.dart';
-import 'package:labuda/shared/services/local_wilayah_service.dart';
+import 'package:labuda/shared/services/geography_api_service.dart';
 
-/// Provider untuk list semua provinsi
-final provincesProvider = FutureProvider<List<Province>>((ref) async {
-  return await LocalWilayahService.getProvinces();
+/// The canonical Geography API service.
+final geographyApiServiceProvider = Provider<GeographyApiService>((ref) {
+  return GeographyApiService(
+    ref.watch(apiClientProvider),
+    logger: ref.watch(loggerServiceProvider),
+  );
 });
 
-/// Provider untuk list kota berdasarkan provinsi yang dipilih
+/// All provinces.
+final provincesProvider = FutureProvider<List<Province>>((ref) async {
+  final result = await ref.watch(geographyApiServiceProvider).getProvinces();
+  return result.fold((error) => throw Exception(error), (data) => data);
+});
+
+/// Regencies/cities of the selected province.
 final citiesProvider = FutureProvider.family<List<City>, String?>((
   ref,
   provinceId,
 ) async {
   if (provinceId == null || provinceId.isEmpty) {
-    return [];
+    return const [];
   }
-  return await LocalWilayahService.getCitiesByProvince(provinceId);
+  final result = await ref
+      .watch(geographyApiServiceProvider)
+      .getRegencies(provinceId);
+  return result.fold((error) => throw Exception(error), (data) => data);
 });
 
-/// Provider untuk list kecamatan berdasarkan kota yang dipilih
+/// Districts of the selected regency/city.
 final districtsProvider = FutureProvider.family<List<District>, String?>((
   ref,
   cityId,
 ) async {
   if (cityId == null || cityId.isEmpty) {
-    return [];
+    return const [];
   }
-  return await LocalWilayahService.getDistrictsByCity(cityId);
+  final result = await ref
+      .watch(geographyApiServiceProvider)
+      .getDistricts(cityId);
+  return result.fold((error) => throw Exception(error), (data) => data);
 });
 
-/// Provider untuk list desa berdasarkan kecamatan yang dipilih
+/// Villages of the selected district (each with its canonical postal code).
 final villagesProvider = FutureProvider.family<List<Village>, String?>((
   ref,
   districtId,
 ) async {
   if (districtId == null || districtId.isEmpty) {
-    return [];
+    return const [];
   }
-  return await LocalWilayahService.getVillagesByDistrict(districtId);
-});
-
-/// Provider untuk search desa berdasarkan query
-final villageSearchProvider =
-    FutureProvider.family<List<Village>, Map<String, String>>((
-      ref,
-      params,
-    ) async {
-      final districtId = params['districtId'];
-      final query = params['query'] ?? '';
-
-      if (districtId == null || districtId.isEmpty) {
-        return [];
-      }
-
-      return await LocalWilayahService.searchVillages(districtId, query);
-    });
-
-/// Utility provider untuk get provinsi by ID
-final provinceByIdProvider = FutureProvider.family<Province?, String>((
-  ref,
-  id,
-) async {
-  return await LocalWilayahService.getProvinceById(id);
-});
-
-/// Utility provider untuk get kota by ID
-final cityByIdProvider = FutureProvider.family<City?, String>((ref, id) async {
-  return await LocalWilayahService.getCityById(id);
-});
-
-/// Utility provider untuk get kecamatan by ID
-final districtByIdProvider = FutureProvider.family<District?, String>((
-  ref,
-  id,
-) async {
-  return await LocalWilayahService.getDistrictById(id);
-});
-
-/// Utility provider untuk get desa by ID
-final villageByIdProvider = FutureProvider.family<Village?, String>((
-  ref,
-  id,
-) async {
-  return await LocalWilayahService.getVillageById(id);
+  final result = await ref
+      .watch(geographyApiServiceProvider)
+      .getVillages(districtId);
+  return result.fold((error) => throw Exception(error), (data) => data);
 });

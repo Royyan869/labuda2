@@ -16,7 +16,6 @@ import (
 // rendering an empty card.
 func TestForSaleListResponse_CarriesCanonicalProductContentBlock(t *testing.T) {
 	for_sale := testForSale(uuid.New())
-	for_sale.Product.FarmAddressID = ptrUUID(uuid.New())
 	for_sale.Product.PreparationTime = "1_3_days"
 	sellerInfo := sellerdisplay.Info{
 		Username:           "seller_user",
@@ -35,8 +34,8 @@ func TestForSaleListResponse_CarriesCanonicalProductContentBlock(t *testing.T) {
 		}
 	}
 
-	if resp["farm_address_id"] != for_sale.Product.FarmAddressID {
-		t.Fatalf("farm_address_id = %#v, want %#v", resp["farm_address_id"], for_sale.Product.FarmAddressID)
+	if _, ok := resp["farm_address_id"]; ok {
+		t.Fatalf("LIST payload must not carry farm_address_id: %#v", resp["farm_address_id"])
 	}
 	if resp["preparation_time"] != "1_3_days" {
 		t.Fatalf("preparation_time = %#v, want short", resp["preparation_time"])
@@ -56,8 +55,4 @@ func TestForSaleListResponse_CarriesCanonicalProductContentBlock(t *testing.T) {
 	if _, ok := detail["viewer_capabilities"]; !ok {
 		t.Fatalf("DETAIL payload must carry viewer_capabilities")
 	}
-}
-
-func ptrUUID(v uuid.UUID) *uuid.UUID {
-	return &v
 }

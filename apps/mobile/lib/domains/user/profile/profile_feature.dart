@@ -54,7 +54,6 @@ export 'data/profile_providers.dart';
 
 // Domain use cases
 export 'domain/use_cases/get_profile_use_case.dart';
-export 'domain/use_cases/update_profile_use_case.dart';
 
 // ========================================
 // APPLICATION LAYER
@@ -77,12 +76,10 @@ export 'presentation/presentation.dart';
 // MIGRATION: Bootstrap pattern removed - now using data layer providers directly
 export 'presentation/providers/profile_about_provider.dart';
 export 'presentation/providers/profile_core_provider.dart'
-    hide profileProvider, ProfileActions;
+    hide profileProvider;
 export 'presentation/providers/profile_search_provider.dart';
 export 'presentation/providers/profile_stream_provider.dart';
 export 'presentation/providers/phone_verification_provider.dart';
-export 'presentation/providers/address_list_provider.dart'
-    hide primaryAddressProvider, addressCountProvider;
 export 'presentation/providers/bank_account_provider.dart';
 export 'presentation/providers/user_data_provider.dart';
 export 'presentation/providers/blocked_users_provider.dart';

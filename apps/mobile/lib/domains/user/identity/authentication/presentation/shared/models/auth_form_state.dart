@@ -1,50 +1,6 @@
 /// Type of authentication form
 enum AuthFormType { signIn, signUp, forgotPassword }
 
-/// Validation status for form fields
-enum FieldValidationStatus { unknown, invalid, valid, checking }
-
-/// Form field validation states
-class FormFieldValidation {
-  final FieldValidationStatus status;
-  final String? errorMessage;
-
-  const FormFieldValidation({
-    this.status = FieldValidationStatus.unknown,
-    this.errorMessage,
-  });
-
-  const FormFieldValidation.unknown()
-    : status = FieldValidationStatus.unknown,
-      errorMessage = null;
-
-  const FormFieldValidation.valid()
-    : status = FieldValidationStatus.valid,
-      errorMessage = null;
-
-  const FormFieldValidation.invalid(this.errorMessage)
-    : status = FieldValidationStatus.invalid;
-
-  const FormFieldValidation.checking()
-    : status = FieldValidationStatus.checking,
-      errorMessage = null;
-
-  bool get isUnknown => status == FieldValidationStatus.unknown;
-  bool get isValid => status == FieldValidationStatus.valid;
-  bool get isInvalid => status == FieldValidationStatus.invalid;
-  bool get isChecking => status == FieldValidationStatus.checking;
-
-  FormFieldValidation copyWith({
-    FieldValidationStatus? status,
-    String? errorMessage,
-  }) {
-    return FormFieldValidation(
-      status: status ?? this.status,
-      errorMessage: errorMessage ?? this.errorMessage,
-    );
-  }
-}
-
 /// Password visibility state
 class PasswordVisibility {
   final bool isPasswordVisible;
@@ -78,7 +34,7 @@ class PasswordVisibility {
 /// AuthFormState only tracks screen-level UI state.
 ///
 /// Mapping:
-/// - Widget (AuthTextField)  → Field-level validation
+/// - Widget (AppTextField)  → Field-level validation
 /// - Form (Flutter Form)     → Error display
 /// - Controller              → Form validity (true/false only)
 /// - Screen                  → Submit logic

@@ -56,9 +56,7 @@ class _BankAccountScreenState extends ConsumerState<BankAccountScreen> {
             return Center(
               child: Text(
                 result.error ?? 'Failed to load bank accounts',
-                style: TextStyle(
-                  color: scheme.onSurfaceVariant,
-                ),
+                style: TextStyle(color: scheme.onSurfaceVariant),
               ),
             );
           }
@@ -70,9 +68,7 @@ class _BankAccountScreenState extends ConsumerState<BankAccountScreen> {
         error: (error, stack) => Center(
           child: Text(
             'Error: $error',
-            style: TextStyle(
-              color: scheme.onSurfaceVariant,
-            ),
+            style: TextStyle(color: scheme.onSurfaceVariant),
           ),
         ),
       ),
@@ -114,9 +110,9 @@ class _BankAccountScreenState extends ConsumerState<BankAccountScreen> {
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.all(AppMetrics.p24),
-                 child: BankAccountEmptyStateWidget(
-                   onAddAccount: () => _showAddAccountDialog(userId),
-                 ),
+                child: BankAccountEmptyStateWidget(
+                  onAddAccount: () => _showAddAccountDialog(userId),
+                ),
               ),
             ),
           ],
@@ -128,8 +124,7 @@ class _BankAccountScreenState extends ConsumerState<BankAccountScreen> {
   Widget _buildSectionHeader(String title) {
     return Text(
       title,
-      style: TextStyle(
-        fontSize: AppType.s20,
+      style: context.typeRoles.titleSection.copyWith(
         fontWeight: FontWeight.bold,
         color: Theme.of(context).colorScheme.onSurface,
       ),
@@ -177,7 +172,9 @@ class _BankAccountScreenState extends ConsumerState<BankAccountScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: context.statusColors.error),
+            style: TextButton.styleFrom(
+              foregroundColor: context.statusColors.error,
+            ),
             child: const Text('Delete'),
           ),
         ],
@@ -193,18 +190,18 @@ class _BankAccountScreenState extends ConsumerState<BankAccountScreen> {
     if (!mounted) return;
 
     if (result.isSuccess) {
-      AppSnackBar.showSuccess(context, 'Bank account deleted successfully');
+      AppSnackBar.showSuccess(context, 'Rekening bank berhasil dihapus');
     } else {
       AppSnackBar.showError(
         context,
-        result.error ?? 'Failed to delete account',
+        result.error ?? 'Gagal menghapus rekening',
       );
     }
   }
 
   void _setPrimaryAccount(BankAccountEntity account, String userId) async {
     if (account.isDefault) {
-      AppSnackBar.showInfo(context, 'This account is already set as primary');
+      AppSnackBar.showInfo(context, 'Rekening ini sudah menjadi utama');
       return;
     }
 
@@ -214,11 +211,11 @@ class _BankAccountScreenState extends ConsumerState<BankAccountScreen> {
     if (!mounted) return;
 
     if (result.isSuccess) {
-      AppSnackBar.showSuccess(context, 'Primary account updated successfully');
+      AppSnackBar.showSuccess(context, 'Rekening utama diperbarui');
     } else {
       AppSnackBar.showError(
         context,
-        result.error ?? 'Failed to set primary account',
+        result.error ?? 'Gagal menetapkan rekening utama',
       );
     }
   }

@@ -23,9 +23,7 @@ class AuctionBid {
   final DateTime createdAt;
   //
   // PURGED: isWinning/isOutbid — the bid wire (bidToResponseWithBidderCard)
-  // never emitted these flags; they were always-false dead state. Canonical
-  // buyer bid-position authority is GET /api/v1/bidding (leading | outbid |
-  // won | lost | waiting_claim) mapped to BiddingItem.
+  // never emitted these flags; they were always-false dead state.
 
   const AuctionBid({
     required this.id,

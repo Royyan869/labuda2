@@ -31,13 +31,13 @@ func seedStage8Product(t *testing.T, ctx context.Context, pool *pgxpool.Pool, se
 	_, err := pool.Exec(ctx, `
 		INSERT INTO products (id, seller_id, title, description, media_urls, variety,
 			size_cm, age_months, gender, breeder, bloodline, certificates,
-			farm_address_id, preparation_time, created_at, updated_at)
+			preparation_time, created_at, updated_at)
 		VALUES ($1, $2, $3, $4, $5, $6,
 			$7, $8, $9, $10, $11, $12,
-			NULL, $13, NOW(), NOW())
+			$13, NOW(), NOW())
 	`, id, sellerID, "Canonical Koi", "The one true description",
 		`["https://cdn.test/koi.jpg"]`, "Kohaku",
-			50, 12, "female", "Acme Breeder", "Ogata", "{}",
+		50, 12, "female", "Acme Breeder", "Ogata", "{}",
 
 		"short")
 	require.NoError(t, err)
@@ -125,12 +125,12 @@ func TestProductContent_SingleAuthority_FPSReadsFromProduct(t *testing.T) {
 // has no local title/description fields (compile-time and runtime proof).
 func TestProductContent_NoDuplicateAuctionContent(t *testing.T) {
 	// Compile-time proof: entity.Auction no longer has Title/Description fields.
-	// Runtime proof: CreateDraft does not accept title/description; NewDraft
+	// Runtime proof: Create does not accept title/description; NewScheduled
 	// signature has no title/description/preparation parameters.
 	productID := uuid.New()
 	sellerID := uuid.New()
 	now := time.Now()
-	auction := auctionEntity.NewDraft(
+	auction := auctionEntity.NewScheduled(
 		sellerID, productID,
 		10000, 1000, nil,
 		now.Add(time.Hour), now.Add(25*time.Hour),

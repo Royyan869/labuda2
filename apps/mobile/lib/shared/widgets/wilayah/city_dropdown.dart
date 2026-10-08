@@ -41,8 +41,7 @@ class CityDropdown extends ConsumerWidget {
         if (labelText != null) ...[
           Text(
             labelText!,
-            style: TextStyle(
-              fontSize: AppType.s14,
+            style: context.typeRoles.bodyDense.copyWith(
               fontWeight: FontWeight.w500,
               color: scheme.onSurface,
             ),
@@ -91,10 +90,8 @@ class CityDropdown extends ConsumerWidget {
                             ),
                           ),
                           dropdownColor: scheme.surfaceContainerHigh,
-                          style: TextStyle(
-                            color: scheme.onSurface,
-                            fontSize: AppType.s16,
-                          ),
+                          style: Theme.of(context).textTheme.bodyLarge
+                              ?.copyWith(color: scheme.onSurface),
                           selectedItemBuilder: (context) {
                             return cities.map((city) {
                               return Text(

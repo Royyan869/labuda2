@@ -4,13 +4,16 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction_status.dart';
 import 'package:labuda/domains/commerce/catalog/shared/domain/entities/commerce_viewer_capabilities.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
+import 'package:labuda/shared/shared.dart';
 
-/// Bottom bar widget for auction detail actions
+/// Bottom bar widget for auction detail actions.
+///
+/// Business state only (viewer capabilities, status, trust gate). Chrome is
+/// owned by [BottomActionBar].
 class AuctionDetailBottomBar extends StatelessWidget {
   final Auction auction;
   final String currentUserId;
@@ -177,133 +180,40 @@ class AuctionDetailBottomBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      decoration: BoxDecoration(
-        color: scheme.surface,
-        boxShadow: [
-          BoxShadow(
-            color: scheme.shadow.withValues(alpha: 0.05),
-            blurRadius: 4,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p12),
-      child: SafeArea(
-        top: false,
-        child: _showSecondaryAction
-            ? _buildTerminalStateLayout(context)
-            : _buildNormalLayout(context),
-      ),
-    );
-  }
+    // Chat affordance — canonical viewer capability (can_chat) when present.
+    final leading = _showChat
+        ? [
+            BottomBarIconAction(
+              icon: Icons.chat_bubble_outline,
+              label: 'Chat',
+              onPressed: onChat,
+            ),
+          ]
+        : <BottomBarIconAction>[];
 
-  /// Build layout for terminal states with secondary action
-  /// TRANSACTION CLARITY: No dead-end - provide "Lihat Lelang Lain" button
-  Widget _buildTerminalStateLayout(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Row(
-      children: [
-        // Chat button — canonical viewer capability (can_chat) when present.
-        if (_showChat) ...[
-          _buildActionButton(
-            context,
-            icon: Icons.chat_bubble_outline,
-            label: 'Chat',
-            onTap: onChat,
-          ),
-          const SizedBox(width: 12),
-        ],
-        // Main action button (disabled, shows terminal state)
-        Expanded(
-          child: ElevatedButton(
-            onPressed: null,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: scheme.surfaceContainerHighest,
-              foregroundColor: scheme.onSurfaceVariant,
-              disabledBackgroundColor: scheme.surfaceContainerHighest,
-              disabledForegroundColor: scheme.onSurfaceVariant,
-              padding: const EdgeInsets.symmetric(vertical: AppMetrics.p16),
-            ),
-            child: Text(
-              _mainActionLabel,
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
+    if (_showSecondaryAction) {
+      // TRANSACTION CLARITY: No dead-end - provide "Lihat Lelang Lain" button.
+      // The terminal state renders as the disabled secondary; the browse CTA
+      // is the brand primary (one action fill — the old `scheme.secondary`
+      // fill was a second CTA colour authority).
+      return BottomActionBar(
+        leading: leading,
+        secondary: BottomBarAction(
+          label: _mainActionLabel,
+          onPressed: null,
         ),
-        const SizedBox(width: 8),
-        // Secondary action button - "Lihat Lelang Lain"
-        ElevatedButton(
+        primary: BottomBarAction(
+          label: 'Lihat Lelang Lain',
           onPressed: onBrowseOtherAuctions,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: scheme.secondary,
-            foregroundColor: scheme.onSecondary,
-            padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p16),
-          ),
-          child: const Text(
-            'Lihat Lelang Lain',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
         ),
-      ],
-    );
-  }
+      );
+    }
 
-  /// Build normal layout with single action button
-  Widget _buildNormalLayout(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Row(
-      children: [
-        // Chat button — canonical viewer capability (can_chat) when present.
-        if (_showChat) ...[
-          _buildActionButton(
-            context,
-            icon: Icons.chat_bubble_outline,
-            label: 'Chat',
-            onTap: onChat,
-          ),
-          const SizedBox(width: 12),
-        ],
-        // Main action button
-        Expanded(
-          child: ElevatedButton(
-            onPressed: _mainActionCallback,
-            style: ElevatedButton.styleFrom(
-              disabledBackgroundColor: scheme.surfaceContainerHighest,
-              disabledForegroundColor: scheme.onSurfaceVariant,
-              padding: const EdgeInsets.symmetric(vertical: AppMetrics.p16),
-            ),
-            child: Text(
-              _mainActionLabel,
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildActionButton(
-    BuildContext context, {
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-    Color? color,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            icon,
-            color: color ?? Theme.of(context).colorScheme.onSurfaceVariant,
-            size: AppIconSize.action,
-          ),
-          const SizedBox(height: 2),
-          Text(label, style: const TextStyle(fontSize: AppType.s12)),
-        ],
+    return BottomActionBar(
+      leading: leading,
+      primary: BottomBarAction(
+        label: _mainActionLabel,
+        onPressed: _mainActionCallback,
       ),
     );
   }

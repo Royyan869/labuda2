@@ -28,6 +28,7 @@ import 'package:labuda/domains/user/profile/domain/entities/profile_entity.dart'
 import 'package:labuda/domains/user/profile/domain/repositories/i_address_repository.dart';
 import 'package:labuda/domains/user/profile/presentation/providers/profile_stream_provider.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
+import 'package:labuda/shared/shared.dart';
 import 'package:mockito/mockito.dart';
 
 /// SCOPE 3 — canonical lifecycle split contract.
@@ -67,6 +68,11 @@ class _FakeAuthRepository implements IAuthRepository {
     String? username,
     String? bio,
     String? location,
+    String? coverPhotoUrl,
+    String? instagramHandle,
+    String? facebookHandle,
+    String? tiktokHandle,
+    String? twitterHandle,
     DateTime? dateOfBirth,
   }) async {
     updateProfileCalls++;
@@ -92,26 +98,13 @@ class _FakeAddressRepository implements IAddressRepository {
   }
 
   @override
-  Future<Result<List<AddressEntity>>> getAddressesByTag(
-    String userId,
-    AddressTag tag,
-  ) async {
-    return Result.success(
-      _addresses.where((address) => address.hasTag(tag)).toList(),
-    );
-  }
-
-  @override
   Future<Result<AddressEntity>> getAddressById(String addressId) async {
     throw UnimplementedError();
   }
 
   @override
-  Future<Result<AddressEntity?>> getPrimaryAddress(
-    String userId, {
-    AddressTag? tag,
-  }) async {
-    throw UnimplementedError();
+  Future<Result<AddressEntity?>> getPrimaryAddress(String userId) async {
+    return Result.success(_addresses.where((a) => a.isPrimary).firstOrNull);
   }
 
   @override
@@ -138,21 +131,8 @@ class _FakeAddressRepository implements IAddressRepository {
   }
 
   @override
-  Stream<Result<List<AddressEntity>>> watchAddresses(String userId) {
-    throw UnimplementedError();
-  }
-
-  @override
-  Stream<Result<List<AddressEntity>>> watchAddressesByTag(
-    String userId,
-    AddressTag tag,
-  ) {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<Result<int>> countAddresses(String userId, {AddressTag? tag}) {
-    throw UnimplementedError();
+  Future<Result<int>> countAddresses(String userId) async {
+    return Result.success(_addresses.length);
   }
 
   @override
@@ -215,16 +195,9 @@ class _FakeSellerRepository implements SellerRepository {
   }
 
   @override
-  Future<Result<SellerSubscription>> getSubscription(
-    String sellerId,
-  ) async {
+  Future<Result<SellerSubscription>> getSubscription(String sellerId) async {
     subscriptionCalls++;
     return Result.success(_subscription);
-  }
-
-  @override
-  Stream<SellerSubscription?> watchSubscription(String sellerId) {
-    throw UnimplementedError();
   }
 
   @override
@@ -277,7 +250,6 @@ ProfileEntity _profileFor(AuthUser user, {required String farmName}) {
 AddressEntity _senderAddressFor(String userId) {
   return AddressEntity.fromJson({
     'user_id': userId,
-    'tags': ['sender'],
     'recipient_name': 'Test Seller',
     'phone': '+62123456789',
     'province': {'id': 'province-1', 'name': 'Jawa Barat'},
@@ -477,7 +449,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Seller account is loading'), findsOneWidget);
-      expect(find.text('Registration mode'), findsNothing);
+      expect(find.text('Daftar Seller'), findsNothing);
       expect(find.text('Sudah Menjadi Seller'), findsNothing);
     });
 
@@ -502,16 +474,67 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Login diperlukan'), findsOneWidget);
-      expect(find.text('Registration mode'), findsNothing);
+      expect(find.text('Daftar Seller'), findsNothing);
       expect(find.text('Sudah Menjadi Seller'), findsNothing);
     });
 
-    testWidgets(
-      'never-seller enters registration mode and invokes onboarding',
-      (tester) async {
-        final binding = TestWidgetsFlutterBinding.ensureInitialized();
-        final urlLauncherCalls = _mockUrlLauncher(binding);
+    testWidgets('never-seller enters registration mode and invokes onboarding', (
+      tester,
+    ) async {
+      final binding = TestWidgetsFlutterBinding.ensureInitialized();
+      final urlLauncherCalls = _mockUrlLauncher(binding);
 
+      final user = _neverSeller();
+      final controller = _FakeAuthController(
+        AuthState.authenticated(user, emailVerified: true),
+      );
+      final authRepository = _FakeAuthRepository();
+      final addressRepository = _FakeAddressRepository([
+        _senderAddressFor(user.id),
+      ]);
+      final sellerRemoteDatasource = _FakeSellerRemoteDatasource()
+        ..paymentUrl = 'https://example.com/pay';
+
+      await tester.pumpWidget(
+        _wrap(
+          controller,
+          authRepository,
+          addressRepository,
+          sellerRemoteDatasource,
+          authUser: user,
+          farmName: 'Koi Baru',
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // Registration surface: the AppBar title is the canonical signal now
+      // that the secondary registration-mode banner moved to Page Info.
+      expect(find.text('Daftar Seller'), findsOneWidget);
+      // Registration-only surface: no renewal lifecycle copy anywhere.
+      expect(find.text('Perpanjang Seller'), findsNothing);
+      expect(find.text('Renewal mode'), findsNothing);
+      expect(find.text('Early renewal mode'), findsNothing);
+
+      await _pumpRegistrationFlow(tester);
+
+      await tester.tap(find.text('Bayar Sekarang'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 10));
+
+      expect(authRepository.updateProfileCalls, 1);
+      expect(sellerRemoteDatasource.onboardingCalls, 1);
+      expect(sellerRemoteDatasource.paymentCalls, 1);
+      expect(sellerRemoteDatasource.lastPaymentMethodCode, 'bca_va');
+      // Payment URLs are presented exclusively inside Labuda's internal WebView.
+      expect(urlLauncherCalls, isEmpty);
+
+      await _returnFromPaymentWebView(tester);
+    });
+
+    testWidgets(
+      'payment step uses the canonical trigger and forwards the selected method',
+      (tester) async {
         final user = _neverSeller();
         final controller = _FakeAuthController(
           AuthState.authenticated(user, emailVerified: true),
@@ -520,8 +543,7 @@ void main() {
         final addressRepository = _FakeAddressRepository([
           _senderAddressFor(user.id),
         ]);
-        final sellerRemoteDatasource = _FakeSellerRemoteDatasource()
-          ..paymentUrl = 'https://example.com/pay';
+        final sellerRemoteDatasource = _FakeSellerRemoteDatasource();
 
         await tester.pumpWidget(
           _wrap(
@@ -536,35 +558,27 @@ void main() {
 
         await tester.pumpAndSettle();
 
-        expect(find.text('Registration mode'), findsOneWidget);
-        expect(find.text('Daftar Seller'), findsOneWidget);
-        // Registration-only surface: no renewal lifecycle copy anywhere.
-        expect(find.text('Perpanjang Seller'), findsNothing);
-        expect(find.text('Renewal mode'), findsNothing);
-        expect(find.text('Early renewal mode'), findsNothing);
-
         await _pumpRegistrationFlow(tester);
 
-        await tester.tap(find.text('Bayar Sekarang'));
-        await tester.pump();
-        await tester.pump(const Duration(milliseconds: 10));
+        // The obsolete local renderer is replaced by the one canonical trigger.
+        expect(find.byType(PaymentMethodTrigger), findsOneWidget);
+        expect(find.text('BCA Virtual Account'), findsOneWidget);
 
-        expect(authRepository.updateProfileCalls, 1);
-        expect(sellerRemoteDatasource.onboardingCalls, 1);
-        expect(sellerRemoteDatasource.paymentCalls, 1);
-        expect(sellerRemoteDatasource.lastPaymentMethodCode, 'bca_va');
-        // Payment URLs are presented exclusively inside Labuda's internal WebView.
-        expect(urlLauncherCalls, isEmpty);
-
-        await _returnFromPaymentWebView(tester);
+        // Re-opening the canonical picker forwards the selected code: the
+        // current row renders checked.
+        await tester.tap(find.byIcon(Icons.chevron_right));
+        await tester.pumpAndSettle();
+        expect(find.byIcon(Icons.check_circle), findsOneWidget);
       },
     );
   });
 
-  group('SellerUpgradeWizardScreen — renewal separation (no wizard renewal)', () {
-    testWidgets(
-      'existing seller fails closed: renewal is not a wizard mode',
-      (tester) async {
+  group(
+    'SellerUpgradeWizardScreen — renewal separation (no wizard renewal)',
+    () {
+      testWidgets('existing seller fails closed: renewal is not a wizard mode', (
+        tester,
+      ) async {
         final user = _expiredSeller();
         final controller = _FakeAuthController(
           AuthState.authenticated(user, emailVerified: true),
@@ -591,7 +605,7 @@ void main() {
         // The wizard is not a renewal surface: it gates instead of running any
         // registration step for an existing seller.
         expect(find.text('Sudah Menjadi Seller'), findsOneWidget);
-        expect(find.text('Registration mode'), findsNothing);
+        expect(find.text('Daftar Seller'), findsNothing);
         expect(find.text('Renewal mode'), findsNothing);
         expect(find.text('Early renewal mode'), findsNothing);
         expect(find.text('Lanjut Lengkapi Data'), findsNothing);
@@ -600,134 +614,134 @@ void main() {
         expect(authRepository.updateProfileCalls, 0);
         expect(sellerRemoteDatasource.onboardingCalls, 0);
         expect(sellerRemoteDatasource.paymentCalls, 0);
-      },
-    );
+      });
 
-    testWidgets(
-      'existing seller gate forwards to the payment-only renewal screen',
-      (tester) async {
-        final user = _expiredSeller();
-        final controller = _FakeAuthController(
-          AuthState.authenticated(user, emailVerified: true),
-        );
-        final authRepository = _FakeAuthRepository();
-        final addressRepository = _FakeAddressRepository([
-          _senderAddressFor(user.id),
-        ]);
-        final sellerRemoteDatasource = _FakeSellerRemoteDatasource()
-          ..paymentUrl = 'https://example.com/pay';
+      testWidgets(
+        'existing seller gate forwards to the payment-only renewal screen',
+        (tester) async {
+          final user = _expiredSeller();
+          final controller = _FakeAuthController(
+            AuthState.authenticated(user, emailVerified: true),
+          );
+          final authRepository = _FakeAuthRepository();
+          final addressRepository = _FakeAddressRepository([
+            _senderAddressFor(user.id),
+          ]);
+          final sellerRemoteDatasource = _FakeSellerRemoteDatasource()
+            ..paymentUrl = 'https://example.com/pay';
 
-        await tester.pumpWidget(
-          _wrap(
-            controller,
-            authRepository,
-            addressRepository,
-            sellerRemoteDatasource,
-            authUser: user,
-            farmName: 'Koi Renewal',
-          ),
-        );
+          await tester.pumpWidget(
+            _wrap(
+              controller,
+              authRepository,
+              addressRepository,
+              sellerRemoteDatasource,
+              authUser: user,
+              farmName: 'Koi Renewal',
+            ),
+          );
 
-        await tester.pumpAndSettle();
+          await tester.pumpAndSettle();
 
-        await tester.tap(find.text('Buka Perpanjang Seller'));
-        await tester.pumpAndSettle();
+          await tester.tap(find.text('Buka Perpanjang Seller'));
+          await tester.pumpAndSettle();
 
-        // Canonical renewal screen: read-only context + payment method only.
-        expect(find.text('Bayar & Perpanjang'), findsOneWidget);
-        expect(find.text('Mode perpanjang'), findsOneWidget);
-        expect(find.text('Pembayaran'), findsNothing);
-        expect(find.text('Lanjut Lengkapi Data'), findsNothing);
-        expect(sellerRemoteDatasource.onboardingCalls, 0);
-        expect(sellerRemoteDatasource.paymentCalls, 0);
-      },
-    );
+          // Canonical renewal screen: read-only context + payment method only.
+          expect(find.text('Bayar & Perpanjang'), findsOneWidget);
+          expect(find.text('Mode perpanjang'), findsOneWidget);
+          expect(find.text('Pembayaran'), findsNothing);
+          expect(find.text('Lanjut Lengkapi Data'), findsNothing);
+          expect(sellerRemoteDatasource.onboardingCalls, 0);
+          expect(sellerRemoteDatasource.paymentCalls, 0);
+        },
+      );
 
-    testWidgets(
-      'principal switch recomputes registration versus existing-seller gate',
-      (tester) async {
-        final registrationUser = _neverSeller();
-        final existingSeller = _expiredSeller();
-        final controller = _FakeAuthController(
-          AuthState.authenticated(registrationUser, emailVerified: true),
-        );
-        final authRepository = _FakeAuthRepository();
-        final addressRepository = _FakeAddressRepository([
-          _senderAddressFor(registrationUser.id),
-          _senderAddressFor(existingSeller.id),
-        ]);
-        final sellerRemoteDatasource = _FakeSellerRemoteDatasource();
+      testWidgets(
+        'principal switch recomputes registration versus existing-seller gate',
+        (tester) async {
+          final registrationUser = _neverSeller();
+          final existingSeller = _expiredSeller();
+          final controller = _FakeAuthController(
+            AuthState.authenticated(registrationUser, emailVerified: true),
+          );
+          final authRepository = _FakeAuthRepository();
+          final addressRepository = _FakeAddressRepository([
+            _senderAddressFor(registrationUser.id),
+            _senderAddressFor(existingSeller.id),
+          ]);
+          final sellerRemoteDatasource = _FakeSellerRemoteDatasource();
 
-        await tester.pumpWidget(
-          ProviderScope(
-            overrides: [
-              authControllerProvider.overrideWith(() => controller),
-              auth_data.authRepositoryProvider.overrideWithValue(
-                authRepository,
-              ),
-              addressRepositoryProvider.overrideWithValue(addressRepository),
-              sellerRemoteDatasourceProvider.overrideWithValue(
-                sellerRemoteDatasource,
-              ),
-              sellerRepositoryProvider.overrideWithValue(
-                _FakeSellerRepository(
-                  initialSubscription: _subscriptionSnapshot(
-                    expiryDate: DateTime.utc(2026, 12, 31),
-                    paymentId: 'payment-baseline',
+          await tester.pumpWidget(
+            ProviderScope(
+              overrides: [
+                authControllerProvider.overrideWith(() => controller),
+                auth_data.authRepositoryProvider.overrideWithValue(
+                  authRepository,
+                ),
+                addressRepositoryProvider.overrideWithValue(addressRepository),
+                sellerRemoteDatasourceProvider.overrideWithValue(
+                  sellerRemoteDatasource,
+                ),
+                sellerRepositoryProvider.overrideWithValue(
+                  _FakeSellerRepository(
+                    initialSubscription: _subscriptionSnapshot(
+                      expiryDate: DateTime.utc(2026, 12, 31),
+                      paymentId: 'payment-baseline',
+                    ),
                   ),
                 ),
-              ),
-              upgrade_config.sellerUpgradeConfigProvider.overrideWith(
-                (ref) async => const SellerUpgradeConfigEntity(
-                  yearlyFee: 250000,
-                  durationDays: 365,
-                  isEnabled: true,
-                  renewalReminderDays: 30,
-                ),
-              ),
-              profileStreamProvider(registrationUser.id).overrideWith(
-                (ref) => Stream.value(
-                  _profileFor(registrationUser, farmName: 'Farm A'),
-                ),
-              ),
-              profileStreamProvider(existingSeller.id).overrideWith(
-                (ref) => Stream.value(
-                  _profileFor(existingSeller, farmName: 'Farm B'),
-                ),
-              ),
-            ],
-            child: MaterialApp.router(
-              routerConfig: GoRouter(
-                initialLocation: RoutePaths.sellerUpgrade,
-                routes: [
-                  GoRoute(
-                    path: RoutePaths.sellerUpgrade,
-                    builder: (context, state) =>
-                        const SellerUpgradeWizardScreen(),
+                upgrade_config.sellerUpgradeConfigProvider.overrideWith(
+                  (ref) async => const SellerUpgradeConfigEntity(
+                    yearlyFee: 250000,
+                    durationDays: 365,
+                    isEnabled: true,
+                    renewalReminderDays: 30,
                   ),
-                  GoRoute(
-                    path: RoutePaths.sellerRenewal,
-                    builder: (context, state) => const SellerRenewalScreen(),
+                ),
+                profileStreamProvider(registrationUser.id).overrideWith(
+                  (ref) => Stream.value(
+                    _profileFor(registrationUser, farmName: 'Farm A'),
                   ),
-                ],
+                ),
+                profileStreamProvider(existingSeller.id).overrideWith(
+                  (ref) => Stream.value(
+                    _profileFor(existingSeller, farmName: 'Farm B'),
+                  ),
+                ),
+              ],
+              child: MaterialApp.router(
+                routerConfig: GoRouter(
+                  initialLocation: RoutePaths.sellerUpgrade,
+                  routes: [
+                    GoRoute(
+                      path: RoutePaths.sellerUpgrade,
+                      builder: (context, state) =>
+                          const SellerUpgradeWizardScreen(),
+                    ),
+                    GoRoute(
+                      path: RoutePaths.sellerRenewal,
+                      builder: (context, state) => const SellerRenewalScreen(),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-        );
+          );
 
-        await tester.pumpAndSettle();
+          await tester.pumpAndSettle();
 
-        expect(find.text('Registration mode'), findsOneWidget);
-        expect(find.text('Sudah Menjadi Seller'), findsNothing);
+          expect(find.text('Daftar Seller'), findsOneWidget);
+          expect(find.text('Sudah Menjadi Seller'), findsNothing);
 
-        controller.update(
-          AuthState.authenticated(existingSeller, emailVerified: true),
-        );
-        await tester.pumpAndSettle();
+          controller.update(
+            AuthState.authenticated(existingSeller, emailVerified: true),
+          );
+          await tester.pumpAndSettle();
 
-        expect(find.text('Registration mode'), findsNothing);
-        expect(find.text('Sudah Menjadi Seller'), findsOneWidget);
-      },
-    );
-  });
+          expect(find.text('Daftar Seller'), findsNothing);
+          expect(find.text('Sudah Menjadi Seller'), findsOneWidget);
+        },
+      );
+    },
+  );
 }

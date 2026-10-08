@@ -180,17 +180,19 @@ class _ChatInputAreaState extends ConsumerState<ChatInputArea> {
             ),
           ),
           const SizedBox(width: 8),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   'Replying to...',
-                  style: TextStyle(fontSize: AppType.s12, fontWeight: FontWeight.bold),
+                  style: context.typeRoles.labelMicro.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 Text(
                   'Message content preview...',
-                  style: TextStyle(fontSize: AppType.s12),
+                  style: context.typeRoles.labelMicro,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -198,7 +200,7 @@ class _ChatInputAreaState extends ConsumerState<ChatInputArea> {
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.close, size: AppIconSize.inlineGlyph),
+            icon: const Icon(Icons.close, size: AppIconSize.inlineGlyph, semanticLabel: 'Tutup'),
             onPressed: _clearReply,
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(),

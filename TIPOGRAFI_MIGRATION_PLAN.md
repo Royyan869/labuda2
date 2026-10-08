@@ -1,10 +1,25 @@
 # TIPOGRAFI SATU AUTHORITY — RENCANA MIGRASI `AppType.s*` → role `textTheme`
 
 Status: **Tahap 0 SELESAI**, **Tahap 1 SELESAI** (extension bernama terpasang),
-**Irisan 1 SELESAI**, **Irisan 2 SELESAI**, **Irisan 3 SELESAI**,
+**Irisan 1–12 SELESAI**,
 **DEDUPE BADGE + TAIL 9 KE labelMicro SELESAI**, **gate M3-ladder DIPERBAIKI dari null==null → terbukti bisa gagal**,
 **FONDASI 2026-10-02 SELESAI** (tangga tipe dipangkas 17 → 5 langkah);
-irisan 2 ke atas tidak lagi tertahan.
+**OTORITAS TIPE FINAL 2026-10-03 SELESAI** (role derive dari geometri M3 yang
+di-resolve; `AppType` dibekukan sebagai utang migrasi); irisan 2 ke atas tidak
+lagi tertahan.
+
+> **OTORITAS TIPE FINAL 2026-10-03.** `AppTypeRoles` bukan lagi turunan
+> `AppType`: `AppTypeRoles.fromResolved(TextTheme)` membaca geometri M3 yang
+> sudah di-resolve (`bodySmall`/`bodyMedium`/`bodyLarge`/`headlineSmall`) plus
+> satu langkah milik extension, `AppTypeRoles.sectionStep = 20` (satu-satunya
+> langkah yang M3 2021 tidak punya). `AppType` kini PERMUKAAN MIGRASI yang
+> dibekukan — tema tidak lagi membacanya — dan ratchet tipe mematok cap
+> per-token ke jumlah konsumen PERSIS (s12 387 · s14 401 · s16 198 · s20 97 ·
+> s24 25 = **1108 rujukan / 245 file**, per 2026-10-03), jadi satu `AppType.s*`
+> baru langsung merah. Migrasi irisan 4… berjalan dari sini; target akhir
+> menghapus `AppType`. Bukti: `test/core/theme` + `count_badge` = +71 lulus;
+> negatif: fork `bodySmall` 13 membuat `labelMicro` ikut 13 (bukan
+> `AppType.s12`), dan berkas tema membaca nol token ladder.
 
 > **FONDASI 2026-10-02 — tangga dipangkas 17 → 5.** `AppType` kini hanya
 > `s12 · s14 · s16 · s20 · s24`, dan `AppTypeRoles` di-retune ke lima langkah
@@ -315,4 +330,147 @@ tetap hidup, dan `AppType` masuk daftar "JANGAN hidupkan kembali" di
       rujukan) konvergen ke `labelMicro` (9→10; w600 + height 1.1 tetap di
       renderer), cap `s9` 3→0. Sisa tail: 8 (badge toolbar social) & 8.5
       (wizard) tetap di luar tangga — bukan badge app-bar (hijau).
-- [ ] Tahap 2 — irisan 4…13 (shared ~11 → search 14 → finance 25 → dst.).
+- [x] Irisan 4 — `shared/{src,ui,domain,utils,models}` (10 rujukan / **3 file**,
+      bukan ~11/5). Pemetaan SEMANTIK, bukan angka: `s14` + bobot →
+      `context.typeRoles.bodyDense` (judul baris upload w600; link
+      "Selengkapnya/Lebih sedikit" w500; label mode kamera weight kondisional),
+      `s12` meta padat → `context.typeRoles.labelMicro` (deskripsi langkah /
+      persen / "Langkah X dari Y" / pesan error), `s16` label tombol kamera
+      (`Use`/`Retake`) → `Theme.of(context).textTheme.labelLarge` (tidak ada
+      role tombol di `AppTypeRoles`; 16→14 = ukuran label tombol kanonik
+      bawaan). Semua modifier sah dipertahankan (warna onPrimary/onSurfaceVariant/
+      error/secondary, bobot, override `fontSize` milik caller di expandable).
+      Tidak ada wrapper/alias/helper; `AppType` (termasuk katanya) nol di slice.
+      Cap `s12` 387→383, `s14` 401→397, `s16` 198→196 (s20/s24 tetap); 4 path
+      masuk `_slicesLockedToZero`; negative proof planted-token ditambah (hijau).
+- [x] Irisan 5 — `features/search` (14 rujukan / 6 file). Pemetaan fungsional
+      (bukan angka): section headings (`_SectionHeader`, "Recent Searches",
+      section suggestions) → `context.typeRoles.titleSection`; empty-state title
+      ("No results found") → `titleProminent`; error message → `bodyDense`;
+      subtitle/redaction (italic) → `bodyDense`; info/type/status chips + dense
+      meta → `labelMicro`; `TextButton` "Clear All" + `FilterChip` label →
+      `Theme.of(context).textTheme.labelLarge`. Semua modifier sah
+      dipertahankan (w600/w700, italic, onSurface/onSurfaceVariant/primary,
+      warna chip). Tidak ada wrapper/alias; `AppType` (termasuk katanya) nol di
+      slice. Cap `s12` 383→379, `s14` 397→392, `s16` 196→192, `s20` 97→96
+      (s24 tetap); 6 path dikunci; hijau.
+- [x] Irisan 6 — `domains/finance` (25 rujukan / 5 file, lapisan presentation
+      saja). Pemetaan fungsional: section heading ("Transaksi Terbaru") + sheet
+      title → `titleSection`; judul state empty/error → `titleProminent`; nilai
+      besar (total Coins) → `titleProminent`; nominal transaksi → `titleCompact`
+      (role "amounts"); judul item transaksi → `bodyDense` (bukan titleCompact —
+      baris `_TransactionTile` di coin_history tanpa ukuran merender
+      `bodyMedium` ambient, jadi judul item memang body 14); body/subtitle/pesan
+      error/info dialog → `bodyDense`; metadata tanggal/"Balance" + catatan
+      padat + banner → `labelMicro`; label `OutlinedButton` "Lihat Riwayat" →
+      `textTheme.labelLarge`. Modifier sah dipertahankan (w500/w600/bold,
+      `height`, `italic`, `onPrimary`/`onSurfaceVariant`/status/coin color).
+      Tidak ada wrapper/alias; `AppType` (termasuk katanya) nol di domain. Cap
+      `s12` 379→373, `s14` 392→382, `s16` 192→189, `s20` 96→91, `s24` 25→24; 5
+      path dikunci; hijau. Tidak ada business logic yang tersentuh.
+- [x] Irisan 7 — `features/home` (35 rujukan / **8 file**, bukan perkiraan). Pemetaan
+      fungsional: judul state empty/error → `titleProminent`; brand drawer
+      ("LABUDA") → `titleSection`; judul item feed promoted (forSale/auction/
+      external) + harga → `titleCompact`; body feed/author/banner "Tidak
+      tersedia"/subtitle error/hint "Search…" → `bodyDense`; badge drawer,
+      hitungan like/comment, timestamp, badge "Dipromosikan", sisa waktu
+      lelang, label "Bid saat ini"/"$n bid", host external, tagline
+      "Koi Community", caption footer versi → `labelMicro`; tombol
+      `FilledButton`/`OutlinedButton` (Cari & Beli Koi / Buat Konten / Sign In /
+      Sign Up) → `textTheme.labelLarge`; label `BottomNavigationBar` →
+      `textTheme.labelMedium` (role navigasi 12 px, BUKAN label kontrol 14 px —
+      bukan tombol, jadi tidak dipaksa ke `labelLarge`; ukuran tetap 12). Overlay
+      "+N" mosaic → `titleProminent` (display glyph). Modifier sah dipertahankan
+      (w500/w600/w700/bold/w800, italic kondisional redaksi, warna
+      onSurface/onSurfaceVariant/onPrimary/primary/onError/status warning,
+      bobot selected/unselected nav). Tidak ada wrapper/alias/helper; `AppType`
+      (termasuk katanya) nol di slice. Cap `s12` 373→359, `s14` 382→373, `s16`
+      189→181, `s20` 91→88, `s24` 24→23; 8 path dikunci; hijau. Tidak ada
+      business/navigation/state yang tersentuh.
+- [x] Irisan 8 — `domains/chat` (35 rujukan / **9 file**, lapisan presentation
+      saja; bukan ~40). Pemetaan fungsional: judul percakapan/peserta
+      (chat_card private + support header, handle di daftar user) → `titleCompact`;
+      judul state empty/error ("Belum Ada Pesan", "Failed to search users",
+      "User not found", "Search user to start a chat") → `titleProminent`
+      (16/20→24 diterima, arah state-title yang sudah baku); preview pesan
+      terakhir + body system/error/empty + label status order banner → `bodyDense`;
+      timestamp, label agent, badge unread (appbar + kartu), chip kategori
+      support, preview reply ("Replying to..." + isi), sender label, date
+      separator → `labelMicro`; label CTA `FilledButton` (Beli Sekarang/Bid/
+      Kirim Ongkir) → `textTheme.labelLarge` (w700 tetap). Modifier sah
+      dipertahankan (w500/w600/w700/bold, `italic` (redaksi lifecycle,
+      system message, degraded sender), `maxLines`, warna onSurface/
+      onSurfaceVariant/onPrimary/replyInk/kategori/tone). Tidak ada wrapper/
+      alias/helper; `AppType` (termasuk katanya) nol di domain. Cap `s12`
+      359→340, `s14` 373→364, `s16` 181→175, `s20` 88→87 (s24 tetap); 9 path
+      dikunci; negative proof planted-token chat ditambah; hijau. Tidak ada
+      business logic pesan/WebSocket/status yang tersentuh.
+- [x] Irisan 9 — `domains/social` (42 rujukan / **9 file**, lapisan presentation
+      saja; estimate ~44). Pemetaan fungsional: identitas komentar/author,
+      body komentar/konten/input, nilai lokasi, banner → `bodyDense`; judul
+      state empty/error/removed → `titleProminent`; judul section editor
+      (Location/Hashtags) + judul sheet "Pilih Produk" → `titleSection`; handle
+      author composer → `titleCompact`; timestamp, hitungan hashtag/komentar/
+      like, penanda media, badge, caption toolbar, handle sekunder → `labelMicro`;
+      label `Chip`/`Dropdown` + aksi balas inline → `textTheme.labelLarge`.
+      Override `fontSize: AppType.s16` di atas `textTheme.bodyLarge` dibuang
+      (redundan); input composer memakai `bodyLarge` (peran Material resolved).
+      Modifier sah dipertahankan (w500/w600/bold, `italic` redaksi, `height`
+      1.4/1.5, `maxLines`/overflow, warna onSurface/onSurfaceVariant/primary/
+      secondary/onPrimary/error). Tidak ada wrapper/alias/helper; `AppType` nol
+      di domain. Cap `s12` 340→327, `s14` 364→344, `s16` 175→170, `s20` 87→83
+      (s24 tetap); 9 path dikunci; negative proof planted-token social ditambah;
+      hijau. Tidak ada business logic social yang tersentuh.
+- [x] Irisan 10 — `domains/system` (83 rujukan / **22 file**). Pemetaan
+      fungsional: judul section/sheet/dialog layar, judul banner, judul kartu
+      `_SectionCard` → `titleSection`; judul state empty/error/success/removed
+      → `titleProminent`; judul item/baris + heading kompak (reason selector,
+      "Was this helpful?", kartu kategori/artikel, row title) → `titleCompact`;
+      body/pesan/deskripsi/label status order → `bodyDense`; timestamp,
+      hitungan, badge status/prioritas/kategori, caption helper, header grup
+      tanggal, meta "Order #" → `labelMicro`; label `ElevatedButton`/`Chip`/
+      `Dropdown` → `textTheme.labelLarge`; AppBar title → `textTheme.titleLarge`;
+      body artikel panjang → `textTheme.bodyLarge`. Modifier sah dipertahankan
+      (w500/w600/w700/bold, `height` 1.3/1.4/1.5/1.6, `letterSpacing`, warna
+      onSurface/onSurfaceVariant/primary/secondary/error/tone). Satu situs di
+      luar presentation (`notification_navigation_service`) membangun dialog dan
+      sudah menerima `BuildContext` — tidak ada context yang disuntikkan.
+      `_buildBadge` di dua widget menerima `context` eksplisit (satu parameter
+      positional) tanpa mengubah perilaku. Gate reference floor diturunkan
+      900→800 karena census melewati ambang (floor memang lag). Tidak ada
+      wrapper/alias/helper; `AppType` nol di domain. Cap `s12` 327→298, `s14`
+      344→314, `s16` 170→159, `s20` 83→73, `s24` 23→20; 22 path dikunci; negative
+      proof planted-token system ditambah; hijau. Tidak ada business logic
+      system yang tersentuh.
+- [x] Irisan 11 — `shared/widgets` (149 rujukan / **52 file**, bukan ~161).
+      Permukaan bersama: pemetaan per KONTRAK widget, bukan per angka. Judul
+      sheet/dialog/section/layar → `titleSection`; judul state empty/error →
+      `titleProminent`; judul list/item/compact → `titleCompact`; body/pesan/
+      subjudul/alamat → `bodyDense`; timestamp, counter, badge, caption,
+      koordinat, label → `labelMicro`; kontrol Material (tombol/chip/item
+      dropdown) → `textTheme.labelLarge` / `bodyLarge`; judul AppBar →
+      `titleLarge` (wrapper) / `titleMedium` (viewer). Satu `fontSize`
+      redundan di helper dropdown wilayah dibuang (ambient `bodyLarge` sudah
+      16). Modifier sah dipertahankan (bobot, `height`, `letterSpacing`,
+      `fontStyle`, warna, `maxLines`, `textAlign`, `monospace`). Gate reference
+      floor diturunkan 800→700 karena census melewati ambang (floor memang
+      lag). Tidak ada konstanta ukuran lokal, tidak ada factory TextStyle
+      duplikat, tidak ada API widget berubah (hanya helper privat menerima
+      `context`). `AppType` nol di shared/widgets. Cap `s12` 298→247, `s14`
+      314→269, `s16` 159→124, `s20` 73→57, `s24` 20→18; 52 path dikunci;
+      negative proof planted-token shared/widgets ditambah; hijau.
+- [x] Irisan 12 — `domains/commerce` (359 rujukan / **66 file**, bukan ~362).
+      Domain besar & beragam; pemetaan per KONTRAK komponen, bukan angka:
+      judul state empty/error/success/hero → `titleProminent`; judul
+      section/sheet/dialog → `titleSection`; judul item/produk/order/lelang +
+      nilai harga/amount/bid → `titleCompact`; body/pesan/helper/banner →
+      `bodyDense`; timestamp/counter/badge/status/metadata → `labelMicro`;
+      tombol Material → `textTheme.labelLarge`; nilai input/dropdown →
+      `textTheme.bodyLarge`. Satu `size:` (geometri ikon, bukan teks)
+      dipindah ke `AppIconSize`. Formatting Rupiah/angka, kalkulasi harga,
+      fee, diskon, saldo promote, bid, total order, stok TIDAK tersentuh.
+      Tidak ada konstanta/factory/alias typography lokal. Cap `s12` 247→115,
+      `s14` 269→158, `s16` 124→47, `s20` 57→27, `s24` 18→9; 66 path dikunci;
+      negative proof planted-token commerce ditambah; gate reference floor
+      700→300 dan boundary floor 100→50 (census memang turun). Hijau.
+- [ ] Tahap 2 — irisan 13 (user 398).

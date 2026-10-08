@@ -2,28 +2,25 @@ package entity
 
 import "testing"
 
-// Scope B — CancelReason routing authority lock.
-//
-// Only subscription_expired auto-cancels notify the seller (system-initiated;
-// the seller took no action). Self-cancels need no echo, moderation/admin
-// outcomes travel their canonical channels, and the legacy zero value (old
-// reasonless events) must fail closed as a no-op.
-func TestCancelReasonNotifiesSeller(t *testing.T) {
+// CancelReason is a pure outbox-audit vocabulary (no notification routing
+// exists on it — the subscription-expired direction was purged Oct 2026 when
+// subscription expiry started LAPPSING auctions instead of cancelling them).
+// This lock prevents the vocabulary from silently drifting: payload consumers
+// (audit, dashboards) rely on these exact wire values.
+func TestCancelReasonVocabulary(t *testing.T) {
 	cases := []struct {
 		reason CancelReason
-		want   bool
+		want   string
 	}{
-		{CancelReasonSeller, false},
-		{CancelReasonSubscriptionExpired, true},
-		{CancelReasonModeration, false},
-		{CancelReasonAdmin, false},
-		{CancelReasonLegacy, false}, // fail-closed for reasonless legacy events
-		{CancelReason("anything_else"), false},
+		{CancelReasonSeller, "seller"},
+		{CancelReasonModeration, "moderation"},
+		{CancelReasonAdmin, "admin"},
+		{CancelReasonLegacy, ""},
 	}
 
 	for _, tc := range cases {
-		if got := tc.reason.NotifiesSeller(); got != tc.want {
-			t.Errorf("CancelReason(%q).NotifiesSeller() = %v, want %v", tc.reason, got, tc.want)
+		if got := string(tc.reason); got != tc.want {
+			t.Errorf("CancelReason wire value = %q, want %q", got, tc.want)
 		}
 	}
 }

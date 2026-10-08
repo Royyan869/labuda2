@@ -20,13 +20,7 @@ class OrderUserInfoCard extends ConsumerWidget {
     final showSellerInfo = isBuyer;
     final showBuyerInfo = isSeller;
 
-    return Container(
-      padding: const EdgeInsets.all(core.AppMetrics.p16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(core.AppShape.r12),
-        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
-      ),
+    return OrderSectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -40,10 +34,7 @@ class OrderUserInfoCard extends ConsumerWidget {
                 ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
               ),
               // Chat button for continuity - Contact the other party
-              _ChatButton(
-                order: order,
-                currentUserId: currentUserId,
-              ),
+              _ChatButton(order: order, currentUserId: currentUserId),
             ],
           ),
           const SizedBox(height: 12),
@@ -57,10 +48,7 @@ class OrderUserInfoCard extends ConsumerWidget {
               showSellerIdentity: true,
             ),
           if (showBuyerInfo)
-            _UserInfoTile(
-              label: 'Pembeli',
-              userId: order.buyerId,
-            ),
+            _UserInfoTile(label: 'Pembeli', userId: order.buyerId),
         ],
       ),
     );
@@ -151,16 +139,15 @@ class _UserInfoTile extends ConsumerWidget {
               if (sellerPrimaryLabel != null) ...[
                 Text(
                   sellerPrimaryLabel,
-                  style: theme.textTheme.bodyMedium?.copyWith(
+                  style: context.typeRoles.titleCompact.copyWith(
                     fontWeight: FontWeight.w600,
-                    fontSize: core.AppType.s12,
                   ),
                 ),
                 if (sellerSecondaryLabel != null) ...[
                   const SizedBox(height: 2),
                   Text(
                     sellerSecondaryLabel,
-                    style: theme.textTheme.bodyMedium?.copyWith(fontSize: core.AppType.s12),
+                    style: context.typeRoles.labelMicro,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -168,15 +155,18 @@ class _UserInfoTile extends ConsumerWidget {
               ] else if (!showSellerIdentity)
                 Text(
                   userId.length > 20 ? '${userId.substring(0, 20)}...' : userId,
-                  style: theme.textTheme.bodyMedium?.copyWith(
+                  style: context.typeRoles.labelMicro.copyWith(
                     fontFamily: 'monospace',
-                    fontSize: core.AppType.s12,
                   ),
                 ),
             ],
           ),
         ),
-        Icon(Icons.chevron_right, color: colorScheme.onSurfaceVariant, size: AppIconSize.action),
+        Icon(
+          Icons.chevron_right,
+          color: colorScheme.onSurfaceVariant,
+          size: AppIconSize.action,
+        ),
       ],
     );
   }
@@ -191,10 +181,7 @@ class _ChatButton extends ConsumerWidget {
   final Order order;
   final String currentUserId;
 
-  const _ChatButton({
-    required this.order,
-    required this.currentUserId,
-  });
+  const _ChatButton({required this.order, required this.currentUserId});
 
   Future<void> _handleChatTap(BuildContext context, WidgetRef ref) async {
     // Check email verification before starting chat
@@ -202,7 +189,7 @@ class _ChatButton extends ConsumerWidget {
     if (!isEmailVerified) {
       AppSnackBar.showWarning(
         context,
-        'Please verify your email to send messages.',
+        'Verifikasi email Anda untuk mengirim pesan.',
       );
       return;
     }
@@ -224,13 +211,14 @@ class _ChatButton extends ConsumerWidget {
       onTap: () => _handleChatTap(context, ref),
       borderRadius: BorderRadius.circular(core.AppShape.r8),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: core.AppMetrics.p12, vertical: core.AppMetrics.p8),
+        padding: const EdgeInsets.symmetric(
+          horizontal: core.AppMetrics.p12,
+          vertical: core.AppMetrics.p8,
+        ),
         decoration: BoxDecoration(
           color: colorScheme.primary.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(core.AppShape.r8),
-          border: Border.all(
-            color: colorScheme.primary.withValues(alpha: 0.3),
-          ),
+          border: Border.all(color: colorScheme.primary.withValues(alpha: 0.3)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -243,8 +231,7 @@ class _ChatButton extends ConsumerWidget {
             const SizedBox(width: 4),
             Text(
               'Chat',
-              style: TextStyle(
-                fontSize: core.AppType.s14,
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
                 fontWeight: FontWeight.w500,
                 color: colorScheme.primary,
               ),

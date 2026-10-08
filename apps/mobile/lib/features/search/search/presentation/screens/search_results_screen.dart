@@ -8,7 +8,10 @@ import 'package:labuda/features/search/search/presentation/utils/search_result_t
 import 'package:labuda/features/search/search/presentation/widgets/all_tab_results_view.dart';
 import 'package:labuda/features/search/search/presentation/widgets/global_search_bar.dart';
 import 'package:labuda/features/search/search/presentation/widgets/search_result_item.dart';
+import 'package:labuda/shared/widgets/empty_state.dart';
 import 'package:labuda/shared/widgets/external_link_interstitial.dart';
+import 'package:labuda/shared/widgets/loading_indicator.dart';
+import 'package:labuda/shared/widgets/page_error_state.dart';
 
 /// Screen displaying search results with tabs for different types
 class SearchResultsScreen extends ConsumerStatefulWidget {
@@ -115,25 +118,51 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen>
               showCategoryChips: false,
             ),
           ),
-          Expanded(
-            child: searchState.isSearching
-                ? _buildLoading()
-                : _buildResults(searchState),
-          ),
+          Expanded(child: _buildBody(searchState)),
         ],
       ),
     );
   }
 
-  Widget _buildLoading() {
-    return const Center(child: CircularProgressIndicator());
+  /// LOADING FOUNDATION (owner-locked):
+  /// - No results yet (first request pending/in-flight) → [LoadingIndicator].
+  ///   A null result set with no error is "not yet loaded", NEVER EmptyState
+  ///   (no empty flash before the first request settles).
+  /// - First-load failure (no results) → [PageErrorState].
+  /// - Successful zero-result → [EmptyState].
+  /// - Re-search with cached results → cached results stay visible with an
+  ///   update indicator; failure renders an inline banner, never a full-page
+  ///   loading/error swap.
+  Widget _buildBody(SearchState state) {
+    final results = state.results;
+    final hasResults = results != null && results.isNotEmpty;
+
+    if (!hasResults) {
+      if (state.isSearching) {
+        return const Center(child: LoadingIndicator());
+      }
+      if (state.error != null) {
+        return _buildError();
+      }
+      // No error and no longer searching, yet no result set: the request
+      // has not settled (e.g. first frame before the post-frame search
+      // dispatch). Still "not yet loaded" — loading, never EmptyState.
+      if (results == null) {
+        return const Center(child: LoadingIndicator());
+      }
+      return _buildEmptyState();
+    }
+
+    return Column(
+      children: [
+        if (state.isSearching) const LinearProgressIndicator(minHeight: 2),
+        if (state.error != null) _buildRefreshErrorBanner(),
+        Expanded(child: _buildResults(state)),
+      ],
+    );
   }
 
   Widget _buildResults(SearchState state) {
-    if (state.error != null) {
-      return _buildError(state.error!);
-    }
-
     final results = state.results;
     if (results == null || results.isEmpty) {
       return _buildEmptyState();
@@ -154,6 +183,57 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen>
     return _buildTypeResults(state);
   }
 
+  /// Minimum bounded refresh-failure indication: persistent inline banner
+  /// with safe localized copy and a retry action. Not a new foundation.
+  Widget _buildRefreshErrorBanner() {
+    final scheme = Theme.of(context).colorScheme;
+    final l10n = context.l10n;
+    return Semantics(
+      container: true,
+      liveRegion: true,
+      child: Container(
+        width: double.infinity,
+        margin: const EdgeInsets.fromLTRB(
+          AppMetrics.p16,
+          AppMetrics.p12,
+          AppMetrics.p16,
+          AppMetrics.p4,
+        ),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppMetrics.p12,
+          vertical: AppMetrics.p8,
+        ),
+        decoration: BoxDecoration(
+          color: scheme.errorContainer,
+          borderRadius: BorderRadius.circular(AppShape.r12),
+          border: Border.all(color: scheme.error),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.refresh_outlined,
+              size: AppIconSize.action,
+              color: scheme.onErrorContainer,
+            ),
+            const SizedBox(width: AppMetrics.p8),
+            Expanded(
+              child: Text(
+                l10n.pageErrorMessage,
+                style: context.typeRoles.bodyDense.copyWith(
+                  color: scheme.onErrorContainer,
+                ),
+              ),
+            ),
+            TextButton(
+              onPressed: () => _executeSearch(),
+              child: Text(l10n.retryAction),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildTypeResults(SearchState state) {
     final results = state.selectedDomainResults;
     final scheme = Theme.of(context).colorScheme;
@@ -161,10 +241,8 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen>
     return ListView.separated(
       padding: const EdgeInsets.symmetric(vertical: AppMetrics.p8),
       itemCount: results.length,
-      separatorBuilder: (_, _) => Divider(
-        height: 1,
-        color: scheme.outlineVariant,
-      ),
+      separatorBuilder: (_, _) =>
+          Divider(height: 1, color: scheme.outlineVariant),
       itemBuilder: (context, index) {
         final result = results[index];
         return SearchResultItem(
@@ -175,70 +253,24 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen>
     );
   }
 
-  Widget _buildError(String error) {
-    final scheme = Theme.of(context).colorScheme;
-
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppMetrics.p32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.error_outline, size: AppIconSize.display, color: scheme.error),
-            const SizedBox(height: 16),
-            Text(
-              error,
-              style: TextStyle(
-                fontSize: AppType.s16,
-                color: scheme.onSurface,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _executeSearch,
-              child: const Text('Try Again'),
-            ),
-          ],
-        ),
-      ),
+  /// CANONICAL page-level load error (PageErrorState). The raw search
+  /// state.error never reaches the screen — safe localized copy only.
+  Widget _buildError() {
+    return PageErrorState(
+      onRetry: () async {
+        _executeSearch();
+      },
     );
   }
 
+  /// Search/filter empty: a query was executed and nothing matched. The
+  /// persistent search bar above is the affordance that edits or clears the
+  /// query, so no separate reset action is offered here.
   Widget _buildEmptyState() {
-    final scheme = Theme.of(context).colorScheme;
-
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppMetrics.p32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.search_off,
-              size: AppIconSize.display,
-              color: scheme.outline,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'No results found',
-              style: TextStyle(
-                fontSize: AppType.s20,
-                fontWeight: FontWeight.w600,
-                color: scheme.onSurface,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Try different keywords or different filters',
-              style: TextStyle(
-                color: scheme.onSurfaceVariant,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
+    return EmptyState(
+      icon: Icons.search_off,
+      title: context.l10n.emptySearchTitle,
+      subtitle: context.l10n.emptySearchMessage,
     );
   }
 }

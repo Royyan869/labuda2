@@ -22,8 +22,7 @@ class BaseDropdownContainer extends StatelessWidget {
         if (labelText != null) ...[
           Text(
             labelText!,
-            style: TextStyle(
-              fontSize: AppType.s14,
+            style: context.typeRoles.bodyDense.copyWith(
               fontWeight: FontWeight.w500,
               color: scheme.onSurface,
             ),

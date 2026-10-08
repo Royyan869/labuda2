@@ -167,37 +167,52 @@ class _NoopLogger implements ILoggerService {
   Future<Result<void>> clearLogs() async => _ok();
   @override
   Future<Result<void>> setLogLevel(LogLevel level) async => _ok();
+
   @override
-  Future<Result<void>> logApiCall(String endpoint, {required String method, required int statusCode, required Duration duration, Map<String, dynamic>? requestData, Map<String, dynamic>? responseData}) async => _ok();
+  Future<void> debugSync(String userId) async {}
+
   @override
-  Future<Result<void>> logPerformance(String operation, {required Duration duration, Map<String, dynamic>? metrics}) async => _ok();
+  Future<void> debugSyncSuccess(String userId) async {}
+
   @override
-  Future<Result<void>> logSecurityEvent(String event, {String? userId, String? severity, Map<String, dynamic>? details}) async => _ok();
-  @override
-  Future<Result<void>> logUserAction(String action, {String? userId, Map<String, dynamic>? parameters}) async => _ok();
-  @override
-  Future<void> debugSync(String uid) async {}
-  @override
-  Future<void> debugSyncSuccess(String uid) async {}
-  @override
-  Future<void> debugSyncFailed(String uid, String? e) async {}
-  @override
-  Future<void> debugSyncException(String uid, String e, String s) async {}
-  @override
-  Future<void> debugGetCurrentUserSuccess(String uid, bool v) async {}
-  @override
-  Future<void> debugGetCurrentUserFailed(String uid, String? e) async {}
+  Future<void> debugSyncFailed(String userId, String? errorMessage) async {}
+
   @override
   Future<void> debugCallingGetCurrentUser() async {}
+
   @override
-  Future<void> debugRouterCheck(String uid, bool verified, String loc, bool isVerificationRoute) async {}
+  Future<void> debugGetCurrentUserSuccess(
+    String userId,
+    bool isEmailVerified,
+  ) async {}
+
+  @override
+  Future<void> debugGetCurrentUserFailed(
+    String userId,
+    String? errorMessage,
+  ) async {}
+
+  @override
+  Future<void> debugSyncException(
+    String userId,
+    String errorMessage,
+    String stackTrace,
+  ) async {}
+
+  @override
+  Future<void> debugRouterCheck(
+    String userId,
+    bool isEmailVerified,
+    String location,
+    bool isVerificationRoute,
+  ) async {}
 }
 
 class _NoopAnalytics extends Fake implements IAnalyticsRepository {
   @override
   Future<Result<void>> logEvent(String e, {Map<String, dynamic>? parameters, String? userId}) async => Result.success(null);
   @override
-  Future<Result<void>> flush() async => Result.success(null);
+  Future<Result<void>> logScreenView({required String screenName, String? screenClass}) async => Result.success(null);
 }
 
 class _NoopFcm extends Fake implements FcmService {
@@ -282,7 +297,7 @@ class _PendingGoogleRepo extends Fake implements IAuthRepository {
   @override
   Future<Result<void>> sendEmailVerification() async => Result.success(null);
   @override
-  Future<Result<UserProfilePatch>> updateProfile({String? photoUrl, String? phoneNumber, DateTime? phoneVerifiedAt, String? username, String? bio, String? location, DateTime? dateOfBirth}) async => Result.error('n/a');
+  Future<Result<UserProfilePatch>> updateProfile({String? photoUrl, String? phoneNumber, DateTime? phoneVerifiedAt, String? username, String? bio, String? location, String? coverPhotoUrl, String? instagramHandle, String? facebookHandle, String? tiktokHandle, String? twitterHandle, DateTime? dateOfBirth}) async => Result.error('n/a');
   @override
   Future<Result<AuthUser>> completeProfile({required String username}) async => Result.error('n/a');
   @override
@@ -327,7 +342,7 @@ class _FakeRepo extends Fake implements IAuthRepository {
   @override
   Future<Result<void>> sendEmailVerification() async => Result.success(null);
   @override
-  Future<Result<UserProfilePatch>> updateProfile({String? photoUrl, String? phoneNumber, DateTime? phoneVerifiedAt, String? username, String? bio, String? location, DateTime? dateOfBirth}) async => Result.error('n/a');
+  Future<Result<UserProfilePatch>> updateProfile({String? photoUrl, String? phoneNumber, DateTime? phoneVerifiedAt, String? username, String? bio, String? location, String? coverPhotoUrl, String? instagramHandle, String? facebookHandle, String? tiktokHandle, String? twitterHandle, DateTime? dateOfBirth}) async => Result.error('n/a');
   @override
   Future<Result<AuthUser>> completeProfile({required String username}) async => Result.error('n/a');
   @override

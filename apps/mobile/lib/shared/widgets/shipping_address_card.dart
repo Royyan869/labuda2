@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/user/profile/domain/entities/address_entity.dart';
+import 'package:labuda/shared/widgets/address_location_view.dart';
 
 /// Canonical SHIPPING-ADDRESS selection surfaces.
 ///
@@ -34,105 +35,130 @@ class ShippingAddressCard extends StatelessWidget {
   /// Selection handler — the card itself never mutates provider state.
   final VoidCallback onTap;
 
+  /// Accessibility label: the address read as one sentence.
+  String get _semanticLabel {
+    final parts = <String>[
+      if (address.nickname != null) address.nickname!,
+      address.recipientName,
+      address.phone,
+      address.fullAddress,
+    ];
+    return parts.join(', ');
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: AppMetrics.p8),
-        padding: const EdgeInsets.all(AppMetrics.p12),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? scheme.primary.withValues(alpha: 0.05)
-              : scheme.surface,
+    // Canonical tappable-surface behavior: real InkWell (ripple + focus +
+    // tap affordance) inside a selected-state Semantics boundary. No generic
+    // selectable-card foundation — this contract stays with this card.
+    return Semantics(
+      button: true,
+      selected: isSelected,
+      label: _semanticLabel,
+      onTapHint: 'pilih alamat pengiriman ini',
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(AppShape.r8),
+        child: InkWell(
+          onTap: onTap,
           borderRadius: BorderRadius.circular(AppShape.r8),
-          border: Border.all(
-            color: isSelected ? scheme.primary : scheme.outlineVariant,
-            width: isSelected ? 2 : 1,
-          ),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(
-              isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
-              color: isSelected ? scheme.primary : scheme.onSurfaceVariant,
-              size: AppIconSize.action,
+          child: Container(
+            margin: const EdgeInsets.only(bottom: AppMetrics.p8),
+            padding: const EdgeInsets.all(AppMetrics.p12),
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? scheme.primary.withValues(alpha: 0.05)
+                  : scheme.surface,
+              borderRadius: BorderRadius.circular(AppShape.r8),
+              border: Border.all(
+                color: isSelected ? scheme.primary : scheme.outlineVariant,
+                width: isSelected ? 2 : 1,
+              ),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Labelled addresses (Home, Gudang, …) lead with the label.
-                  if (address.nickname != null) ...[
-                    Text(
-                      address.nickname!,
-                      style: TextStyle(
-                        fontSize: AppType.s12,
-                        fontWeight: FontWeight.w600,
-                        color: scheme.primary,
-                      ),
-                    ),
-                  ],
-                  Row(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  isSelected
+                      ? Icons.radio_button_checked
+                      : Icons.radio_button_off,
+                  color: isSelected ? scheme.primary : scheme.onSurfaceVariant,
+                  size: AppIconSize.action,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Flexible(
-                        child: Text(
-                          address.recipientName,
-                          style: const TextStyle(
-                            fontSize: AppType.s14,
+                      // Labelled addresses (Home, Gudang, …) lead with the label.
+                      if (address.nickname != null) ...[
+                        Text(
+                          address.nickname!,
+                          style: context.typeRoles.labelMicro.copyWith(
                             fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                      if (address.isPrimary) ...[
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppMetrics.p8,
-                            vertical: AppMetrics.p4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: scheme.primary.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(AppShape.r4),
-                          ),
-                          child: Text(
-                            'Utama',
-                            style: TextStyle(
-                              fontSize: AppType.s12,
-                              color: scheme.primary,
-                              fontWeight: FontWeight.w500,
-                            ),
+                            color: scheme.primary,
                           ),
                         ),
                       ],
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              address.recipientName,
+                              style: context.typeRoles.titleCompact.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          if (address.isPrimary) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: AppMetrics.p8,
+                                vertical: AppMetrics.p4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: scheme.primary.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(
+                                  AppShape.r4,
+                                ),
+                              ),
+                              child: Text(
+                                'Utama',
+                                style: context.typeRoles.labelMicro.copyWith(
+                                  color: scheme.primary,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        address.phone,
+                        style: context.typeRoles.labelMicro.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      // The entity owns how an address string is composed; the
+                      // detail mode lets it wrap, bounded to three lines here.
+                      AddressLocationText(
+                        location: address.fullAddress,
+                        mode: AddressLocationMode.detail,
+                        maxLines: 3,
+                        style: context.typeRoles.labelMicro.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    address.phone,
-                    style: TextStyle(
-                      fontSize: AppType.s12,
-                      color: scheme.onSurfaceVariant,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  // The entity owns how an address string is composed.
-                  Text(
-                    address.fullAddress,
-                    style: TextStyle(
-                      fontSize: AppType.s12,
-                      color: scheme.onSurfaceVariant,
-                    ),
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -175,8 +201,7 @@ class ShippingAddressEmptyState extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             'Tambahkan alamat pengiriman terlebih dahulu',
-            style: TextStyle(
-              fontSize: AppType.s12,
+            style: context.typeRoles.labelMicro.copyWith(
               color: scheme.onSurfaceVariant,
             ),
           ),

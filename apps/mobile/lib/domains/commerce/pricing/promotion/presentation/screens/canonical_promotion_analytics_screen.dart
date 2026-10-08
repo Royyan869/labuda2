@@ -37,9 +37,7 @@ class CanonicalPromotionAnalyticsScreen extends ConsumerWidget {
     );
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Promotion Analytics'),
-      ),
+      appBar: AppBar(title: const Text('Promotion Analytics')),
       body: analyticsAsync.when(
         data: (result) {
           if (result.isSuccess) {
@@ -53,8 +51,7 @@ class CanonicalPromotionAnalyticsScreen extends ConsumerWidget {
           }
         },
         loading: () => _buildLoadingState(),
-        error: (error, _) =>
-            _buildErrorState(context, ref, error.toString()),
+        error: (error, _) => _buildErrorState(context, ref, error.toString()),
       ),
     );
   }
@@ -87,8 +84,7 @@ class CanonicalPromotionAnalyticsScreen extends ConsumerWidget {
             const SizedBox(height: 16),
             Text(
               'Failed to Load Analytics',
-              style: TextStyle(
-                fontSize: AppType.s20,
+              style: context.typeRoles.titleProminent.copyWith(
                 fontWeight: FontWeight.bold,
                 color: Theme.of(context).colorScheme.onSurface,
               ),
@@ -97,8 +93,7 @@ class CanonicalPromotionAnalyticsScreen extends ConsumerWidget {
             Text(
               message,
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: AppType.s14,
+              style: context.typeRoles.bodyDense.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
@@ -115,7 +110,10 @@ class CanonicalPromotionAnalyticsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildAnalyticsContent(BuildContext context, CanonicalPromotionAnalyticsDto analytics) {
+  Widget _buildAnalyticsContent(
+    BuildContext context,
+    CanonicalPromotionAnalyticsDto analytics,
+  ) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(AppMetrics.p16),
       child: Column(
@@ -124,8 +122,7 @@ class CanonicalPromotionAnalyticsScreen extends ConsumerWidget {
           // Header
           Text(
             'Delivery Metrics',
-            style: TextStyle(
-              fontSize: AppType.s20,
+            style: context.typeRoles.titleSection.copyWith(
               fontWeight: FontWeight.bold,
               color: Theme.of(context).colorScheme.onSurface,
             ),
@@ -133,8 +130,7 @@ class CanonicalPromotionAnalyticsScreen extends ConsumerWidget {
           const SizedBox(height: 8),
           Text(
             'Truthful canonical measurement from delivery events',
-            style: TextStyle(
-              fontSize: AppType.s14,
+            style: context.typeRoles.bodyDense.copyWith(
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
@@ -181,8 +177,7 @@ class CanonicalPromotionAnalyticsScreen extends ConsumerWidget {
               children: [
                 Text(
                   'About These Metrics',
-                  style: TextStyle(
-                    fontSize: AppType.s16,
+                  style: context.typeRoles.titleSection.copyWith(
                     fontWeight: FontWeight.w600,
                     color: Theme.of(context).colorScheme.onSurface,
                   ),
@@ -191,8 +186,7 @@ class CanonicalPromotionAnalyticsScreen extends ConsumerWidget {
                 Text(
                   'These metrics are projected directly from canonical delivery events. '
                   'They represent truthful measurements of your promotion\'s delivery performance.',
-                  style: TextStyle(
-                    fontSize: AppType.s14,
+                  style: context.typeRoles.bodyDense.copyWith(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
@@ -256,8 +250,7 @@ class _MetricsCard extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: TextStyle(
-                    fontSize: AppType.s14,
+                  style: context.typeRoles.bodyDense.copyWith(
                     fontWeight: FontWeight.w600,
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
@@ -265,8 +258,7 @@ class _MetricsCard extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   value.toString(),
-                  style: TextStyle(
-                    fontSize: AppType.s24,
+                  style: context.typeRoles.titleProminent.copyWith(
                     fontWeight: FontWeight.bold,
                     color: Theme.of(context).colorScheme.onSurface,
                   ),
@@ -274,8 +266,7 @@ class _MetricsCard extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   description,
-                  style: TextStyle(
-                    fontSize: AppType.s12,
+                  style: context.typeRoles.labelMicro.copyWith(
                     color: Theme.of(context).colorScheme.outline,
                   ),
                 ),

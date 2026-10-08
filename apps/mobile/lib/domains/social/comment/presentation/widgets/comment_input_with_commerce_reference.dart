@@ -163,6 +163,10 @@ class _CommentInputWithCommerceReferenceState
     if (!_canSubmit() || _isSubmitting) return;
     final body = _controller.text.trim();
     final resource = _selectedResource;
+    // SUBMISSION SNAPSHOT: capture the pending media before the upload await so
+    // adding/removing attachments mid-flight cannot change the media that is
+    // actually sent with the comment.
+    final pending = List.of(_pending);
     setState(() => _isSubmitting = true);
     try {
       // Upload-at-Send (canonical): picking never uploads, so an abandoned
@@ -172,7 +176,7 @@ class _CommentInputWithCommerceReferenceState
       final uploaded = await MediaUploadOrchestrator.uploadPending(
         context: context,
         config: MediaUploadConfig.forComment,
-        items: _pending,
+        items: pending,
         onChanged: () {
           if (mounted) setState(() {});
         },
@@ -180,7 +184,7 @@ class _CommentInputWithCommerceReferenceState
       // Nothing was sent: the strip still shows exactly which file failed, and
       // retrying re-runs ONLY that file.
       if (!uploaded) return;
-      final mediaUrls = _pending.map((e) => e.url!).toList();
+      final mediaUrls = pending.map((e) => e.url!).toList();
       final success = widget.onSubmitWithMedia != null
           ? await widget.onSubmitWithMedia!(body, resource, mediaUrls)
           : await widget.onSubmit(body, resource);
@@ -253,8 +257,9 @@ class _CommentInputWithCommerceReferenceState
       selectedResourceId: _selectedResource?.resourceId,
       onCreateNewForSale: () async {
         Navigator.of(context).pop(); // close picker
-        // Use GoRouter for canonical navigation
-        final result = await context.pushNamed(RoutePaths.createForSale);
+        // Use GoRouter for canonical navigation. pushNamed takes a route NAME,
+        // not a path — the canonical name is RouteNames.createForSale.
+        final result = await context.pushNamed(RouteNames.createForSale);
         if (!mounted) return;
         if (result is ForSale) {
           // Create For Sale route returned a ForSale — set as selected resource

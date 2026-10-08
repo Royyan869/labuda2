@@ -9,10 +9,8 @@ library;
 // ============================================
 // DOMAIN
 // ============================================
-export 'domain/entities/seller_dashboard.dart';
-export 'domain/entities/seller_analytics.dart';
 export 'domain/entities/seller_earnings.dart';
-export 'domain/entities/seller_activity.dart';
+export 'domain/entities/seller_performance.dart';
 export 'domain/entities/seller_subscription.dart';
 
 // ============================================

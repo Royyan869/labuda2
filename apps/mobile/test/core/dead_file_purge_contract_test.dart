@@ -133,6 +133,11 @@ const _purgedFiles = <String>[
   // is the repo-root guides, so the in-`lib` copy was a second, ageing truth.
   'lib/features/home/domain/entities/main_tab.dart',
   'lib/docs/feature_skeleton_template.dart',
+  // Page-level error foundation closure: the shared error widget had ZERO
+  // consumers outside itself (only the barrel export named it), so it was a
+  // fake capability claim. The canonical authority is
+  // `lib/shared/widgets/page_error_state.dart` with real call sites.
+  'lib/shared/widgets/error_widget.dart',
 ];
 
 /// Slice 3 of the zero-consumer sweep (2026-09-30): 48 files that NO
@@ -140,10 +145,11 @@ const _purgedFiles = <String>[
 /// were referenced nowhere outside themselves — dead data barrels,
 /// unreachable widgets/services, and ghost section widgets. The tests that
 /// existed only to READ these files' source were converged in the same batch
-/// (edit-profile store section, mention service, base_component). Four further
+/// (edit-profile store section, mention service, base_component). Three further
 /// candidates were PROVEN dead too but are DIRTY in another session's working
-/// tree — share_to_chat_dialog, date_of_birth_picker, phone_verification_field,
-/// image_with_badge — PARKED, not purged: do not delete them here.
+/// tree — date_of_birth_picker, phone_verification_field, image_with_badge —
+/// PARKED, not purged: do not delete them here. (`share_to_chat_dialog` was the
+/// fourth; it has since been PURGED by the bottom-sheet closure pass.)
 const _slice3PurgedFiles = <String>[
   'lib/domains/chat/chat/presentation/widgets/'
       'shipping_quote_creation_modal.dart',
@@ -253,6 +259,9 @@ const _purgedIdentifiers = <String>[
   'PaymentError',
   // Slice 2. The live model is `MainTab` — only the dead domain twin is banned.
   'MainTabEntity',
+  // Page-level error foundation closure: the dead shared error widget's
+  // class name. The canonical page-level error widget is `PageErrorState`.
+  'ErrorDisplayWidget',
 ];
 
 /// Vocabulary families whose suffixed variants must stay dead too —
@@ -298,6 +307,7 @@ const _basePathFragments = <String>[
   'widgets/list_item/list_item_decorations.dart',
   'entities/main_tab.dart',
   'docs/feature_skeleton_template.dart',
+  'widgets/error_widget.dart',
 ];
 
 /// Slice-3 fragments derive from the paths themselves: the real resurrection
@@ -325,7 +335,6 @@ const _gatePeers = <String>[
 /// directories.
 const _mustSurvive = <String>[
   'lib/core/utils/polling_monitor.dart',
-  'lib/core/utils/notification_navigation_handler.dart',
   'lib/core/core.dart',
   'lib/domains/finance/transaction/payment/domain/repositories/'
       'payment_repository.dart',

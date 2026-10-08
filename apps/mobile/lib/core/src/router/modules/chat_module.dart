@@ -3,7 +3,7 @@ import 'package:go_router/go_router.dart';
 // PHASE 7-8 CUTOVER: Using chat_refactor screens
 import 'package:labuda/domains/chat/chat/chat.dart';
 import 'package:labuda/core/src/router/route_paths.dart';
-import 'package:labuda/shared/attachment/entities/share_reference.dart';
+import 'package:labuda/domains/chat/chat/presentation/models/pending_commerce_attachment.dart';
 import 'base_module.dart';
 
 /// Chat Module - Routes dan dependencies untuk fitur chat
@@ -62,13 +62,18 @@ class ChatModule implements BaseModule {
           final extra = state.extra as Map<String, dynamic>?;
           final initialMessage = extra?['initialMessage'] as String?;
           // Canonical commerce chat opener (openCommerceChat) delivers the
-          // pending product reference here.
-          final pendingReference = extra?['pendingReference'] as ShareReference?;
+          // pending product attachment here.
+          final pendingCommerce =
+              extra?['pendingCommerce'] as PendingCommerceAttachment?;
+          // Optional composer draft (Checkout uncovered-shipping shortcut).
+          // Pre-fills the textarea only; never auto-sends.
+          final draftMessage = extra?['draftMessage'] as String?;
 
           return ChatDetailScreen(
             chatId: conversationId,
             initialMessage: initialMessage,
-            pendingReference: pendingReference,
+            pendingCommerce: pendingCommerce,
+            draftMessage: draftMessage,
           );
         },
       ),

@@ -25,11 +25,21 @@ import '../../support/theme_authority_gate.dart';
 
 /// The 15 M3 2021 style names the ladder must pin.
 const _m3StyleNames = <String>[
-  'displayLarge', 'displayMedium', 'displaySmall',
-  'headlineLarge', 'headlineMedium', 'headlineSmall',
-  'titleLarge', 'titleMedium', 'titleSmall',
-  'bodyLarge', 'bodyMedium', 'bodySmall',
-  'labelLarge', 'labelMedium', 'labelSmall',
+  'displayLarge',
+  'displayMedium',
+  'displaySmall',
+  'headlineLarge',
+  'headlineMedium',
+  'headlineSmall',
+  'titleLarge',
+  'titleMedium',
+  'titleSmall',
+  'bodyLarge',
+  'bodyMedium',
+  'bodySmall',
+  'labelLarge',
+  'labelMedium',
+  'labelSmall',
 ];
 
 TextStyle? _pick(TextTheme t, String name) => switch (name) {
@@ -67,8 +77,16 @@ void main() {
       // renders the light tones (the accessor's default).
       final light = AppTheme.lightTheme.extension<AppStatusColors>();
       final dark = AppTheme.darkTheme.extension<AppStatusColors>();
-      expect(light, isNotNull, reason: 'lightTheme must register AppStatusColors');
-      expect(dark, isNotNull, reason: 'darkTheme must register AppStatusColors');
+      expect(
+        light,
+        isNotNull,
+        reason: 'lightTheme must register AppStatusColors',
+      );
+      expect(
+        dark,
+        isNotNull,
+        reason: 'darkTheme must register AppStatusColors',
+      );
       expect(light, AppStatusColors.light);
       expect(dark, AppStatusColors.dark);
       // Light stays pixel-identical to the tokens the app shipped with.
@@ -93,7 +111,11 @@ void main() {
         'error': status.error,
         'info': status.info,
       };
-      expect(status.error, isNot(AppColors.statusError), reason: 'error must be retuned');
+      expect(
+        status.error,
+        isNot(AppColors.statusError),
+        reason: 'error must be retuned',
+      );
       tones.forEach((name, tone) {
         expect(
           _contrastRatio(tone, surface),
@@ -156,14 +178,13 @@ void main() {
         final s = theme.colorScheme;
         expect(theme.scaffoldBackgroundColor, s.surface);
         expect(theme.dialogTheme.backgroundColor, s.surfaceContainerHigh);
-        expect(
-          theme.bottomSheetTheme.backgroundColor,
-          s.surfaceContainerLow,
-        );
+        expect(theme.bottomSheetTheme.backgroundColor, s.surfaceContainerLow);
         expect(theme.dividerTheme.color, s.outlineVariant);
         expect(theme.listTileTheme.iconColor, s.onSurfaceVariant);
-        expect(theme.snackBarTheme.backgroundColor, s.inverseSurface);
-        expect(theme.snackBarTheme.actionTextColor, s.inversePrimary);
+        // There is NO global snackBarTheme: AppSnackBar owns the toast palette
+        // from the status foundation, so a competing global palette is banned.
+        expect(theme.snackBarTheme.backgroundColor, isNull);
+        expect(theme.snackBarTheme.actionTextColor, isNull);
         // Component themes that used to bind raw palette tokens directly.
         expect(theme.appBarTheme.backgroundColor, s.surface);
         expect(theme.appBarTheme.foregroundColor, s.onSurface);
@@ -192,6 +213,31 @@ void main() {
               .color,
           s.primary.withValues(alpha: 0.7),
         );
+        // Owner-locked form-field fill: ordinary data-entry fields are FILLED
+        // with `surfaceContainerHigh`. Pinned here so a call site cannot
+        // re-own the fill and so removing it from the authority fails loud.
+        expect(
+          theme.inputDecorationTheme.filled,
+          isTrue,
+          reason: 'form fields are filled by the canonical authority',
+        );
+        expect(
+          theme.inputDecorationTheme.fillColor,
+          s.surfaceContainerHigh,
+          reason: 'the form-field fill role is surfaceContainerHigh',
+        );
+        // Geometry stays locked to the canonical values while the fill moves.
+        expect(
+          (theme.inputDecorationTheme.border! as OutlineInputBorder)
+              .borderRadius,
+          AppShape.containerRadius,
+        );
+        expect(
+          (theme.inputDecorationTheme.focusedBorder! as OutlineInputBorder)
+              .borderSide
+              .width,
+          AppMetrics.focusedBorderWidth,
+        );
         // Button family: one geometry, one ink per variant. The neutral
         // outlined pair (onSurface / outlineVariant) is the canonical
         // secondary — a site re-stating it is a competing authority.
@@ -202,8 +248,7 @@ void main() {
           s.onSurface,
         );
         expect(
-          theme.outlinedButtonTheme.style
-              ?.side
+          theme.outlinedButtonTheme.style?.side
               ?.resolve(const <WidgetState>{})
               ?.color,
           s.outlineVariant,
@@ -323,24 +368,55 @@ void main() {
 
       // The snackbar renders on the inverse pair, so it must not inherit the
       // baseline's unbranded surface.
-      expect(light.inverseSurface, isNot(const ColorScheme.light().inverseSurface));
-      expect(light.inversePrimary, isNot(const ColorScheme.light().inversePrimary));
+      expect(
+        light.inverseSurface,
+        isNot(const ColorScheme.light().inverseSurface),
+      );
+      expect(
+        light.inversePrimary,
+        isNot(const ColorScheme.light().inversePrimary),
+      );
     });
 
     test('both schemes define the full M3 role surface in source', () {
       // Closure gate for the leak above: a role that is simply absent from the
       // definition block silently resolves to the Material baseline again.
       const required = <String>[
-        'primary', 'onPrimary', 'primaryContainer', 'onPrimaryContainer',
-        'secondary', 'onSecondary', 'secondaryContainer',
-        'onSecondaryContainer', 'tertiary', 'onTertiary', 'tertiaryContainer',
-        'onTertiaryContainer', 'error', 'onError', 'errorContainer',
-        'onErrorContainer', 'surface', 'onSurface', 'onSurfaceVariant',
-        'outline', 'outlineVariant', 'surfaceContainerLowest',
-        'surfaceContainerLow', 'surfaceContainer', 'surfaceContainerHigh',
-        'surfaceContainerHighest', 'surfaceDim', 'surfaceBright',
-        'inverseSurface', 'onInverseSurface', 'inversePrimary', 'scrim',
-        'shadow', 'surfaceTint', 'brightness',
+        'primary',
+        'onPrimary',
+        'primaryContainer',
+        'onPrimaryContainer',
+        'secondary',
+        'onSecondary',
+        'secondaryContainer',
+        'onSecondaryContainer',
+        'tertiary',
+        'onTertiary',
+        'tertiaryContainer',
+        'onTertiaryContainer',
+        'error',
+        'onError',
+        'errorContainer',
+        'onErrorContainer',
+        'surface',
+        'onSurface',
+        'onSurfaceVariant',
+        'outline',
+        'outlineVariant',
+        'surfaceContainerLowest',
+        'surfaceContainerLow',
+        'surfaceContainer',
+        'surfaceContainerHigh',
+        'surfaceContainerHighest',
+        'surfaceDim',
+        'surfaceBright',
+        'inverseSurface',
+        'onInverseSurface',
+        'inversePrimary',
+        'scrim',
+        'shadow',
+        'surfaceTint',
+        'brightness',
       ];
       final source = File(
         'lib/core/src/theme/app_colors.dart',
@@ -353,7 +429,9 @@ void main() {
         expect(start, greaterThan(-1), reason: '$name scheme block must exist');
         final body = source.substring(start, source.indexOf(');', start));
         final missing = required
-            .where((role) => !body.contains(RegExp('^\\s+$role:', multiLine: true)))
+            .where(
+              (role) => !body.contains(RegExp('^\\s+$role:', multiLine: true)),
+            )
             .toList();
         expect(missing, isEmpty, reason: '$name scheme must define $missing');
       }
@@ -399,7 +477,10 @@ void main() {
         const BorderRadius.all(Radius.circular(12)),
       );
       expect(AppShape.buttonRadius, const BorderRadius.all(Radius.circular(8)));
-      expect(theme.inputDecorationTheme.contentPadding, AppMetrics.inputPadding);
+      expect(
+        theme.inputDecorationTheme.contentPadding,
+        AppMetrics.inputPadding,
+      );
       expect(
         theme.elevatedButtonTheme.style?.padding?.resolve(
           const <WidgetState>{},
@@ -430,7 +511,6 @@ void main() {
       final consumers = <String>[
         'lib/domains/chat/chat/presentation/widgets/chat_input_area.dart',
         'lib/domains/social/comment/presentation/widgets/comment_input_with_commerce_reference.dart',
-        'lib/domains/social/share/presentation/widgets/share_to_chat_dialog.dart',
         'lib/domains/system/support/presentation/screens/support_ticket_thread_screen.dart',
         'lib/shared/widgets/mentions/mention_text_field.dart',
       ];
@@ -449,70 +529,74 @@ void main() {
       }
     });
 
-    test('composer action row is canonical (send always visible, + on the right)', () {
-      // ONE action row spec: [pill] [ComposerAddButton?] [ComposerSendButton].
-      // The send glyph lives only in the shared widget — consumers may not
-      // draw their own — and nothing may hide the send button while typing
-      // (the old showSend conditional caused layout shift).
-      final canonical = File(
-        'lib/shared/widgets/composer_action_buttons.dart',
-      ).readAsStringSync();
-      expect(
-        canonical.contains('Icons.send'),
-        isTrue,
-        reason: 'the shared widget owns the send glyph',
-      );
-      expect(canonical.contains('ComposerAddButton'), isTrue);
-
-      const chat =
-          'lib/domains/chat/chat/presentation/widgets/chat_input_area.dart';
-      const comment =
-          'lib/domains/social/comment/presentation/widgets/comment_input_with_commerce_reference.dart';
-      const share =
-          'lib/domains/social/share/presentation/widgets/share_to_chat_dialog.dart';
-      const support =
-          'lib/domains/system/support/presentation/screens/support_ticket_thread_screen.dart';
-
-      for (final path in const [chat, comment, share, support]) {
-        final src = File(path).readAsStringSync();
+    test(
+      'composer action row is canonical (send always visible, + on the right)',
+      () {
+        // ONE action row spec: [pill] [ComposerAddButton?] [ComposerSendButton].
+        // The send glyph lives only in the shared widget — consumers may not
+        // draw their own — and nothing may hide the send button while typing
+        // (the old showSend conditional caused layout shift).
+        final canonical = File(
+          'lib/shared/widgets/composer_action_buttons.dart',
+        ).readAsStringSync();
         expect(
-          src.contains('ComposerSendButton('),
+          canonical.contains('Icons.send'),
           isTrue,
-          reason: '$path must use the canonical send button',
+          reason: 'the shared widget owns the send glyph',
         );
-        expect(
-          src.contains('Icons.send'),
-          isFalse,
-          reason: '$path may not draw its own send glyph',
-        );
-      }
+        expect(canonical.contains('ComposerAddButton'), isTrue);
 
-      // The attach `+` exists only where an attach flow exists.
-      for (final path in const [chat, comment]) {
-        expect(
-          File(path).readAsStringSync().contains('ComposerAddButton('),
-          isTrue,
-          reason: '$path must expose the canonical attach button',
-        );
-      }
-      for (final path in const [share, support]) {
-        expect(
-          File(path).readAsStringSync().contains('ComposerAddButton('),
-          isFalse,
-          reason: '$path has no attach flow — no `+` row slot',
-        );
-      }
+        const chat =
+            'lib/domains/chat/chat/presentation/widgets/chat_input_area.dart';
+        const comment =
+            'lib/domains/social/comment/presentation/widgets/comment_input_with_commerce_reference.dart';
+        const support =
+            'lib/domains/system/support/presentation/screens/support_ticket_thread_screen.dart';
 
-      // Chat used to hide send until typing; that conditional is gone.
-      final chatSrc = File(chat).readAsStringSync();
-      expect(chatSrc.contains('showSend'), isFalse);
-      expect(chatSrc.contains('_isTyping'), isFalse);
-    });
+        for (final path in const [chat, comment, support]) {
+          final src = File(path).readAsStringSync();
+          expect(
+            src.contains('ComposerSendButton('),
+            isTrue,
+            reason: '$path must use the canonical send button',
+          );
+          expect(
+            src.contains('Icons.send'),
+            isFalse,
+            reason: '$path may not draw its own send glyph',
+          );
+        }
+
+        // The attach `+` exists only where an attach flow exists.
+        for (final path in const [chat, comment]) {
+          expect(
+            File(path).readAsStringSync().contains('ComposerAddButton('),
+            isTrue,
+            reason: '$path must expose the canonical attach button',
+          );
+        }
+        for (final path in const [support]) {
+          expect(
+            File(path).readAsStringSync().contains('ComposerAddButton('),
+            isFalse,
+            reason: '$path has no attach flow — no `+` row slot',
+          );
+        }
+
+        // Chat used to hide send until typing; that conditional is gone.
+        final chatSrc = File(chat).readAsStringSync();
+        expect(chatSrc.contains('showSend'), isFalse);
+        expect(chatSrc.contains('_isTyping'), isFalse);
+      },
+    );
 
     test('elevation and density are explicit theme data', () {
       for (final theme in [AppTheme.lightTheme, AppTheme.darkTheme]) {
         expect(theme.appBarTheme.elevation, AppElevation.none);
-        expect(theme.cardTheme.elevation, AppElevation.card);
+        // Owner decision (card foundation): ordinary cards are flat. Depth
+        // is opt-in per semantic surface via AppElevation — never inherited
+        // from the cardTheme fallback.
+        expect(theme.cardTheme.elevation, AppElevation.none);
         expect(theme.visualDensity, AppDensity.visualDensity);
         expect(theme.materialTapTargetSize, AppDensity.tapTargetSize);
       }
@@ -563,7 +647,11 @@ void main() {
             isNotNull,
             reason: '$name letterSpacing',
           );
-          expect(ourStyle.fontSize, theirStyle?.fontSize, reason: '$name fontSize');
+          expect(
+            ourStyle.fontSize,
+            theirStyle?.fontSize,
+            reason: '$name fontSize',
+          );
           expect(
             ourStyle.fontWeight,
             theirStyle?.fontWeight,
@@ -600,7 +688,8 @@ void main() {
       for (final name in _m3StyleNames) {
         final ours = _pick(forked, name);
         final theirs = _pick(reference, name);
-        if (ours?.fontSize != theirs?.fontSize) mismatches.add('$name fontSize');
+        if (ours?.fontSize != theirs?.fontSize)
+          mismatches.add('$name fontSize');
         if (ours?.fontWeight != theirs?.fontWeight) {
           mismatches.add('$name weight');
         }
@@ -612,9 +701,14 @@ void main() {
       expect(
         mismatches,
         contains('labelSmall fontSize'),
-        reason: 'a forked size must be reported — the gate must be able to fail',
+        reason:
+            'a forked size must be reported — the gate must be able to fail',
       );
-      expect(mismatches.length, 1, reason: 'the probe touches exactly one role');
+      expect(
+        mismatches.length,
+        1,
+        reason: 'the probe touches exactly one role',
+      );
 
       // (2) WHY the gate resolves: the raw ThemeData text theme carries no
       //     geometry at all, which is precisely what made the old comparison
@@ -640,9 +734,7 @@ void main() {
       //     which is exactly the route this proof takes.
       final forkedTypography = Typography.material2021(
         englishLike: Typography.material2021().englishLike.copyWith(
-          bodyMedium: Typography.material2021()
-              .englishLike
-              .bodyMedium!
+          bodyMedium: Typography.material2021().englishLike.bodyMedium!
               .copyWith(fontSize: 15),
         ),
       );
@@ -680,8 +772,12 @@ void main() {
       // The forbidden class name is spelled from fragments so THIS gate does
       // not name it in a way its own sweep would catch; it is never written in
       // prose here for the same reason.
-      final ladderClass = 'AppTypog' 'raphy';
-      final ladderPath = 'app_' 'typography.dart';
+      final ladderClass =
+          'AppTypog'
+          'raphy';
+      final ladderPath =
+          'app_'
+          'typography.dart';
       expect(
         File('lib/core/src/theme/$ladderPath').existsSync(),
         isFalse,
@@ -693,10 +789,11 @@ void main() {
           namedAgain.add(path);
         }
       }
-      for (final f in Directory('test')
-          .listSync(recursive: true)
-          .whereType<File>()
-          .where((f) => f.path.endsWith('.dart'))) {
+      for (final f
+          in Directory('test')
+              .listSync(recursive: true)
+              .whereType<File>()
+              .where((f) => f.path.endsWith('.dart'))) {
         if (f.readAsStringSync().contains(ladderClass)) {
           namedAgain.add(f.path.replaceAll(r'\', '/'));
         }
@@ -704,7 +801,8 @@ void main() {
       expect(
         namedAgain,
         isEmpty,
-        reason: 'type role must come from textTheme, found at:\n'
+        reason:
+            'type role must come from textTheme, found at:\n'
             '${namedAgain.join('\n')}',
       );
       expect(
@@ -761,75 +859,73 @@ void main() {
       );
     });
 
-    test('type and spacing ladders pin the values widgets used to spell inline', () {
-      // FOUNDATION (owner decision 2026-10-02): no more one step per pixel a
-      // screen once wanted. Five type steps (the Tailwind/Material core),
-      // five icon steps, seven spacing steps on a 4pt grid. These pins ARE the
-      // ladder — retuning a step is a deliberate edit HERE, never a local
-      // literal.
-      expect(AppType.s12, 12);
-      expect(AppType.s14, 14);
-      expect(AppType.s16, 16);
-      expect(AppType.s20, 20);
-      expect(AppType.s24, 24);
+    test(
+      'type and spacing ladders pin the values widgets used to spell inline',
+      () {
+        // FOUNDATION (owner decision 2026-10-02): no more one step per pixel a
+        // screen once wanted. Five icon steps, seven spacing steps on a 4pt grid.
+        // These pins ARE the ladder — retuning a step is a deliberate edit HERE,
+        // never a local literal. (The five TYPE steps are the semantic roles and
+        // are pinned by `type_role_migration_ratchet_test.dart`.)
+        expect(AppIconSize.inlineGlyph, 16);
+        expect(AppIconSize.action, 20);
+        expect(AppIconSize.header, 24);
+        expect(AppIconSize.emphasis, 32);
+        expect(AppIconSize.display, 48);
 
-      expect(AppIconSize.inlineGlyph, 16);
-      expect(AppIconSize.action, 20);
-      expect(AppIconSize.header, 24);
-      expect(AppIconSize.emphasis, 32);
-      expect(AppIconSize.display, 48);
+        // Content/media ladder — role-named like the icon ladder, one literal
+        // per value. These pins ARE the policy: a call site reads a name, never
+        // a number, and the folds documented on [AppContentSize] land exactly
+        // here.
+        expect(AppContentSize.badge, 24);
+        expect(AppContentSize.controlCompact, 36);
+        expect(AppContentSize.control, 48);
+        expect(AppContentSize.termLabel, 100);
+        expect(AppContentSize.thumbnail, 112);
+        expect(AppContentSize.panel, 120);
+        expect(AppContentSize.mediaCard, 140);
+        expect(AppContentSize.preview, 180);
+        expect(AppContentSize.capture, 200);
+        expect(AppContentSize.overlay, 250);
+        expect(AppContentSize.actionWidth, 280);
+        expect(AppContentSize.dialogWidth, 340);
+        expect(AppContentSize.cropperCanvas, const Size(500, 600));
 
-      // Content/media ladder — role-named like the icon ladder, one literal
-      // per value. These pins ARE the policy: a call site reads a name, never
-      // a number, and the folds documented on [AppContentSize] land exactly
-      // here.
-      expect(AppContentSize.badge, 24);
-      expect(AppContentSize.controlCompact, 36);
-      expect(AppContentSize.control, 48);
-      expect(AppContentSize.termLabel, 100);
-      expect(AppContentSize.thumbnail, 112);
-      expect(AppContentSize.panel, 120);
-      expect(AppContentSize.mediaCard, 140);
-      expect(AppContentSize.preview, 180);
-      expect(AppContentSize.capture, 200);
-      expect(AppContentSize.overlay, 250);
-      expect(AppContentSize.actionWidth, 280);
-      expect(AppContentSize.dialogWidth, 340);
-      expect(AppContentSize.cropperCanvas, const Size(500, 600));
-
-      expect(AppMetrics.p0, 0);
-      expect(AppMetrics.p4, 4);
-      expect(AppMetrics.p8, 8);
-      expect(AppMetrics.p12, 12);
-      expect(AppMetrics.p16, 16);
-      expect(AppMetrics.p24, 24);
-      expect(AppMetrics.p32, 32);
-      expect(AppMetrics.p48, 48);
-      // A layout role derived from the step, not a step of its own.
-      expect(AppMetrics.bottomBarClearance, 96);
-      // Derived paddings hold no value of their own.
-      expect(
-        AppMetrics.buttonPadding,
-        const EdgeInsets.symmetric(
-          horizontal: AppMetrics.p24,
-          vertical: AppMetrics.p12,
-        ),
-      );
-      expect(
-        AppMetrics.inputPadding,
-        const EdgeInsets.symmetric(
-          horizontal: AppMetrics.p16,
-          vertical: AppMetrics.p12,
-        ),
-      );
-    });
+        expect(AppMetrics.p0, 0);
+        expect(AppMetrics.p4, 4);
+        expect(AppMetrics.p8, 8);
+        expect(AppMetrics.p12, 12);
+        expect(AppMetrics.p16, 16);
+        expect(AppMetrics.p24, 24);
+        expect(AppMetrics.p32, 32);
+        expect(AppMetrics.p48, 48);
+        // A layout role derived from the step, not a step of its own.
+        expect(AppMetrics.fabClearance, 96);
+        // Derived paddings hold no value of their own.
+        expect(
+          AppMetrics.buttonPadding,
+          const EdgeInsets.symmetric(
+            horizontal: AppMetrics.p24,
+            vertical: AppMetrics.p12,
+          ),
+        );
+        expect(
+          AppMetrics.inputPadding,
+          const EdgeInsets.symmetric(
+            horizontal: AppMetrics.p16,
+            vertical: AppMetrics.p12,
+          ),
+        );
+      },
+    );
 
     test('content size ladder holds one name per value', () {
       // The AppElevation doctrine, applied to the content ladder: two members
       // may never spell the same number — that is how a ladder becomes the
       // drift it was cut out to kill. (Cross-LADDER duplicates are fine:
-      // AppType.s24, AppMetrics.p24, AppIconSize.header and
-      // AppContentSize.badge are four different concepts.)
+      // the type role `titleProminent` (24), `AppMetrics.p24`,
+      // `AppIconSize.header` and `AppContentSize.badge` are four different
+      // concepts.)
       final contentValues = <double>[
         AppContentSize.badge,
         AppContentSize.controlCompact,
@@ -881,7 +977,9 @@ void main() {
         'lib/core/src/theme/theme_provider.dart',
       ).readAsStringSync();
       expect(
-        provider.contains('return const ThemeState(themeMode: ThemeMode.system)'),
+        provider.contains(
+          'return const ThemeState(themeMode: ThemeMode.system)',
+        ),
         isTrue,
         reason: 'system must stay the default',
       );
@@ -894,7 +992,10 @@ void main() {
       final dark = AppTheme.darkTheme.colorScheme;
       expect(dark.surface, isNot(light.surface));
       expect(dark.onSurface, isNot(light.onSurface));
-      expect(dark.surfaceContainerHighest, isNot(light.surfaceContainerHighest));
+      expect(
+        dark.surfaceContainerHighest,
+        isNot(light.surfaceContainerHighest),
+      );
       expect(dark.outlineVariant, isNot(light.outlineVariant));
     });
   });
@@ -956,7 +1057,7 @@ void main() {
         'fontSize: 14,',
         'margin: const EdgeInsets.only(left: 8),',
         // The literal hiding inside a ternary / null-coalesce — the hole this
-        // scope closed (7 sites migrated onto AppType, pixel-identical).
+        // scope closed (7 sites migrated onto the semantic type roles).
         'fontSize: isTotal ? 18 : 14,',
         'fontSize: widget.style?.fontSize ?? 14,',
         'fontSize: isActive ? 10 : 8.5,',
@@ -980,11 +1081,11 @@ void main() {
         'color: context.statusColors.error,',
         'foregroundColor: AppColors.coinPrimary,',
         'backgroundColor: Colors.transparent,', // mode-independent, see above
-        'elevation: AppElevation.card,',
+        'elevation: AppElevation.none,',
         'duration: AppMotion.settled,',
         'borderRadius: BorderRadius.circular(AppShape.r12),',
-        'fontSize: AppType.s14,',
-        'fontSize: core.AppType.s14,',
+        'fontSize: context.typeRoles.bodyDense.fontSize,',
+        'fontSize: Theme.of(context).textTheme.bodyMedium?.fontSize,',
         'margin: const EdgeInsets.only(left: AppMetrics.p8),',
         // Computed proportional geometry is not a size decision.
         'fontSize: stepSize * 0.42,',
@@ -1045,7 +1146,8 @@ void main() {
       expect(
         violations,
         isEmpty,
-        reason: 'button shape must come from the theme, found at:\n'
+        reason:
+            'button shape must come from the theme, found at:\n'
             '${violations.join('\n')}',
       );
     });
@@ -1084,7 +1186,9 @@ void main() {
       );
       // …an input fill…
       expect(
-        scan('InputDecoration(fillColor: scheme.onSurfaceVariant, filled: true)').violations,
+        scan(
+          'InputDecoration(fillColor: scheme.onSurfaceVariant, filled: true)',
+        ).violations,
         hasLength(1),
       );
       // …and any widget/data object naming a background with an ink role.
@@ -1095,7 +1199,9 @@ void main() {
 
       // Spares: the legitimate uses. An ink used as INK…
       expect(
-        scan('Text(style: TextStyle(color: scheme.onSurfaceVariant))').violations,
+        scan(
+          'Text(style: TextStyle(color: scheme.onSurfaceVariant))',
+        ).violations,
         isEmpty,
       );
       // …an ink tint with alpha (M3 state layers paint onSurface at 8–12%)…
@@ -1113,8 +1219,9 @@ void main() {
       // …and an on-media control over a camera preview (`onPrimary` is the
       // always-light ink).
       expect(
-        scan('BoxDecoration(color: scheme.onPrimary, shape: BoxShape.circle)')
-            .violations,
+        scan(
+          'BoxDecoration(color: scheme.onPrimary, shape: BoxShape.circle)',
+        ).violations,
         isEmpty,
       );
     });
@@ -1126,7 +1233,8 @@ void main() {
       expect(
         violations,
         isEmpty,
-        reason: 'competing colour authority outside '
+        reason:
+            'competing colour authority outside '
             '${themeAuthorityFiles.length} pinned files:\n'
             '${violations.join('\n')}',
       );
@@ -1189,23 +1297,21 @@ void main() {
         File('lib/shared/ui/factory/component_factory.dart').existsSync(),
         isFalse,
       );
-      expect(
-        Directory('lib/shared/ui/factory').existsSync(),
-        isFalse,
-      );
+      expect(Directory('lib/shared/ui/factory').existsSync(), isFalse);
     });
   });
 
   group('snackbar single-authority gate', () {
-    test('showSnackBar extension owns no colour decision', () {
+    test('context extension hosts no Snackbar surface', () {
       final source = File(
         'lib/core/src/utils/extensions/context_extensions.dart',
       ).readAsStringSync();
-      // Killed: the extension forked error/success/info off a raw
-      // `backgroundColor` argument — the same decision AppSnackBar already
-      // owns. It now delegates with no colour parameter at all.
+      // Killed twice over: the extension first forked error/success/info off a
+      // raw `backgroundColor` argument, then survived as a delegating trio.
+      // Both are gone — the canonical Snapbar widget is the ONLY surface.
       expect(source.contains('backgroundColor'), isFalse);
-      expect(source.contains('AppSnackBar.showInfo'), isTrue);
+      expect(source.contains('showSnackBar'), isFalse);
+      expect(source.contains('AppSnackBar'), isFalse);
     });
 
     test('no per-screen SnackBar re-decides its palette', () {
@@ -1246,7 +1352,8 @@ void main() {
       expect(
         violations,
         isEmpty,
-        reason: 'SnackBar painted outside the AppSnackBar authority:\n'
+        reason:
+            'SnackBar painted outside the AppSnackBar authority:\n'
             '${violations.join('\n')}',
       );
     });

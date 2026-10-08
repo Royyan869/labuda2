@@ -14,13 +14,13 @@ import (
 
 // BiddingItem represents a user's bidding view for a single auction.
 type BiddingItem struct {
-	AuctionID    uuid.UUID
-	Title        string
-	YourLastBid  int64
-	CurrentBid   int64
-	Status       string // leading | outbid | won | lost | waiting_claim
-	EndAt        time.Time
-	UpdatedAt    time.Time
+	AuctionID   uuid.UUID
+	Title       string
+	YourLastBid int64
+	CurrentBid  int64
+	Status      string // leading | outbid | won | lost | waiting_claim
+	EndAt       time.Time
+	UpdatedAt   time.Time
 }
 
 // BiddingResult holds the result of GetUserBidding with aggregated counts.
@@ -157,7 +157,7 @@ func (s *BiddingService) GetUserBidding(
 //	  ELSE:
 //	    status = "lost"
 //
-//	Settlement failure returns the auction to DRAFT (bid history preserved);
+//	Settlement failure AUTO-RESCHEDULES the auction (scheduled, start=now);
 //	the previous winner is no longer the current winner, so every participant
 //	derives "lost" from the default branch.
 func (s *BiddingService) deriveStatus(userID uuid.UUID, auction *entity.Auction) string {
@@ -183,7 +183,7 @@ func (s *BiddingService) deriveStatus(userID uuid.UUID, auction *entity.Auction)
 		return "lost"
 
 	default:
-		// For draft, scheduled, cancelled - treat as lost
+		// For scheduled, cancelled, lapsed (and unknown) - treat as lost
 		return "lost"
 	}
 }
@@ -218,5 +218,3 @@ func (s *BiddingService) sortBiddingItems(items []BiddingItem) {
 func isActiveStatus(status string) bool {
 	return status == "leading" || status == "outbid" || status == "waiting_claim"
 }
-
-

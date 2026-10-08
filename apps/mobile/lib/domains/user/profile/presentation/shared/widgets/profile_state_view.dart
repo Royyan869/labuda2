@@ -225,7 +225,7 @@ class ProfileStateBanner extends StatelessWidget {
           if (onDismiss != null)
             IconButton(
               onPressed: onDismiss,
-              icon: Icon(Icons.close, color: Theme.of(context).colorScheme.onPrimary),
+              icon: Icon(Icons.close, color: Theme.of(context).colorScheme.onPrimary, semanticLabel: 'Tutup'),
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
             ),

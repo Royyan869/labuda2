@@ -14,9 +14,6 @@ void main() {
   test('CommerceViewerCapabilities guest is fully closed and round-trips', () {
     const guest = CommerceViewerCapabilities.guest();
 
-    expect(guest.isGuest, isTrue);
-    expect(guest.isOwner, isFalse);
-    expect(guest.isBuyer, isFalse);
     expect(guest.canManage, isFalse);
     expect(guest.canEdit, isFalse);
     expect(guest.canPromote, isFalse);

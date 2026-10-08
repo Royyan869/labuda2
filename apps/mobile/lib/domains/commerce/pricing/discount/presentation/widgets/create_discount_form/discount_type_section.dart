@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:labuda/domains/commerce/pricing/discount/domain/entities/discount_entity.dart';
+import 'package:labuda/shared/utils/money_input_formatter.dart';
 import 'package:labuda/shared/widgets/app_text_field.dart';
 import 'package:labuda/core/src/theme/app_theme.dart';
 
@@ -32,7 +33,13 @@ class _DiscountTypeSectionState extends State<DiscountTypeSection> {
   void initState() {
     super.initState();
     _valueController = TextEditingController(
-      text: widget.value > 0 ? widget.value.toStringAsFixed(0) : '',
+      // Flat-amount discounts are money: seed in the canonical grouped form.
+      // Percentage values stay plain numbers.
+      text: widget.value <= 0
+          ? ''
+          : widget.type == DiscountType.flatAmount
+          ? MoneyInputFormatter.display(widget.value.round())
+          : widget.value.toStringAsFixed(0),
     );
   }
 
@@ -64,8 +71,7 @@ class _DiscountTypeSectionState extends State<DiscountTypeSection> {
         children: [
           Text(
             'Type & Value',
-            style: TextStyle(
-              fontSize: AppType.s16,
+            style: context.typeRoles.titleSection.copyWith(
               fontWeight: FontWeight.bold,
               color: Theme.of(context).colorScheme.onSurface,
             ),
@@ -75,8 +81,7 @@ class _DiscountTypeSectionState extends State<DiscountTypeSection> {
           // Tipe Diskon
           Text(
             'Discount Type *',
-            style: TextStyle(
-              fontSize: AppType.s14,
+            style: context.typeRoles.bodyDense.copyWith(
               fontWeight: FontWeight.w500,
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
@@ -120,8 +125,7 @@ class _DiscountTypeSectionState extends State<DiscountTypeSection> {
                       Expanded(
                         child: Text(
                           _getTypeLabel(type),
-                          style: TextStyle(
-                            fontSize: AppType.s14,
+                          style: context.typeRoles.bodyDense.copyWith(
                             fontWeight: isSelected
                                 ? FontWeight.w600
                                 : FontWeight.normal,
@@ -153,16 +157,24 @@ class _DiscountTypeSectionState extends State<DiscountTypeSection> {
                 ? Icons.percent
                 : Icons.money_off,
             keyboardType: TextInputType.number,
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            // Flat amount is money (canonical grouping mask); percentage is a
+            // plain 0–100 number and stays digits-only.
+            inputFormatters: widget.type == DiscountType.flatAmount
+                ? const [MoneyInputFormatter()]
+                : [FilteringTextInputFormatter.digitsOnly],
             onChanged: (value) {
-              final numValue = double.tryParse(value) ?? 0;
+              final numValue = widget.type == DiscountType.flatAmount
+                  ? (MoneyInputFormatter.parseAmount(value) ?? 0).toDouble()
+                  : (double.tryParse(value) ?? 0);
               widget.onValueChanged(numValue);
             },
             validator: (value) {
               if (value == null || value.trim().isEmpty) {
                 return 'Discount value is required';
               }
-              final numValue = double.tryParse(value);
+              final numValue = widget.type == DiscountType.flatAmount
+                  ? MoneyInputFormatter.parseAmount(value)?.toDouble()
+                  : double.tryParse(value);
               if (numValue == null || numValue <= 0) {
                 return 'Value must be greater than 0';
               }

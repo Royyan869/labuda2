@@ -8,6 +8,10 @@ import 'package:labuda/domains/user/preference/seller/presentation/screens/selle
     show SellerDashboardScreen;
 import 'package:labuda/domains/user/preference/seller/presentation/screens/seller_earnings_screen.dart'
     show SellerEarningsScreen;
+import 'package:labuda/domains/user/preference/seller/presentation/screens/seller_analytics_screen.dart'
+    show SellerAnalyticsScreen;
+import 'package:labuda/domains/user/preference/seller/presentation/screens/seller_performance_screen.dart'
+    show SellerPerformanceScreen;
 import 'package:labuda/domains/user/preference/seller/presentation/screens/seller_verification_screen.dart'
     show SellerVerificationScreen;
 import 'package:labuda/domains/user/preference/seller/presentation/screens/seller_shipping_screen.dart'
@@ -20,6 +24,8 @@ import 'package:labuda/domains/commerce/pricing/promotion/presentation/screens/c
     show CanonicalPromotionCreateScreen;
 import 'package:labuda/domains/commerce/pricing/promotion/presentation/screens/canonical_promotion_list_screen.dart'
     show CanonicalPromotionListScreen;
+import 'package:labuda/domains/commerce/pricing/promotion/presentation/screens/canonical_promotion_queue_screen.dart'
+    show CanonicalPromotionQueueScreen;
 import 'package:labuda/domains/commerce/pricing/promotion/presentation/screens/external_product_management_screen.dart'
     show ExternalProductManagementScreen;
 import 'package:labuda/domains/commerce/pricing/promotion/presentation/screens/external_product_detail_screen.dart'
@@ -29,6 +35,14 @@ import 'package:labuda/domains/user/preference/seller/presentation/screens/selle
     show SellerUpgradeWizardScreen;
 import 'package:labuda/domains/user/preference/seller/presentation/screens/seller_renewal_screen.dart'
     show SellerRenewalScreen;
+import 'package:labuda/domains/commerce/pricing/discount/domain/entities/discount_entity.dart'
+    show Discount;
+import 'package:labuda/domains/commerce/pricing/discount/presentation/screens/create_discount_screen.dart'
+    show CreateDiscountScreen;
+import 'package:labuda/domains/commerce/pricing/discount/presentation/screens/edit_discount_screen.dart'
+    show EditDiscountScreen;
+import 'package:labuda/domains/commerce/pricing/discount/presentation/screens/seller_discount_list_screen.dart'
+    show SellerDiscountListScreen;
 
 import 'base_module.dart';
 
@@ -74,6 +88,20 @@ class SellerModule extends BaseModule {
       path: '/seller/earnings',
       name: 'sellerEarnings',
       builder: (context, state) => const SellerEarningsScreen(),
+    ),
+
+    // Seller Analytics Route (30-day read projection over Product View + sales)
+    GoRoute(
+      path: RoutePaths.sellerAnalytics,
+      name: RouteNames.sellerAnalytics,
+      builder: (context, state) => const SellerAnalyticsScreen(),
+    ),
+
+    // Seller Performance Route (canonical Reputation + Rating projection)
+    GoRoute(
+      path: RoutePaths.sellerPerformance,
+      name: RouteNames.sellerPerformance,
+      builder: (context, state) => const SellerPerformanceScreen(),
     ),
 
     // Seller Upgrade Route (REGISTRATION lifecycle only — never renewal)
@@ -150,6 +178,19 @@ class SellerModule extends BaseModule {
       name: 'sellerPromotionContractCreate',
       builder: (context, state) => const CanonicalPromotionCreateScreen(),
     ),
+    // Canonical promotion product-queue (refill) management.
+    GoRoute(
+      path: RoutePaths.sellerCanonicalPromotionQueue,
+      name: 'sellerCanonicalPromotionQueue',
+      builder: (context, state) {
+        final contractId = state.pathParameters['contractId']!;
+        final kind = state.uri.queryParameters['kind'] ?? 'internal';
+        return CanonicalPromotionQueueScreen(
+          contractId: contractId,
+          kind: kind,
+        );
+      },
+    ),
     // Canonical Promotion Analytics Route
     GoRoute(
       path: RoutePaths.sellerCanonicalPromotionAnalytics,
@@ -170,6 +211,32 @@ class SellerModule extends BaseModule {
       builder: (context, state) {
         final productId = state.pathParameters['productId']!;
         return ExternalProductDetailScreen(productId: productId);
+      },
+    ),
+
+    // ── Seller discount management ────────────────────────────────────────
+    // Owner-only management surfaces (create/edit). The edit route carries
+    // the discount entity as route extra: the form is not an externally
+    // shareable destination, so a missing entity lands on the canonical
+    // discount list instead of inventing an error screen.
+    GoRoute(
+      path: RoutePaths.sellerDiscounts,
+      name: RouteNames.sellerDiscounts,
+      builder: (context, state) => const SellerDiscountListScreen(),
+    ),
+    GoRoute(
+      path: RoutePaths.sellerDiscountCreate,
+      name: RouteNames.sellerDiscountCreate,
+      builder: (context, state) => const CreateDiscountScreen(),
+    ),
+    GoRoute(
+      path: RoutePaths.sellerDiscountEdit,
+      name: RouteNames.sellerDiscountEdit,
+      builder: (context, state) {
+        final discount = state.extra;
+        return discount is Discount
+            ? EditDiscountScreen(discount: discount)
+            : const SellerDiscountListScreen();
       },
     ),
   ];

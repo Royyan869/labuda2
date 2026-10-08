@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:labuda/core/core.dart';
 import 'package:labuda/core/core.dart' as core;
-import 'package:labuda/core/src/theme/app_theme.dart';
 import 'package:labuda/shared/shared.dart';
 import 'package:labuda/domains/commerce/transaction/order/order.dart';
 
@@ -43,7 +44,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
         appBar: AppBar(
           title: Text(widget.isSeller ? 'Incoming Orders' : 'My Orders'),
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
+            icon: const Icon(Icons.arrow_back, semanticLabel: 'Kembali'),
             onPressed: () => Navigator.of(context).pop(),
           ),
           bottom: TabBar(
@@ -58,15 +59,21 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
             ],
           ),
         ),
-        body: TabBarView(
-          controller: _tabController,
-          children: [
-            _buildOrderList(null),
-            _buildOrderList(OrderStatus.pending),
-            _buildOrderList(OrderStatus.paid),
-            _buildOrderList(OrderStatus.shipped),
-            _buildOrderList(OrderStatus.completed),
-          ],
+        // SAFE-AREA-28 — the ONE canonical bottom system-window authority
+        // on this standalone (shell-less) route: the body SafeArea wraps
+        // the TabBarView so every tab's scroll viewport ends exactly at
+        // the system-region start at every inset.
+        body: SafeArea(
+          child: TabBarView(
+            controller: _tabController,
+            children: [
+              _buildOrderList(null),
+              _buildOrderList(OrderStatus.pending),
+              _buildOrderList(OrderStatus.paid),
+              _buildOrderList(OrderStatus.shipped),
+              _buildOrderList(OrderStatus.completed),
+            ],
+          ),
         ),
       ),
     );
@@ -94,7 +101,10 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
       );
     }
 
-    // Fetch orders based on role (real-time dengan Stream)
+    // Canonical list authority: the per-role live-stream providers.
+    // `value` is the last-known-good collection — present once the first
+    // emission settles, including during a resubscribe and after a failed
+    // resubscribe, where the previous value is kept.
     final ordersAsync = widget.isSeller
         ? ref.watch(
             watchSellerOrdersProvider(sellerId: currentUser.id, status: status),
@@ -102,35 +112,142 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
         : ref.watch(
             watchBuyerOrdersProvider(buyerId: currentUser.id, status: status),
           );
+    final orders = ordersAsync.value ?? const <Order>[];
 
-    return ordersAsync.when(
-      data: (orders) {
-        // Stream langsung return List<Order>, bukan Result
+    // LOADING FOUNDATION (owner-locked):
+    // - No orders yet → first-load states only: LoadingIndicator,
+    //   PageErrorState, or EmptyState.
+    // - Orders present → they stay visible across resubscribe/refresh; the
+    //   update indicator and refresh failure render inline, never as
+    //   full-page loading/error. The stream otherwise pushes live updates
+    //   itself — no duplicate polling layer exists on this surface.
+    return RefreshIndicator(
+      onRefresh: () => _reload(status),
+      child: CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          if (ordersAsync.isLoading && orders.isEmpty)
+            // First emission pending with no data → LoadingIndicator. Never
+            // EmptyState (not yet loaded) and never a raw spinner.
+            const SliverFillRemaining(
+              hasScrollBody: false,
+              child: Center(child: LoadingIndicator()),
+            )
+          else if (ordersAsync.hasError && orders.isEmpty)
+            // CANONICAL page-level load error (PageErrorState): safe
+            // localized copy only; the raw provider error never reaches
+            // the screen. Retry resubscribes the canonical stream.
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: PageErrorState(onRetry: () => _reload(status)),
+            )
+          else if (orders.isEmpty)
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: _buildEmptyState(context, widget.isSeller),
+            )
+          else ...[
+            // Resubscribe/refresh with existing data: rows stay, update
+            // indication on top.
+            if (ordersAsync.isLoading)
+              const SliverToBoxAdapter(
+                child: LinearProgressIndicator(minHeight: 2),
+              ),
+            // Resubscribe/refresh failure: rows stay, inline banner with
+            // retry that re-executes the canonical reload. Never a
+            // full-page error here, and never a silent slide into empty.
+            if (ordersAsync.hasError)
+              SliverToBoxAdapter(child: _buildRefreshErrorBanner(status)),
+            SliverPadding(
+              padding: const EdgeInsets.all(core.AppMetrics.p16),
+              sliver: SliverList(
+                delegate: SliverChildBuilderDelegate((context, index) {
+                  return _buildOrderCard(orders[index]);
+                }, childCount: orders.length),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
 
-        if (orders.isEmpty) {
-          return _buildEmptyState(context, widget.isSeller);
-        }
+  /// Single canonical reload for this surface: initial-load retry,
+  /// pull-to-refresh, and refresh-banner retry all resubscribe the active
+  /// tab's stream. Failure is never rethrown or rendered raw — it stays in
+  /// the provider state and renders as [PageErrorState] (no data yet) or
+  /// the inline refresh banner (existing data preserved).
+  Future<void> _reload(OrderStatus? status) async {
+    final currentUser = ref.read(authenticatedUserProvider);
+    if (currentUser == null) return;
+    final pending = widget.isSeller
+        ? watchSellerOrdersProvider(
+            sellerId: currentUser.id,
+            status: status,
+          ).future
+        : watchBuyerOrdersProvider(
+            buyerId: currentUser.id,
+            status: status,
+          ).future;
+    try {
+      // The reloaded collection reaches the screen through the provider
+      // state, not through this future — `.then((_) {})` adapts it to
+      // `Future<void>` so the `unused_result` contract is satisfied while
+      // failures still propagate to the `catch` below.
+      await ref.refresh(pending).then((_) {});
+    } catch (_) {
+      // No-op: the failure remains observable via async.hasError with the
+      // last-known-good collection preserved in async.value.
+    }
+  }
 
-        return ListView.builder(
-          padding: const EdgeInsets.all(core.AppMetrics.p16),
-          itemCount: orders.length,
-          itemBuilder: (context, index) {
-            return _buildOrderCard(orders[index]);
-          },
-        );
-      },
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, stack) => Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+  /// Minimum bounded refresh-failure indication: persistent inline banner
+  /// with safe localized copy and a retry action. Not a new foundation —
+  /// composition of canonical tokens for this screen, matching the
+  /// established refresh banners.
+  Widget _buildRefreshErrorBanner(OrderStatus? status) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final l10n = context.l10n;
+    return Semantics(
+      container: true,
+      liveRegion: true,
+      child: Container(
+        width: double.infinity,
+        margin: const EdgeInsets.fromLTRB(
+          core.AppMetrics.p16,
+          core.AppMetrics.p12,
+          core.AppMetrics.p16,
+          core.AppMetrics.p4,
+        ),
+        padding: const EdgeInsets.symmetric(
+          horizontal: core.AppMetrics.p12,
+          vertical: core.AppMetrics.p8,
+        ),
+        decoration: BoxDecoration(
+          color: colorScheme.errorContainer,
+          borderRadius: BorderRadius.circular(core.AppShape.r12),
+          border: Border.all(color: colorScheme.error),
+        ),
+        child: Row(
           children: [
             Icon(
-              Icons.error_outline,
-              size: AppIconSize.display,
-              color: context.statusColors.error,
+              Icons.refresh_outlined,
+              size: AppIconSize.action,
+              color: colorScheme.onErrorContainer,
             ),
-            const SizedBox(height: 16),
-            const Text('Data belum bisa dimuat.'),
+            const SizedBox(width: core.AppMetrics.p8),
+            Expanded(
+              child: Text(
+                l10n.pageErrorMessage,
+                style: context.typeRoles.bodyDense.copyWith(
+                  color: colorScheme.onErrorContainer,
+                ),
+              ),
+            ),
+            TextButton(
+              onPressed: () => _reload(status),
+              child: Text(l10n.retryAction),
+            ),
           ],
         ),
       ),
@@ -145,14 +262,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
     final firstItem = order.items.isEmpty ? null : order.items.first;
 
     return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => OrderDetailScreen(orderId: order.id),
-          ),
-        );
-      },
+      onTap: () => context.push(RoutePaths.orderDetailPath(order.id)),
       child: Container(
         margin: const EdgeInsets.only(bottom: core.AppMetrics.p12),
         padding: const EdgeInsets.all(core.AppMetrics.p16),
@@ -170,8 +280,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
                 Expanded(
                   child: Text(
                     order.id.substring(0, 8).toUpperCase(),
-                    style: TextStyle(
-                      fontSize: core.AppType.s14,
+                    style: context.typeRoles.labelMicro.copyWith(
                       fontWeight: FontWeight.bold,
                       color: colorScheme.onSurface,
                     ),
@@ -190,8 +299,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
                   ),
                   child: Text(
                     _getStatusLabel(order.status),
-                    style: TextStyle(
-                      fontSize: core.AppType.s12,
+                    style: context.typeRoles.labelMicro.copyWith(
                       fontWeight: FontWeight.w600,
                       color: _getStatusColor(order.status),
                     ),
@@ -227,8 +335,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
                         const SizedBox(width: 2),
                         Text(
                           _getOverdueBadgeLabel(order.overdueTier),
-                          style: TextStyle(
-                            fontSize: core.AppType.s12,
+                          style: context.typeRoles.labelMicro.copyWith(
                             fontWeight: FontWeight.w600,
                             color: _getOverdueBadgeColor(order.overdueTier),
                           ),
@@ -267,8 +374,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
                     children: [
                       Text(
                         firstItem?.forSaleName ?? 'Pesanan',
-                        style: TextStyle(
-                          fontSize: core.AppType.s14,
+                        style: context.typeRoles.titleCompact.copyWith(
                           fontWeight: FontWeight.w600,
                           color: colorScheme.onSurface,
                         ),
@@ -280,8 +386,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
                         order.items.isEmpty
                             ? 'Lihat detail pesanan'
                             : '${order.items.length} item${order.items.length > 1 ? 's' : ''}',
-                        style: TextStyle(
-                          fontSize: core.AppType.s12,
+                        style: context.typeRoles.labelMicro.copyWith(
                           color: colorScheme.onSurfaceVariant,
                         ),
                       ),
@@ -301,8 +406,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
                   children: [
                     Text(
                       'Total Payment',
-                      style: TextStyle(
-                        fontSize: core.AppType.s12,
+                      style: context.typeRoles.labelMicro.copyWith(
                         color: colorScheme.onSurfaceVariant,
                       ),
                     ),
@@ -313,8 +417,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
                               order.pricing.totalPayableAmount!,
                             )
                           : '—',
-                      style: TextStyle(
-                        fontSize: core.AppType.s16,
+                      style: context.typeRoles.titleCompact.copyWith(
                         fontWeight: FontWeight.bold,
                         color: colorScheme.primary,
                       ),
@@ -322,15 +425,8 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
                   ],
                 ),
                 ElevatedButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            OrderDetailScreen(orderId: order.id),
-                      ),
-                    );
-                  },
+                  onPressed: () =>
+                      context.push(RoutePaths.orderDetailPath(order.id)),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(
                       horizontal: core.AppMetrics.p24,
@@ -350,7 +446,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
   String _getStatusLabel(OrderStatus status) {
     switch (status) {
       case OrderStatus.pending:
-        return 'Menunggu Konfirmasi';
+        return 'Menunggu Pembayaran';
       case OrderStatus.paid:
         return 'Pembayaran Berhasil';
       case OrderStatus.shipped:
@@ -428,88 +524,19 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
   }
 
   Widget _buildEmptyState(BuildContext context, bool isSeller) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: core.AppMetrics.p48),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Icon
-            Container(
-              padding: const EdgeInsets.all(core.AppMetrics.p16),
-              decoration: BoxDecoration(
-                color: colorScheme.surfaceContainerHigh,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                isSeller
-                    ? Icons.storefront_outlined
-                    : Icons.shopping_bag_outlined,
-                size: AppIconSize.display,
-                color: colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // Title
-            Text(
-              isSeller ? 'Belum Ada Pesanan Masuk' : 'Belum Ada Pesanan',
-              style: TextStyle(
-                fontSize: core.AppType.s20,
-                fontWeight: FontWeight.w600,
-                color: colorScheme.onSurface,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 12),
-
-            // Subtitle with context-aware guidance
-            Text(
-              isSeller
-                  ? 'Pesanan dari pembeli akan muncul di sini'
-                  : 'Mulai berbelanja dari koleksi Koi terbaik',
-              style: TextStyle(
-                fontSize: core.AppType.s14,
-                color: colorScheme.onSurfaceVariant,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 32),
-
-            // Action button
-            SizedBox(
-              width: core.AppContentSize.actionWidth,
-              child: FilledButton.icon(
-                icon: Icon(
-                  isSeller ? Icons.add_circle_outline : Icons.storefront_outlined,
-                  size: AppIconSize.action,
-                ),
-                label: Text(
-                  isSeller ? 'Tambah ForSale' : 'Jelajahi Marketplace',
-                ),
-                onPressed: () => _handleEmptyStateAction(context, isSeller),
-                style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: core.AppMetrics.p16,
-                    horizontal: core.AppMetrics.p24,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
+    final l10n = context.l10n;
+    // Buyer action only: browse the marketplace. Incoming Orders (seller)
+    // carries NO create action — For Sale creation lives on the For Sale
+    // page, never on the incoming-orders empty state (owner-locked, test
+    // enforced). The canonical renderer offers at most ONE primary action.
+    return EmptyState(
+      icon: isSeller ? Icons.storefront_outlined : Icons.shopping_bag_outlined,
+      title: isSeller ? l10n.emptyIncomingOrdersTitle : l10n.emptyOrdersTitle,
+      subtitle: isSeller
+          ? l10n.emptyIncomingOrdersMessage
+          : l10n.emptyOrdersMessage,
+      actionLabel: isSeller ? null : l10n.exploreMarketplaceAction,
+      onAction: isSeller ? null : () => context.go(RoutePaths.forSales),
     );
-  }
-
-  void _handleEmptyStateAction(BuildContext context, bool isSeller) {
-    if (isSeller) {
-      // Navigate to create forSale
-      Navigator.pushNamed(context, core.RoutePaths.createForSale);
-    } else {
-      // Navigate to forSales (marketplace browse)
-      Navigator.pushReplacementNamed(context, core.RoutePaths.forSales);
-    }
   }
 }

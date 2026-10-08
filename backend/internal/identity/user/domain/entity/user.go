@@ -61,6 +61,10 @@ type UserPublicInfo struct {
 	CoverPhotoURL *string
 	Location      *string
 
+	// Optional social media handles (jsonb). Presence of a value is the
+	// visibility authority; there is no separate visibility toggle.
+	SocialMedia map[string]interface{}
+
 	// Social stats (public)
 	FollowersCount int
 	FollowingCount int

@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
+	sharedpkg "github.com/labuda/backend/internal/commerce/shared"
 	"github.com/labuda/backend/internal/discovery/search/entity"
 	searchRepo "github.com/labuda/backend/internal/discovery/search/repository"
 	"github.com/labuda/backend/pkg/db"
@@ -125,9 +126,10 @@ func (r *SearchRepositoryImpl) SearchForSales(ctx context.Context, tx db.Tx, fil
 	//   - seller_avatar_url ← p.avatar_url
 	// Expired-seller visibility: surface raw user-identity + seller-trust
 	// truth to the handler so it can coarsen and emit the SellerCard with
-	// both lifecycle axes. The seller-trust axis (latest seller_subscriptions
-	// row) is also used below to demote expired-seller results in the
-	// relevance ranking.
+	// both lifecycle axes. (Rows from sellers without live market authority
+	// are excluded outright in the WHERE clauses below — owner decision,
+	// Oct 2026 — so this column only ever carries live authority for rows
+	// that reached search.)
 	// Inline search_vector expression for products table (no stored tsvector column).
 	const inlineFPSSearchVector = `(
 		setweight(to_tsvector('simple', COALESCE(prod.title, '')), 'A') ||
@@ -160,6 +162,7 @@ func (r *SearchRepositoryImpl) SearchForSales(ctx context.Context, tx db.Tx, fil
 		WHERE fps.status = 'active'
 			AND fps.quantity_available > 0
 			AND (u.id IS NULL OR (u.account_status != 'banned' AND u.deleted_at IS NULL))
+			AND ` + sharedpkg.ActiveSellerMarketAuthoritySQL("fps.seller_id") + `
 	`
 
 	args := []interface{}{}
@@ -183,27 +186,24 @@ func (r *SearchRepositoryImpl) SearchForSales(ctx context.Context, tx db.Tx, fil
 		sortDir = "DESC"
 	}
 
-	// Expired-seller demotion: prepend a two-tier CASE so forSales whose
-	// latest seller subscription is currently within its entitlement interval
-	// appear before forSales from expired/no-subscription sellers. Owner
-	// doctrine: do not exclude, only demote — expired sellers' inventory
-	// remains discoverable but strictly ranked below capable sellers' inventory.
-	const sellerTrustDemotion = "CASE WHEN ss.status = 'active' AND ss.started_at <= NOW() AND NOW() < ss.expires_at THEN 0 ELSE 1 END ASC"
+	// Market-authority hiding replaces the former demote-only doctrine
+	// ("do not exclude, only demote" — owner reversed it, Oct 2026): rows
+	// from sellers without live market authority are excluded in the WHERE
+	// clause and never reach this ORDER BY.
 
 	switch sortBy {
 	case "relevance":
 		if filters.Query != "" {
-			baseQuery += fmt.Sprintf(" ORDER BY %s, ts_rank("+inlineFPSSearchVector+", plainto_tsquery($%d)) %s", sellerTrustDemotion, argIdx, sortDir)
+			baseQuery += fmt.Sprintf(" ORDER BY ts_rank("+inlineFPSSearchVector+", plainto_tsquery($%d)) %s, fps.created_at %s, fps.id ASC", argIdx, sortDir, sortDir)
 			args = append(args, filters.Query)
 			argIdx++
 		} else {
-			baseQuery += fmt.Sprintf(" ORDER BY %s", sellerTrustDemotion)
+			baseQuery += fmt.Sprintf(" ORDER BY fps.created_at %s, fps.id ASC", sortDir)
 		}
-		baseQuery += fmt.Sprintf(", fps.created_at %s, fps.id ASC", sortDir)
 	case "created_at":
-		baseQuery += fmt.Sprintf(" ORDER BY %s, fps.created_at %s, fps.id ASC", sellerTrustDemotion, sortDir)
+		baseQuery += fmt.Sprintf(" ORDER BY fps.created_at %s, fps.id ASC", sortDir)
 	default:
-		baseQuery += fmt.Sprintf(" ORDER BY %s, fps.created_at DESC, fps.id ASC", sellerTrustDemotion)
+		baseQuery += fmt.Sprintf(" ORDER BY fps.created_at DESC, fps.id ASC")
 	}
 
 	// Add pagination
@@ -259,6 +259,7 @@ func (r *SearchRepositoryImpl) SearchForSales(ctx context.Context, tx db.Tx, fil
 		WHERE fps.status = 'active'
 			AND fps.quantity_available > 0
 			AND (u.id IS NULL OR (u.account_status != 'banned' AND u.deleted_at IS NULL))
+			AND ` + sharedpkg.ActiveSellerMarketAuthoritySQL("fps.seller_id") + `
 	`
 	countArgs := []interface{}{}
 	countArgIdx := 1
@@ -615,9 +616,9 @@ func (r *SearchRepositoryImpl) SearchUsers(ctx context.Context, tx db.Tx, filter
 // SearchAuctions performs full-text search on auctions.
 //
 // AUCTION SEARCH ELIGIBILITY (Stage 6B): only searches auctions in public
-// discovery states — scheduled or active. Draft, cancelled, waiting_settlement,
-// ended (settled/no-winner) surfaces are non-public/historical
-// and must not surface in anonymous discovery.
+// discovery states — scheduled or active. Cancelled, lapsed,
+// waiting_settlement, ended (settled/no-winner) surfaces are non-public/
+// historical and must not surface in anonymous discovery.
 //
 // Matches: title, description (ILIKE on prod.title / prod.description; seller
 // display fields are NOT part of the search predicate).
@@ -676,6 +677,7 @@ func (r *SearchRepositoryImpl) SearchAuctions(ctx context.Context, tx db.Tx, fil
 		) bid_counts ON bid_counts.auction_id = a.id
 		WHERE a.status IN ('scheduled', 'active')
 			AND (u.id IS NULL OR (u.account_status != 'banned' AND u.deleted_at IS NULL))
+			AND ` + sharedpkg.ActiveSellerMarketAuthoritySQL("a.seller_id") + `
 	`
 
 	args := []interface{}{}
@@ -699,26 +701,24 @@ func (r *SearchRepositoryImpl) SearchAuctions(ctx context.Context, tx db.Tx, fil
 		sortDir = "DESC"
 	}
 
-	// Expired-seller demotion: prepend a two-tier CASE so auctions whose
-	// latest seller subscription is currently within its entitlement interval
-	// appear before auctions from expired/no-subscription sellers. Owner
-	// doctrine: do not exclude, only demote.
-	const auctionSellerTrustDemotion = "CASE WHEN ss.status = 'active' AND ss.started_at <= NOW() AND NOW() < ss.expires_at THEN 0 ELSE 1 END ASC"
+	// Market-authority hiding replaces the former demote-only doctrine
+	// ("do not exclude, only demote" — owner reversed it, Oct 2026): rows
+	// from sellers without live market authority are excluded in the WHERE
+	// clause and never reach this ORDER BY.
 
 	switch sortBy {
 	case "relevance":
-		// For relevance, prioritize active-seller auctions first, then active
-		// auctions, then by bid count, then by created_at.
-		baseQuery += fmt.Sprintf(" ORDER BY %s", auctionSellerTrustDemotion)
-		baseQuery += fmt.Sprintf(", CASE WHEN a.status = 'active' THEN 0 ELSE 1 END %s", sortDir)
+		// For relevance, prioritize active auctions, then by bid count, then
+		// by created_at.
+		baseQuery += fmt.Sprintf(" ORDER BY CASE WHEN a.status = 'active' THEN 0 ELSE 1 END %s", sortDir)
 		baseQuery += fmt.Sprintf(", bid_count %s", sortDir)
 		baseQuery += fmt.Sprintf(", a.created_at %s, a.id ASC", sortDir)
 	case "created_at":
-		baseQuery += fmt.Sprintf(" ORDER BY %s, a.created_at %s, a.id ASC", auctionSellerTrustDemotion, sortDir)
+		baseQuery += fmt.Sprintf(" ORDER BY a.created_at %s, a.id ASC", sortDir)
 	case "end_at":
-		baseQuery += fmt.Sprintf(" ORDER BY %s, a.end_at %s, a.id ASC", auctionSellerTrustDemotion, sortDir)
+		baseQuery += fmt.Sprintf(" ORDER BY a.end_at %s, a.id ASC", sortDir)
 	default:
-		baseQuery += fmt.Sprintf(" ORDER BY %s, a.created_at DESC, a.id ASC", auctionSellerTrustDemotion)
+		baseQuery += fmt.Sprintf(" ORDER BY a.created_at DESC, a.id ASC")
 	}
 
 	// Add pagination
@@ -770,6 +770,7 @@ func (r *SearchRepositoryImpl) SearchAuctions(ctx context.Context, tx db.Tx, fil
 		LEFT JOIN users u ON u.id = a.seller_id
 		WHERE a.status IN ('scheduled', 'active')
 			AND (u.id IS NULL OR (u.account_status != 'banned' AND u.deleted_at IS NULL))
+			AND ` + sharedpkg.ActiveSellerMarketAuthoritySQL("a.seller_id") + `
 	`
 	countArgs := []interface{}{}
 	countArgIdx := 1

@@ -23,7 +23,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:labuda/core/core.dart';
+import 'package:labuda/domains/commerce/pricing/promotion/presentation/providers/canonical_promotion_providers.dart';
 import 'package:labuda/domains/commerce/pricing/promotion/presentation/screens/canonical_promotion_create_screen.dart';
+import 'package:labuda/shared/shared.dart';
 
 const _gatePath = '/promotions/contracts/payment-intent';
 const _payPath = '/promotions/contracts/payment-intent/intent-1/pay';
@@ -115,6 +117,7 @@ class _FundingApiClient implements ApiClient {
                   'shortage': 0,
                   'required_cost': 30000,
                   'available_funding': 30000,
+                  'estimated_impressions': 4000,
                 },
               },
             })
@@ -129,6 +132,7 @@ class _FundingApiClient implements ApiClient {
                 'billing_id': 'bill-1',
                 'required_cost': 30000,
                 'available_funding': 10000,
+                'estimated_impressions': 4000,
               },
             },
           })
@@ -216,10 +220,26 @@ Widget _harness(_FundingApiClient client) {
     ],
   );
   return ProviderScope(
-    overrides: [apiClientProvider.overrideWithValue(client)],
+    overrides: [
+      apiClientProvider.overrideWithValue(client),
+      // Deterministic product picker boundary: the create flow must have a
+      // queue before funding/payment; the picker composition itself is covered
+      // by the app wiring, not this flow test.
+      promotionProductPickerProvider.overrideWithValue(_stubPicker),
+    ],
     child: MaterialApp.router(routerConfig: router),
   );
 }
+
+Future<PromotionProductSelection?> _stubPicker(
+  BuildContext context,
+  WidgetRef ref,
+  String kind,
+) async => const PromotionProductSelection(
+  targetType: 'for_sale',
+  targetId: 'fs-1',
+  title: 'Produk Uji',
+);
 
 /// Advances animations and microtasks without settling (the screens render
 /// progress indicators that never settle).
@@ -234,7 +254,15 @@ Future<void> _flush(WidgetTester tester) async {
 Future<void> _openForm(WidgetTester tester) async {
   await tester.enterText(find.byType(TextFormField).at(0), '30000');
   await tester.enterText(find.byType(TextFormField).at(1), '3');
-  await tester.tap(find.widgetWithText(ElevatedButton, 'Buat Promosi'));
+  // Queue before payment: the initial product queue is part of the
+  // configuration, so at least one product must be selected before submitting.
+  final addButton = find.widgetWithText(OutlinedButton, 'Tambah Produk');
+  await tester.ensureVisible(addButton);
+  await tester.tap(addButton);
+  await _flush(tester);
+  final submit = find.widgetWithText(ElevatedButton, 'Buat Promosi');
+  await tester.ensureVisible(submit);
+  await tester.tap(submit);
   await _flush(tester);
 }
 
@@ -386,6 +414,32 @@ void main() {
   );
 
   testWidgets(
+    'C2: canonical trigger forwards the selected method code to the picker',
+    (tester) async {
+      final client = _FundingApiClient(balance: 10000);
+
+      await tester.pumpWidget(_harness(client));
+      await _flush(tester);
+      await _openForm(tester);
+
+      // The obsolete local renderer is replaced by the one canonical trigger.
+      expect(find.byType(PaymentMethodTrigger), findsOneWidget);
+
+      await tester.tap(find.byIcon(Icons.chevron_right));
+      await _flush(tester);
+      await tester.tap(find.text('GoPay'));
+      await _flush(tester);
+      expect(find.text('GoPay'), findsOneWidget);
+
+      // Re-opening the canonical picker forwards the selected code: the
+      // current row renders checked.
+      await tester.tap(find.byIcon(Icons.chevron_right));
+      await _flush(tester);
+      expect(find.byIcon(Icons.check_circle), findsOneWidget);
+    },
+  );
+
+  testWidgets(
     'D: 404 and 403 obligations surface explicit messages with retry',
     (tester) async {
       final notFound = _FundingApiClient(balance: 10000)
@@ -484,6 +538,85 @@ void main() {
         findsNothing,
         reason: 'obsolete/non-canonical wording "$banned" must not appear',
       );
+    }
+  });
+
+  testWidgets('F: empty queue blocks submission with no network call', (
+    tester,
+  ) async {
+    final client = _FundingApiClient(balance: 30000, paymentRequired: false);
+    await tester.pumpWidget(_harness(client));
+    await _flush(tester);
+
+    // Budget + duration are valid, but NO product is selected.
+    await tester.enterText(find.byType(TextFormField).at(0), '30000');
+    await tester.enterText(find.byType(TextFormField).at(1), '3');
+    final submit = find.widgetWithText(ElevatedButton, 'Buat Promosi');
+    await tester.ensureVisible(submit);
+    await tester.tap(submit);
+    await _flush(tester);
+
+    expect(
+      find.text('Pilih minimal satu produk untuk dipromosikan'),
+      findsOneWidget,
+    );
+    expect(
+      client.calls,
+      isNot(contains('POST $_gatePath')),
+      reason: 'no queue → no funding gate',
+    );
+    expect(client.calls, isNot(contains('POST /promotions/contracts')));
+  });
+
+  testWidgets('G: pre-payment review renders the server estimated impressions', (
+    tester,
+  ) async {
+    final client = _FundingApiClient(balance: 10000);
+    await tester.pumpWidget(_harness(client));
+    await _flush(tester);
+    await _openForm(tester);
+
+    expect(find.text('Kekurangan dana promosi'), findsOneWidget);
+    expect(find.text('Perkiraan tayangan'), findsOneWidget);
+    // Server value rendered verbatim (± 4000), never computed by the client.
+    expect(find.text('± 4.000'), findsOneWidget);
+  });
+
+  testWidgets('H: the same product is never queued twice', (tester) async {
+    final client = _FundingApiClient(balance: 30000, paymentRequired: false);
+    await tester.pumpWidget(_harness(client));
+    await _flush(tester);
+
+    final add = find.widgetWithText(OutlinedButton, 'Tambah Produk');
+    await tester.ensureVisible(add);
+    await tester.tap(add);
+    await _flush(tester);
+    await tester.ensureVisible(add);
+    await tester.tap(add);
+    await _flush(tester);
+
+    // The stub returns the same target twice; the queue keeps exactly one row.
+    expect(find.text('Produk Uji'), findsOneWidget);
+  });
+
+  testWidgets('I: the selected queue is sent as canonical targets[]', (
+    tester,
+  ) async {
+    final client = _FundingApiClient(balance: 30000, paymentRequired: false);
+    await tester.pumpWidget(_harness(client));
+    await _flush(tester);
+    await _openForm(tester);
+
+    final requestPayloads = client.postPayloads
+        .whereType<Map>()
+        .where((p) => p['kind'] == 'internal')
+        .toList();
+    expect(requestPayloads, isNotEmpty);
+    for (final payload in requestPayloads) {
+      // Both the funding gate and contract creation carry the queue.
+      expect(payload['targets'], [
+        {'target_type': 'for_sale', 'target_id': 'fs-1'},
+      ]);
     }
   });
 }

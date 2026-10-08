@@ -4,8 +4,9 @@
 
 @layer base {
   :root {
-    --primary: 220 14% 96%;
-    --primary-foreground: 220.9 39.3% 11%;
+    --primary: 0 72% 51%;
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 0 74% 42%;
     --background: 210 20% 98%;
     --foreground: 222.2 47.4% 11.2%;
     --surface: 0 0% 100%;
@@ -65,6 +66,53 @@
     font-feature-settings: "rlig" 1, "calt" 1;
     margin: 0;
     min-height: 100vh;
+  }
+}
+
+/**
+ * Canonical typography roles.
+ *
+ * Single semantic authority for the Admin Web type scale. Each role maps to the
+ * exact visual values already in use, so consumers converge on one name without
+ * any visual change. Component-owned typography (Button, Card/CardTitle, Modal,
+ * Table, Field) remains authoritative and is intentionally not expressed here.
+ *
+ * Mono/Metadata role: use the `font-mono` utility directly for machine values.
+ * Table Header/Body roles: owned by the Table component.
+ */
+@layer components {
+  .type-page-title {
+    @apply text-3xl font-bold text-foreground;
+  }
+
+  .type-section-title {
+    @apply text-lg font-semibold text-foreground;
+  }
+
+  .type-body {
+    @apply text-sm text-foreground;
+  }
+
+  .type-secondary {
+    @apply text-sm text-muted-foreground;
+  }
+
+  .type-label {
+    @apply text-sm font-medium text-foreground;
+  }
+
+  .type-caption {
+    @apply text-xs text-muted-foreground;
+  }
+
+  /* Metric variants: preserve the two legitimate sizes in use.
+     Default metric = text-2xl KPIs; prominent metric = text-3xl KPIs. */
+  .type-metric {
+    @apply text-2xl font-bold;
+  }
+
+  .type-metric-lg {
+    @apply text-3xl font-bold;
   }
 }
 

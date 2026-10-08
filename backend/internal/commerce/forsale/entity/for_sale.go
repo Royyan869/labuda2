@@ -13,8 +13,8 @@ import (
 )
 
 // ForSale represents the selling surface owned by a seller.
-// Product content (title, description, media, koi attributes, farm address,
-// preparation) is owned exclusively by Product — ForSale surface owns ONLY price/stock/visibility/status.
+// Product content (title, description, media, koi attributes, preparation) is
+// owned exclusively by Product — ForSale surface owns ONLY price/stock/visibility/status.
 //
 // DEPRECATED ALIAS FIELDS PURGED (closure scope): the former Title/Description/
 // MediaURLs/Variety/SizeCM/AgeMonths/Gender/Breeder/Bloodline/Certificates/
@@ -96,30 +96,9 @@ func (e *ForSaleNotAvailableError) Error() string {
 // STATE TRANSITIONS
 // ============================================================================
 
-// Publish transitions the for_sale from draft to active (published to market).
-// This is the EXPLICIT publish boundary - for_sales do NOT auto-publish.
-//
-// MARKET AUTHORITY: Requires active seller subscription (checked at service layer).
-//
-// HARD RULE: ACTIVE = PUBLIC ONLY
-// When a for_sale is published to active, it MUST be public.
-// Private for_sales are workspace-only (draft state).
-func (l *ForSale) Publish() error {
-	if !CanTransition(l.Status, ForSaleStatusActive) {
-		return &InvalidTransitionError{
-			CurrentStatus: l.Status,
-			TargetStatus:  ForSaleStatusActive,
-		}
-	}
-
-	// HARD RULE: ACTIVE = PUBLIC ONLY
-	l.Status = ForSaleStatusActive
-	l.Visibility = ForSaleVisibilityPublic
-	now := time.Now()
-	l.PublishedAt = &now
-	l.UpdatedAt = time.Now()
-	return nil
-}
+// Publish was removed with the draft state: a for_sale is born active and
+// public (create = publish). The ACTIVE = PUBLIC invariant is enforced by
+// NewForSaleSurface, which is the only constructor.
 
 // MarkWithdrawn transitions the for_sale to withdrawn status.
 func (l *ForSale) MarkWithdrawn() error {
@@ -144,7 +123,7 @@ func (l *ForSale) MarkWithdrawn() error {
 // withdrawn → active.
 //
 // GUARD: Only applies when status == withdrawn. Sold for_sales are rejected
-// (stock was claimed by buyer). Draft for_sales are rejected (never active).
+// (stock was claimed by buyer). Unknown statuses are rejected.
 //
 // IDEMPOTENT: If already active, this is a no-op.
 func (l *ForSale) MarkActiveFromModeration() error {
@@ -164,7 +143,7 @@ func (l *ForSale) MarkActiveFromModeration() error {
 		// Cannot restore sold inventory — stock was claimed.
 		return fmt.Errorf("cannot restore for_sale from moderation: status is sold (id=%s)", l.ID)
 	default:
-		// Draft or unknown — not a valid restoration target.
+		// Unknown status — not a valid restoration target.
 		return fmt.Errorf("cannot restore for_sale from moderation: unexpected status %q (id=%s)", l.Status, l.ID)
 	}
 }
@@ -244,11 +223,11 @@ func (l *ForSale) RestoreQuantity(amount int) error {
 // IsAvailable checks if the for_sale is available for purchase.
 //
 // A for_sale is available when ALL conditions are met:
-// 1. Status is ACTIVE (published) - draft for_sales are NOT available
+// 1. Status is ACTIVE (every created for_sale is born active)
 // 2. Quantity available > 0
 //
-// NOTE: Visibility check is redundant because ACTIVE = PUBLIC ONLY (enforced in Publish())
-// This is the authoritative buyability check used by:
+// NOTE: Visibility check is redundant because ACTIVE = PUBLIC ONLY (enforced
+// by the constructor) This is the authoritative buyability check used by:
 // - Order creation
 // - Shortlist operations
 // - Purchase validation
@@ -263,12 +242,16 @@ func (l *ForSale) IsAvailable() bool {
 // NewForSaleSurface creates a ForSale surface-only entity (no Product content).
 // Use this in service mint path where Product is created explicitly via ProductRepository.
 // This is the canonical constructor for production service code — no hidden Product creation.
+//
+// CREATE = PUBLISH: the surface is born active, public and published
+// (there is no draft state and no private active for_sale — the ACTIVE =
+// PUBLIC ONLY invariant is enforced right here, so no caller can construct a
+// active+private pair).
 func NewForSaleSurface(
 	sellerID uuid.UUID,
 	pricePerUnit money.Money,
 	quantityAvailable int,
 	negotiationEnabled bool,
-	visibility ForSaleVisibility,
 ) (*ForSale, error) {
 	if quantityAvailable < 1 {
 		return nil, &InvalidQuantityError{Amount: quantityAvailable}
@@ -283,9 +266,9 @@ func NewForSaleSurface(
 		PricePerUnit:       pricePerUnit,
 		QuantityAvailable:  quantityAvailable,
 		NegotiationEnabled: negotiationEnabled,
-		Visibility:         visibility,
-		Status:             ForSaleStatusDraft,
-		PublishedAt:        nil,
+		Visibility:         ForSaleVisibilityPublic,
+		Status:             ForSaleStatusActive,
+		PublishedAt:        &now,
 		SoldAt:             nil,
 		WithdrawnAt:        nil,
 		CreatedAt:          now,

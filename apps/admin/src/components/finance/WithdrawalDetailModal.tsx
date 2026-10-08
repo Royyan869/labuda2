@@ -15,8 +15,11 @@ import { Modal, ModalFooter } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
+import { Checkbox } from '@/components/ui/Checkbox'
+import { Textarea } from '@/components/ui/Textarea'
 import { useWithdrawalDetail, useWithdrawalActions } from '@/hooks/useWithdrawals'
 import { formatDate, formatRupiah } from '@/lib/utils'
+import { AdminLoadingState } from '@/components/common'
 import { hasCapability } from '@/lib/permissions'
 import { useAuth } from '@/hooks/useAuth'
 import type {
@@ -77,7 +80,7 @@ const ACTION_CONFIRMATIONS = {
       <>
         <p className="font-semibold text-lg mb-2">You are about to mark this withdrawal as manually paid.</p>
         <p className="text-sm font-semibold text-destructive mb-2">⚠️ CRITICAL: Use this ONLY if you have manually sent the funds outside the payment gateway.</p>
-        <p className="text-xs text-muted-foreground">This action cannot be undone. The seller will receive the funds and the withdrawal will be marked as completed.</p>
+        <p className="type-caption">This action cannot be undone. The seller will receive the funds and the withdrawal will be marked as completed.</p>
       </>
     ),
   },
@@ -224,9 +227,7 @@ export function WithdrawalDetailModal({ isOpen, onClose, withdrawalData, onSucce
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Withdrawal Details" size="xl">
       {loading ? (
-        <div className="flex items-center justify-center py-12">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent" />
-        </div>
+        <AdminLoadingState embedded label="Loading withdrawal details" />
       ) : (
         <div className="space-y-6">
           {/* Status bar with action state */}
@@ -243,16 +244,13 @@ export function WithdrawalDetailModal({ isOpen, onClose, withdrawalData, onSucce
                   {/* Rejection reason input */}
                   {actionState === 'confirm-reject' && (
                     <div className="mt-4">
-                      <label htmlFor="reject-reason" className="block text-sm font-medium text-foreground mb-1">
-                        Reason for Rejection <span className="text-destructive">*</span>
-                      </label>
-                      <textarea
-                        id="reject-reason"
+                      <Textarea
+                        label="Reason for Rejection"
+                        required
                         value={rejectionReason}
                         onChange={(e) => setRejectionReason(e.target.value)}
                         placeholder="e.g., Invalid bank account details, insufficient verification, etc."
                         rows={3}
-                        className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
                         autoFocus
                       />
                     </div>
@@ -261,18 +259,15 @@ export function WithdrawalDetailModal({ isOpen, onClose, withdrawalData, onSucce
                   {/* Double confirmation for mark-processed */}
                   {actionState === 'confirm-mark-processed' && (
                     <div className="mt-4 p-3 bg-destructive-bg border border-destructive rounded-lg">
-                      <label className="flex items-center gap-2 text-sm font-medium text-destructive">
-                        <input
-                          type="checkbox"
-                          id="confirm-manual-payment"
-                          className="rounded border-destructive text-destructive focus:ring-ring"
-                          onChange={(e) => {
-                            const button = document.getElementById('confirm-mark-processed-btn') as HTMLButtonElement
-                            if (button) button.disabled = !e.target.checked
-                          }}
-                        />
-                        <span>I have manually sent the funds to the seller&apos;s bank account</span>
-                      </label>
+                      <Checkbox
+                        id="confirm-manual-payment"
+                        containerClassName="text-destructive"
+                        label="I have manually sent the funds to the seller's bank account"
+                        onChange={(e) => {
+                          const button = document.getElementById('confirm-mark-processed-btn') as HTMLButtonElement
+                          if (button) button.disabled = !e.target.checked
+                        }}
+                      />
                     </div>
                   )}
 
@@ -313,7 +308,7 @@ export function WithdrawalDetailModal({ isOpen, onClose, withdrawalData, onSucce
             <>
               {/* Stale data warning */}
               {isDataStale && (
-                <div className="bg-warning-bg border border-warning text-warning800 p-3 rounded-lg flex items-center gap-2">
+                <div className="bg-warning-bg border border-warning text-warning p-3 rounded-lg flex items-center gap-2">
                   <AlertTriangle className="h-4 w-4 flex-shrink-0" />
                   <span className="text-sm">This withdrawal&apos;s status has changed. Refresh to see the latest data.</span>
                   <Button
@@ -347,7 +342,7 @@ export function WithdrawalDetailModal({ isOpen, onClose, withdrawalData, onSucce
                   </Badge>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="text-sm text-muted-foreground">
+                  <span className="type-secondary">
                     Withdrawal ID: <span className="font-mono">{displayData.id}</span>
                   </span>
                   <button
@@ -373,8 +368,8 @@ export function WithdrawalDetailModal({ isOpen, onClose, withdrawalData, onSucce
                         <DollarSign className="h-8 w-8 text-primary" />
                       </div>
                       <div>
-                        <p className="text-sm text-muted-foreground">Jumlah diterima seller</p>
-                        <p className="text-3xl font-bold text-primary">{formatRupiah(displayData.amount)}</p>
+                        <p className="type-secondary">Jumlah diterima seller</p>
+                        <p className="type-metric-lg text-primary">{formatRupiah(displayData.amount)}</p>
                       </div>
                     </div>
                     <div className="grid gap-3 rounded-lg bg-surface-muted p-4 md:grid-cols-3">
@@ -420,14 +415,14 @@ export function WithdrawalDetailModal({ isOpen, onClose, withdrawalData, onSucce
                       {hasSellerUsername ? (
                         <>
                           <p className="font-medium text-lg">@{sellerUsername}</p>
-                          {sellerFarmName && <p className="text-sm text-muted-foreground">{sellerFarmName}</p>}
-                          <p className="font-mono text-sm text-muted-foreground">{displayData.seller_id}</p>
+                          {sellerFarmName && <p className="type-secondary">{sellerFarmName}</p>}
+                          <p className="font-mono type-secondary">{displayData.seller_id}</p>
                         </>
                       ) : (
                         <p className="font-medium text-lg text-muted-foreground">{displayData.seller_id}</p>
                       )}
                       {withdrawal?.seller_email && (
-                        <p className="text-sm text-muted-foreground">{withdrawal.seller_email}</p>
+                        <p className="type-secondary">{withdrawal.seller_email}</p>
                       )}
                     </div>
                   </div>
@@ -437,7 +432,7 @@ export function WithdrawalDetailModal({ isOpen, onClose, withdrawalData, onSucce
               {/* Bank Information - Critical for review */}
               <Card className="border-warning">
                 <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2 text-warning700">
+                  <CardTitle className="text-lg flex items-center gap-2 text-warning">
                     <Building2 className="h-5 w-5" />
                     Bank Account Information
                   </CardTitle>
@@ -445,15 +440,15 @@ export function WithdrawalDetailModal({ isOpen, onClose, withdrawalData, onSucce
                 <CardContent>
                   <div className="space-y-3 bg-warning-bg p-4 rounded-lg">
                     <div className="flex justify-between">
-                      <span className="text-sm font-medium text-foreground">Bank Name</span>
+                      <span className="type-label">Bank Name</span>
                       <span className="font-semibold">{displayData.bank_name_snapshot}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-sm font-medium text-foreground">Account Holder</span>
+                      <span className="type-label">Account Holder</span>
                       <span className="font-semibold">{displayData.account_holder_snapshot}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-sm font-medium text-foreground">Account Number</span>
+                      <span className="type-label">Account Number</span>
                       <span className="font-mono font-semibold">{displayData.account_number_snapshot}</span>
                     </div>
 
@@ -473,7 +468,7 @@ export function WithdrawalDetailModal({ isOpen, onClose, withdrawalData, onSucce
                       </div>
                     )}
                   </div>
-                  <p className="text-xs text-warning700 mt-3 flex items-center gap-1">
+                  <p className="text-xs text-warning mt-3 flex items-center gap-1">
                     <AlertTriangle className="h-3 w-3" />
                     Verify these details match the seller&apos;s verified bank account before approving.
                   </p>
@@ -491,22 +486,22 @@ export function WithdrawalDetailModal({ isOpen, onClose, withdrawalData, onSucce
                 <CardContent>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <p className="text-sm text-muted-foreground">Created At</p>
+                      <p className="type-secondary">Created At</p>
                       <p className="text-sm font-medium">{formatDate(displayData.created_at)}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">Last Updated</p>
+                      <p className="type-secondary">Last Updated</p>
                       <p className="text-sm font-medium">{withdrawal?.updated_at ? formatDate(withdrawal.updated_at) : formatDate(displayData.created_at)}</p>
                     </div>
                     {withdrawal?.submitted_at && (
                       <div>
-                        <p className="text-sm text-muted-foreground">Submitted to Gateway</p>
+                        <p className="type-secondary">Submitted to Gateway</p>
                         <p className="text-sm font-medium">{formatDate(withdrawal.submitted_at)}</p>
                       </div>
                     )}
                     {withdrawal?.settled_at && (
                       <div>
-                        <p className="text-sm text-muted-foreground">Settled</p>
+                        <p className="type-secondary">Settled</p>
                         <p className="text-sm font-medium">{formatDate(withdrawal.settled_at)}</p>
                       </div>
                     )}
@@ -515,7 +510,7 @@ export function WithdrawalDetailModal({ isOpen, onClose, withdrawalData, onSucce
                   {/* Gateway Reference */}
                   {withdrawal?.gateway_reference_id && (
                     <div className="mt-4 pt-4 border-t border-border">
-                      <p className="text-sm text-muted-foreground">Gateway Reference</p>
+                      <p className="type-secondary">Gateway Reference</p>
                       <p className="text-sm font-mono font-medium">{withdrawal.gateway_reference_id}</p>
                     </div>
                   )}
@@ -523,7 +518,7 @@ export function WithdrawalDetailModal({ isOpen, onClose, withdrawalData, onSucce
                   {/* Retry count */}
                   {withdrawal?.retry_count !== undefined && withdrawal.retry_count > 0 && (
                     <div className="mt-4 pt-4 border-t border-border">
-                      <p className="text-sm text-muted-foreground">Retry Attempts</p>
+                      <p className="type-secondary">Retry Attempts</p>
                       <p className="text-sm font-medium">{withdrawal.retry_count}</p>
                     </div>
                   )}
@@ -542,7 +537,7 @@ export function WithdrawalDetailModal({ isOpen, onClose, withdrawalData, onSucce
                   <CardContent>
                     <div className="space-y-2">
                       <div>
-                        <p className="text-sm text-muted-foreground">Reason</p>
+                        <p className="type-secondary">Reason</p>
                         <p className="text-sm bg-destructive-bg p-3 rounded border border-destructive">
                           {displayData.failure_reason}
                         </p>
@@ -557,10 +552,10 @@ export function WithdrawalDetailModal({ isOpen, onClose, withdrawalData, onSucce
           {/* Footer with action buttons (only in idle state) */}
           {actionState === 'idle' && (
             <ModalFooter className="flex items-center justify-between">
-              <div className="text-sm text-muted-foreground">
+              <div className="type-secondary">
                 {canModify ? (
                   <span className="flex items-center gap-1">
-                    <AlertTriangle className="h-4 w-4 text-warning500" />
+                    <AlertTriangle className="h-4 w-4 text-warning" />
                     Review all information before taking action
                   </span>
                 ) : (

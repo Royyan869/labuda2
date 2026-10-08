@@ -8,7 +8,11 @@
 /// It coordinates:
 /// - Pricing preview (via preview API → pricing token)
 /// - Token validation (ensures pricing snapshot integrity)
-/// - Order creation handoff (via order API with pricing token)
+/// - Order creation (via order API with pricing token) → hand off to Order Detail
+///
+/// Checkout owns ORDER CREATION ONLY. It never initiates a payment; payment is
+/// an action against the created order, owned by the canonical Order Detail
+/// surface ("Bayar Sekarang" = the backend decision action).
 ///
 /// ═══════════════════════════════════════════════════════════════════════════════
 /// WHY NO DEDICATED CHECKOUT DOMAIN IN BACKEND?
@@ -26,14 +30,19 @@
 /// 2. CheckoutScreen calls the canonical pricing preview (`POST /pricing/preview`)
 ///    for the CURRENT inputs and receives pricing + pricingToken (10 min expiry).
 ///    The pricing is a backend snapshot; a local price is never checkout money.
-/// 3. Review order details — rendered strictly from that applied preview.
+/// 3. Review order details — rendered strictly from that applied preview, and
+///    choose a payment method (`GET /payments/pre-order-methods`, backend fee)
+///    that the order binds.
 /// 4. Click "Buat Pesanan" → `POST /orders` with the pricing token. The backend
 ///    validates the token and returns the created ORDER (id, order_number,
-///    status, canonical pricing snapshot) — NOT a payment URL.
-/// 5. Choose a payment method (`GET /payments/methods`, backend-computed fee) and
-///    initiate payment (`POST /payments`) → payment URL.
-/// 6. Present the payment URL inside Labuda's internal WebView (PaymentWebviewScreen).
-/// 7. Navigate to PaymentResultScreen to check payment status (backend-authoritative).
+///    status = pending_payment, canonical pricing snapshot) — NOT a payment URL.
+/// 5. Navigate to the canonical Order Detail surface. Order Detail shows the
+///    order status and owns the "Bayar Sekarang" action (backend decision).
+/// 6. "Bayar Sekarang" → `POST /payments` → payment URL → internal WebView
+///    (PaymentWebviewScreen), then the canonical payment-result/status flow.
+///
+/// Payment initiation is NOT part of checkout: order creation and payment
+/// initiation are separate lifecycles with separate user-facing entry points.
 ///
 /// ═══════════════════════════════════════════════════════════════════════════════
 library;

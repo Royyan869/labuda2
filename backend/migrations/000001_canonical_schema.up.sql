@@ -418,7 +418,6 @@ CREATE TABLE actors (
 CREATE TABLE addresses (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     user_id uuid NOT NULL,
-    purpose text NOT NULL,
     nickname text NOT NULL,
     recipient_name text NOT NULL,
     phone text NOT NULL,
@@ -951,7 +950,6 @@ CREATE TABLE listings (
     visibility listing_visibility_enum DEFAULT 'private'::listing_visibility_enum NOT NULL,
     status listing_status_enum DEFAULT 'draft'::listing_status_enum NOT NULL,
     origin listing_origin_enum DEFAULT 'manual'::listing_origin_enum NOT NULL,
-    farm_address_id uuid,
     preparation_time preparation_time_enum NOT NULL,
     preparation_note text,
     view_count bigint DEFAULT 0 NOT NULL,
@@ -1332,7 +1330,6 @@ CREATE TABLE products (
     breeder text,
     bloodline text,
     certificates text[] DEFAULT ARRAY[]::text[] NOT NULL,
-    farm_address_id uuid,
     preparation_time preparation_time_enum NOT NULL,
     preparation_note text,
     status product_status_enum DEFAULT 'draft'::product_status_enum NOT NULL,
@@ -1997,7 +1994,6 @@ ALTER TABLE wallets ADD CONSTRAINT wallets_user_id_key UNIQUE (user_id);
 CREATE INDEX idx_account_balances_user_id ON public.account_balances USING btree (user_id);
 CREATE INDEX idx_actors_user_id ON public.actors USING btree (user_id, actor_type);
 CREATE INDEX idx_addresses_is_primary ON public.addresses USING btree (user_id, is_primary) WHERE (is_primary = true);
-CREATE INDEX idx_addresses_purpose ON public.addresses USING btree (purpose);
 CREATE INDEX idx_addresses_user_id ON public.addresses USING btree (user_id);
 CREATE INDEX idx_admin_audit_logs_action_type ON public.admin_audit_logs USING btree (action_type);
 CREATE INDEX idx_admin_audit_logs_actor_id ON public.admin_audit_logs USING btree (actor_id);
@@ -2345,7 +2341,6 @@ ALTER TABLE listing_shipping_options ADD CONSTRAINT fk_listing_shipping_options_
 ALTER TABLE listing_shipping_options ADD CONSTRAINT listing_shipping_options_listing_id_fkey FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE CASCADE;
 ALTER TABLE listing_views ADD CONSTRAINT listing_views_listing_id_fkey FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE CASCADE;
 ALTER TABLE listing_views ADD CONSTRAINT listing_views_viewer_id_fkey FOREIGN KEY (viewer_id) REFERENCES users(id) ON DELETE CASCADE;
-ALTER TABLE listings ADD CONSTRAINT listings_farm_address_id_fkey FOREIGN KEY (farm_address_id) REFERENCES addresses(id) ON DELETE SET NULL;
 ALTER TABLE listings ADD CONSTRAINT listings_seller_id_fkey FOREIGN KEY (seller_id) REFERENCES users(id) ON DELETE CASCADE;
 ALTER TABLE negotiation_messages ADD CONSTRAINT negotiation_messages_sender_id_fkey FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE;
 ALTER TABLE negotiation_messages ADD CONSTRAINT negotiation_messages_session_id_fkey FOREIGN KEY (session_id) REFERENCES negotiation_sessions(id) ON DELETE CASCADE;
@@ -2374,7 +2369,6 @@ ALTER TABLE processed_ban_events ADD CONSTRAINT processed_ban_events_order_id_fk
 ALTER TABLE processed_ban_events ADD CONSTRAINT processed_ban_events_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
 ALTER TABLE product_shipping_options ADD CONSTRAINT product_shipping_options_product_id_fkey FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE;
 ALTER TABLE product_shipping_options ADD CONSTRAINT product_shipping_options_shipping_option_id_fkey FOREIGN KEY (shipping_option_id) REFERENCES shipping_options(id) ON DELETE CASCADE;
-ALTER TABLE products ADD CONSTRAINT products_farm_address_id_fkey FOREIGN KEY (farm_address_id) REFERENCES addresses(id) ON DELETE SET NULL;
 ALTER TABLE products ADD CONSTRAINT products_seller_id_fkey FOREIGN KEY (seller_id) REFERENCES users(id) ON DELETE CASCADE;
 ALTER TABLE promotion_instances ADD CONSTRAINT promotion_instances_ownership_id_fkey FOREIGN KEY (ownership_id) REFERENCES promotion_ownerships(id) ON DELETE CASCADE;
 ALTER TABLE promotion_instances ADD CONSTRAINT promotion_instances_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
@@ -2430,7 +2424,7 @@ ALTER TABLE wallets ADD CONSTRAINT wallets_user_id_fkey FOREIGN KEY (user_id) RE
 
 -- ── Check constraints ──────────────────────────────────────────
 
-ALTER TABLE addresses ADD CONSTRAINT addresses_purpose_check CHECK ((purpose = ANY (ARRAY['shipping'::text, 'sender'::text])));
+
 ALTER TABLE auction_bids ADD CONSTRAINT auction_bids_amount_check CHECK ((amount > 0));
 ALTER TABLE auctions ADD CONSTRAINT auction_current_bid_valid CHECK (((current_bid IS NULL) OR (current_bid >= start_price)));
 ALTER TABLE auctions ADD CONSTRAINT auction_order_consistency CHECK (((order_id IS NULL) OR (status = 'ended'::auction_status_enum)));

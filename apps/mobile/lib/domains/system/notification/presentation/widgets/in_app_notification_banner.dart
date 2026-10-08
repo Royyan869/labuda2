@@ -70,10 +70,7 @@ class _InAppNotificationBannerState extends State<InAppNotificationBanner>
     super.initState();
 
     // Animation controller for slide-in effect
-    _controller = AnimationController(
-      duration: AppMotion.relaxed,
-      vsync: this,
-    );
+    _controller = AnimationController(duration: AppMotion.relaxed, vsync: this);
 
     // Slide from top
     _slideAnimation = Tween<Offset>(
@@ -180,8 +177,7 @@ class _InAppNotificationBannerState extends State<InAppNotificationBanner>
                               // Title
                               Text(
                                 widget.title,
-                                style: TextStyle(
-                                  fontSize: AppType.s14,
+                                style: context.typeRoles.bodyDense.copyWith(
                                   fontWeight: FontWeight.w600,
                                   color: colorScheme.onSurface,
                                 ),
@@ -193,8 +189,7 @@ class _InAppNotificationBannerState extends State<InAppNotificationBanner>
                               // Body
                               Text(
                                 widget.body,
-                                style: TextStyle(
-                                  fontSize: AppType.s14,
+                                style: context.typeRoles.bodyDense.copyWith(
                                   fontWeight: FontWeight.w400,
                                   color: colorScheme.onSurfaceVariant,
                                   height: 1.3,
@@ -210,7 +205,9 @@ class _InAppNotificationBannerState extends State<InAppNotificationBanner>
                                 Row(
                                   children: widget.actions!.map((action) {
                                     return Padding(
-                                      padding: const EdgeInsets.only(right: AppMetrics.p8),
+                                      padding: const EdgeInsets.only(
+                                        right: AppMetrics.p8,
+                                      ),
                                       child: _buildActionButton(action),
                                     );
                                   }).toList(),
@@ -286,7 +283,10 @@ class _InAppNotificationBannerState extends State<InAppNotificationBanner>
         action.onTap();
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p8),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppMetrics.p12,
+          vertical: AppMetrics.p8,
+        ),
         decoration: BoxDecoration(
           color: buttonColor.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(AppShape.r6),
@@ -299,13 +299,16 @@ class _InAppNotificationBannerState extends State<InAppNotificationBanner>
           mainAxisSize: MainAxisSize.min,
           children: [
             if (action.icon != null) ...[
-              Icon(action.icon, size: AppIconSize.inlineGlyph, color: buttonColor),
+              Icon(
+                action.icon,
+                size: AppIconSize.inlineGlyph,
+                color: buttonColor,
+              ),
               const SizedBox(width: 4),
             ],
             Text(
               action.label,
-              style: TextStyle(
-                fontSize: AppType.s12,
+              style: context.typeRoles.labelMicro.copyWith(
                 fontWeight: FontWeight.w600,
                 color: buttonColor,
               ),

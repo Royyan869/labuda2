@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:labuda/core/core.dart';
-import 'package:labuda/core/utils/notification_navigation_handler.dart';
+import 'notification_navigation_service.dart';
 import 'fcm_action_mapper.dart';
 import 'in_app_banner_service.dart';
 
@@ -214,13 +214,21 @@ class FCMMessageHandler {
   }
 
   /// Navigate from message data
+  ///
+  /// The FCM payload carries the canonical wire `type`, so the tap resolves
+  /// through the ONE notification destination decision (no Home hop, no
+  /// second table).
   void _navigateFromMessage(RemoteMessage message, BuildContext? context) {
     final type = message.data['type'] as String?;
     if (type != null && context != null && context.mounted) {
-      NotificationNavigationHandler.navigate(
-        context: context,
-        type: type,
-        data: message.data,
+      unawaited(
+        NotificationNavigationService.canonical().handleNotificationPayload(
+          context,
+          type: type,
+          data: message.data,
+          title: message.notification?.title ?? '',
+          body: message.notification?.body ?? '',
+        ),
       );
     }
   }

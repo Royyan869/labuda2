@@ -7,21 +7,20 @@ import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/chat/chat/presentation/providers/chat_state.dart';
 import 'package:labuda/domains/chat/chat/data/dto/chat_resource_occurrence_request.dart';
 import 'package:labuda/domains/chat/chat/domain/entities/chat_entities.dart';
-import 'package:labuda/shared/domain/entities/resource_projection.dart';
 import 'package:labuda/domains/chat/chat/presentation/providers/chat_providers.dart';
+import 'package:labuda/domains/chat/chat/presentation/models/pending_commerce_attachment.dart';
 import 'package:labuda/domains/chat/chat/presentation/utils/chat_identity_display.dart';
 import 'package:labuda/domains/chat/chat/presentation/widgets/chat_input_area.dart';
 import 'package:labuda/domains/chat/chat/presentation/widgets/message_bubble.dart';
 import 'package:labuda/domains/chat/chat/presentation/widgets/chat/chat_order_status_banner.dart';
 import 'package:labuda/domains/chat/chat/presentation/utils/chat_lifecycle_redaction.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
+import 'package:labuda/shared/domain/entities/resource_projection.dart';
 import 'package:labuda/shared/shared.dart';
 import 'package:labuda/core/media/media_upload_config.dart';
 import 'package:labuda/core/media/media_upload_orchestrator.dart';
 import 'package:labuda/shared/providers/block_state_provider.dart';
-import 'package:labuda/shared/widgets/block_confirmation_dialog.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/presentation/create_for_sale_route_contract.dart';
-import 'package:labuda/domains/commerce/catalog/for_sale/presentation/screens/for_sale_detail_screen.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/presentation/checkout_intent.dart';
 // Display-title source for the pending commerce chip: chat reads commerce
 // data for DISPLAY only — commerce decisions (pricing, trust gate, checkout)
@@ -29,14 +28,15 @@ import 'package:labuda/domains/commerce/catalog/for_sale/presentation/checkout_i
 import 'package:labuda/domains/commerce/catalog/for_sale/presentation/providers/for_sale_providers.dart';
 import 'package:labuda/domains/social/comment/presentation/widgets/commerce_resource_picker.dart';
 import 'package:labuda/domains/social/comment/presentation/widgets/resource_identity.dart';
-import 'package:labuda/domains/commerce/catalog/auction/presentation/checkout_intent.dart';
-import 'package:labuda/domains/commerce/transaction/order/presentation/screens/order_detail_screen.dart';
+import 'package:labuda/domains/commerce/catalog/auction/presentation/providers/auction_providers.dart';
+import 'package:labuda/domains/commerce/catalog/auction/presentation/widgets/detail/auction_claim_shipping_modal.dart';
+import 'package:labuda/domains/commerce/transaction/shipping/presentation/shipping_quote_intent.dart';
 import 'package:labuda/domains/commerce/negotiation/negotiation/presentation/providers/negotiation_providers.dart';
 import 'package:labuda/domains/commerce/negotiation/negotiation/presentation/widgets/negotiation_offer_sheet.dart';
 import 'package:labuda/domains/user/profile/profile.dart' show userDataProvider;
 import 'package:labuda/domains/system/report/domain/entities/entities.dart';
-import 'package:labuda/domains/system/report/presentation/screens/report_screen.dart';
-import 'package:labuda/domains/commerce/transaction/shipping/presentation/shipping_quote_intent.dart';
+import 'package:labuda/domains/system/support/presentation/utils/support_category_label.dart';
+import 'package:labuda/domains/system/support/presentation/utils/support_status_label.dart';
 
 @visibleForTesting
 class ShippingQuoteCheckoutTarget {
@@ -49,10 +49,12 @@ class ShippingQuoteCheckoutTarget {
   const ShippingQuoteCheckoutTarget({this.forSaleId, this.auctionId});
 }
 
-/// Resolves the shipping-quote host SURFACE only: which commerce intent chat
+/// Resolves the shipping-quote host SURFACE only: which commerce entry chat
 /// must forward. Everything beyond the surface id — product id resolution,
-/// seller trust gate, route construction — is the commerce intent's job
-/// (openForSaleCheckout / openAuctionCheckout), never chat's.
+/// seller trust gate, route construction — is Commerce's job, never chat's:
+/// the for-sale path forwards to [openForSaleCheckout]; the auction winner path
+/// forwards to the canonical winner CLAIM flow
+/// (`AuctionClaimShippingModal` → `claimAuction`, `POST /auctions/:id/claim`).
 @visibleForTesting
 Future<ShippingQuoteCheckoutTarget?> resolveShippingQuoteCheckoutTarget({
   required ShippingQuoteAttachment shippingQuote,
@@ -71,25 +73,62 @@ Future<ShippingQuoteCheckoutTarget?> resolveShippingQuoteCheckoutTarget({
   return ShippingQuoteCheckoutTarget(forSaleId: forSaleId);
 }
 
-/// Pending commerce attachment held by the composer (identity + display
-/// snapshot only — chat never stores commerce payload data; the server
-/// re-resolves the viewer-aware projection at send).
-class _PendingCommerceAttachment {
-  final ChatResourceOccurrenceResourceType resourceType;
-  final String resourceId;
-  final String title;
-  final String? imageUrl;
-  final int? price;
-
-  const _PendingCommerceAttachment({
-    required this.resourceType,
-    required this.resourceId,
-    required this.title,
-    this.imageUrl,
-    this.price,
-  });
+/// Resolves the seller shipping-quote target a PRODUCT BUBBLE refers to — the
+/// identity + display title only — from the canonical, viewer-scoped resource
+/// projection (LIVE for_sale / auction). Null when the message is not a LIVE
+/// product bubble.
+///
+/// The product bubble is the Commerce CONTEXT and is valid regardless of who
+/// sent it. Whether the action is OFFERED is a SEPARATE, server-decided
+/// authorization ([viewerCanOfferShippingQuote]); this function never computes
+/// ownership or eligibility.
+@visibleForTesting
+SellerShippingQuoteTarget? sellerShippingQuoteTargetForMessage(
+  Message message,
+) {
+  final projection = message.resourceProjection;
+  if (projection == null || !projection.isLive) return null;
+  switch (projection.resourceType) {
+    case ResourceProjectionType.fixedPriceSale:
+      return SellerShippingQuoteTarget.forSale(
+        forSaleId: projection.resourceId,
+        title: projection.titleText,
+      );
+    case ResourceProjectionType.auction:
+      return SellerShippingQuoteTarget.auction(
+        auctionId: projection.resourceId,
+        title: projection.titleText,
+      );
+    case ResourceProjectionType.profile:
+    case ResourceProjectionType.content:
+      return null;
+  }
 }
 
+/// Canonical Commerce authorization for the product-bubble `⋮` →
+/// "Penawaran Ongkir" action.
+///
+/// The authorization is the SERVER-PROJECTED viewer capability
+/// `resource_projection.viewer_capabilities.can_manage`, evaluated by the SAME
+/// Commerce authority that powers the product detail wire
+/// (`EvaluateForSaleViewerCapabilities` / `EvaluateAuctionViewerCapabilities`
+/// → `Role == "owner"`, i.e. viewer == product seller). The bubble SENDER and
+/// the viewer's platform role are NEVER consulted; Chat computes no ownership.
+///
+/// Fail-closed: a product bubble without a LIVE projection, or whose projection
+/// does not grant ownership to this viewer, exposes no action.
+@visibleForTesting
+bool viewerCanOfferShippingQuote(Message message) {
+  final projection = message.resourceProjection;
+  if (projection == null || !projection.isLive) return false;
+  return projection.viewerCapabilities.canManage;
+}
+
+/// Pending commerce attachment held by the composer — the canonical
+/// [PendingCommerceAttachment]: identity + display snapshot only.
+/// Chat never stores commerce payload data; the server re-resolves the
+/// viewer-aware projection at send.
+///
 /// Chat Detail Screen
 ///
 /// **DOMAIN BOUNDARY:**
@@ -113,17 +152,24 @@ class ChatDetailScreen extends ConsumerStatefulWidget {
   final String chatId;
   final String? initialMessage;
 
-  /// Pending commerce reference delivered by the canonical detail Chat CTA
-  /// (openCommerceChat). Rendered as a send-chip above the input area; the
-  /// user explicitly sends it through the canonical chat send flow so the
-  /// product card becomes a persisted server-backed message.
-  final ShareReference? pendingReference;
+  /// Pending product attachment delivered by the canonical commerce chat
+  /// opener (openCommerceChat). It seeds the SAME composer pending state used
+  /// by `Lampirkan Produk`; the user sends it through the composer send icon
+  /// only — the chip carries no send CTA.
+  final PendingCommerceAttachment? pendingCommerce;
+
+  /// Draft text delivered by a commerce opener that ALREADY knows why the user
+  /// is entering Chat (the Checkout uncovered-shipping shortcut). It PRE-FILLS
+  /// the composer textarea and is NEVER auto-sent — the composer send icon
+  /// stays the one send authority. Every other Chat entry leaves this null.
+  final String? draftMessage;
 
   const ChatDetailScreen({
     super.key,
     required this.chatId,
     this.initialMessage,
-    this.pendingReference,
+    this.pendingCommerce,
+    this.draftMessage,
   });
 
   @override
@@ -139,14 +185,12 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
   bool _isLoadingMore = false;
   bool _isSendingMessage = false;
 
-  // Pending commerce reference lifecycle (detail Chat CTA entry)
-  bool _pendingReferenceSent = false;
-
-  // Pending commerce attachment (composer "Lampirkan Produk") — identity +
-  // display title only. Chat never resolves commerce data beyond the title;
-  // the resource is sent on Send as a resourceOccurrence (O4: chat is a
-  // display layer that delegates to commerce authority).
-  _PendingCommerceAttachment? _pendingCommerce;
+  // Pending commerce attachment (composer "Lampirkan Produk" and every chat
+  // entry point) — identity + display snapshot only. Chat never resolves
+  // commerce data beyond display; the resource is sent on Send as a
+  // resourceOccurrence (O4: chat is a display layer that delegates to
+  // commerce authority).
+  PendingCommerceAttachment? _pendingCommerce;
 
   /// Local media waiting to be uploaded at Send (canonical deferred upload).
   final List<MediaPendingItem> _pendingMedia = [];
@@ -154,6 +198,19 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
   @override
   void initState() {
     super.initState();
+    // Seed the canonical pending attachment delivered by openCommerceChat so
+    // the entry point lands in the SAME composer lifecycle as a picker attach.
+    _pendingCommerce = widget.pendingCommerce;
+    // Pre-fill the composer for the ONE entry point that knows the question the
+    // buyer is about to ask (Checkout uncovered-shipping). It is a draft only:
+    // the user still owns Send. No other entry passes a draft.
+    final draft = widget.draftMessage;
+    if (draft != null && draft.isNotEmpty) {
+      _messageController.text = draft;
+      _messageController.selection = TextSelection.collapsed(
+        offset: draft.length,
+      );
+    }
     // Conversation open is issued after the first frame: chatDetailProvider is
     // autoDispose, so the canonical read must run once the screen's build has
     // attached its listener to the room state. Same ordering as the deep-link
@@ -205,15 +262,11 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
         final errorMessage = error?.toLowerCase().contains('blocked') ?? false
             ? 'Tidak dapat mengirim pesan. Anda telah diblokir oleh pengguna ini.'
             : 'Gagal mengirim pesan. Silakan coba lagi.';
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(errorMessage)));
+        AppSnackBar.showError(context, errorMessage);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Gagal mengirim pesan. Coba lagi.')),
-        );
+        AppSnackBar.showError(context, 'Gagal mengirim pesan. Coba lagi.');
       }
     } finally {
       _isSendingMessage = false;
@@ -339,13 +392,10 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
           if (isUserBlocked) _buildBlockedUserBanner(context, otherUserId),
           Expanded(child: _buildMessagesList(context, chatDetailState)),
 
-          // Pending commerce reference chip (detail Chat CTA entry)
-          if (!isUserBlocked &&
-              widget.pendingReference != null &&
-              !_pendingReferenceSent)
-            _buildPendingReferenceChip(context),
-          // Pending commerce attachment chip (composer) — stays until removed
-          // or sent; never auto-sends.
+          // Pending product attachment chip — the ONE pending state for every
+          // entry point (picker, For Sale detail, Auction detail, checkout).
+          // Stays until removed or sent; never auto-sends and carries no send
+          // CTA of its own.
           if (!isUserBlocked && _pendingCommerce != null)
             _buildCommerceAttachmentChip(context),
           // Disable input when user is blocked
@@ -370,12 +420,13 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
               chat?.supportStatus == SupportStatus.resolved
                   ? Icons.check_circle
                   : Icons.help_outline,
+              semanticLabel: 'Info dukungan',
             ),
             onPressed: () => _showSupportInfo(context, chat),
           )
         else
           IconButton(
-            icon: const Icon(Icons.info_outline),
+            icon: const Icon(Icons.info_outline, semanticLabel: 'Info chat'),
             onPressed: () => _showChatInfo(context, chat),
           ),
       ],
@@ -398,11 +449,7 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
       return Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          ProfileAvatar(
-            userId: adminId ?? '',
-            size: 36,
-            imageUrl: adminAvatar,
-          ),
+          ProfileAvatar(userId: adminId ?? '', size: 36, imageUrl: adminAvatar),
           const SizedBox(width: 10),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -496,9 +543,7 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
               if (isOnline && !participantDegraded)
                 Text(
                   'Online',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodySmall?.copyWith(
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: context.statusColors.success,
                   ),
                 ),
@@ -563,14 +608,14 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
       currentUserId: ref.read(currentUserIdProvider),
       onLongPress: _showMessageOptions,
       onForSaleTap: _navigateToForSaleDetail,
-      onNegotiate: (message) =>
-          _handleCommerceAction(context, message, 'negotiate'),
       onPurchase: (message) =>
           _handleCommerceAction(context, message, 'purchase'),
-      onProjectionBuy: _handleProjectionBuy,
-      onQuoteShipping: _handleQuoteShipping,
       onDealBuy: _handleDealBuy,
       onRetry: _handleRetrySend,
+      // The `⋮` product action is authorized by the SERVER-PROJECTED viewer
+      // Commerce capability (see viewerCanOfferShippingQuote), never by the
+      // viewer's platform role.
+      onOfferShippingQuote: _showProductBubbleActions,
     );
   }
 
@@ -579,7 +624,11 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.error_outline, size: AppIconSize.display, color: context.statusColors.error),
+          Icon(
+            Icons.error_outline,
+            size: AppIconSize.display,
+            color: context.statusColors.error,
+          ),
           const SizedBox(height: 16),
           Text(
             'Failed to load messages',
@@ -635,8 +684,7 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
       hasPendingAttachment:
           _pendingCommerce != null || _pendingMedia.isNotEmpty,
       pendingMedia: _pendingMedia,
-      onRemovePendingMedia: (i) =>
-          setState(() => _pendingMedia.removeAt(i)),
+      onRemovePendingMedia: (i) => setState(() => _pendingMedia.removeAt(i)),
       onRetryUpload: _retryUploads,
     );
   }
@@ -718,31 +766,21 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
         content: content,
         type: type,
         mediaAssetIds: mediaAssetIds,
-        resourceOccurrence: pending == null
-            ? null
-            : ChatResourceOccurrenceRequest(
-                operation:
-                    ChatResourceOccurrenceOperation.directCommerceInsertChat,
-                resourceType: pending.resourceType,
-                resourceId: pending.resourceId,
-              ),
+        resourceOccurrence: pending?.toSendRequest(),
       );
 
       if (result != null) {
         _scrollToBottom();
       } else if (mounted) {
         // Message send failed - show error to user
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Gagal mengirim pesan. Silakan coba lagi.'),
-          ),
+        AppSnackBar.showError(
+          context,
+          'Gagal mengirim pesan. Silakan coba lagi.',
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Gagal mengirim pesan. Coba lagi.')),
-        );
+        AppSnackBar.showError(context, 'Gagal mengirim pesan. Coba lagi.');
       }
     } finally {
       _isSendingMessage = false;
@@ -760,55 +798,6 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
   String _getCurrentUserName() {
     // TODO: Get from auth provider
     return 'User';
-  }
-
-  /// Pending commerce reference send chip — delivered by the canonical
-  /// detail Chat CTA (openCommerceChat). Canonical [PendingCommerceChip]
-  /// with a send action: sending goes through the canonical send flow
-  /// (objectReference) so the card persists server-side and reloads as a
-  /// real message.
-  Widget _buildPendingReferenceChip(BuildContext context) {
-    final reference = widget.pendingReference!;
-    return Container(
-      padding: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p8, AppMetrics.p16, AppMetrics.p0),
-      child: PendingCommerceChip(
-        title: reference.preview.title.isEmpty
-            ? reference.displayName
-            : reference.preview.title,
-        imageUrl: reference.preview.imageUrl,
-        caption: 'Lampiran produk',
-        onSend: _sendPendingReference,
-      ),
-    );
-  }
-
-  /// Sends the pending commerce reference through the canonical chat send
-  /// flow (message-level objectReference), persisting it as a real message.
-  Future<void> _sendPendingReference() async {
-    final reference = widget.pendingReference;
-    if (reference == null) return;
-    final authState = ref.read(authControllerProvider);
-    if (authState is! AuthStateAuthenticated) return;
-
-    final result = await ref
-        .read(chatDetailProvider(widget.chatId).notifier)
-        .sendMessage(
-          senderId: authState.user.id,
-          senderName: authState.user.username.isNotEmpty
-              ? authState.user.username
-              : 'User',
-          content: 'Mengirimkan ${reference.displayName} untuk Anda',
-          objectReference: reference,
-        );
-
-    if (result != null && mounted) {
-      setState(() => _pendingReferenceSent = true);
-      _scrollToBottom();
-    } else if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Gagal mengirim produk. Coba lagi.')),
-      );
-    }
   }
 
   void _handleAttachmentTap() {
@@ -839,6 +828,51 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
         if (!mounted) return;
         setState(() => _pendingMedia.addAll(files.map(MediaPendingItem.new)));
       },
+    );
+  }
+
+  /// Seller-only explicit Commerce intent: offer a manual shipping quote for
+  /// the product this bubble refers to. The PRODUCT BUBBLE is the Commerce
+  /// context — the seller does not pick a listing: the target is the product
+  /// reference the bubble already carries, whether the buyer or the seller
+  /// originally sent it. Chat forwards the intent to the Shipping domain entry
+  /// ([openSellerShippingQuoteSheet]); the form, physical-product resolution,
+  /// the wire and every business rule stay in Commerce.
+  Future<void> _offerShippingQuote(SellerShippingQuoteTarget target) async {
+    await openSellerShippingQuoteSheet(
+      context: context,
+      ref: ref,
+      chatRoomId: widget.chatId,
+      target: target,
+      onSuccess: () async {
+        if (mounted) await _loadChatData();
+      },
+    );
+  }
+
+  /// Opens the product-bubble action menu (`⋮` → More). The ONE canonical
+  /// product-context action is "Penawaran Ongkir" for the product this bubble
+  /// refers to. It is never a primary CTA on the card.
+  Future<void> _showProductBubbleActions(Message message) async {
+    // Defense-in-depth: the canonical projected ownership gate must hold even
+    // if this handler is ever reached by another path.
+    if (!viewerCanOfferShippingQuote(message)) return;
+    final target = sellerShippingQuoteTargetForMessage(message);
+    if (target == null) return;
+
+    await AppBottomSheetActions.showActions<void>(
+      context: context,
+      actions: [
+        BottomSheetAction<void>(
+          title: 'Penawaran Ongkir',
+          subtitle: 'Ongkir manual untuk pembeli ini',
+          icon: Icons.local_shipping_outlined,
+          onPressed: () {
+            Navigator.of(context).pop();
+            unawaited(_offerShippingQuote(target));
+          },
+        ),
+      ],
     );
   }
 
@@ -875,7 +909,7 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
     // Cancel/dismiss keeps any existing pending attachment untouched.
     if (!mounted || selection == null) return;
     setState(() {
-      _pendingCommerce = _PendingCommerceAttachment(
+      _pendingCommerce = PendingCommerceAttachment(
         resourceType: selection.resource.resourceType == ResourceType.auction
             ? ChatResourceOccurrenceResourceType.auction
             : ChatResourceOccurrenceResourceType.forSale,
@@ -896,7 +930,7 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
     if (!mounted) return;
     final data = result.isSuccess ? result.data : null;
     setState(() {
-      _pendingCommerce = _PendingCommerceAttachment(
+      _pendingCommerce = PendingCommerceAttachment(
         resourceType: ChatResourceOccurrenceResourceType.forSale,
         resourceId: forSaleId,
         title: data?.title ?? forSaleId,
@@ -913,7 +947,12 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
   Widget _buildCommerceAttachmentChip(BuildContext context) {
     final pending = _pendingCommerce!;
     return Container(
-      padding: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p8, AppMetrics.p16, AppMetrics.p0),
+      padding: const EdgeInsets.fromLTRB(
+        AppMetrics.p16,
+        AppMetrics.p8,
+        AppMetrics.p16,
+        AppMetrics.p0,
+      ),
       child: PendingCommerceChip(
         title: pending.title,
         imageUrl: pending.imageUrl,
@@ -939,24 +978,16 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
     // Validate for-sale ID before navigation
     if (item.targetId.isEmpty) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('For sale ID tidak valid')),
-        );
+        AppSnackBar.showError(context, 'Gagal membuka produk. Coba lagi.');
       }
       return;
     }
 
     try {
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) => ForSaleDetailScreen(forSaleId: item.targetId),
-        ),
-      );
+      context.push(RoutePaths.forSaleDetailPath(item.targetId));
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Gagal membuka forSale. Coba lagi.')),
-        );
+        AppSnackBar.showError(context, 'Gagal membuka forSale. Coba lagi.');
       }
     }
   }
@@ -974,30 +1005,20 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
     // Validate orderId before navigation
     if (orderId.isEmpty) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Order ID tidak valid')));
+        AppSnackBar.showError(context, 'Gagal membuka pesanan. Coba lagi.');
       }
       return;
     }
 
     try {
-      Navigator.of(context)
-          .push(
-            MaterialPageRoute(
-              builder: (context) => OrderDetailScreen(orderId: orderId),
-            ),
-          )
-          .then((_) {
-            // Refresh chat data when returning from order detail
-            // This ensures any status updates are reflected
-            // Order status refresh is handled by commerce domain through event bus
-          });
+      // Canonical route keeps the location observable; the returned future
+      // still resolves when the user comes back from order detail (order
+      // status refresh is handled by the commerce domain through its event
+      // bus, exactly as before).
+      context.push(RoutePaths.orderDetailPath(orderId)).then((_) {});
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Gagal membuka pesanan. Coba lagi.')),
-        );
+        AppSnackBar.showError(context, 'Gagal membuka pesanan. Coba lagi.');
       }
     }
   }
@@ -1012,25 +1033,55 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
 
     if (target == null) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        this.context,
-      ).showSnackBar(const SnackBar(content: Text('Gagal membuka checkout')));
+      AppSnackBar.showError(this.context, 'Gagal membuka checkout');
       return;
     }
 
     if (target.auctionId != null) {
-      // Auction shipping quote: chat forwards the intent ONLY. Product id
-      // resolution, seller trust gate and the checkout route shape are
-      // commerce decisions (openAuctionCheckout).
-      await openAuctionCheckout(
-        context,
-        ref,
-        AuctionCheckoutIntent(
-          auctionId: target.auctionId!,
-          shippingQuoteId: shippingQuote.offerId,
-        ),
-        returnToChatRoomId: widget.chatId,
+      // Auction shipping quote: the canonical winner order path is the auction
+      // CLAIM flow (POST /auctions/:id/claim), not the buy-now /orders path.
+      // Chat forwards the explicit claim intent WITH the quote + conversation;
+      // the Commerce claim authority resolves shipping, consumes the quote via
+      // the ONE ShippingQuote authority, and creates the order.
+      final auction = await ref.read(
+        auctionDetailProvider(target.auctionId!).future,
       );
+      if (!mounted) return;
+      if (auction == null) {
+        AppSnackBar.showError(this.context, 'Gagal membuka checkout');
+        return;
+      }
+
+      final orderId = await AuctionClaimShippingModal.show(
+        context: this.context,
+        auction: auction,
+        shippingQuoteId: shippingQuote.offerId,
+        chatId: widget.chatId,
+        onClaim:
+            ({
+              required addressId,
+              String? shippingSetupId,
+              String? shippingQuoteId,
+              String? chatId,
+              String? discountCode,
+              bool useCoins = false,
+            }) async {
+              final notifier = ref.read(auctionNotifierProvider.notifier);
+              return notifier.claimAuction(
+                auctionId: target.auctionId!,
+                addressId: addressId,
+                shippingSetupId: shippingSetupId,
+                shippingQuoteId: shippingQuoteId,
+                chatId: chatId,
+                discountCode: discountCode,
+                useCoins: useCoins,
+              );
+            },
+      );
+      if (!mounted) return;
+      if (orderId != null) {
+        this.context.push(RoutePaths.paymentResultPath(orderId));
+      }
       return;
     }
 
@@ -1040,7 +1091,7 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
       target.forSaleId!,
       negotiationId: _acceptedNegotiationIdFor(target.forSaleId),
       shippingQuoteId: shippingQuote.offerId,
-      returnToChat: true,
+      chatId: widget.chatId,
     );
   }
 
@@ -1073,54 +1124,7 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
           forSaleId: forSaleId,
           negotiationId: _acceptedNegotiationIdFor(forSaleId),
         ),
-        returnToChatRoomId: widget.chatId,
       ),
-    );
-  }
-
-  /// CTA "Beli Sekarang" on the chat resource projection card.
-  ///
-  /// Chat is a display layer: it only forwards the intent. Liveness of the
-  /// projection is a DISPLAY gate (chat owns message display); product id,
-  /// pricing and seller trust stay in Commerce via openForSaleCheckout.
-  Future<void> _handleProjectionBuy(Message message) async {
-    final projection = message.resourceProjection;
-    // Identity survives death, so a TOMBSTONE still carries a resource_id:
-    // liveness must be checked explicitly — it is not implied by the id.
-    if (projection == null ||
-        !projection.isLive ||
-        projection.resourceType != ResourceProjectionType.fixedPriceSale) {
-      return;
-    }
-    final forSaleId = projection.resourceId;
-    if (forSaleId.isEmpty) return;
-    await openForSaleCheckout(
-      context,
-      ref,
-      CheckoutIntent(
-        forSaleId: forSaleId,
-        negotiationId: _acceptedNegotiationIdFor(forSaleId),
-      ),
-      returnToChatRoomId: widget.chatId,
-    );
-  }
-
-  /// FORWARDS the ongkir quote intent to the Shipping domain's entry —
-  /// chat resolves nothing here: the form, product id, request and API call
-  /// all live in `openSellerShippingQuoteSheet` (Owner rule 2026-10-01:
-  /// chat must not handle shipping). Refreshes the thread on success so the
-  /// new quote message lands.
-  Future<void> _handleQuoteShipping(Message message) async {
-    final projection = message.resourceProjection;
-    if (projection == null || !projection.isLive) return;
-    await openSellerShippingQuoteSheet(
-      context: context,
-      ref: ref,
-      chatRoomId: widget.chatId,
-      projection: projection,
-      onSuccess: () async {
-        if (mounted) await _loadChatData();
-      },
     );
   }
 
@@ -1178,9 +1182,7 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
       onSubmit: (price) => _submitNegotiationOffer(shareRef.targetId, price),
     ).then((sent) {
       if (!sent || !mounted) return;
-      ScaffoldMessenger.of(this.context).showSnackBar(
-        const SnackBar(content: Text('Tawaran negosiasi terkirim')),
-      );
+      AppSnackBar.showSuccess(this.context, 'Tawaran negosiasi terkirim');
     });
   }
 
@@ -1220,81 +1222,42 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
     String forSaleId, {
     String? negotiationId,
     String? shippingQuoteId,
-    bool returnToChat = false,
+    String? chatId,
   }) {
     return openForSaleCheckout(
       context,
       ref,
-      CheckoutIntent(
-        forSaleId: forSaleId,
-        negotiationId: negotiationId,
-      ),
+      CheckoutIntent(forSaleId: forSaleId, negotiationId: negotiationId),
       shippingQuoteId: shippingQuoteId,
-      returnToChatRoomId: returnToChat ? widget.chatId : null,
+      chatId: chatId,
     );
   }
 
   void _showMessageOptions(Message message) {
     final isFromUser = message.isFromUser(ref.read(currentUserIdProvider));
 
-    showModalBottomSheet(
+    AppBottomSheetActions.showActions<void>(
       context: context,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Report option (shown for messages from other users)
-            if (!isFromUser) ...[
-              ListTile(
-                leading: Icon(
-                  Icons.report,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-                title: Text(
-                  'Report Message',
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                  _handleReportMessage(context, message);
-                },
-              ),
-              const Divider(),
-            ],
-            if (isFromUser) ...[
-              // Edit - disabled: no backend support
-              // ListTile(
-              //   leading: const Icon(Icons.edit),
-              //   title: const Text('Edit'),
-              //   onTap: () {
-              //     Navigator.pop(context);
-              //     _handleEditMessage(message);
-              //   },
-              // ),
-              const Divider(),
-            ],
-            ListTile(
-              leading: const Icon(Icons.copy),
-              title: const Text('Copy'),
-              onTap: () {
-                Navigator.pop(context);
-                _handleCopyMessage(message);
-              },
-            ),
-            // Reply - disabled: no backend support
-            // ListTile(
-            //   leading: const Icon(Icons.reply),
-            //   title: const Text('Reply'),
-            //   onTap: () {
-            //     Navigator.pop(context);
-            //     // TODO: Implement reply
-            //   },
-            // ),
-          ],
+      actions: [
+        // Report option (shown for messages from other users)
+        if (!isFromUser)
+          BottomSheetAction<void>(
+            title: 'Report Message',
+            icon: Icons.report,
+            onPressed: () {
+              Navigator.of(context).pop();
+              _handleReportMessage(context, message);
+            },
+          ),
+        BottomSheetAction<void>(
+          title: 'Copy',
+          icon: Icons.copy,
+          onPressed: () {
+            Navigator.of(context).pop();
+            _handleCopyMessage(message);
+          },
         ),
-      ),
+      ],
     );
   }
 
@@ -1308,7 +1271,7 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
     final authState = ref.read(authControllerProvider);
     if (authState is! AuthStateAuthenticated) {
       if (mounted) {
-        AppSnackBar.showError(context, 'Please login to report messages');
+        ref.read(navigationHandlerProvider).navigateToSignIn();
       }
       return;
     }
@@ -1317,25 +1280,21 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
     final chat = ref.read(chatDetailProvider(widget.chatId)).chat;
     if (chat == null) return;
 
-    // Navigate to report screen with message context
+    // Open the canonical report destination with message context.
     // Canonical moderation (SLICE 2): chat_message is NOT a canonical target.
     // The message sender's user profile is the canonical report subject;
     // message context is carried in the report description.
-    await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (context) => ReportScreen(
-          targetType: ReportTargetType.user.name,
-          targetId: message.senderId,
-        ),
+    await context.push<bool>(
+      RoutePaths.reportLocation(
+        targetType: ReportTargetType.user.name,
+        targetId: message.senderId,
       ),
     );
   }
 
   void _handleCopyMessage(Message message) {
     // TODO: Implement copy to clipboard
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('Copied: ${message.content}')));
+    AppSnackBar.showInfo(context, 'Pesan disalin');
   }
 
   void _showChatInfo(BuildContext context, Chat? chat) {
@@ -1347,51 +1306,33 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
       final otherUserHandle = formatChatHandle(otherUserName);
       final otherUserId = chat.getOtherParticipantId(userId);
 
-      showModalBottomSheet(
+      AppBottomSheetActions.showActions<void>(
         context: context,
-        builder: (context) => SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: const Icon(Icons.person),
-                title: Text(otherUserHandle),
-                subtitle: Text('ID: $otherUserId'),
-              ),
-              ListTile(
-                leading: const Icon(Icons.report),
-                title: const Text('Report User'),
-                onTap: () {
-                  Navigator.pop(context);
-                  _handleReportUser(context, otherUserId, otherUserHandle);
-                },
-              ),
-              ListTile(
-                leading: Icon(
-                  Icons.block,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-                title: Text(
-                  'Block',
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                  _handleBlockUser(context, otherUserId, otherUserHandle);
-                },
-              ),
-            ],
+        title: otherUserHandle,
+        subtitle: 'ID: $otherUserId',
+        actions: [
+          BottomSheetAction<void>(
+            title: 'Report User',
+            icon: Icons.report,
+            onPressed: () {
+              Navigator.of(context).pop();
+              _handleReportUser(context, otherUserId, otherUserHandle);
+            },
           ),
-        ),
+          BottomSheetAction<void>(
+            title: 'Block',
+            icon: Icons.block,
+            onPressed: () {
+              Navigator.of(context).pop();
+              _handleBlockUser(context, otherUserId, otherUserHandle);
+            },
+          ),
+        ],
       );
     } catch (e) {
       // Failed to show chat info - log and optionally show to user
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Gagal memuat info chat')));
+        AppSnackBar.showError(context, 'Gagal memuat info chat');
       }
     }
   }
@@ -1408,7 +1349,7 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
     final authState = ref.read(authControllerProvider);
     if (authState is! AuthStateAuthenticated) {
       if (mounted) {
-        AppSnackBar.showError(context, 'Please login to report users');
+        ref.read(navigationHandlerProvider).navigateToSignIn();
       }
       return;
     }
@@ -1416,18 +1357,16 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
     // Don't allow reporting yourself
     if (authState.user.id == targetUserId) {
       if (mounted) {
-        AppSnackBar.showError(context, 'Cannot report yourself');
+        AppSnackBar.showError(context, 'Tidak dapat melaporkan diri sendiri');
       }
       return;
     }
 
-    // Navigate to report screen with user context
-    final result = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (context) => ReportScreen(
-          targetType: ReportTargetType.user.name,
-          targetId: targetUserId,
-        ),
+    // Open the canonical report destination with user context.
+    final result = await context.push<bool>(
+      RoutePaths.reportLocation(
+        targetType: ReportTargetType.user.name,
+        targetId: targetUserId,
       ),
     );
 
@@ -1475,47 +1414,30 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
   void _showSupportInfo(BuildContext context, Chat? chat) {
     if (chat == null || !chat.isSupportChat) return;
 
-    showModalBottomSheet(
+    AppBottomSheetBase.show<void>(
       context: context,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              title: Text(
-                'Category: ${chat.supportCategory?.name.toUpperCase() ?? 'N/A'}',
-              ),
+      title: 'Support',
+      padding: EdgeInsets.zero,
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(
+            title: Text(
+              'Category: ${chat.supportCategory?.label(context.l10n) ?? 'N/A'}',
             ),
-            ListTile(
-              title: Text(
-                'Status: ${_getSupportStatusLabel(chat.supportStatus)}',
-              ),
+          ),
+          ListTile(
+            title: Text(
+              'Status: ${chat.supportStatus?.label(context.l10n) ?? 'N/A'}',
             ),
-            if (chat.assignedAdminName != null)
-              ListTile(title: Text('Agent: ${chat.assignedAdminName}')),
-            if (chat.linkedOrderId != null)
-              ListTile(title: Text('Order ID: ${chat.linkedOrderId}')),
-          ],
-        ),
+          ),
+          if (chat.assignedAdminName != null)
+            ListTile(title: Text('Agent: ${chat.assignedAdminName}')),
+          if (chat.linkedOrderId != null)
+            ListTile(title: Text('Order ID: ${chat.linkedOrderId}')),
+        ],
       ),
     );
-  }
-
-  String _getSupportStatusLabel(SupportStatus? status) {
-    switch (status) {
-      case SupportStatus.open:
-        return 'OPEN';
-      case SupportStatus.inProgress:
-        return 'IN PROGRESS';
-      case SupportStatus.waitingUser:
-        return 'WAITING FOR YOU';
-      case SupportStatus.resolved:
-        return 'RESOLVED';
-      case SupportStatus.closed:
-        return 'CLOSED';
-      default:
-        return 'UNKNOWN';
-    }
   }
 
   /// Handle block user from chat
@@ -1527,13 +1449,104 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
     String targetUserId,
     String targetDisplayName,
   ) async {
-    final confirmed = await BlockConfirmationDialog.show(
-      context,
-      targetUserId: targetUserId,
-      targetDisplayName: targetDisplayName,
+    final confirmed = await AppDialog.confirm(
+      context: context,
+      title: 'Block $targetDisplayName?',
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                Icons.visibility_off_outlined,
+                size: AppIconSize.action,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'You will not see content from this user',
+                  style: context.typeRoles.bodyDense.copyWith(
+                    color: Theme.of(context).colorScheme.onSurface,
+                    height: 1.3,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                Icons.person_off_outlined,
+                size: AppIconSize.action,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'This user will not be able to see your content',
+                  style: context.typeRoles.bodyDense.copyWith(
+                    color: Theme.of(context).colorScheme.onSurface,
+                    height: 1.3,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                Icons.chat_bubble_outline,
+                size: AppIconSize.action,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Chat with this user will be hidden',
+                  style: context.typeRoles.bodyDense.copyWith(
+                    color: Theme.of(context).colorScheme.onSurface,
+                    height: 1.3,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                Icons.people_outline,
+                size: AppIconSize.action,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Follow relationship will be removed',
+                  style: context.typeRoles.bodyDense.copyWith(
+                    color: Theme.of(context).colorScheme.onSurface,
+                    height: 1.3,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+      confirmLabel: 'Block',
+      cancelLabel: 'Cancel',
+      intent: AppDialogIntent.destructive,
     );
 
-    if (confirmed != true || !mounted) return;
+    if (!confirmed || !mounted) return;
 
     final success = await ref
         .read(blockActionsProvider.notifier)
@@ -1653,12 +1666,14 @@ class _MessageListWidget extends ConsumerWidget {
   final String currentUserId;
   final Function(Message) onLongPress;
   final Function(ShareReference) onForSaleTap;
-  final Function(Message) onNegotiate;
   final Function(Message) onPurchase;
-  final Future<void> Function(Message) onProjectionBuy;
-  final void Function(Message) onQuoteShipping;
   final void Function(Message) onDealBuy;
   final Future<void> Function(Message) onRetry;
+
+  /// Screen-owned handler that resolves the bubble's Commerce target and
+  /// forwards it. The per-bubble authorization is derived from the message's
+  /// own server-projected viewer capability (see [viewerCanOfferShippingQuote]).
+  final void Function(Message) onOfferShippingQuote;
 
   const _MessageListWidget({
     required this.messages,
@@ -1667,12 +1682,10 @@ class _MessageListWidget extends ConsumerWidget {
     required this.currentUserId,
     required this.onLongPress,
     required this.onForSaleTap,
-    required this.onNegotiate,
     required this.onPurchase,
-    required this.onProjectionBuy,
-    required this.onQuoteShipping,
     required this.onDealBuy,
     required this.onRetry,
+    required this.onOfferShippingQuote,
   });
 
   @override
@@ -1703,9 +1716,17 @@ class _MessageListWidget extends ConsumerWidget {
         try {
           final isFromUser = message.isFromUser(currentUserId);
           final showAvatar =
-              olderMessage == null ||
-              olderMessage.senderId != message.senderId;
+              olderMessage == null || olderMessage.senderId != message.senderId;
           final showDateHeader = _shouldShowDateHeader(message, olderMessage);
+
+          // The `⋮` product action is offered ONLY when the SERVER-PROJECTED
+          // viewer capability grants product ownership to this viewer AND the
+          // bubble is a LIVE product context. The bubble SENDER is irrelevant.
+          final productMenu =
+              viewerCanOfferShippingQuote(message) &&
+                  sellerShippingQuoteTargetForMessage(message) != null
+              ? () => onOfferShippingQuote(message)
+              : null;
 
           return Column(
             children: [
@@ -1725,19 +1746,11 @@ class _MessageListWidget extends ConsumerWidget {
                     ? () => onForSaleTap(message.objectReference!)
                     : null,
                 currentUserId: currentUserId,
-                onNegotiate: message.hasAttachment
-                    ? () => onNegotiate(message)
-                    : null,
                 onPurchase: message.hasAttachment
                     ? () => onPurchase(message)
                     : null,
-                onProjectionBuy: message.resourceProjection != null
-                    ? () => onProjectionBuy(message)
-                    : null,
-                onQuoteShipping: message.resourceProjection != null
-                    ? () => onQuoteShipping(message)
-                    : null,
                 onDealBuy: () => onDealBuy(message),
+                onProductMenu: productMenu,
               ),
             ],
           );
@@ -1753,15 +1766,17 @@ class _MessageListWidget extends ConsumerWidget {
       padding: const EdgeInsets.symmetric(vertical: AppMetrics.p8),
       child: Center(
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p4),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppMetrics.p12,
+            vertical: AppMetrics.p4,
+          ),
           decoration: BoxDecoration(
             color: Theme.of(context).colorScheme.surfaceContainerHighest,
             borderRadius: BorderRadius.circular(AppShape.r12),
           ),
           child: Text(
             _formatDate(date),
-            style: TextStyle(
-              fontSize: AppType.s12,
+            style: context.typeRoles.labelMicro.copyWith(
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
@@ -1775,6 +1790,9 @@ class _MessageListWidget extends ConsumerWidget {
     return !current.createdAt.isSameDate(older.createdAt);
   }
 
+  /// Day-separator labels are presentation-specific to this chat surface
+  /// (Today/Yesterday + calendar fallback). They intentionally do NOT flow
+  /// through TimeFormatService: this is a day pill, not a relative fact.
   String _formatDate(DateTime dateTime) {
     final now = DateTime.now();
     final diff = now.difference(dateTime);
@@ -1783,8 +1801,6 @@ class _MessageListWidget extends ConsumerWidget {
       return 'Today';
     } else if (diff.inDays == 1) {
       return 'Yesterday';
-    } else if (diff.inDays < 7) {
-      return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
     } else {
       return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
     }

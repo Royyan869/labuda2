@@ -110,29 +110,6 @@ func TestEvaluateForSaleViewerCapabilities(t *testing.T) {
 			},
 		},
 		{
-			name: "owner draft management",
-			input: ForSaleViewerCapabilitiesInput{
-				ViewerID:           sellerID,
-				SellerID:           sellerID,
-				ProductID:          productID,
-				Status:             forSaleStatusDraft,
-				QuantityAvailable:  1,
-				NegotiationEnabled: false,
-				SellerTrustActive:  false,
-			},
-			want: ViewerCapabilities{
-				Role:         "owner",
-				CanManage:    true,
-				CanEdit:      true,
-				CanPromote:   false,
-				CanChat:      false,
-				CanNegotiate: false,
-				CanBuy:       false,
-				CanBid:       false,
-				CanBuyNow:    false,
-			},
-		},
-		{
 			name: "owner active promotion",
 			input: ForSaleViewerCapabilitiesInput{
 				ViewerID:           sellerID,

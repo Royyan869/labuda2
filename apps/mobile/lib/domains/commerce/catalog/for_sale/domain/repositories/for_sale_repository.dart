@@ -14,11 +14,16 @@ abstract class ForSaleRepository {
   /// Get fixed-price sale by ID
   Future<Result<ForSale?>> getForSaleById(String forSaleId);
 
-  /// Get forSales by seller ID
+  /// Get forSales by seller ID.
+  ///
+  /// [includeWithdrawn] opts the owning seller into their full inventory
+  /// history (active + sold + withdrawn). The backend excludes withdrawn by
+  /// default and only honours this for the owner branch.
   Future<Result<List<ForSale>>> getSellerForSales(
     String sellerId, {
     int page,
     int pageSize,
+    bool includeWithdrawn,
   });
 
   /// Create a new forSale
@@ -30,12 +35,7 @@ abstract class ForSaleRepository {
     UpdateForSaleRequest request,
   );
 
-  /// Delete a fixed-price sale
+  /// Delete (withdraw) a fixed-price sale — there is no status-update path:
+  /// create = publish, and live surfaces are immutable.
   Future<Result<void>> deleteForSale(String forSaleId);
-
-  /// Update fixed-price sale status
-  Future<Result<ForSale>> updateForSaleStatus(
-    String forSaleId,
-    ForSaleStatus status,
-  );
 }

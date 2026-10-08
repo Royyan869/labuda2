@@ -1,15 +1,14 @@
-/// Notification List Screen (REFACTORED)
+/// Notification List Screen
 ///
-/// Displays list of user notifications with pull-to-refresh and filter tabs.
-/// Professional design with proper loading & error states.
+/// Displays the account's notifications with pull-to-refresh and filter tabs.
 ///
-/// REFACTORED: Extracted navigation, dialogs, and UI components
-/// to comply with GUIDELINES file size limits.
-///
-/// MIGRATION: Now uses Riverpod providers instead of ServiceLocator.
-/// ADDED: Filter tabs (All, Order, Dispute, Payout, Support)
-///
-/// Size: < 150 lines (per GUIDELINES) ✅
+/// STATE COMPOSITION (owner-locked): the screen consumes the ONE canonical
+/// list authority [notificationListProvider] and renders its AsyncValue with
+/// the canonical foundation — LoadingIndicator (no data), PageErrorState
+/// (initial failure), EmptyState (successful zero-result), and the list with
+/// non-destructive refresh + inline refresh error. Filtering is
+/// presentation-level over that same authority; there is no second collection
+/// provider.
 library;
 
 // Dart
@@ -17,9 +16,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/domains/system/notification/domain/entities/notification_entity.dart';
 import 'package:labuda/domains/system/notification/domain/entities/notification_filter.dart';
 import 'package:labuda/domains/system/notification/presentation/providers/navigation_provider.dart';
-import 'package:labuda/domains/system/notification/presentation/providers/filtered_notification_provider.dart';
+import 'package:labuda/domains/system/notification/presentation/providers/notification_filter_provider.dart';
 import 'package:labuda/domains/system/notification/presentation/providers/notification_list_provider.dart';
 import 'package:labuda/domains/system/notification/presentation/widgets/notification_list_content.dart';
+import 'package:labuda/shared/shared.dart';
 
 // Flutter
 import 'package:flutter/material.dart';
@@ -32,39 +32,146 @@ class NotificationListScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final notificationsAsync = ref.watch(filteredNotificationsProvider(userId));
+    // THE canonical notification list authority. Filtering is applied below to
+    // its value — never through a second provider.
+    final notificationsAsync = ref.watch(notificationListProvider(userId));
     final filterState = ref.watch(selectedFilterNotifierProvider);
     final counts = ref.watch(notificationCountsProvider(userId));
     final markAsRead = ref.read(markNotificationAsReadProvider);
+
+    final all = notificationsAsync.value ?? const <NotificationEntity>[];
+    final filtered = filterState.filter == NotificationFilter.all
+        ? all
+        : all.where((n) => filterState.filter.matches(n.type)).toList();
+
+    final hasData = notificationsAsync.value != null;
+    final isInitialLoading = notificationsAsync.isLoading && !hasData;
+    final hasInitialError = notificationsAsync.hasError && !hasData;
+    final isRefreshing =
+        notificationsAsync.isLoading && hasData && !notificationsAsync.hasError;
+    final hasRefreshError = notificationsAsync.hasError && hasData;
 
     return PopScope(
       canPop: true,
       child: Scaffold(
         appBar: _buildAppBar(context, ref, filterState.filter),
-        body: Column(
-          children: [
-            _buildFilterTabs(context, ref, filterState.filter, counts),
-            Expanded(
-              child: notificationsAsync.when(
-                data: (notifications) => NotificationListContent(
-                  userId: userId,
-                  notifications: notifications,
-                  selectedFilter: filterState.filter,
-                  onNotificationTap: (notification) => _handleNotificationTap(
-                    context,
-                    ref,
-                    notification,
-                    markAsRead,
-                  ),
+        // SAFE-AREA-36: the body content owns the LIVE system bottom inset
+        // — /notifications is a FLAT top-level GoRoute (ProfileModule), so
+        // no shell bar owns it, and the list's EXPLICIT vertical p12
+        // padding bypasses the framework's automatic list-padding
+        // consumption, so nothing else could claim the bottom. Top stays
+        // with Scaffold.appBar (the body slot already drops the top
+        // padding — no phantom top).
+        body: SafeArea(
+          child: Column(
+            children: [
+              _buildFilterTabs(context, ref, filterState.filter, counts),
+              Expanded(
+                child: _buildBody(
+                  context,
+                  ref,
+                  filtered,
+                  filterState.filter,
+                  markAsRead: markAsRead,
+                  isInitialLoading: isInitialLoading,
+                  hasInitialError: hasInitialError,
+                  isRefreshing: isRefreshing,
+                  hasRefreshError: hasRefreshError,
                 ),
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (error, _) => _buildErrorState(context, ref, error),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
+  }
+
+  /// Canonical reload: initial-load retry, pull-to-refresh, and the inline
+  /// refresh-error retry all re-run the ONE canonical list operation.
+  /// Existing notifications stay visible (the provider preserves its previous
+  /// value on refresh); failure is never rethrown or rendered raw.
+  Future<void> _reload(WidgetRef ref) async {
+    try {
+      await ref.refresh(notificationListProvider(userId).future).then((_) {});
+    } catch (_) {
+      // No-op: the failure remains observable via async.hasError with the
+      // last-known-good collection preserved in async.value.
+    }
+  }
+
+  Widget _buildBody(
+    BuildContext context,
+    WidgetRef ref,
+    List<NotificationEntity> filtered,
+    NotificationFilter selectedFilter, {
+    required Future<void> Function(String) markAsRead,
+    required bool isInitialLoading,
+    required bool hasInitialError,
+    required bool isRefreshing,
+    required bool hasRefreshError,
+  }) {
+    if (isInitialLoading) {
+      // First request with no data → LoadingIndicator. Never EmptyState.
+      return const Center(child: LoadingIndicator());
+    }
+
+    if (hasInitialError) {
+      // CANONICAL page-level load error (PageErrorState): controlled
+      // localized copy only — the raw error never reaches the screen.
+      return PageErrorState(onRetry: () => _reload(ref));
+    }
+
+    if (filtered.isEmpty) {
+      // Successful zero-result (or filter matched none) → the ONE canonical
+      // EmptyState. Loading/error never reach here.
+      final (title, subtitle) = _emptyCopy(selectedFilter);
+      return EmptyState(
+        icon: selectedFilter.icon,
+        title: title,
+        subtitle: subtitle,
+      );
+    }
+
+    return NotificationListContent(
+      userId: userId,
+      notifications: filtered,
+      onNotificationTap: (notification) =>
+          _handleNotificationTap(context, ref, notification, markAsRead),
+      isRefreshing: isRefreshing,
+      hasRefreshError: hasRefreshError,
+      onRefresh: () => _reload(ref),
+    );
+  }
+
+  /// Contextual empty copy per active filter (preserved business copy).
+  (String, String) _emptyCopy(NotificationFilter filter) {
+    switch (filter) {
+      case NotificationFilter.all:
+        return (
+          'Belum ada notifikasi',
+          'Anda akan menerima notifikasi untuk aktivitas penting di sini',
+        );
+      case NotificationFilter.order:
+        return (
+          'Belum ada notifikasi pesanan',
+          'Notifikasi untuk pesanan Anda akan muncul di sini',
+        );
+      case NotificationFilter.dispute:
+        return (
+          'Belum ada notifikasi sengketa',
+          'Notifikasi untuk sengketa dan banding akan muncul di sini',
+        );
+      case NotificationFilter.payout:
+        return (
+          'Belum ada notifikasi pembayaran',
+          'Notifikasi untuk pembayaran dan penarikan akan muncul di sini',
+        );
+      case NotificationFilter.support:
+        return (
+          'Belum ada notifikasi bantuan',
+          'Notifikasi untuk tiket bantuan dan keamanan akan muncul di sini',
+        );
+    }
   }
 
   /// Build app bar with filter indicator
@@ -75,7 +182,7 @@ class NotificationListScreen extends ConsumerWidget {
   ) {
     return AppBar(
       leading: IconButton(
-        icon: const Icon(Icons.arrow_back),
+        icon: const Icon(Icons.arrow_back, semanticLabel: 'Kembali'),
         onPressed: () => Navigator.of(context).pop(),
       ),
       title: Text(
@@ -142,11 +249,11 @@ class NotificationListScreen extends ConsumerWidget {
           ),
           selected: isSelected,
           onSelected: (_) {
-            ref
-                .read(selectedFilterNotifierProvider.notifier)
-                .setFilter(filter);
+            ref.read(selectedFilterNotifierProvider.notifier).setFilter(filter);
           },
-          backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+          backgroundColor: Theme.of(
+            context,
+          ).colorScheme.surfaceContainerHighest,
           selectedColor: Theme.of(context).colorScheme.primaryContainer,
           checkmarkColor: Theme.of(context).colorScheme.primary,
         ),
@@ -193,39 +300,5 @@ class NotificationListScreen extends ConsumerWidget {
       final navigationService = ref.read(notificationNavigationServiceProvider);
       await navigationService.handleNotificationTap(context, notification);
     }
-  }
-
-  /// Build error state with retry
-  Widget _buildErrorState(BuildContext context, WidgetRef ref, Object error) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppMetrics.p24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.error_outline, size: AppIconSize.display, color: Theme.of(context).colorScheme.error),
-            const SizedBox(height: 16),
-            const Text(
-              'Failed to Load Notifications',
-              style: TextStyle(fontSize: AppType.s20, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              error.toString(),
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: AppType.s14, color: Theme.of(context).colorScheme.onSurfaceVariant),
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton.icon(
-              onPressed: () {
-                ref.invalidate(filteredNotificationsProvider(userId));
-              },
-              icon: const Icon(Icons.refresh),
-              label: const Text('Retry'),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }

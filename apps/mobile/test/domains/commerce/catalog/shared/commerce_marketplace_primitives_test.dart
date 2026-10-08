@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_marketplace_metrics.dart';
 import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_marketplace_primitives.dart';
+import 'package:labuda/generated/app_localizations.dart';
 import 'package:labuda/shared/widgets/app_image.dart';
 
 Widget _host({
@@ -15,6 +16,9 @@ Widget _host({
   List<Widget>? children,
 }) {
   return MaterialApp(
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
+    locale: const Locale('id'),
     home: Scaffold(
       body: CustomScrollView(
         slivers: [
@@ -262,12 +266,21 @@ void main() {
 
       await tester.pumpWidget(_host(itemCount: 0));
       await tester.pumpAndSettle();
-      expect(find.text('Belum ada item untuk ditampilkan'), findsOneWidget);
+      // CANONICAL default collection empty: shared EmptyState + localized
+      // copy (the old inline "Belum ada item untuk ditampilkan" text is
+      // gone).
+      expect(find.text('Belum Ada Data'), findsOneWidget);
 
       await tester.pumpWidget(_host(itemCount: 0, error: StateError('boom')));
       await tester.pumpAndSettle();
-      expect(find.text('Data belum bisa dimuat.'), findsOneWidget);
-      expect(find.textContaining('boom'), findsOneWidget);
+      // CANONICAL default error surface: safe localized copy only — the raw
+      // StateError('boom') must never reach the screen.
+      expect(find.text('Terjadi Kesalahan'), findsOneWidget);
+      expect(
+        find.text('Data belum bisa dimuat. Silakan coba lagi.'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('boom'), findsNothing);
     },
   );
 

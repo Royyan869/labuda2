@@ -52,9 +52,7 @@ class MentionSuggestionOverlay extends ConsumerWidget {
               padding: const EdgeInsets.all(AppMetrics.p16),
               child: Text(
                 'Error loading users',
-                style: TextStyle(
-                  color: scheme.onSurfaceVariant,
-                ),
+                style: TextStyle(color: scheme.onSurfaceVariant),
               ),
             ),
           ),
@@ -65,9 +63,7 @@ class MentionSuggestionOverlay extends ConsumerWidget {
                   padding: const EdgeInsets.all(AppMetrics.p16),
                   child: Text(
                     'No users found',
-                    style: TextStyle(
-                      color: scheme.onSurfaceVariant,
-                    ),
+                    style: TextStyle(color: scheme.onSurfaceVariant),
                   ),
                 ),
               );
@@ -95,10 +91,7 @@ class MentionSuggestionOverlay extends ConsumerWidget {
                     },
                   ),
                   if (users.isNotEmpty)
-                    Divider(
-                      height: 1,
-                      color: scheme.outlineVariant,
-                    ),
+                    Divider(height: 1, color: scheme.outlineVariant),
                 ],
 
                 // User mentions
@@ -133,15 +126,11 @@ class MentionSuggestionOverlay extends ConsumerWidget {
       ),
       title: Text(
         username,
-        style: TextStyle(
-          fontWeight: FontWeight.w600,
-          color: scheme.primary,
-        ),
+        style: TextStyle(fontWeight: FontWeight.w600, color: scheme.primary),
       ),
       subtitle: Text(
         subtitle,
-        style: TextStyle(
-          fontSize: AppType.s12,
+        style: context.typeRoles.labelMicro.copyWith(
           color: scheme.onSurfaceVariant,
         ),
       ),
@@ -178,8 +167,7 @@ class MentionSuggestionOverlay extends ConsumerWidget {
       ),
       subtitle: Text(
         '@${user.username}',
-        style: TextStyle(
-          fontSize: AppType.s12,
+        style: context.typeRoles.labelMicro.copyWith(
           color: scheme.onSurfaceVariant,
         ),
         overflow: TextOverflow.ellipsis,

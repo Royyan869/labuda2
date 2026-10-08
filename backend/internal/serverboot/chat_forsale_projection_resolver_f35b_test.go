@@ -179,13 +179,14 @@ func assertLiveFPSProjectionMatchesAuthority(
 	payload := requireLiveFPSProjection(t, proj)
 	expectedCaps := commerceshared.EvaluateForSaleViewerCapabilities(capsInput)
 
-	require.Equal(t, expectedCaps.Role, proj.CommerceActions.Role)
-	require.Equal(t, expectedCaps.CanChat, proj.CommerceActions.CanChat)
-	require.Equal(t, expectedCaps.CanNegotiate, proj.CommerceActions.CanNegotiate)
-	require.Equal(t, expectedCaps.CanBuy, proj.CommerceActions.CanBuy)
-	require.False(t, proj.CommerceActions.CanBid)
-	require.Equal(t, expectedCaps.CanManage, proj.CommerceActions.CanManage)
 	require.Equal(t, expectedCaps.CanBuy || expectedCaps.CanNegotiate, proj.ViewerCapabilities.CanInteract)
+	// Canonical Commerce ownership projected for the viewer (owner vs buyer).
+	require.Equal(t, expectedCaps.CanManage, proj.ViewerCapabilities.CanManage)
+	// The payload carries the canonical PRODUCT-LEVEL negotiation attribute,
+	// derived from product state (never from the viewer).
+	require.Equal(t,
+		commerceshared.ForSaleNegotiationEnabled(capsInput.Status, capsInput.QuantityAvailable, capsInput.NegotiationEnabled),
+		payload.NegotiationEnabled)
 	require.True(t, proj.ViewerCapabilities.CanView)
 	require.False(t, proj.ViewerCapabilities.BlockedByTombstone)
 
@@ -304,7 +305,7 @@ func TestForSaleProjectionResolver_AuthorityMatrix(t *testing.T) {
 			sellerID:            activeSellerID,
 			accountStatus:       "active",
 			subscriptionStatus:  "active",
-			status:              fpsEntity.ForSaleStatusDraft,
+			status:              fpsEntity.ForSaleStatusWithdrawn,
 			visibility:          fpsEntity.ForSaleVisibilityPrivate,
 			negotiationEnabled:  false,
 			quantityAvailable:   1,
@@ -322,7 +323,7 @@ func TestForSaleProjectionResolver_AuthorityMatrix(t *testing.T) {
 			sellerID:           activeSellerID,
 			accountStatus:      "active",
 			subscriptionStatus: "active",
-			status:             fpsEntity.ForSaleStatusDraft,
+			status:             fpsEntity.ForSaleStatusWithdrawn,
 			visibility:         fpsEntity.ForSaleVisibilityPrivate,
 			negotiationEnabled: false,
 			quantityAvailable:  1,
@@ -641,7 +642,7 @@ func TestForSaleProjectionResolver_JSONContracts(t *testing.T) {
 
 	liveProj := resolveSingleFPS(t, fx, viewerID, newFPSOccurrence(uuid.New(), saleID))
 	liveJSON := projectionJSONMap(t, liveProj)
-	requireTopLevelKeys(t, liveJSON, []string{"state", "resource_type", "resource_id", "canonical_url", "viewer_capabilities", "commerce_actions", "for_sale"})
+	requireTopLevelKeys(t, liveJSON, []string{"state", "resource_type", "resource_id", "canonical_url", "viewer_capabilities", "for_sale"})
 	requireAbsentKeys(t, liveJSON, []string{"profile", "content", "auction"})
 	require.Equal(t, "LIVE", mustStringValue(t, liveJSON["state"]))
 	require.Equal(t, "for_sale", mustStringValue(t, liveJSON["resource_type"]))
@@ -650,7 +651,7 @@ func TestForSaleProjectionResolver_JSONContracts(t *testing.T) {
 
 	var livePayload map[string]json.RawMessage
 	require.NoError(t, json.Unmarshal(liveJSON["for_sale"], &livePayload))
-	requireTopLevelKeys(t, livePayload, []string{"title", "media", "thumbnail_url", "price", "status", "seller", "quantity_available"})
+	requireTopLevelKeys(t, livePayload, []string{"title", "media", "thumbnail_url", "price", "status", "seller", "quantity_available", "negotiation_enabled"})
 	require.Equal(t, "JSON Koi", mustStringValue(t, livePayload["title"]))
 	require.Equal(t, "https://cdn.example.test/product-thumb.jpg", mustStringValue(t, livePayload["thumbnail_url"]))
 	require.Equal(t, "active", mustStringValue(t, livePayload["status"]))
@@ -688,7 +689,7 @@ func TestForSaleProjectionResolver_JSONContracts(t *testing.T) {
 	tombstoneSaleID := fx.seedSale(
 		t,
 		tombstoneSellerID,
-		fpsEntity.ForSaleStatusDraft,
+		fpsEntity.ForSaleStatusWithdrawn,
 		fpsEntity.ForSaleVisibilityPrivate,
 		false,
 		1,
@@ -834,7 +835,7 @@ func TestForSaleProjectionResolver_QueryCountMatrix(t *testing.T) {
 
 	q6 := map[uuid.UUID]*chatEntity.ChatMessageResourceOccurrence{
 		uuid.New(): newFPSOccurrence(uuid.New(), fx.seedSale(t, activeSellerID, fpsEntity.ForSaleStatusActive, fpsEntity.ForSaleVisibilityPublic, true, 2, 1000, "Q6 Active", nil)),
-		uuid.New(): newFPSOccurrence(uuid.New(), fx.seedSale(t, draftSellerID, fpsEntity.ForSaleStatusDraft, fpsEntity.ForSaleVisibilityPrivate, false, 1, 1000, "Q6 Draft", nil)),
+		uuid.New(): newFPSOccurrence(uuid.New(), fx.seedSale(t, draftSellerID, fpsEntity.ForSaleStatusWithdrawn, fpsEntity.ForSaleVisibilityPrivate, false, 1, 1000, "Q6 Draft", nil)),
 		uuid.New(): newFPSOccurrence(uuid.New(), fx.seedSale(t, activeSellerID, fpsEntity.ForSaleStatusSold, fpsEntity.ForSaleVisibilityPrivate, false, 0, 1000, "Q6 Sold", nil)),
 		uuid.New(): newFPSOccurrence(uuid.New(), fx.seedSale(t, blockedSellerID, fpsEntity.ForSaleStatusActive, fpsEntity.ForSaleVisibilityPublic, true, 1, 1000, "Q6 Blocked", nil)),
 		uuid.New(): newFPSOccurrence(uuid.New(), fx.seedSale(t, expiredSellerID, fpsEntity.ForSaleStatusActive, fpsEntity.ForSaleVisibilityPublic, true, 1, 1000, "Q6 Expired", nil)),

@@ -141,9 +141,6 @@ enum NotificationType {
   auctionEndedNoWinner(
     'auction.ended_no_winner',
   ), // P14: seller — auction closed without bids
-  auctionCancelledSeller(
-    'auction.cancelled.seller',
-  ), // Scope B: seller — auction auto-cancelled (subscription expired)
   auctionBnrSeller('auction.bnr_seller'),
   auctionBnrWinner('auction.bnr_winner'),
 
@@ -214,5 +211,16 @@ enum NotificationType {
       (type) => type.value == value,
       orElse: () => NotificationType.announcement,
     );
+  }
+
+  /// Nullable variant of [fromString]: returns `null` when the value is not
+  /// part of the canonical catalog instead of falling back to an unrelated
+  /// type. Used by callers that must distinguish "no Labuda type" (e.g. a
+  /// push payload) rather than silently routing it as an announcement.
+  static NotificationType? tryFromString(String value) {
+    for (final type in NotificationType.values) {
+      if (type.value == value) return type;
+    }
+    return null;
   }
 }

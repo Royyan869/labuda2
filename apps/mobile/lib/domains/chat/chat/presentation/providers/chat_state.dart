@@ -2,44 +2,72 @@ import 'package:equatable/equatable.dart';
 import 'package:labuda/domains/chat/chat/domain/entities/chat_entities.dart';
 
 /// Chat List State
+///
+/// LOADING SEMANTICS (owner-locked Loading Foundation):
+/// - [isLoading] + empty [chats] = first load (LoadingIndicator; failure →
+///   PageErrorState via [error]).
+/// - [isRefreshing] + non-empty [chats] = refresh. Last-known-good chats stay
+///   visible; failure sets [refreshError] with an inline indication, never a
+///   full-page error swap.
 class ChatListState extends Equatable {
   final List<Chat> chats;
   final bool hasMore;
   final String? nextCursor;
   final bool isLoading;
+  final bool isRefreshing;
   final String? error;
+  final String? refreshError;
 
   const ChatListState({
     this.chats = const [],
     this.hasMore = false,
     this.nextCursor,
     this.isLoading = false,
+    this.isRefreshing = false,
     this.error,
+    this.refreshError,
   });
 
   @override
-  List<Object?> get props => [chats, hasMore, nextCursor, isLoading, error];
+  List<Object?> get props => [
+    chats,
+    hasMore,
+    nextCursor,
+    isLoading,
+    isRefreshing,
+    error,
+    refreshError,
+  ];
 
   ChatListState copyWith({
     List<Chat>? chats,
     bool? hasMore,
     String? nextCursor,
     bool? isLoading,
+    bool? isRefreshing,
     String? error,
+    bool clearError = false,
+    String? refreshError,
+    bool clearRefreshError = false,
   }) {
     return ChatListState(
       chats: chats ?? this.chats,
       hasMore: hasMore ?? this.hasMore,
       nextCursor: nextCursor ?? this.nextCursor,
       isLoading: isLoading ?? this.isLoading,
-      error: error ?? this.error,
+      isRefreshing: isRefreshing ?? this.isRefreshing,
+      error: clearError ? null : error ?? this.error,
+      refreshError: clearRefreshError
+          ? null
+          : refreshError ?? this.refreshError,
     );
   }
 
-  ChatListState loading() => copyWith(isLoading: true, error: null);
+  ChatListState loading() =>
+      copyWith(isLoading: true, clearError: true, clearRefreshError: true);
 
   ChatListState failure(String error) =>
-      copyWith(isLoading: false, error: error);
+      copyWith(isLoading: false, isRefreshing: false, error: error);
 }
 
 /// Chat Detail State
@@ -172,5 +200,3 @@ class TypingState extends Equatable {
     return TypingState(typingUsers: typingUsers ?? this.typingUsers);
   }
 }
-
-

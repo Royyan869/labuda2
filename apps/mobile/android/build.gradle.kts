@@ -8,6 +8,12 @@ buildscript {
     }
     dependencies {
         classpath("com.google.gms:google-services:4.4.0")
+        // Observability foundation: Crashlytics symbol upload + Performance
+        // automatic native instrumentation. Declared on the buildscript
+        // classpath (the canonical Flutter/GMS pattern) because these plugin
+        // markers are not resolvable through the configured mirrors.
+        classpath("com.google.firebase:firebase-crashlytics-gradle:3.0.2")
+        classpath("com.google.firebase:perf-plugin:2.0.2")
     }
 }
 

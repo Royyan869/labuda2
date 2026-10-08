@@ -1,52 +1,71 @@
-/// TYPOGRAPHY MIGRATION RATCHET.
+/// TYPOGRAPHY AUTHORITY GUARD.
 ///
-/// `AppType.s*` is the LAST parallel type authority: a size token that the
-/// theme's own documentation says a ROLE must replace
-/// (`Theme.of(context).textTheme.bodySmall`). The migration is staged — see
-/// `TIPOGRAFI_MIGRATION_PLAN.md` — and this gate makes it one-way:
+/// The canonical type authority is [AppTypeRoles] (`context.typeRoles`), derived
+/// from the theme's RESOLVED M3 geometry — never from a numeric size ladder. The
+/// legacy `AppType` ladder (five `AppType.s*` tokens) has been deleted; this
+/// gate keeps it dead:
 ///
-/// 1. no token may grow past the count frozen here, so a new
-///    `fontSize: AppType.s14` cannot join the backlog;
-/// 2. every slice that finishes must be locked to zero BY PATH, so a migrated
-///    file cannot quietly regain a size token;
-/// 3. the census has floors, so passing because it read nothing is impossible.
+/// 1. no `AppType.s*` size token may exist anywhere in `lib`, and the detector
+///    is proved to fire on a planted token (the resurrection path is a paste);
+/// 2. the roles ARE the five enshrined steps, one name per value, and no retired
+///    size may come back as a role;
+/// 3. the roles derive from the theme's resolved geometry, proved by forking it.
+///
+/// This is the terminal, SIMPLE guard. The staged machinery it replaced
+/// (per-token caps, per-slice path locks, a consumer census) tracked the
+/// migration backlog and went away with it.
 library;
+
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:labuda/core/core.dart';
 
 import '../../support/theme_authority_gate.dart';
-import '../../support/type_role_migration_gate.dart';
 
-/// Frozen counts, measured by [typeReferenceCensus] on 2026-10-02 — the day the
-/// foundation pass folded seventeen sizes onto five. That pass is the only
-/// reason a cap may be re-based, and it was a DELIBERATE act: from here the
-/// numbers may only go DOWN, and lowering one is the reward for finishing a
-/// slice. A retired token has no cap because `AppType` no longer declares it.
-const _frozenCaps = <String, int>{
-  's12': 387,
-  's14': 403,
-  's16': 205,
-  's20': 97,
-  's24': 25,
-};
+/// A retired `AppType.s<n>` size token. Named after the deleted authority on
+/// purpose: a reintroduction is caught by the exact spelling it would use.
+final RegExp _retiredSizeToken = RegExp(r'AppType\.s\w+');
 
-/// Slices that are DONE. Each path must read zero tokens forever; the lock is
-/// by path (not by token) because a finished file is the unit of work.
-const _slicesLockedToZero = <String>[
-  // Tahap 2, irisan 1: the reference card's type caption is `labelSmall` now.
-  'lib/shared/object/presentation/widgets/object_preview_card.dart',
-  // Tahap 2, irisan 2: the marketplace tab labels are `labelLarge` now.
-  'lib/features/marketplace/presentation/screens/marketplace_screen.dart',
-  // Tahap 2, irisan 3: the router error page reads headline/body/button roles.
-  'lib/core/src/router/router_error_page.dart',
-];
+/// The anti-vacuum floor: the sweep must read the real app, not an empty tree.
+const _censusFileFloor = 900;
 
-/// The FIVE foundation steps (owner decision 2026-10-02), role by role. The
+/// Line comments are stripped so prose ABOUT the deleted token is never counted
+/// as a call site; `///` is the spelling this codebase uses.
+String _stripLineComments(String source) {
+  final buffer = StringBuffer();
+  for (final line in source.split('\n')) {
+    if (line.trimLeft().startsWith('//')) continue;
+    final cut = line.indexOf('//');
+    buffer.writeln(cut >= 0 ? line.substring(0, cut) : line);
+  }
+  return buffer.toString();
+}
+
+List<File> _libDartFiles({String dir = 'lib'}) => Directory(dir)
+    .listSync(recursive: true)
+    .whereType<File>()
+    .where((file) => file.path.endsWith('.dart'))
+    .where((file) => !file.path.replaceAll(r'\', '/').contains('/generated/'))
+    .toList();
+
+/// Token -> occurrence count for one SOURCE string.
+Map<String, int> _sizeTokensIn(String source) {
+  final census = <String, int>{};
+  for (final match in _retiredSizeToken.allMatches(
+    _stripLineComments(source),
+  )) {
+    final token = match.group(0)!;
+    census[token] = (census[token] ?? 0) + 1;
+  }
+  return census;
+}
+
+/// The FIVE enshrined steps (owner decision 2026-10-02), role by role. The
 /// extension first legalised off-ladder sizes (10, 13, 15, 18, 20); the
-/// foundation pass folded those onto these five, so a role now names a step of
-/// `AppType` instead of a size the ladder does not have.
+/// foundation pass folded those onto these five, so a role names one of the five
+/// steps instead of a size the retired numeric ladder did not have.
 const _enshrinedSteps = <String, double>{
   'labelMicro': 12,
   'bodyDense': 14,
@@ -72,8 +91,6 @@ const _retiredTypeSizes = <double>[
   36,
 ];
 
-
-
 List<TextStyle> _roles(AppTypeRoles roles) => [
   roles.labelMicro,
   roles.bodyDense,
@@ -88,10 +105,11 @@ List<TextStyle> _roles(AppTypeRoles roles) => [
 /// spacing) on top — the raw ThemeData carries only colour and family. This
 /// helper resolves the same way, so the derivation proof compares what
 /// actually renders instead of silently passing on `null == null`.
-TextStyle _resolvedBody(ThemeData theme) => resolvedTextTheme(theme).bodyMedium!;
+TextStyle _resolvedBody(ThemeData theme) =>
+    resolvedTextTheme(theme).bodyMedium!;
 
 void main() {
-  group('the extended type ladder', () {
+  group('the canonical type roles', () {
     test('both themes register it, derived from their own body style', () {
       for (final theme in [AppTheme.lightTheme, AppTheme.darkTheme]) {
         final roles = theme.extension<AppTypeRoles>();
@@ -109,19 +127,27 @@ void main() {
         for (final style in _roles(roles)) {
           // One body style at another size: no metric is restated, and a
           // ladder retune reaches the roles automatically.
-          expect(style.fontWeight, body.fontWeight, reason: '${style.fontSize}');
+          expect(
+            style.fontWeight,
+            body.fontWeight,
+            reason: '${style.fontSize}',
+          );
           expect(style.height, body.height, reason: '${style.fontSize}');
           expect(
             style.letterSpacing,
             body.letterSpacing,
             reason: '${style.fontSize}',
           );
-          expect(style.fontFamily, body.fontFamily, reason: '${style.fontSize}');
+          expect(
+            style.fontFamily,
+            body.fontFamily,
+            reason: '${style.fontSize}',
+          );
         }
       }
     });
 
-    test('the roles ARE the five foundation steps, one name per value', () {
+    test('the roles ARE the five enshrined steps, one name per value', () {
       for (final theme in [AppTheme.lightTheme, AppTheme.darkTheme]) {
         final sizes = _roles(
           theme.extension<AppTypeRoles>()!,
@@ -130,8 +156,8 @@ void main() {
           sizes,
           _enshrinedSteps.values.toSet(),
           reason:
-              'a role that names a step the ladder does not have is a second '
-              'type authority',
+              'a role that names a step the foundation does not have is a '
+              'second type authority',
         );
       }
       // The retired sizes must not come back as a role: the foundation folded
@@ -149,7 +175,11 @@ void main() {
     test('a bare ThemeData falls back to the stock M3 body metrics', () {
       final fallback = AppTypeRoles.fallback;
       final body = Typography.material2021().englishLike.bodyMedium!;
-      expect(body.fontSize, isNotNull, reason: 'englishLike carries the geometry');
+      expect(
+        body.fontSize,
+        isNotNull,
+        reason: 'englishLike carries the geometry',
+      );
       expect(
         _roles(fallback).map((style) => style.fontSize).toList(),
         _enshrinedSteps.values.toList(),
@@ -195,95 +225,88 @@ void main() {
     });
   });
 
-  test('the census reads the real app and cannot go vacuous', () {
-    final census = typeReferenceCensus();
-    expect(
-      typeCensusFiles().length,
-      greaterThan(typeCensusFileFloor),
-      reason: 'the typography census must sweep the whole app',
-    );
-    expect(
-      typeReferenceTotal(census),
-      greaterThan(typeCensusReferenceFloor),
-      reason:
-          'the census found almost no size tokens — it is reading the wrong '
-          'tree or stripping too much, not observing a finished migration',
-    );
-  });
-
-  test('no size token grows past its frozen cap', () {
-    final census = typeReferenceCensus();
-    final offenders = <String>[];
-    for (final entry in census.entries) {
-      final cap = _frozenCaps[entry.key];
-      if (cap == null) {
-        offenders.add('AppType.${entry.key} is a NEW size token (${entry.value})');
-        continue;
+  group('the retired AppType authority stays dead', () {
+    test('no AppType.s* size token exists anywhere in lib', () {
+      final files = _libDartFiles();
+      expect(
+        files.length,
+        greaterThan(_censusFileFloor),
+        reason: 'the typography census must sweep the whole app',
+      );
+      final offenders = <String>[];
+      for (final file in files) {
+        final path = file.path.replaceAll(r'\', '/');
+        for (final entry in _sizeTokensIn(file.readAsStringSync()).entries) {
+          offenders.add('$path: ${entry.key}');
+        }
       }
-      if (entry.value > cap) {
-        offenders.add('AppType.${entry.key}: ${entry.value} > cap $cap');
+      expect(
+        offenders,
+        isEmpty,
+        reason:
+            'the legacy AppType size ladder must never come back. Type is a '
+            'ROLE (`context.typeRoles`), never a numeric token:\n'
+            '${offenders.join('\n')}',
+      );
+    });
+
+    test('the detector fires on a planted size token (negative proof)', () {
+      const planted =
+          'Text(t, style: const TextStyle(fontSize: AppType.s14));\n';
+      expect(
+        _sizeTokensIn(planted),
+        {'AppType.s14': 1},
+        reason: 'a resurrection must be caught the moment it is planted',
+      );
+      // Prose about the deleted token is not a call site.
+      expect(
+        _stripLineComments(
+          '/// spell `fontSize: AppType.s14`, never raw',
+        ).contains('AppType.s14'),
+        isFalse,
+        reason: 'documentation about the migration is not a call site',
+      );
+    });
+
+    test('roles derive from the resolved theme geometry, not a ladder', () {
+      // Behavioural proof of the authority separation: FORK the theme's
+      // bodySmall geometry and watch `labelMicro` follow it. If the roles were
+      // built from a fixed numeric ladder, the fork would be invisible and the
+      // role would stay 12.
+      final geometry = Typography.material2021().englishLike;
+      final forkedTypography = Typography.material2021(
+        englishLike: geometry.copyWith(
+          bodySmall: geometry.bodySmall!.copyWith(fontSize: 13),
+        ),
+      );
+      final forkedTheme = ThemeData(
+        useMaterial3: true,
+        fontFamily: 'Inter',
+        typography: forkedTypography,
+      );
+      final roles = AppTypeRoles.fromResolved(resolvedTextTheme(forkedTheme));
+
+      expect(
+        roles.labelMicro.fontSize,
+        13,
+        reason:
+            'labelMicro must follow the theme bodySmall geometry; a fixed 12 '
+            'means a numeric ladder is still the source',
+      );
+      // The rest of the roles ride the theme steps unchanged.
+      expect(roles.bodyDense.fontSize, 14);
+      expect(roles.titleCompact.fontSize, 16);
+      expect(roles.titleSection.fontSize, AppTypeRoles.sectionStep);
+      expect(roles.titleProminent.fontSize, 24);
+
+      // The real themes still resolve the five enshrined sizes (no regression).
+      for (final theme in [AppTheme.lightTheme, AppTheme.darkTheme]) {
+        final resolved = theme.extension<AppTypeRoles>()!;
+        expect(
+          _roles(resolved).map((s) => s.fontSize).toList(),
+          _enshrinedSteps.values.toList(),
+        );
       }
-    }
-    expect(
-      offenders,
-      isEmpty,
-      reason:
-          'the AppType backlog grew. A size token is a SECOND type authority — '
-          'the theme owns type through `textTheme`. Migrate the call site onto '
-          'a role (`AppTheme` documents the mapping) or lower the cap in the '
-          'same commit as the migration:\n'
-          'census: ${_sorted(census)}\n${offenders.join('\n')}',
-    );
+    });
   });
-
-  test('finished slices stay at zero', () {
-    final offenders = <String>[];
-    for (final path in _slicesLockedToZero) {
-      final census = typeReferencesInFile(path);
-      if (census.isNotEmpty) {
-        offenders.add('$path regained ${_sorted(census)}');
-      }
-    }
-    expect(
-      offenders,
-      isEmpty,
-      reason:
-          'a migrated slice grew a size token back. Finished files read '
-          '`Theme.of(context).textTheme.*`: the ladder is a ROLE, not a size:'
-          '\n${offenders.join('\n')}',
-    );
-  });
-
-  test('the census counts inline sizes and spares prose (negative proof)', () {
-    // The direct spelling and the conditional spelling are both call sites.
-    expect(typeReference.hasMatch('fontSize: AppType.s14'), isTrue);
-    expect(
-      typeReference.allMatches('fontSize: isActive ? AppType.s12 : AppType.s24'),
-      hasLength(2),
-      reason: 'an inline size decision is a call site too',
-    );
-    // Prose and the token declaration are not call sites.
-    expect(typeReference.hasMatch('widgets spell fontSize: 14, never a raw'), isFalse);
-    expect(
-      stripLineComments('/// spell `fontSize: AppType.s14`, never a raw number')
-          .contains('AppType.s14'),
-      isFalse,
-      reason: 'documentation about the migration is not a call site',
-    );
-    // The declaring file OWNS the tokens and reads its own ladder (the role
-    // factory derives from it instead of restating numbers). It is never a call
-    // site — the census skips it, which is why the caps above never see these
-    // references.
-    final ownerRefs = typeReferencesInFile(typeTokenOwnerFile);
-    expect(
-      ownerRefs.keys.toList()..sort(),
-      _frozenCaps.keys.toList()..sort(),
-      reason: 'the owner file may only reference the ladder it declares',
-    );
-  });
-}
-
-String _sorted(Map<String, int> census) {
-  final keys = census.keys.toList()..sort();
-  return '{${keys.map((key) => '$key: ${census[key]}').join(', ')}}';
 }

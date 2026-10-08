@@ -79,8 +79,8 @@ type UserPreview struct {
 // - ended: Completed auctions (for historical search)
 //
 // NOT SEARCHABLE:
-// - draft: Not yet published, seller-only
 // - cancelled: Terminated before completion, not discoverable
+// - lapsed: never went live, hidden by the market-authority read-side filter
 //
 // PHASE 5 STAGE 1 — SELLER/FARM CONTRACT CONVERGENCE (additive):
 //   - SellerUsername  ← user_profiles.username (NEVER store_name)

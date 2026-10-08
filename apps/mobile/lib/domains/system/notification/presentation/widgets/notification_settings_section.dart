@@ -41,14 +41,18 @@ class NotificationSettingsSection extends StatelessWidget {
         children: [
           // Section header
           Padding(
-            padding: const EdgeInsets.fromLTRB(AppMetrics.p24, AppMetrics.p24, AppMetrics.p24, AppMetrics.p12),
+            padding: const EdgeInsets.fromLTRB(
+              AppMetrics.p24,
+              AppMetrics.p24,
+              AppMetrics.p24,
+              AppMetrics.p12,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   title,
-                  style: TextStyle(
-                    fontSize: AppType.s16,
+                  style: context.typeRoles.titleSection.copyWith(
                     fontWeight: FontWeight.w600,
                     color: colorScheme.onSurface,
                   ),
@@ -57,8 +61,7 @@ class NotificationSettingsSection extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     subtitle!,
-                    style: TextStyle(
-                      fontSize: AppType.s14,
+                    style: context.typeRoles.bodyDense.copyWith(
                       color: colorScheme.onSurfaceVariant,
                     ),
                   ),

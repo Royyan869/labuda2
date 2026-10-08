@@ -10,93 +10,52 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:labuda/shared/shared.dart';
-import 'package:labuda/core/src/theme/app_theme.dart';
 import '../../domain/entities/payment.dart';
 
-/// Shows the payment method picker and returns the selected method_code, or
-/// null if the buyer dismissed the sheet.
-class PaymentMethodPickerSheet extends StatelessWidget {
-  final List<PaymentMethodOption> methods;
+/// Payment method selection.
+///
+/// Presentation authority is the canonical selection family — this file owns
+/// NO bottom-sheet renderer, no surface, no shape, no handle. The business
+/// data (backend-computed fee + total) and the returned `methodCode` contract
+/// are unchanged.
+class PaymentMethodPickerSheet {
+  PaymentMethodPickerSheet._();
 
-  const PaymentMethodPickerSheet({super.key, required this.methods});
-
+  /// Opens the canonical payment-method selection sheet and returns the chosen
+  /// `methodCode`, or null if the buyer dismissed it.
   static Future<String?> show(
     BuildContext context, {
     required List<PaymentMethodOption> methods,
+    String? selectedMethodCode,
   }) {
-    return showModalBottomSheet<String>(
+    return AppBottomSheetListSelection.showListSelection<String>(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => PaymentMethodPickerSheet(methods: methods),
+      title: 'Pilih Metode Pembayaran',
+      selectedValue: selectedMethodCode,
+      items: [
+        for (final m in methods)
+          ListSelectionItem<String>(
+            title: m.displayName,
+            subtitle: _feeLine(m),
+            leading: PaymentMethodLogo(
+              visual: PaymentMethodVisuals.visual(m.methodCode),
+              size: 24,
+            ),
+            trailingText: AppFormatters.formatCurrency(
+              m.totalPayableAmount.toDouble(),
+            ),
+            value: m.methodCode,
+          ),
+      ],
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return SafeArea(
-      child: Container(
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.75,
-        ),
-        decoration: BoxDecoration(
-          color: colorScheme.surface,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(AppShape.r20)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const AppDragHandle(padding: EdgeInsets.only(top: AppMetrics.p12)),
-            Padding(
-              padding: const EdgeInsets.all(AppMetrics.p16),
-              child: Text(
-                'Pilih Metode Pembayaran',
-                style: TextStyle(
-                  fontSize: AppType.s20,
-                  fontWeight: FontWeight.bold,
-                  color: colorScheme.onSurface,
-                ),
-              ),
-            ),
-            const Divider(height: 1),
-            Flexible(
-              child: methods.isEmpty
-                  ? const Padding(
-                      padding: EdgeInsets.all(AppMetrics.p24),
-                      child: Text('Tidak ada metode pembayaran tersedia'),
-                    )
-                  : ListView.separated(
-                      padding: const EdgeInsets.symmetric(vertical: AppMetrics.p8),
-                      itemCount: methods.length,
-                      separatorBuilder: (_, _) => const Divider(height: 1),
-                      itemBuilder: (context, index) {
-                        final m = methods[index];
-                        return ListTile(
-                          title: Text(m.displayName),
-                          // The canonical currency formatter already carries the
-                          // 'Rp ' symbol — never prefix it a second time.
-                          subtitle: Text(
-                            m.buyerPaymentFeeAmount > 0
-                                ? 'Biaya layanan: '
-                                      '${AppFormatters.formatCurrency(m.buyerPaymentFeeAmount.toDouble())}'
-                                : 'Tanpa biaya layanan',
-                          ),
-                          trailing: Text(
-                            AppFormatters.formatCurrency(
-                              m.totalPayableAmount.toDouble(),
-                            ),
-                            style: const TextStyle(fontWeight: FontWeight.w600),
-                          ),
-                          onTap: () => Navigator.of(context).pop(m.methodCode),
-                        );
-                      },
-                    ),
-            ),
-          ],
-        ),
-      ),
-    );
+  /// The fee line for one method. The canonical currency formatter already
+  /// carries the 'Rp ' symbol — never prefix it a second time.
+  static String _feeLine(PaymentMethodOption m) {
+    return m.buyerPaymentFeeAmount > 0
+        ? 'Biaya layanan: '
+              '${AppFormatters.formatCurrency(m.buyerPaymentFeeAmount.toDouble())}'
+        : 'Tanpa biaya layanan';
   }
 }

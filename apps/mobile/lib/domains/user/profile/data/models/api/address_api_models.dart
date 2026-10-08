@@ -9,8 +9,6 @@ part 'address_api_models.g.dart';
 /// Create address request matching backend
 @JsonSerializable()
 class CreateAddressRequestApi {
-  /// Role tags for this address: a non-empty subset of `shipping`/`sender`.
-  final List<String> tags;
   final String? nickname;
   @JsonKey(name: 'recipient_name')
   final String recipientName;
@@ -42,7 +40,6 @@ class CreateAddressRequestApi {
   final double? longitude;
 
   const CreateAddressRequestApi({
-    required this.tags,
     this.nickname,
     required this.recipientName,
     required this.phone,
@@ -71,8 +68,6 @@ class CreateAddressRequestApi {
 /// Update address request matching backend
 @JsonSerializable()
 class UpdateAddressRequestApi {
-  /// Role tags for this address. Null leaves the stored tag set untouched.
-  final List<String>? tags;
   final String? nickname;
   @JsonKey(name: 'recipient_name')
   final String? recipientName;
@@ -102,7 +97,6 @@ class UpdateAddressRequestApi {
   final double? longitude;
 
   const UpdateAddressRequestApi({
-    this.tags,
     this.nickname,
     this.recipientName,
     this.phone,
@@ -138,16 +132,7 @@ class AddressResponseApi {
   @JsonKey(name: 'user_id')
   final String userId;
 
-  /// Role tags held by this address (`shipping`, `sender`, ...).
-  final List<String> tags;
-
-  /// Localized names for [tags], in the same order.
-  @JsonKey(name: 'tag_labels')
-  final List<String> tagLabels;
-
   final String? nickname;
-  @JsonKey(name: 'display_label')
-  final String displayLabel;
   @JsonKey(name: 'recipient_name')
   final String recipientName;
   final String phone;
@@ -190,10 +175,7 @@ class AddressResponseApi {
   const AddressResponseApi({
     required this.id,
     required this.userId,
-    required this.tags,
-    required this.tagLabels,
     this.nickname,
-    required this.displayLabel,
     required this.recipientName,
     required this.phone,
     required this.provinceId,
@@ -241,16 +223,8 @@ class AddressListResponseApi {
 @JsonSerializable()
 class AddressCountResponseApi {
   final int total;
-  @JsonKey(name: 'shipping_count')
-  final int shippingCount;
-  @JsonKey(name: 'sender_count')
-  final int senderCount;
 
-  const AddressCountResponseApi({
-    required this.total,
-    required this.shippingCount,
-    required this.senderCount,
-  });
+  const AddressCountResponseApi({required this.total});
 
   factory AddressCountResponseApi.fromJson(Map<String, dynamic> json) =>
       _$AddressCountResponseApiFromJson(json);

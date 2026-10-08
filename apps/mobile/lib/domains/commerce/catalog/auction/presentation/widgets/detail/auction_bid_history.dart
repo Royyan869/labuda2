@@ -25,13 +25,20 @@ class AuctionBidHistory extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     // CANONICAL SECTION FRAME — same card language as the ForSale detail.
     return CommerceDetailSectionCard(
-      margin: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p0, AppMetrics.p16, AppMetrics.p16),
+      margin: const EdgeInsets.fromLTRB(
+        AppMetrics.p16,
+        AppMetrics.p0,
+        AppMetrics.p16,
+        AppMetrics.p16,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             'Riwayat Bid (${bids.length})',
-            style: const TextStyle(fontSize: AppType.s16, fontWeight: FontWeight.bold),
+            style: context.typeRoles.titleSection.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(height: 12),
           if (bids.isEmpty)
@@ -62,10 +69,9 @@ class AuctionBidHistory extends StatelessWidget {
                   leading: ProfileAvatar(
                     userId: bid.bidderId,
                     size: 32,
-                    imageUrl:
-                        (hasName && bid.bidderAvatarUrl != null)
-                            ? bid.bidderAvatarUrl
-                            : null,
+                    imageUrl: (hasName && bid.bidderAvatarUrl != null)
+                        ? bid.bidderAvatarUrl
+                        : null,
                   ),
                   title: displayName != null
                       ? Text(

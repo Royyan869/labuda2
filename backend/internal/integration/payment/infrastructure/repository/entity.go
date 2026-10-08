@@ -24,10 +24,16 @@ type Payment struct {
 	ReferenceID        *uuid.UUID
 	PriceSnapshotID    *uuid.UUID
 	// PaymentMethodCode is the canonical method the buyer selected before
-	// this payment was created (PASS_18V). NULL for non-order payments
-	// (billing/subscription), which are out of scope for the method-based
-	// fee model.
+	// this payment was created. Every flow that carries a payment-method fee
+	// sets it: order (PASS_18V), billing / promote balance top-up (PASS_18V),
+	// and seller subscription (PMF-02).
 	PaymentMethodCode *string
+
+	// SubscriptionDurationDays is the purchased seller-subscription entitlement
+	// length, snapshotted at initiation so a later config change cannot alter
+	// an already-purchased subscription. NON-NULL exactly for subscription
+	// payments; NULL for every other reference type.
+	SubscriptionDurationDays *int
 
 	// Midtrans response fields
 	PaymentURL    *string
@@ -201,6 +207,7 @@ func scanPayment(row scanner) (*Payment, error) {
 	var p Payment
 	var referenceID, priceSnapshotID *uuid.UUID
 	var paymentURL, transactionID, paymentType, paymentMethodCode *string
+	var subscriptionDurationDays *int
 	var paidAt *time.Time
 
 	err := row.Scan(
@@ -224,6 +231,7 @@ func scanPayment(row scanner) (*Payment, error) {
 		&p.CreatedAt,
 		&p.UpdatedAt,
 		&paymentMethodCode,
+		&subscriptionDurationDays,
 	)
 
 	if err != nil {
@@ -237,6 +245,7 @@ func scanPayment(row scanner) (*Payment, error) {
 	p.PaymentType = paymentType
 	p.PaidAt = paidAt
 	p.PaymentMethodCode = paymentMethodCode
+	p.SubscriptionDurationDays = subscriptionDurationDays
 
 	return &p, nil
 }

@@ -387,38 +387,5 @@ func containsDotDot(s string) bool {
 	return false
 }
 
-// InsertMonthlyMetricTx creates a new monthly metric snapshot within a transaction.
-func (r *SellerRepositoryImpl) InsertMonthlyMetricTx(
-	ctx context.Context,
-	tx db.Tx,
-	m *sellerEntity.SellerMonthlyMetric,
-) error {
-	_, err := tx.Exec(ctx, `
-		INSERT INTO seller_monthly_metrics (
-			id, seller_id, year, month,
-			total_items_sold, average_rating,
-			fulfilled_count, cancelled_timeout_count,
-			created_at
-		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-	`,
-		m.ID,
-		m.SellerID,
-		m.Year,
-		m.Month,
-		m.TotalItemsSold,
-		m.AverageRating,
-		m.FulfilledCount,
-		m.CancelledTimeoutCount,
-		m.CreatedAt,
-	)
-
-	if err != nil {
-		return fmt.Errorf("insert seller monthly metric failed: %w", err)
-	}
-
-	return nil
-}
-
 
 

@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 import { Sidebar } from './Sidebar'
@@ -53,5 +54,75 @@ describe('Sidebar (PASS_20F scroll regression)', () => {
     // mean the list itself was truncated, not just visually clipped).
     expect(screen.getByText('Dashboard')).toBeInTheDocument()
     expect(screen.getByText('Payment Methods')).toBeInTheDocument()
+  })
+})
+
+// ONE navigation surface: the same <aside> is docked on desktop and an
+// overlay drawer below lg. These tests pin the single-instance contract and
+// the drawer's open/close behaviour.
+describe('Sidebar responsive drawer contract', () => {
+  it('is off-canvas and inert while closed on narrow viewports', () => {
+    render(
+      <MemoryRouter>
+        <Sidebar isDesktop={false} isOpen={false} />
+      </MemoryRouter>
+    )
+
+    const aside = screen.getByRole('complementary', { name: 'Admin navigation' })
+    expect(aside).toHaveAttribute('inert')
+    expect(aside.className).toContain('-translate-x-full')
+  })
+
+  it('slides in and becomes interactive when open, with a dismissible scrim', async () => {
+    const onNavigate = vi.fn()
+    render(
+      <MemoryRouter>
+        <Sidebar isDesktop={false} isOpen onNavigate={onNavigate} />
+      </MemoryRouter>
+    )
+
+    const aside = screen.getByRole('complementary', { name: 'Admin navigation' })
+    expect(aside).not.toHaveAttribute('inert')
+    expect(aside.className).toContain('translate-x-0')
+
+    const scrim = document.querySelector('[aria-hidden="true"].fixed.inset-0')
+    expect(scrim).not.toBeNull()
+    await userEvent.click(scrim as Element)
+    expect(onNavigate).toHaveBeenCalled()
+  })
+
+  it('is always interactive when docked on desktop, even if not "open"', () => {
+    render(
+      <MemoryRouter>
+        <Sidebar isDesktop isOpen={false} />
+      </MemoryRouter>
+    )
+
+    const aside = screen.getByRole('complementary', { name: 'Admin navigation' })
+    expect(aside).not.toHaveAttribute('inert')
+    expect(aside.className).toContain('translate-x-0')
+  })
+
+  it('reports navigation intent so the shell can close the drawer', async () => {
+    const onNavigate = vi.fn()
+    render(
+      <MemoryRouter>
+        <Sidebar isDesktop={false} isOpen onNavigate={onNavigate} />
+      </MemoryRouter>
+    )
+
+    await userEvent.click(screen.getByText('Orders'))
+    expect(onNavigate).toHaveBeenCalled()
+  })
+
+  it('marks only the most specific nested route active (/users vs /users/admins)', () => {
+    render(
+      <MemoryRouter initialEntries={['/users/admins/user-1']}>
+        <Sidebar isDesktop />
+      </MemoryRouter>
+    )
+
+    expect(screen.getByRole('link', { name: /Admins/ })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('link', { name: 'Users' })).not.toHaveAttribute('aria-current', 'page')
   })
 })

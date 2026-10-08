@@ -19,6 +19,8 @@ import (
 	orderEntity "github.com/labuda/backend/internal/commerce/order/entity"
 	orderRepo "github.com/labuda/backend/internal/commerce/order/infrastructure/repository"
 	orderrepository "github.com/labuda/backend/internal/commerce/order/repository"
+	paymentmethodentity "github.com/labuda/backend/internal/commerce/paymentmethod/entity"
+	paymentmethodrepo "github.com/labuda/backend/internal/commerce/paymentmethod/infrastructure/repository"
 	shippingApp "github.com/labuda/backend/internal/commerce/shipping/application"
 	refundApp "github.com/labuda/backend/internal/finance/refund/application"
 	"github.com/labuda/backend/internal/governance/dispute/application"
@@ -31,6 +33,7 @@ import (
 	pricingtokenapp "github.com/labuda/backend/internal/pricing/token/application"
 	pricingtokenentity "github.com/labuda/backend/internal/pricing/token/entity"
 	"github.com/labuda/backend/pkg/db"
+	"github.com/labuda/backend/pkg/money"
 	"go.uber.org/zap"
 )
 
@@ -46,6 +49,7 @@ type OrderHandler struct {
 	roleChecker         auth.RoleChecker
 	idempotencyRepo     *idempotencyRepo.Repository
 	coinBalanceReader   CoinsBalanceReader
+	paymentMethodRepo   *paymentmethodrepo.PaymentMethodRepository
 	db                  *db.DB
 	log                 *zap.Logger
 }
@@ -91,6 +95,12 @@ func NewOrderHandler(
 // resolve the canonical coin redemption (K) at Order creation.
 func (h *OrderHandler) SetCoinsBalanceReader(r CoinsBalanceReader) {
 	h.coinBalanceReader = r
+}
+
+// SetPaymentMethodRepo wires the canonical payment-method authority used to
+// bind the buyer's pre-order method selection to the order at creation.
+func (h *OrderHandler) SetPaymentMethodRepo(r *paymentmethodrepo.PaymentMethodRepository) {
+	h.paymentMethodRepo = r
 }
 
 // ListMyOrdersRequest holds the query parameters for ListMyOrders.
@@ -888,6 +898,14 @@ type CreateOrderRequest struct {
 	// The token must have been obtained from the pricing preview endpoint
 	PricingToken *string `json:"pricing_token,omitempty"`
 
+	// PaymentMethodCode is the canonical method the buyer selected BEFORE order
+	// creation (from GET /payments/pre-order-methods). The backend is the sole
+	// fee authority: it resolves this method, computes F on the cash base, and
+	// binds the resulting service_fee_amount / total_payable_amount onto the
+	// order. POST /payments later rejects a method whose fee differs from the
+	// bound amount, so the pre-order total cannot silently change.
+	PaymentMethodCode string `json:"payment_method_code" binding:"required"`
+
 	// UseCoins is the buyer's coin-redemption intent at Order creation. It is
 	// the ONE order-time representation of coin intent. The backend computes the
 	// canonical K (min(balance, token.MaxCoinsAllowed)) and persists it on the
@@ -1086,6 +1104,15 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 		// This snapshot is the ONLY source of truth for order pricing
 		pricingSnapshot = buildPricingSnapshotFromToken(validatedToken)
 
+		// Step 2.5: BIND THE BUYER'S PRE-ORDER PAYMENT METHOD (Phase 2).
+		// The buyer chose a method (and saw its fee) BEFORE this order. The
+		// backend recomputes F from the canonical method authority on the cash
+		// base and folds the agreed final amount into the snapshot the order
+		// persists. The client never submits a fee or total.
+		if err := h.applySelectedPaymentMethod(ctx, tx, req.PaymentMethodCode, validatedToken, coinsToUse, pricingSnapshot); err != nil {
+			return err
+		}
+
 		// N8-B defense-in-depth: fail fast if token↔request negotiation binding mismatched
 		// Canonical enforcement remains in OrderCreationService after rows are locked.
 		tokenNegID := validatedToken.NegotiationID
@@ -1116,6 +1143,9 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 				NegotiationID:   negotiationID,   // Optional negotiation context
 				PricingSnapshot: pricingSnapshot, // PRICING FROM TOKEN
 				PricingTokenID:  &tokenID,        // Store token ID (prevents double-ordering)
+				// Exact buyer-selected method identity, bound to the order and
+				// enforced by POST /payments.
+				PaymentMethodCode: &req.PaymentMethodCode,
 			}
 
 			// Step 4: Create order using pricing snapshot
@@ -1153,6 +1183,7 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 				AuctionSettlementType: orderEntity.AuctionSettlementBuyNow,
 				PricingSnapshot:       pricingSnapshot,
 				IdempotencyKey:        &idempotencyKey,
+				PaymentMethodCode:     &req.PaymentMethodCode,
 			})
 			if err != nil {
 				return err
@@ -1259,6 +1290,13 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 
 		// Handle specific errors
 		errMsg := err.Error()
+		if strings.Contains(errMsg, "invalid payment method") ||
+			strings.Contains(errMsg, "payment method is disabled") ||
+			strings.Contains(errMsg, "payment_method_code is required") ||
+			strings.Contains(errMsg, "payment method repository not configured") {
+			response.BadRequest(c, "Invalid or unavailable payment method")
+			return
+		}
 		if strings.Contains(errMsg, "sale surface not active") || strings.Contains(errMsg, "sale surface not available") {
 			response.Error(c, 400, "SALE_SURFACE_NOT_AVAILABLE", "Sale surface is not available for purchase")
 			return
@@ -1664,6 +1702,52 @@ func (h *OrderHandler) resolveOrderCoins(
 	return coinsapp.ResolveOrderRedemption(balance, maxCoinsAllowed, true), nil
 }
 
+// applySelectedPaymentMethod binds the buyer's pre-order payment-method choice
+// to the order being created. It resolves the method from the canonical
+// payment-method authority, computes the buyer fee F on the cash base
+// (escrow − K; fee-on-base, never fee-on-fee), and writes the agreed final
+// amount onto the pricing snapshot the order persists:
+//
+//	service_fee_amount   = F
+//	total_payable_amount = escrow + F
+//
+// total_payable_amount deliberately excludes coins: the snapshot integrity
+// invariant is escrow + F. The coin deduction (K) is applied at payment, which
+// yields escrow − K + F — exactly the amount disclosed pre-order by
+// GET /payments/pre-order-methods.
+//
+// There is NO client fee/total authority: the client supplies only method_code.
+func (h *OrderHandler) applySelectedPaymentMethod(
+	ctx context.Context,
+	tx db.Tx,
+	methodCode string,
+	token *pricingtokenentity.PricingToken,
+	coinsToUse int64,
+	snapshot *orderApp.PricingSnapshot,
+) error {
+	if h.paymentMethodRepo == nil {
+		return fmt.Errorf("payment method repository not configured")
+	}
+	if methodCode == "" {
+		return fmt.Errorf("payment_method_code is required")
+	}
+	method, err := h.paymentMethodRepo.GetByCode(ctx, tx, methodCode)
+	if err != nil {
+		return fmt.Errorf("invalid payment method %q: %w", methodCode, err)
+	}
+	if !method.Enabled {
+		return fmt.Errorf("payment method is disabled: %s", methodCode)
+	}
+	cash := token.EscrowAmount.Sub(money.New(coinsToUse))
+	fee, err := paymentmethodentity.CalculateFee(cash, *method)
+	if err != nil {
+		return fmt.Errorf("failed to calculate payment fee for %q: %w", methodCode, err)
+	}
+	snapshot.ServiceFeeAmount = fee
+	snapshot.TotalPayableAmount = token.EscrowAmount.Add(fee)
+	return nil
+}
+
 func buildPricingSnapshotFromToken(token *pricingtokenentity.PricingToken) *orderApp.PricingSnapshot {
 	// Determine shipping source
 	var shippingSource *string
@@ -1700,7 +1784,7 @@ func buildPricingSnapshotFromToken(token *pricingtokenentity.PricingToken) *orde
 		AddressSnapshot:       addressSnapshot,
 		ShippingSource:        shippingSource,
 		ShippingQuoteID:       token.ShippingQuoteID,
-		ChatID:                nil, // Set during chat checkout if needed
+		ChatID:                token.ChatID, // Conversation that produced the quote (nil for non-chat checkouts)
 		AuctionID:             token.AuctionID,
 		NegotiationID:         token.NegotiationID,
 		TokenID:               token.Token, // Store token ID to prevent double-ordering

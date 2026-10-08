@@ -24,7 +24,12 @@ class AuctionBidSection extends StatelessWidget {
     // CANONICAL SECTION FRAME — the same 16-margin card language the ForSale
     // detail uses, so both detail surfaces read as one design.
     return CommerceDetailSectionCard(
-      margin: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p0, AppMetrics.p16, AppMetrics.p16),
+      margin: const EdgeInsets.fromLTRB(
+        AppMetrics.p16,
+        AppMetrics.p0,
+        AppMetrics.p16,
+        AppMetrics.p16,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -33,15 +38,13 @@ class AuctionBidSection extends StatelessWidget {
             children: [
               Text(
                 'Bid Saat Ini',
-                style: TextStyle(
-                  fontSize: AppType.s14,
+                style: context.typeRoles.labelMicro.copyWith(
                   color: colorScheme.onSurfaceVariant,
                 ),
               ),
               Text(
                 'Rp ${formatGroupedAmount(currentBid.round())}',
-                style: TextStyle(
-                  fontSize: AppType.s24,
+                style: context.typeRoles.titleProminent.copyWith(
                   fontWeight: FontWeight.bold,
                   // Money uses the brand price role — the same authority the
                   // ForSale detail price headline reads from.
@@ -56,15 +59,13 @@ class AuctionBidSection extends StatelessWidget {
             children: [
               Text(
                 'Bid Berikutnya',
-                style: TextStyle(
-                  fontSize: AppType.s12,
+                style: context.typeRoles.labelMicro.copyWith(
                   color: colorScheme.onSurfaceVariant,
                 ),
               ),
               Text(
                 'Rp ${formatGroupedAmount(nextBid.round())}',
-                style: const TextStyle(
-                  fontSize: AppType.s14,
+                style: context.typeRoles.titleCompact.copyWith(
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -77,15 +78,13 @@ class AuctionBidSection extends StatelessWidget {
               children: [
                 Text(
                   'Buy Now',
-                  style: TextStyle(
-                    fontSize: AppType.s12,
+                  style: context.typeRoles.labelMicro.copyWith(
                     color: colorScheme.onSurfaceVariant,
                   ),
                 ),
                 Text(
                   'Rp ${formatGroupedAmount(auction.buyNowPrice!.round())}',
-                  style: TextStyle(
-                    fontSize: AppType.s14,
+                  style: context.typeRoles.titleCompact.copyWith(
                     fontWeight: FontWeight.w500,
                     color: colorScheme.secondary,
                   ),

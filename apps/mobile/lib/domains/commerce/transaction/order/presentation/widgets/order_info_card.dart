@@ -10,13 +10,7 @@ class OrderInfoCard extends StatelessWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    return Container(
-      padding: const EdgeInsets.all(core.AppMetrics.p16),
-      decoration: BoxDecoration(
-        color: colorScheme.surface,
-        borderRadius: BorderRadius.circular(core.AppShape.r12),
-        border: Border.all(color: colorScheme.outlineVariant),
-      ),
+    return OrderSectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -55,7 +49,7 @@ class OrderInfoCard extends StatelessWidget {
   String _getStatusDisplay(OrderStatus status) {
     switch (status) {
       case OrderStatus.pending:
-        return 'Menunggu Konfirmasi';
+        return 'Menunggu Pembayaran';
       case OrderStatus.paid:
         return 'Dikonfirmasi';
       case OrderStatus.shipped:
@@ -78,7 +72,11 @@ class OrderInfoCard extends StatelessWidget {
     }
   }
 
-  Color _getStatusColor(BuildContext context, OrderStatus status, ColorScheme colorScheme) {
+  Color _getStatusColor(
+    BuildContext context,
+    OrderStatus status,
+    ColorScheme colorScheme,
+  ) {
     switch (status) {
       case OrderStatus.pending:
         return context.statusColors.warning;

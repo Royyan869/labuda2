@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/core/core.dart';
-import 'package:labuda/shared/widgets/app_bottom_sheet_base.dart';
+import 'package:labuda/shared/widgets/app_bottom_sheet_list_selection.dart';
 import 'package:labuda/shared/widgets/app_snackbar.dart';
 import 'package:labuda/generated/app_localizations.dart';
 
@@ -48,10 +48,7 @@ class LanguageSelector extends ConsumerWidget {
       padding: padding ?? EdgeInsets.zero,
       child: ListTile(
         leading: showLeadingIcon
-            ? Icon(
-                Icons.language,
-                color: scheme.onSurfaceVariant,
-              )
+            ? Icon(Icons.language, color: scheme.onSurfaceVariant)
             : null,
         title: Text(
           l10n.language,
@@ -61,12 +58,13 @@ class LanguageSelector extends ConsumerWidget {
           ),
         ),
         trailing: Container(
-          padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p8),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppMetrics.p12,
+            vertical: AppMetrics.p8,
+          ),
           decoration: BoxDecoration(
             color: scheme.surfaceContainerHigh,
-            border: Border.all(
-              color: scheme.outlineVariant,
-            ),
+            border: Border.all(color: scheme.outlineVariant),
             borderRadius: BorderRadius.circular(AppShape.r8),
           ),
           child: DropdownButtonHideUnderline(
@@ -83,10 +81,9 @@ class LanguageSelector extends ConsumerWidget {
                   value: locale,
                   child: Text(
                     '${locale.flagEmoji} ${locale.displayName}',
-                    style: TextStyle(
-                      color: scheme.onSurface,
-                      fontSize: AppType.s14,
-                    ),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodyLarge?.copyWith(color: scheme.onSurface),
                   ),
                 );
               }).toList(),
@@ -119,12 +116,14 @@ class LanguageSelector extends ConsumerWidget {
     final scheme = Theme.of(context).colorScheme;
     return Container(
       padding:
-          padding ?? const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p8),
+          padding ??
+          const EdgeInsets.symmetric(
+            horizontal: AppMetrics.p12,
+            vertical: AppMetrics.p8,
+          ),
       decoration: BoxDecoration(
         color: scheme.surfaceContainerHigh,
-        border: Border.all(
-          color: scheme.outlineVariant,
-        ),
+        border: Border.all(color: scheme.outlineVariant),
         borderRadius: BorderRadius.circular(AppShape.r8),
       ),
       child: DropdownButtonHideUnderline(
@@ -141,9 +140,8 @@ class LanguageSelector extends ConsumerWidget {
               value: locale,
               child: Text(
                 '${locale.flagEmoji} ${locale.shortName}',
-                style: TextStyle(
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                   color: scheme.onSurface,
-                  fontSize: AppType.s14,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -183,26 +181,24 @@ class LanguageSelectorTile extends ConsumerWidget {
       ),
       title: Text(
         l10n.language,
-        style: TextStyle(
+        style: context.typeRoles.titleCompact.copyWith(
           color: scheme.onSurface,
-          fontSize: AppType.s16,
           fontWeight: FontWeight.w500,
         ),
       ),
       subtitle: Text(
         '${currentLocale.flagEmoji} ${currentLocale.displayName}',
-        style: TextStyle(
+        style: context.typeRoles.bodyDense.copyWith(
           color: scheme.onSurfaceVariant,
-          fontSize: AppType.s14,
         ),
       ),
-      trailing: Icon(
-        Icons.chevron_right,
-        color: scheme.onSurfaceVariant,
-      ),
+      trailing: Icon(Icons.chevron_right, color: scheme.onSurfaceVariant),
       contentPadding:
           contentPadding ??
-          const EdgeInsets.symmetric(horizontal: AppMetrics.p24, vertical: AppMetrics.p4),
+          const EdgeInsets.symmetric(
+            horizontal: AppMetrics.p24,
+            vertical: AppMetrics.p4,
+          ),
       onTap: () => _showLanguageBottomSheet(context, ref),
     );
   }
@@ -213,84 +209,28 @@ class LanguageSelectorTile extends ConsumerWidget {
         .read(localizationControllerProvider)
         .currentLocale;
 
-    showModalBottomSheet<void>(
+    // Canonical selection builder: surface, shape, handle, scroll and safe area
+    // all come from the foundation — no bespoke sheet.
+    AppBottomSheetListSelection.showListSelection<SupportedLocale>(
       context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppShape.r20)),
-      ),
-      builder: (BuildContext context) {
-        final scheme = Theme.of(context).colorScheme;
-        return Container(
-          padding: const EdgeInsets.all(AppMetrics.p24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Handle bar — ONE authority: `AppDragHandle` beside the bottom-sheet
-              // base.
-              const Center(child: AppDragHandle(padding: EdgeInsets.zero)),
-              const SizedBox(height: 20),
-
-              // Title
-              Text(
-                l10n.language,
-                style: TextStyle(
-                  color: scheme.onSurface,
-                  fontSize: AppType.s20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // Language options
-              ...SupportedLocale.values.map((locale) {
-                final isSelected = locale == currentLocale;
-                return ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: Text(
-                    locale.flagEmoji,
-                    style: const TextStyle(fontSize: AppType.s24),
-                  ),
-                  title: Text(
-                    locale.displayName,
-                    style: TextStyle(
-                      color: scheme.onSurface,
-                      fontSize: AppType.s16,
-                      fontWeight: isSelected
-                          ? FontWeight.w600
-                          : FontWeight.w500,
-                    ),
-                  ),
-                  trailing: isSelected
-                      ? Icon(
-                          Icons.check_circle,
-                          color: scheme.primary,
-                          size: AppIconSize.action,
-                        )
-                      : null,
-                  onTap: () {
-                    if (locale != currentLocale) {
-                      ref
-                          .read(localizationControllerProvider.notifier)
-                          .setLocale(locale);
-
-                      // Show success message
-                      AppSnackBar.showSuccess(
-                        context,
-                        l10n.languageChanged,
-                        duration: const Duration(seconds: 2),
-                      );
-                    }
-                    Navigator.of(context).pop();
-                  },
-                );
-              }),
-
-              const SizedBox(height: 20),
-            ],
-          ),
-        );
-      },
-    );
+      title: l10n.language,
+      selectedValue: currentLocale,
+      items: SupportedLocale.values
+          .map(
+            (locale) => ListSelectionItem<SupportedLocale>(
+              title: '${locale.flagEmoji}  ${locale.displayName}',
+              value: locale,
+            ),
+          )
+          .toList(),
+    ).then((locale) {
+      if (locale == null || locale == currentLocale || !context.mounted) return;
+      ref.read(localizationControllerProvider.notifier).setLocale(locale);
+      AppSnackBar.showSuccess(
+        context,
+        l10n.languageChanged,
+        duration: const Duration(seconds: 2),
+      );
+    });
   }
 }

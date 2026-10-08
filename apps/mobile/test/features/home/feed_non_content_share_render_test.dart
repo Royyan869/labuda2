@@ -65,14 +65,6 @@ Map<String, dynamic> _fixedPriceSaleProjection({
       'can_interact': true,
       'blocked_by_tombstone': false,
     },
-    'commerce_actions': <String, dynamic>{
-      'role': 'buyer',
-      'can_chat': true,
-      'can_negotiate': true,
-      'can_buy': true,
-      'can_bid': false,
-      'can_manage': false,
-    },
     'for_sale': <String, dynamic>{
       'title': title,
       'media': <Map<String, dynamic>>[
@@ -82,6 +74,7 @@ Map<String, dynamic> _fixedPriceSaleProjection({
       'price': {'amount': 1500000, 'currency': 'IDR'},
       'status': 'active',
       'quantity_available': 3,
+      'negotiation_enabled': true,
       'seller': <String, dynamic>{
         'user': <String, dynamic>{
           'id': 'seller-1',
@@ -106,14 +99,6 @@ Map<String, dynamic> _auctionProjection({
       'can_view': true,
       'can_interact': true,
       'blocked_by_tombstone': false,
-    },
-    'commerce_actions': <String, dynamic>{
-      'role': 'buyer',
-      'can_chat': true,
-      'can_negotiate': false,
-      'can_buy': false,
-      'can_bid': true,
-      'can_manage': false,
     },
     'auction': <String, dynamic>{
       'title': title,
@@ -222,6 +207,8 @@ void main() {
     expect(find.byType(ObjectPreviewCard), findsNothing);
     expect(find.byType(ContentResourceProjectionCard), findsOneWidget);
     expect(find.text('forSale share'), findsOneWidget);
+    // The negotiable product attribute is rendered on the feed reference too.
+    expect(find.text('Nego'), findsOneWidget);
   });
 
   testWidgets('auction resource projection renders canonical card', (

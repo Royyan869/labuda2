@@ -359,17 +359,6 @@ func TestEvaluateAuctionViewerCapabilities_StateMatrix_A12ToA30(t *testing.T) {
 			want: guest,
 		},
 		{
-			name: "A13 guest draft",
-			in: AuctionViewerCapabilitiesInput{
-				ViewerID:          uuid.Nil,
-				SellerID:          sellerID,
-				Status:            auctionStatusDraft,
-				SellerTrustActive: true,
-				BuyNowPrice:       &activeBuyNow,
-			},
-			want: guest,
-		},
-		{
 			name: "A14 non-owner trust inactive active",
 			in: AuctionViewerCapabilitiesInput{
 				ViewerID:          otherID,
@@ -458,17 +447,6 @@ func TestEvaluateAuctionViewerCapabilities_StateMatrix_A12ToA30(t *testing.T) {
 			want: buyerBid,
 		},
 		{
-			name: "A22 draft non-owner trust active",
-			in: AuctionViewerCapabilitiesInput{
-				ViewerID:          otherID,
-				SellerID:          sellerID,
-				Status:            auctionStatusDraft,
-				SellerTrustActive: true,
-				BuyNowPrice:       &activeBuyNow,
-			},
-			want: buyerChat,
-		},
-		{
 			name: "A23 scheduled non-owner trust active",
 			in: AuctionViewerCapabilitiesInput{
 				ViewerID:          otherID,
@@ -533,17 +511,6 @@ func TestEvaluateAuctionViewerCapabilities_StateMatrix_A12ToA30(t *testing.T) {
 				BuyNowPrice:       &activeBuyNow,
 			},
 			want: ownerLocked,
-		},
-		{
-			name: "A29 owner draft",
-			in: AuctionViewerCapabilitiesInput{
-				ViewerID:          sellerID,
-				SellerID:          sellerID,
-				Status:            auctionStatusDraft,
-				SellerTrustActive: true,
-				BuyNowPrice:       &activeBuyNow,
-			},
-			want: ownerDraft,
 		},
 		{
 			name: "A30 owner scheduled",

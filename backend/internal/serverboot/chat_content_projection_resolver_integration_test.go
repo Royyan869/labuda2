@@ -283,7 +283,6 @@ func requireLiveContentProjection(t *testing.T, proj *chatApp.ResourceProjection
 	require.Equal(t, chatApp.ProjectionStateLive, proj.State)
 	require.Equal(t, string(chatEntity.ResourceOccurrenceResourceTypeContent), string(proj.ResourceType))
 	require.NotNil(t, proj.Content)
-	require.Nil(t, proj.CommerceActions)
 
 	payload := *proj.Content
 	require.NotNil(t, payload.Author.Lifecycle)
@@ -312,7 +311,6 @@ func requireTombstoneContentProjection(t *testing.T, proj *chatApp.ResourceProje
 	require.Nil(t, proj.Profile)
 	require.Nil(t, proj.ForSale)
 	require.Nil(t, proj.Auction)
-	require.Nil(t, proj.CommerceActions)
 	// Canonical contract: the resource id survives death.
 	assert.NotEqual(t, uuid.Nil, proj.ResourceID)
 	assert.True(t, proj.ViewerCapabilities.BlockedByTombstone)
@@ -512,7 +510,7 @@ func TestContentProjectionResolver_NestedShareReferences_DepthOneAndAccessRules(
 	publicSaleID := fx.seedForSale(t, saleOwnerID, fpsEntity.ForSaleStatusActive, &publicPublishedAt)
 
 	privateSaleOwnerID := fx.seedUser(t, "active", nil, "private_sale_owner", nil)
-	privateSaleID := fx.seedForSale(t, privateSaleOwnerID, fpsEntity.ForSaleStatusDraft, nil)
+	privateSaleID := fx.seedForSale(t, privateSaleOwnerID, fpsEntity.ForSaleStatusWithdrawn, nil)
 
 	auctionOwnerID := fx.seedUser(t, "active", nil, "auction_owner", nil)
 	auctionID := fx.seedAuction(t, auctionOwnerID, auctionEntity.StatusActive)

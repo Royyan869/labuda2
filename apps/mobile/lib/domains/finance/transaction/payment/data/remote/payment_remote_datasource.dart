@@ -52,6 +52,29 @@ class PaymentRemoteDatasource extends BaseApiRepository {
     );
   }
 
+  /// Get the canonical PRE-ORDER payment pricing for a pricing token, each
+  /// method carrying the backend-calculated buyer fee and FINAL payable amount.
+  ///
+  /// Read-only: no order is created and the token is not consumed. This is the
+  /// checkout authority for choosing a method and knowing the final total
+  /// before order creation.
+  Future<Result<PreOrderPaymentPricingDto>> getPreOrderPaymentMethods(
+    String pricingToken, {
+    bool useCoins = false,
+  }) async {
+    return executeRequest(
+      () => apiClient.get(
+        '/payments/pre-order-methods',
+        queryParameters: {
+          'pricing_token': pricingToken,
+          'use_coins': useCoins.toString(),
+        },
+      ),
+      parser: (data) =>
+          PreOrderPaymentPricingDto.fromJson(data as Map<String, dynamic>),
+    );
+  }
+
   /// On-demand payment status sync (POST /payments/:id/sync).
   ///
   /// Asks the backend to run its canonical gateway-inquiry → settle →

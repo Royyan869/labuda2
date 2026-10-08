@@ -4,62 +4,21 @@
 // Labuda policy (CanonicalPasswordPolicy) instead of enforcing a divergent
 // local rule:
 //
-//   1. ValidationService.validatePassword delegates to the canonical policy.
-//   2. Register (sign_up_screen) password validator + submit gate use the
+//   1. Register (sign_up_screen) password validator + submit gate use the
 //      canonical policy.
-//   3. Change Password (security_screen) new-password validator uses the
+//   2. Change Password (security_screen) new-password validator uses the
 //      canonical policy.
-//   4. Login does NOT apply the registration password policy (existing
+//   3. Login does NOT apply the registration password policy (existing
 //      credentials predate it; Firebase is the acceptance authority).
 
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/shared/services/validation_service.dart';
 
 String _readSource(String relativePath) =>
     File(relativePath).readAsStringSync();
 
 void main() {
-  group('ValidationService.validatePassword delegates to canonical policy', () {
-    const service = ValidationService();
-
-    test('valid password passes', () async {
-      final result = await service.validatePassword('Abcdef12');
-      expect(result.isSuccess, isTrue);
-    });
-
-    test('short password rejected (canonical message)', () async {
-      final result = await service.validatePassword('Abc12');
-      expect(result.isError, isTrue);
-      expect(result.error, contains('at least 8'));
-    });
-
-    test('missing digit rejected', () async {
-      final result = await service.validatePassword('Abcdefgh');
-      expect(result.isError, isTrue);
-      expect(result.error, contains('digit'));
-    });
-
-    test('missing uppercase rejected', () async {
-      final result = await service.validatePassword('abcdef12');
-      expect(result.isError, isTrue);
-      expect(result.error, contains('uppercase'));
-    });
-
-    test('missing lowercase rejected', () async {
-      final result = await service.validatePassword('ABCDEF12');
-      expect(result.isError, isTrue);
-      expect(result.error, contains('lowercase'));
-    });
-
-    test('6-char password rejected (Firebase min-6 is not Labuda policy)',
-        () async {
-      final result = await service.validatePassword('Ab1def');
-      expect(result.isError, isTrue);
-    });
-  });
-
   group('Register (sign_up_screen) uses the canonical policy', () {
     final source = _readSource(
       'lib/domains/user/identity/authentication/presentation/screens/sign_up_screen.dart',

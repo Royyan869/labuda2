@@ -9,10 +9,11 @@ library;
 /// list is NOT used to discover Support tickets. Each row navigates to the
 /// ticket's own conversation thread by ticket id.
 
-import 'package:flutter/material.dart' hide ConnectionState;
-import 'package:flutter/material.dart' as flutter show ConnectionState;
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:labuda/core/core.dart';
+import 'package:labuda/domains/system/shared/domain/services/time_format_service.dart';
 import 'package:labuda/domains/system/support/domain/domain.dart';
 import 'package:labuda/domains/system/support/presentation/presentation.dart';
 import 'package:labuda/shared/shared.dart';
@@ -27,22 +28,20 @@ class SupportTicketsListScreen extends ConsumerStatefulWidget {
 
 class _SupportTicketsListScreenState
     extends ConsumerState<SupportTicketsListScreen> {
-  late Future<Result<List<SupportTicket>>> _ticketsFuture;
-
-  @override
-  void initState() {
-    super.initState();
-    _ticketsFuture = _loadTickets();
-  }
-
-  Future<Result<List<SupportTicket>>> _loadTickets() {
-    return ref.read(supportRepositoryProvider).getMyTickets();
-  }
-
-  void _reload() {
-    setState(() {
-      _ticketsFuture = _loadTickets();
-    });
+  /// Canonical reload: initial-load retry, pull-to-refresh, and the
+  /// post-create reload all re-run the ONE canonical list operation.
+  /// Failure stays observable through the provider's AsyncValue — it is never
+  /// rethrown or rendered raw.
+  Future<void> _reload() async {
+    try {
+      // The list reaches the screen through the provider state, not through
+      // this future — `.then((_) {})` adapts it to `Future<void>` while
+      // failures still propagate to the `catch` below.
+      await ref.refresh(supportTicketsProvider.future).then((_) {});
+    } catch (_) {
+      // No-op: the failure remains observable via async.hasError with the
+      // last-known-good collection preserved in async.value.
+    }
   }
 
   @override
@@ -64,7 +63,9 @@ class _SupportTicketsListScreenState
               SizedBox(height: 16),
               Text(
                 'Please login to view your support tickets',
-                style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
             ],
           ),
@@ -74,9 +75,14 @@ class _SupportTicketsListScreenState
 
     return Scaffold(
       appBar: AppBarCustom(title: 'My Support Tickets'),
-      body: _buildTicketsList(),
+      // SAFE-AREA-30 — the ONE canonical bottom system-window authority
+      // for BODY content on this standalone route: the body SafeArea
+      // wraps the ticket list so every branch ends at the system-region
+      // start at every inset. The FAB keeps its SEPARATE Scaffold
+      // endFloat lift (measured independently by the geometry contract).
+      body: SafeArea(child: _buildTicketsBody(context)),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showCreateTicketSheet(currentUser),
+        onPressed: _showCreateTicketSheet,
         backgroundColor: Theme.of(context).colorScheme.primary,
         icon: Icon(Icons.add, color: Theme.of(context).colorScheme.onPrimary),
         label: Text(
@@ -87,117 +93,141 @@ class _SupportTicketsListScreenState
     );
   }
 
-  Widget _buildTicketsList() {
-    return FutureBuilder<Result<List<SupportTicket>>>(
-      future: _ticketsFuture,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == flutter.ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
+  /// Canonical page-state composition over the ONE ticket-list authority.
+  ///
+  /// - No data yet → first-load states only: LoadingIndicator, PageErrorState,
+  ///   or EmptyState.
+  /// - Tickets present → they stay visible during refresh; the update
+  ///   indicator and refresh failure render inline, never as full-page
+  ///   loading/error and never as an empty list.
+  Widget _buildTicketsBody(BuildContext context) {
+    final ticketsAsync = ref.watch(supportTicketsProvider);
+    final tickets = ticketsAsync.value ?? const <SupportTicket>[];
 
-        final result = snapshot.data;
-        if (snapshot.hasError || result == null || result.isError) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.error_outline,
-                  size: AppIconSize.display,
-                  color: context.statusColors.error,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  result?.error ?? 'Failed to load tickets',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: context.statusColors.error),
-                ),
-                const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: _reload,
-                  child: const Text('Retry'),
-                ),
-              ],
+    return RefreshIndicator(
+      onRefresh: _reload,
+      child: CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          if (ticketsAsync.isLoading && tickets.isEmpty)
+            // First request with no data → LoadingIndicator. Never EmptyState
+            // (not yet loaded) and never a raw spinner.
+            const SliverFillRemaining(
+              hasScrollBody: false,
+              child: Center(child: LoadingIndicator()),
+            )
+          else if (ticketsAsync.hasError && tickets.isEmpty)
+            // CANONICAL page-level load error (PageErrorState): controlled
+            // localized copy only — the raw backend error never reaches the
+            // screen. Retry re-executes the canonical load.
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: PageErrorState(onRetry: _reload),
+            )
+          else if (tickets.isEmpty)
+            // Successful zero-result: the ONE canonical EmptyState. First-use
+            // action preserved (at most one primary action).
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: EmptyState(
+                icon: Icons.mail_outline,
+                title: context.l10n.emptySupportTicketsTitle,
+                subtitle: context.l10n.emptySupportTicketsMessage,
+                actionLabel: context.l10n.createTicketAction,
+                onAction: _showCreateTicketSheet,
+              ),
+            )
+          else ...[
+            // Refresh with existing data: rows stay, update indication on top.
+            if (ticketsAsync.isLoading)
+              const SliverToBoxAdapter(
+                child: LinearProgressIndicator(minHeight: 2),
+              ),
+            // Refresh failure: rows stay, inline banner with retry that
+            // re-executes the canonical load. Never a full-page error here.
+            if (ticketsAsync.hasError)
+              SliverToBoxAdapter(child: _buildRefreshErrorBanner()),
+            SliverPadding(
+              padding: const EdgeInsets.all(AppMetrics.p16),
+              sliver: SliverList(
+                delegate: SliverChildBuilderDelegate((context, index) {
+                  final ticket = tickets[index];
+                  return _SupportTicketListItem(
+                    ticket: ticket,
+                    onTap: () => _navigateToTicket(ticket.id),
+                  );
+                }, childCount: tickets.length),
+              ),
             ),
-          );
-        }
+          ],
+        ],
+      ),
+    );
+  }
 
-        final tickets = result.data!;
-
-        if (tickets.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [                Icon(
-                Icons.mail_outline,
-                size: AppIconSize.display,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'No support tickets yet',
-                  style: TextStyle(
-                    fontSize: AppType.s20,
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Create a ticket to get help from our support team',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: AppType.s14,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                ElevatedButton.icon(
-                  onPressed: () => _showCreateTicketSheet(
-                    ref.read(authenticatedUserProvider)!,
-                  ),
-                  icon: const Icon(Icons.add),
-                  label: const Text('Create Ticket'),
-                ),
-              ],
+  /// Minimum bounded refresh-failure indication: persistent inline banner
+  /// with safe localized copy and a retry action. Not a new foundation —
+  /// composition of canonical tokens, matching the established banners.
+  Widget _buildRefreshErrorBanner() {
+    final scheme = Theme.of(context).colorScheme;
+    final l10n = context.l10n;
+    return Semantics(
+      container: true,
+      liveRegion: true,
+      child: Container(
+        width: double.infinity,
+        margin: const EdgeInsets.fromLTRB(
+          AppMetrics.p16,
+          AppMetrics.p12,
+          AppMetrics.p16,
+          AppMetrics.p4,
+        ),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppMetrics.p12,
+          vertical: AppMetrics.p8,
+        ),
+        decoration: BoxDecoration(
+          color: scheme.errorContainer,
+          borderRadius: BorderRadius.circular(AppShape.r12),
+          border: Border.all(color: scheme.error),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.refresh_outlined,
+              size: AppIconSize.action,
+              color: scheme.onErrorContainer,
             ),
-          );
-        }
-
-        return RefreshIndicator(
-          onRefresh: () async => _reload(),
-          child: ListView.builder(
-            padding: const EdgeInsets.all(AppMetrics.p16),
-            itemCount: tickets.length,
-            itemBuilder: (context, index) {
-              final ticket = tickets[index];
-              return _SupportTicketListItem(
-                ticket: ticket,
-                onTap: () => _navigateToTicket(ticket.id),
-              );
-            },
-          ),
-        );
-      },
+            const SizedBox(width: AppMetrics.p8),
+            Expanded(
+              child: Text(
+                l10n.pageErrorMessage,
+                style: context.typeRoles.bodyDense.copyWith(
+                  color: scheme.onErrorContainer,
+                ),
+              ),
+            ),
+            TextButton(onPressed: _reload, child: Text(l10n.retryAction)),
+          ],
+        ),
+      ),
     );
   }
 
   /// Navigates by the Support ticket id — the conversation thread resolves the
   /// ticket's own chat room through the Support API.
   void _navigateToTicket(String ticketId) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => SupportTicketThreadScreen(ticketId: ticketId),
-      ),
-    );
+    context.push(RoutePaths.supportTicketThreadPath(ticketId));
   }
 
-  void _showCreateTicketSheet(dynamic user) {
+  void _showCreateTicketSheet() {
+    final user = ref.read(authenticatedUserProvider);
+    if (user == null) return;
     showPreChatFormRefactored(
       context,
       userId: user.id,
-      userName: user.name,
-      userAvatar: user.avatar,
+      userName: user.username,
+      userAvatar: user.avatarUrl,
       onChatCreated: _reload,
     );
   }
@@ -212,7 +242,6 @@ class _SupportTicketListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
     final categoryConfig = CategoryConfig.get(ticket.category);
     final statusConfig = StatusConfig.get(ticket.status);
 
@@ -223,7 +252,9 @@ class _SupportTicketListItem extends StatelessWidget {
 
     return Card(
       margin: const EdgeInsets.only(bottom: AppMetrics.p12),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppShape.r12)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppShape.r12),
+      ),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(AppShape.r12),
@@ -232,26 +263,37 @@ class _SupportTicketListItem extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Category and Status badges
+              // Category and Status badges + relative last-activity timestamp.
+              // All dynamic text is flex-bounded with compact single-line
+              // ellipsis so narrow width / high text scale cannot overflow.
               Row(
                 children: [
-                  _buildBadge(
-                    icon: categoryConfig.icon,
-                    label: categoryConfig.nameId,
-                    colorValue: categoryConfig.colorValue,
+                  Flexible(
+                    child: _buildBadge(
+                      context,
+                      icon: categoryConfig.icon,
+                      label: ticket.category.label(context.l10n),
+                      colorValue: categoryConfig.colorValue,
+                    ),
                   ),
                   const SizedBox(width: 8),
-                  _buildBadge(
-                    icon: statusConfig.icon,
-                    label: statusConfig.labelId,
-                    colorValue: statusConfig.colorValue,
+                  Flexible(
+                    child: _buildBadge(
+                      context,
+                      icon: statusConfig.icon,
+                      label: ticket.status.label(context.l10n),
+                      colorValue: statusConfig.colorValue,
+                    ),
                   ),
-                  const Spacer(),
-                  Text(
-                    SupportUtils.formatTimeAgo(lastActivity),
-                    style: TextStyle(
-                      fontSize: AppType.s12,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(
+                      const TimeFormatService().formatTimeAgo(lastActivity),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: context.typeRoles.labelMicro.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ),
                 ],
@@ -264,8 +306,7 @@ class _SupportTicketListItem extends StatelessWidget {
                   preview,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: AppType.s14,
+                  style: context.typeRoles.bodyDense.copyWith(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
@@ -275,7 +316,10 @@ class _SupportTicketListItem extends StatelessWidget {
               // View ticket button
               OutlinedButton.icon(
                 onPressed: onTap,
-                icon: const Icon(Icons.mail_outline, size: AppIconSize.inlineGlyph),
+                icon: const Icon(
+                  Icons.mail_outline,
+                  size: AppIconSize.inlineGlyph,
+                ),
                 label: const Text('View Ticket'),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: AppMetrics.p8),
@@ -288,13 +332,17 @@ class _SupportTicketListItem extends StatelessWidget {
     );
   }
 
-  Widget _buildBadge({
+  Widget _buildBadge(
+    BuildContext context, {
     required String icon,
     required String label,
     required int colorValue,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8, vertical: AppMetrics.p4),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppMetrics.p8,
+        vertical: AppMetrics.p4,
+      ),
       decoration: BoxDecoration(
         color: Color(colorValue).withAlpha(40),
         borderRadius: BorderRadius.circular(AppShape.r6),
@@ -303,14 +351,17 @@ class _SupportTicketListItem extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(icon, style: const TextStyle(fontSize: AppType.s12)),
+          Text(icon, style: context.typeRoles.labelMicro),
           const SizedBox(width: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: AppType.s12,
-              fontWeight: FontWeight.bold,
-              color: Color(colorValue),
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: context.typeRoles.labelMicro.copyWith(
+                fontWeight: FontWeight.bold,
+                color: Color(colorValue),
+              ),
             ),
           ),
         ],

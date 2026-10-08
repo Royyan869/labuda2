@@ -32,15 +32,20 @@ class AuctionDetailInfo extends StatelessWidget {
       children: [
         // 1) Channel-specific card.
         CommerceDetailSectionCard(
-          margin: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p0, AppMetrics.p16, AppMetrics.p16),
+          margin: const EdgeInsets.fromLTRB(
+            AppMetrics.p16,
+            AppMetrics.p0,
+            AppMetrics.p16,
+            AppMetrics.p16,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 'Detail Lelang',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 8),
               // AUCTION EXPLANATION - Minimal 1-line explanation
@@ -64,8 +69,7 @@ class AuctionDetailInfo extends StatelessWidget {
                     Expanded(
                       child: Text(
                         'Lelang — harga naik, penawar tertinggi menang',
-                        style: TextStyle(
-                          fontSize: AppType.s14,
+                        style: context.typeRoles.bodyDense.copyWith(
                           color: colorScheme.onSurfaceVariant,
                           fontStyle: FontStyle.italic,
                         ),
@@ -87,7 +91,12 @@ class AuctionDetailInfo extends StatelessWidget {
         //    Renders only the rows whose canonical value is present; when the
         //    payload carries none of them it collapses to nothing.
         Padding(
-          padding: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p0, AppMetrics.p16, AppMetrics.p16),
+          padding: const EdgeInsets.fromLTRB(
+            AppMetrics.p16,
+            AppMetrics.p0,
+            AppMetrics.p16,
+            AppMetrics.p16,
+          ),
           child: CommerceCommonProductDetailSection(
             title: 'Detail Produk',
             data: CommerceCommonProductDetailsData.fromAuction(auction),
@@ -104,10 +113,7 @@ class AuctionDetailInfo extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            label,
-            style: TextStyle(color: colorScheme.onSurfaceVariant),
-          ),
+          Text(label, style: TextStyle(color: colorScheme.onSurfaceVariant)),
           Text(value, style: const TextStyle(fontWeight: FontWeight.w500)),
         ],
       ),

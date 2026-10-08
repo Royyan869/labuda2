@@ -6,11 +6,9 @@ import 'package:labuda/shared/widgets/app_image.dart';
 /// Canonical pre-send commerce chip.
 ///
 /// ONE AUTHORITY for every composer that holds a not-yet-sent product
-/// attachment — the comment composer, the chat composer, and the
-/// detail→chat entry. The three used to hand-build their own row and had
-/// drifted: the comment chip showed photo+title+price, the chat chip showed
-/// an icon and a title only (photo and price silently dropped), and the
-/// detail entry showed an icon, a title and a send button.
+/// attachment — the comment composer, the chat composer, and every chat
+/// entry point (For Sale detail, Auction detail, checkout). The row shows
+/// photo + title + price and a remove affordance only.
 ///
 /// Display data here is a SNAPSHOT from the picker (identity + display
 /// hints), never commerce authority: price and availability are re-resolved
@@ -18,8 +16,9 @@ import 'package:labuda/shared/widgets/app_image.dart';
 /// chip carries no status badge — a pre-send snapshot must never pose as a
 /// lifecycle state.
 ///
-/// LAYOUT lives here; the ACTION belongs to the caller ([onRemove] closes
-/// the attachment, [onSend] sends it — each flow wires what it needs).
+/// LAYOUT lives here; the ONLY action is [onRemove], which closes the
+/// attachment. Sending is the composer's send icon — a pre-send chip never
+/// carries its own send CTA.
 class PendingCommerceChip extends StatelessWidget {
   const PendingCommerceChip({
     super.key,
@@ -28,7 +27,6 @@ class PendingCommerceChip extends StatelessWidget {
     this.price,
     this.caption,
     this.onRemove,
-    this.onSend,
   });
 
   /// Display title of the attached product.
@@ -46,9 +44,6 @@ class PendingCommerceChip extends StatelessWidget {
 
   /// Closes the attachment. When null, no close button renders.
   final VoidCallback? onRemove;
-
-  /// Sends the attachment now. When null, no send button renders.
-  final VoidCallback? onSend;
 
   @override
   Widget build(BuildContext context) {
@@ -117,10 +112,6 @@ class PendingCommerceChip extends StatelessWidget {
               ],
             ),
           ),
-          if (onSend != null) ...[
-            const SizedBox(width: 8),
-            TextButton(onPressed: onSend, child: const Text('Kirim')),
-          ],
           if (onRemove != null)
             IconButton(
               tooltip: 'Hapus lampiran',

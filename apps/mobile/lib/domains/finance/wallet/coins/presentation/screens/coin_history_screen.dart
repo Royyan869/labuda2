@@ -6,10 +6,14 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/core/core.dart';
+import 'package:labuda/domains/system/shared/domain/services/time_format_service.dart';
 import 'package:labuda/domains/finance/wallet/coins/coins_di.dart';
 import 'package:labuda/domains/finance/wallet/coins/domain/entities/coin_transaction.dart';
 import 'package:labuda/domains/finance/wallet/coins/presentation/providers/coin_notifier.dart';
 import 'package:labuda/domains/finance/wallet/coins/presentation/providers/coin_state.dart';
+import 'package:labuda/shared/widgets/empty_state.dart';
+import 'package:labuda/shared/widgets/loading_indicator.dart';
+import 'package:labuda/shared/widgets/page_error_state.dart';
 
 /// Screen for viewing coin transaction history
 class CoinHistoryScreen extends ConsumerStatefulWidget {
@@ -24,6 +28,13 @@ class CoinHistoryScreen extends ConsumerStatefulWidget {
 class _CoinHistoryScreenState extends ConsumerState<CoinHistoryScreen> {
   int _currentPage = 1;
 
+  /// Last-known-good transactions. Kept screen-local (bounded): the shared
+  /// [CoinState] union cannot hold list + loading/error at once and is also
+  /// consumed by checkout, so the history screen preserves its own snapshot
+  /// to satisfy the Loading Foundation (refresh never wipes visible data).
+  List<CoinTransaction> _lastTransactions = const [];
+  bool _hasLoadedOnce = false;
+
   @override
   void initState() {
     super.initState();
@@ -33,6 +44,11 @@ class _CoinHistoryScreenState extends ConsumerState<CoinHistoryScreen> {
     });
   }
 
+  Future<void> _reload() async {
+    _currentPage = 1;
+    await ref.read(coinProvider.notifier).getTransactions(page: _currentPage);
+  }
+
   @override
   Widget build(BuildContext context) {
     final coinState = ref.watch(coinProvider);
@@ -40,48 +56,128 @@ class _CoinHistoryScreenState extends ConsumerState<CoinHistoryScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Transaction History')),
       body: coinState.when(
-        initial: () =>
-            const _EmptyState(message: 'Tap refresh to load your transactions'),
-        loading: () => const Center(child: CircularProgressIndicator()),
-        balanceLoaded: (_, _) =>
-            const _EmptyState(message: 'Tap refresh to load your transactions'),
+        // Idle / not-yet-loaded is NEVER a successful empty: first-load
+        // loading until the request settles.
+        initial: () => _buildFirstLoad(),
+        loading: () => _hasLoadedOnce && _lastTransactions.isNotEmpty
+            ? _buildCachedList(isRefreshing: true)
+            : _buildFirstLoad(),
+        // Balance-only state carries no transaction list: same idle rule —
+        // loading, never EmptyState.
+        balanceLoaded: (_, _) => _hasLoadedOnce && _lastTransactions.isNotEmpty
+            ? _buildCachedList(isRefreshing: false)
+            : _buildFirstLoad(),
         transactionsLoaded: (transactions) {
+          _lastTransactions = transactions;
+          _hasLoadedOnce = true;
           if (transactions.isEmpty) {
-            return const _EmptyState(
-              message: 'No transactions yet',
-              icon: Icons.receipt_long,
-            );
+            return _buildEmpty();
           }
-          return _TransactionList(
-            transactions: transactions,
+          return _buildCachedList(isRefreshing: false);
+        },
+        // First-load failure → PageErrorState (safe localized copy; the raw
+        // backend message never reaches the screen). Refresh failure with
+        // cached data → cached list + inline indication.
+        error: (_) => _hasLoadedOnce && _lastTransactions.isNotEmpty
+            ? _buildCachedList(isRefreshing: false, refreshFailed: true)
+            : _buildFirstLoadError(),
+      ),
+    );
+  }
+
+  /// First-load loading: the canonical [LoadingIndicator] as main content.
+  Widget _buildFirstLoad() {
+    return const Center(child: LoadingIndicator());
+  }
+
+  /// First-load error: the canonical [PageErrorState]. No technical detail.
+  Widget _buildFirstLoadError() {
+    return PageErrorState(
+      onRetry: () {
+        ref.read(coinProvider.notifier).getTransactions(page: _currentPage);
+      },
+    );
+  }
+
+  /// Successful zero-result: the ONLY place [EmptyState] may appear here.
+  Widget _buildEmpty() {
+    final l10n = context.l10n;
+    return EmptyState(
+      icon: Icons.receipt_long_outlined,
+      title: l10n.emptyCollectionTitle,
+      subtitle: l10n.emptyCollectionMessage,
+    );
+  }
+
+  /// Cached data stays visible during reload/refresh failure, with an update
+  /// indicator or an inline failure banner on top. Never swapped away.
+  Widget _buildCachedList({
+    required bool isRefreshing,
+    bool refreshFailed = false,
+  }) {
+    return Column(
+      children: [
+        if (isRefreshing) const LinearProgressIndicator(minHeight: 2),
+        if (refreshFailed) _buildRefreshErrorBanner(),
+        Expanded(
+          child: _TransactionList(
+            transactions: _lastTransactions,
+            onRefresh: _reload,
             onLoadMore: () {
               _currentPage++;
               ref
                   .read(coinProvider.notifier)
                   .getTransactions(page: _currentPage);
             },
-          );
-        },
-        error: (message) => _ErrorState(
-          message: message,
-          onRetry: () {
-            ref.read(coinProvider.notifier).getTransactions(page: _currentPage);
-          },
+          ),
         ),
-      ),
-      floatingActionButton: coinState.maybeWhen(
-        orElse: () => null,
-        error: (_) => FloatingActionButton(
-          onPressed: () {
-            ref.read(coinProvider.notifier).getTransactions(page: _currentPage);
-          },
-          child: const Icon(Icons.refresh),
+      ],
+    );
+  }
+
+  /// Minimum bounded refresh-failure indication: persistent inline banner
+  /// with safe localized copy and a retry action. Not a new foundation.
+  Widget _buildRefreshErrorBanner() {
+    final scheme = Theme.of(context).colorScheme;
+    final l10n = context.l10n;
+    return Semantics(
+      container: true,
+      liveRegion: true,
+      child: Container(
+        width: double.infinity,
+        margin: const EdgeInsets.fromLTRB(
+          AppMetrics.p16,
+          AppMetrics.p12,
+          AppMetrics.p16,
+          AppMetrics.p4,
         ),
-        initial: () => FloatingActionButton(
-          onPressed: () {
-            ref.read(coinProvider.notifier).getTransactions(page: _currentPage);
-          },
-          child: const Icon(Icons.refresh),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppMetrics.p12,
+          vertical: AppMetrics.p8,
+        ),
+        decoration: BoxDecoration(
+          color: scheme.errorContainer,
+          borderRadius: BorderRadius.circular(AppShape.r12),
+          border: Border.all(color: scheme.error),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.refresh_outlined,
+              size: AppIconSize.action,
+              color: scheme.onErrorContainer,
+            ),
+            const SizedBox(width: AppMetrics.p8),
+            Expanded(
+              child: Text(
+                l10n.pageErrorMessage,
+                style: context.typeRoles.bodyDense.copyWith(
+                  color: scheme.onErrorContainer,
+                ),
+              ),
+            ),
+            TextButton(onPressed: _reload, child: Text(l10n.retryAction)),
+          ],
         ),
       ),
     );
@@ -90,10 +186,12 @@ class _CoinHistoryScreenState extends ConsumerState<CoinHistoryScreen> {
 
 class _TransactionList extends StatelessWidget {
   final List<CoinTransaction> transactions;
+  final Future<void> Function()? onRefresh;
   final VoidCallback onLoadMore;
 
   const _TransactionList({
     required this.transactions,
+    this.onRefresh,
     required this.onLoadMore,
   });
 
@@ -101,7 +199,7 @@ class _TransactionList extends StatelessWidget {
   Widget build(BuildContext context) {
     return RefreshIndicator(
       onRefresh: () async {
-        onLoadMore();
+        onRefresh?.call();
       },
       child: ListView.separated(
         itemCount: transactions.length + 1,
@@ -148,10 +246,9 @@ class _TransactionTile extends StatelessWidget {
         style: const TextStyle(fontWeight: FontWeight.w500),
       ),
       subtitle: Text(
-        _formatDate(transaction.createdAt),
-        style: TextStyle(
+        const TimeFormatService().formatTimeAgo(transaction.createdAt),
+        style: context.typeRoles.labelMicro.copyWith(
           color: Theme.of(context).colorScheme.onSurfaceVariant,
-          fontSize: AppType.s12,
         ),
       ),
       trailing: Column(
@@ -160,127 +257,18 @@ class _TransactionTile extends StatelessWidget {
         children: [
           Text(
             '${isEarn ? '+' : '-'}${transaction.amount}',
-            style: TextStyle(
+            style: context.typeRoles.titleCompact.copyWith(
               color: iconColor,
               fontWeight: FontWeight.bold,
-              fontSize: AppType.s16,
             ),
           ),
           Text(
             'Balance: ${transaction.balanceAfter}',
-            style: TextStyle(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-              fontSize: AppType.s12,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _formatDate(DateTime date) {
-    final now = DateTime.now();
-    final difference = now.difference(date);
-
-    if (difference.inDays == 0) {
-      if (difference.inHours == 0) {
-        if (difference.inMinutes == 0) {
-          return 'Just now';
-        }
-        return '${difference.inMinutes}m ago';
-      }
-      return '${difference.inHours}h ago';
-    } else if (difference.inDays == 1) {
-      return 'Yesterday';
-    } else if (difference.inDays < 7) {
-      return '${difference.inDays} days ago';
-    } else {
-      return '${date.day}/${date.month}/${date.year}';
-    }
-  }
-}
-
-class _EmptyState extends StatelessWidget {
-  final String message;
-  final IconData icon;
-
-  const _EmptyState({required this.message, this.icon = Icons.history});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            icon,
-            size: AppIconSize.display,
-            color: AppColors.coinPrimary.withValues(alpha: 0.5),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'No Transactions',
-            style: TextStyle(
-              fontSize: AppType.s20,
-              fontWeight: FontWeight.bold,
-              color: Theme.of(context).colorScheme.onSurface,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            message,
-            style: TextStyle(
-              fontSize: AppType.s14,
+            style: context.typeRoles.labelMicro.copyWith(
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _ErrorState extends StatelessWidget {
-  final String message;
-  final VoidCallback onRetry;
-
-  const _ErrorState({required this.message, required this.onRetry});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppMetrics.p24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.error_outline,
-              size: AppIconSize.display,
-              color: AppColors.coinSecondary.withValues(alpha: 0.5),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Failed to Load',
-              style: TextStyle(
-                fontSize: AppType.s20,
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).colorScheme.onSurface,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              message,
-              style: TextStyle(
-                fontSize: AppType.s14,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(onPressed: onRetry, child: const Text('Retry')),
-          ],
-        ),
       ),
     );
   }

@@ -35,8 +35,8 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyADSSTsciRZw7DvCR_2QUoz3FB82GnCKeA',
-    appId: '1:883544146901:android:9d14717d7f9e5a5cfaf35c',
+    apiKey: 'AIzaSyDS_cixVmoeQhBa7a4euvYV2gd-LVQ6E2U',
+    appId: '1:883544146901:android:c59cbbfae1c15ff8faf35c',
     messagingSenderId: '883544146901',
     projectId: 'labuda-79de2',
     storageBucket: 'labuda-79de2.firebasestorage.app',

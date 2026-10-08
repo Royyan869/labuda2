@@ -26,7 +26,7 @@ class ProfileAboutTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
-    
+
     final dataAsync = ref.watch(profileAboutDataProvider(userId));
 
     return dataAsync.when(
@@ -51,7 +51,7 @@ class ProfileAboutTab extends ConsumerWidget {
     // tombstoned. Own-profile is never degraded from the viewer's POV.
     if (!isOwnProfile &&
         profileLifecycleSuppressesSensitiveSections(data.user.lifecycle)) {
-      return _buildDegradedPlaceholder(scheme, data.user.lifecycle);
+      return _buildDegradedPlaceholder(context, scheme, data.user.lifecycle);
     }
 
     // Get seller state for the current profile.
@@ -68,7 +68,7 @@ class ProfileAboutTab extends ConsumerWidget {
             delegate: SliverChildListDelegate([
               // Section 0: Seller Status Badge (for own profile or seller profiles)
               if (isOwnProfile && sellerState == null) ...[
-                _buildPendingSellerStatusCard(scheme: scheme),
+                _buildPendingSellerStatusCard(context: context, scheme: scheme),
                 const SizedBox(height: 16),
               ] else if (sellerState != null &&
                   (isOwnProfile || sellerState.isSeller)) ...[
@@ -81,7 +81,7 @@ class ProfileAboutTab extends ConsumerWidget {
                 _ProfileSectionCard(
                   title: 'About',
                   icon: Icons.person_outline,
-                  child: _buildAboutSection(data, scheme),
+                  child: _buildAboutSection(context, data, scheme),
                 ),
                 const SizedBox(height: 16),
               ],
@@ -91,7 +91,7 @@ class ProfileAboutTab extends ConsumerWidget {
                 _ProfileSectionCard(
                   title: 'Informasi Farm',
                   icon: Icons.store_outlined,
-                  child: _buildFarmInfoSection(data, scheme),
+                  child: _buildFarmInfoSection(context, data, scheme),
                 ),
                 const SizedBox(height: 16),
               ],
@@ -123,7 +123,7 @@ class ProfileAboutTab extends ConsumerWidget {
                 _ProfileSectionCard(
                   title: 'Contact Information',
                   icon: Icons.contact_phone_outlined,
-                  child: _buildContactSection(data, scheme),
+                  child: _buildContactSection(context, data, scheme),
                 ),
               ],
             ]),
@@ -150,7 +150,10 @@ class ProfileAboutTab extends ConsumerWidget {
     return SellerState.fromAuthUser(user);
   }
 
-  Widget _buildPendingSellerStatusCard({required ColorScheme scheme}) {
+  Widget _buildPendingSellerStatusCard({
+    required BuildContext context,
+    required ColorScheme scheme,
+  }) {
     final background = scheme.surfaceContainerHighest;
     final border = scheme.outlineVariant;
     final textPrimary = scheme.onSurfaceVariant;
@@ -174,8 +177,7 @@ class ProfileAboutTab extends ConsumerWidget {
           Expanded(
             child: Text(
               'Checking seller status...',
-              style: TextStyle(
-                fontSize: AppType.s14,
+              style: context.typeRoles.bodyDense.copyWith(
                 fontWeight: FontWeight.w600,
                 color: textPrimary,
               ),
@@ -187,7 +189,11 @@ class ProfileAboutTab extends ConsumerWidget {
   }
 
   // Section 1: About
-  Widget _buildAboutSection(ProfileAboutData data, ColorScheme scheme) {
+  Widget _buildAboutSection(
+    BuildContext context,
+    ProfileAboutData data,
+    ColorScheme scheme,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -195,8 +201,7 @@ class ProfileAboutTab extends ConsumerWidget {
         if (data.bio.isNotEmpty) ...[
           Text(
             data.bio,
-            style: TextStyle(
-              fontSize: AppType.s14,
+            style: context.typeRoles.bodyDense.copyWith(
               height: 1.5,
               color: scheme.onSurfaceVariant,
             ),
@@ -204,66 +209,42 @@ class ProfileAboutTab extends ConsumerWidget {
           const SizedBox(height: 16),
         ],
 
-        // Location
+        // Location — compact Address/Location authority (one bounded line).
         if (data.location != null) ...[
-          Row(
-            children: [
-              Icon(
-                Icons.location_on_outlined,
-                size: AppIconSize.inlineGlyph,
-                color: scheme.onSurfaceVariant,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                data.location!,
-                style: TextStyle(
-                  fontSize: AppType.s14,
-                  color: scheme.onSurfaceVariant,
-                ),
-              ),
-            ],
+          AddressLocationView(
+            location: data.location!,
+            mode: AddressLocationMode.compact,
+            icon: Icons.location_on_outlined,
+            iconSize: AppIconSize.inlineGlyph,
+            style: context.typeRoles.bodyDense.copyWith(
+              color: scheme.onSurfaceVariant,
+            ),
           ),
           const SizedBox(height: 8),
         ],
 
-        // Join date
-        Row(
-          children: [
-            Icon(
-              Icons.calendar_today_outlined,
-              size: AppIconSize.inlineGlyph,
-              color: scheme.onSurfaceVariant,
-            ),
-            const SizedBox(width: 8),
-            Text(
-              _formatJoinDate(data.joinedAt),
-              style: TextStyle(
-                fontSize: AppType.s14,
-                color: scheme.onSurfaceVariant,
-              ),
-            ),
-          ],
+        // Join date — compact Metadata authority (one bounded line).
+        MetadataView(
+          text: _formatJoinDate(data.joinedAt),
+          mode: MetadataMode.compact,
+          icon: Icons.calendar_today_outlined,
+          iconSize: AppIconSize.inlineGlyph,
+          style: context.typeRoles.bodyDense.copyWith(
+            color: scheme.onSurfaceVariant,
+          ),
         ),
 
-        // Last active
+        // Last active — compact Metadata authority (one bounded line).
         if (data.lastActiveAt != null) ...[
           const SizedBox(height: 8),
-          Row(
-            children: [
-              Icon(
-                Icons.access_time,
-                size: AppIconSize.inlineGlyph,
-                color: scheme.onSurfaceVariant,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                _formatLastActive(data.lastActiveAt!),
-                style: TextStyle(
-                  fontSize: AppType.s14,
-                  color: scheme.onSurfaceVariant,
-                ),
-              ),
-            ],
+          MetadataView(
+            text: _formatLastActive(data.lastActiveAt!),
+            mode: MetadataMode.compact,
+            icon: Icons.access_time,
+            iconSize: AppIconSize.inlineGlyph,
+            style: context.typeRoles.bodyDense.copyWith(
+              color: scheme.onSurfaceVariant,
+            ),
           ),
         ],
       ],
@@ -271,7 +252,11 @@ class ProfileAboutTab extends ConsumerWidget {
   }
 
   // Section 2: Farm Info
-  Widget _buildFarmInfoSection(ProfileAboutData data, ColorScheme scheme) {
+  Widget _buildFarmInfoSection(
+    BuildContext context,
+    ProfileAboutData data,
+    ColorScheme scheme,
+  ) {
     final farmInfo = data.farmInfo!;
 
     return Column(
@@ -280,25 +265,12 @@ class ProfileAboutTab extends ConsumerWidget {
         if (farmInfo.farmName.isNotEmpty)
           _ProfileInfoRow(label: 'Farm Name', value: farmInfo.farmName),
 
-        if (farmInfo.establishedDate != null)
-          _ProfileInfoRow(
-            label: 'Established Since',
-            value: DateFormat('yyyy').format(farmInfo.establishedDate!),
-          ),
-
-        if (farmInfo.specialties != null && farmInfo.specialties!.isNotEmpty)
-          _ProfileInfoRow(
-            label: 'Specialties',
-            value: farmInfo.specialties!.join(', '),
-          ),
-
         // Canonical seller description comes from AuthUser.bio
         if (data.bio.isNotEmpty) ...[
           const SizedBox(height: 8),
           Text(
             'Description',
-            style: TextStyle(
-              fontSize: AppType.s14,
+            style: context.typeRoles.bodyDense.copyWith(
               fontWeight: FontWeight.w600,
               color: scheme.onSurfaceVariant,
             ),
@@ -306,35 +278,9 @@ class ProfileAboutTab extends ConsumerWidget {
           const SizedBox(height: 4),
           Text(
             data.bio,
-            style: TextStyle(
-              fontSize: AppType.s14,
+            style: context.typeRoles.bodyDense.copyWith(
               height: 1.5,
               color: scheme.onSurfaceVariant,
-            ),
-          ),
-        ],
-
-        // Website
-        if (farmInfo.farmWebsite != null &&
-            farmInfo.farmWebsite!.isNotEmpty) ...[
-          const SizedBox(height: 12),
-          InkWell(
-            onTap: () => _launchUrl(farmInfo.farmWebsite!),
-            child: Row(
-              children: [
-                Icon(Icons.language, size: AppIconSize.inlineGlyph, color: scheme.primary),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    farmInfo.farmWebsite!,
-style: TextStyle(
-                       fontSize: AppType.s14,
-                       color: scheme.primary,
-                      decoration: TextDecoration.underline,
-                    ),
-                  ),
-                ),
-              ],
             ),
           ),
         ],
@@ -459,12 +405,16 @@ style: TextStyle(
   }
 
   // Section 5: Contact Information
-  Widget _buildContactSection(ProfileAboutData data, ColorScheme scheme) {
+  Widget _buildContactSection(
+    BuildContext context,
+    ProfileAboutData data,
+    ColorScheme scheme,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Email
-        if (data.isEmailPublic || isOwnProfile) ...[
+        // Email — shown only on own profile (private contact).
+        if (isOwnProfile) ...[
           if (data.maskedEmail != null) ...[
             Row(
               children: [
@@ -477,8 +427,7 @@ style: TextStyle(
                 Expanded(
                   child: Text(
                     data.maskedEmail!,
-                    style: TextStyle(
-                      fontSize: AppType.s14,
+                    style: context.typeRoles.bodyDense.copyWith(
                       color: scheme.onSurfaceVariant,
                     ),
                   ),
@@ -489,8 +438,8 @@ style: TextStyle(
           ],
         ],
 
-        // Phone
-        if (data.isPhonePublic || isOwnProfile) ...[
+        // Phone — shown only on own profile (private contact).
+        if (isOwnProfile) ...[
           if (data.maskedPhone != null) ...[
             Row(
               children: [
@@ -503,8 +452,7 @@ style: TextStyle(
                 Expanded(
                   child: Text(
                     data.maskedPhone!,
-                    style: TextStyle(
-                      fontSize: AppType.s14,
+                    style: context.typeRoles.bodyDense.copyWith(
                       color: scheme.onSurfaceVariant,
                     ),
                   ),
@@ -515,17 +463,13 @@ style: TextStyle(
           ],
         ],
 
-        // Social Media
-        if ((data.isSocialMediaPublic || isOwnProfile) &&
-            data.hasSocialMedia) ...[
-          Divider(
-            color: scheme.outlineVariant,
-          ),
+        // Social Media — presence of a handle is the visibility authority.
+        if (data.hasSocialMedia) ...[
+          Divider(color: scheme.outlineVariant),
           const SizedBox(height: 8),
           Text(
             'Social Media',
-            style: TextStyle(
-              fontSize: AppType.s14,
+            style: context.typeRoles.bodyDense.copyWith(
               fontWeight: FontWeight.w600,
               color: scheme.onSurfaceVariant,
             ),
@@ -573,7 +517,11 @@ style: TextStyle(
   // E5.3 — Degraded-lifecycle tombstone for the About tab. Branches per
   // canonical 2-string vocabulary (removed/unavailable) via
   // ContentLifecycleParse.publicRedactionLabel. Never reached for own profile.
-  Widget _buildDegradedPlaceholder(ColorScheme scheme, ContentLifecycle lifecycle) {
+  Widget _buildDegradedPlaceholder(
+    BuildContext context,
+    ColorScheme scheme,
+    ContentLifecycle lifecycle,
+  ) {
     final label = lifecycle.publicRedactionLabel;
     return Center(
       child: Padding(
@@ -589,8 +537,7 @@ style: TextStyle(
             const SizedBox(height: 16),
             Text(
               label,
-              style: TextStyle(
-                fontSize: AppType.s16,
+              style: context.typeRoles.titleCompact.copyWith(
                 fontWeight: FontWeight.w600,
                 color: scheme.onSurfaceVariant,
               ),
@@ -628,8 +575,7 @@ style: TextStyle(
             const SizedBox(height: 16),
             Text(
               'Failed to load profile',
-              style: TextStyle(
-                fontSize: AppType.s16,
+              style: context.typeRoles.titleCompact.copyWith(
                 fontWeight: FontWeight.w600,
                 color: scheme.onSurfaceVariant,
               ),
@@ -637,8 +583,7 @@ style: TextStyle(
             const SizedBox(height: 8),
             Text(
               error,
-              style: TextStyle(
-                fontSize: AppType.s14,
+              style: context.typeRoles.bodyDense.copyWith(
                 color: scheme.onSurfaceVariant,
               ),
               textAlign: TextAlign.center,
@@ -651,14 +596,11 @@ style: TextStyle(
 
   // === Helper Methods ===
 
-  // Privacy check: Should show contact info
+  // Contact info: own profile always; others only when a public handle exists.
+  // Presence of a social handle is the visibility authority (no toggle).
   bool _shouldShowContact(ProfileAboutData data) {
     if (isOwnProfile) return true;
-
-    // Show if any contact info is public
-    return (data.isEmailPublic && data.maskedEmail != null) ||
-        (data.isPhonePublic && data.maskedPhone != null) ||
-        (data.isSocialMediaPublic && data.hasSocialMedia);
+    return data.hasSocialMedia;
   }
 
   // Check if has any verification badges to display
@@ -734,15 +676,6 @@ style: TextStyle(
     return 'https://twitter.com/$cleanHandle';
   }
 
-  // Launch URL helper
-  Future<void> _launchUrl(String urlString) async {
-    final url = Uri.parse(
-      urlString.startsWith('http') ? urlString : 'https://$urlString',
-    );
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url, mode: LaunchMode.externalApplication);
-    }
-  }
 }
 
 /// Section card widget for profile about tab
@@ -764,7 +697,9 @@ class _ProfileSectionCard extends StatelessWidget {
     return Card(
       margin: EdgeInsets.zero,
       color: scheme.surface,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppShape.r12)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppShape.r12),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(AppMetrics.p16),
         child: Column(
@@ -776,10 +711,9 @@ class _ProfileSectionCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 Text(
                   title,
-                  style: TextStyle(
-                    fontSize: AppType.s16,
+                  style: context.typeRoles.titleCompact.copyWith(
                     fontWeight: FontWeight.w600,
-color: scheme.onSurface,
+                    color: scheme.onSurface,
                   ),
                 ),
               ],
@@ -813,8 +747,7 @@ class _ProfileInfoRow extends StatelessWidget {
             width: AppContentSize.termLabel,
             child: Text(
               label,
-              style: TextStyle(
-                fontSize: AppType.s14,
+              style: context.typeRoles.bodyDense.copyWith(
                 color: scheme.onSurfaceVariant,
               ),
             ),
@@ -822,8 +755,7 @@ class _ProfileInfoRow extends StatelessWidget {
           Expanded(
             child: Text(
               value,
-              style: TextStyle(
-                fontSize: AppType.s14,
+              style: context.typeRoles.bodyDense.copyWith(
                 fontWeight: FontWeight.w500,
                 color: scheme.onSurfaceVariant,
               ),
@@ -847,18 +779,18 @@ class _VerificationBadge extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p8),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppMetrics.p12,
+        vertical: AppMetrics.p8,
+      ),
       decoration: BoxDecoration(
         color: scheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(AppShape.r16),
-        border: Border.all(
-          color: scheme.outlineVariant,
-        ),
+        border: Border.all(color: scheme.outlineVariant),
       ),
       child: Text(
         text,
-        style: TextStyle(
-          fontSize: AppType.s12,
+        style: context.typeRoles.labelMicro.copyWith(
           fontWeight: FontWeight.w500,
           color: scheme.onSurfaceVariant,
         ),
@@ -888,9 +820,7 @@ class _StatCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: scheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(AppShape.r8),
-        border: Border.all(
-          color: scheme.outlineVariant,
-        ),
+        border: Border.all(color: scheme.outlineVariant),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -899,8 +829,7 @@ class _StatCard extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             value,
-            style: TextStyle(
-              fontSize: AppType.s20,
+            style: context.typeRoles.titleSection.copyWith(
               fontWeight: FontWeight.bold,
               color: scheme.onSurface,
             ),
@@ -908,8 +837,7 @@ class _StatCard extends StatelessWidget {
           const SizedBox(height: 2),
           Text(
             label,
-            style: TextStyle(
-              fontSize: AppType.s12,
+            style: context.typeRoles.labelMicro.copyWith(
               color: scheme.onSurfaceVariant,
             ),
             maxLines: 2,
@@ -944,19 +872,20 @@ class _SocialMediaChip extends StatelessWidget {
           await launchUrl(uri, mode: LaunchMode.externalApplication);
         } else {
           if (context.mounted) {
-            AppSnackBar.showError(context, 'Cannot open link');
+            AppSnackBar.showError(context, 'Tidak dapat membuka tautan');
           }
         }
       },
       borderRadius: BorderRadius.circular(AppShape.r8),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p8),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppMetrics.p12,
+          vertical: AppMetrics.p8,
+        ),
         decoration: BoxDecoration(
-color: scheme.surfaceContainerHighest,
+          color: scheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(AppShape.r8),
-          border: Border.all(
-color: scheme.outlineVariant,
-          ),
+          border: Border.all(color: scheme.outlineVariant),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -965,8 +894,7 @@ color: scheme.outlineVariant,
             const SizedBox(width: 8),
             Text(
               label,
-              style: TextStyle(
-                fontSize: AppType.s14,
+              style: context.typeRoles.bodyDense.copyWith(
                 color: scheme.onSurfaceVariant,
               ),
             ),
@@ -1008,18 +936,21 @@ class _SellerStatusBadge extends ConsumerWidget {
         children: [
           Row(
             children: [
-              Icon(_getStatusIcon(), color: _getStatusColor(), size: 20),
+              Icon(
+                _getStatusIcon(),
+                color: _getStatusColor(),
+                size: AppIconSize.action,
+              ),
               const SizedBox(width: 8),
               Text(
                 'Status Penjual',
-                style: TextStyle(
-                  fontSize: AppType.s14,
+                style: context.typeRoles.bodyDense.copyWith(
                   fontWeight: FontWeight.w500,
                   color: scheme.onSurfaceVariant,
                 ),
               ),
               const Spacer(),
-              _buildStatusBadge(),
+              _buildStatusBadge(context),
             ],
           ),
           if (sellerState.isExpired && sellerState.bannerMessage != null) ...[
@@ -1044,8 +975,7 @@ class _SellerStatusBadge extends ConsumerWidget {
                   Expanded(
                     child: Text(
                       sellerState.bannerMessage!,
-                      style: TextStyle(
-                        fontSize: AppType.s14,
+                      style: context.typeRoles.bodyDense.copyWith(
                         color: scheme.onSurfaceVariant,
                       ),
                     ),
@@ -1059,17 +989,19 @@ class _SellerStatusBadge extends ConsumerWidget {
     );
   }
 
-  Widget _buildStatusBadge() {
+  Widget _buildStatusBadge(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p4),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppMetrics.p12,
+        vertical: AppMetrics.p4,
+      ),
       decoration: BoxDecoration(
         color: _getStatusColor().withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(AppShape.r12),
       ),
       child: Text(
         sellerState.displayLabel,
-        style: TextStyle(
-          fontSize: AppType.s12,
+        style: context.typeRoles.labelMicro.copyWith(
           fontWeight: FontWeight.w600,
           color: _getStatusColor(),
         ),

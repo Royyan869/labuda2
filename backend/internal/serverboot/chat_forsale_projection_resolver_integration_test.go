@@ -238,7 +238,6 @@ func requireLiveFPSProjection(t *testing.T, proj *chatApp.ResourceProjection) co
 	require.Equal(t, chatApp.ProjectionStateLive, proj.State)
 	require.Equal(t, string(chatEntity.ResourceOccurrenceResourceTypeForSale), string(proj.ResourceType))
 	require.NotNil(t, proj.ForSale)
-	require.NotNil(t, proj.CommerceActions)
 	return *proj.ForSale
 }
 
@@ -251,7 +250,6 @@ func requireTombstoneFPSProjection(t *testing.T, proj *chatApp.ResourceProjectio
 	require.Nil(t, proj.Profile)
 	require.Nil(t, proj.Content)
 	require.Nil(t, proj.Auction)
-	require.Nil(t, proj.CommerceActions)
 	assert.False(t, proj.ViewerCapabilities.CanView)
 	assert.False(t, proj.ViewerCapabilities.CanInteract)
 	assert.True(t, proj.ViewerCapabilities.BlockedByTombstone)
@@ -296,7 +294,7 @@ func TestForSaleProjectionResolver_MixedStatesAndPayloadContract(t *testing.T) {
 	draftSaleID := fx.seedSale(
 		t,
 		draftSellerID,
-		fpsEntity.ForSaleStatusDraft,
+		fpsEntity.ForSaleStatusWithdrawn,
 		fpsEntity.ForSaleVisibilityPrivate,
 		false,
 		1,
@@ -358,9 +356,7 @@ func TestForSaleProjectionResolver_MixedStatesAndPayloadContract(t *testing.T) {
 			require.Equal(t, "Active Farm", *payload.Seller.FarmName)
 			require.NotNil(t, payload.Seller.User.Lifecycle)
 			require.Equal(t, "active", *payload.Seller.User.Lifecycle)
-			require.True(t, proj.CommerceActions.CanChat)
-			require.True(t, proj.CommerceActions.CanBuy)
-			require.True(t, proj.CommerceActions.CanNegotiate)
+			require.True(t, payload.NegotiationEnabled)
 			require.True(t, proj.ViewerCapabilities.CanInteract)
 		case soldSaleID:
 			requireTombstoneFPSProjection(t, proj)

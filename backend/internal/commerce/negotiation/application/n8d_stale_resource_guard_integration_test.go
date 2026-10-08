@@ -463,7 +463,7 @@ func TestN8D_StartRejectedWhenQuantityZero(t *testing.T) {
 	}
 }
 
-func TestN8D_StartRejectedWhenDraft(t *testing.T) {
+func TestN8D_StartRejectedWhenNotActive(t *testing.T) {
 	ctx := context.Background()
 	h, cleanup := setupNegotiationLinkageHarness(t)
 	defer cleanup()
@@ -476,18 +476,18 @@ func TestN8D_StartRejectedWhenDraft(t *testing.T) {
 		return nil
 	})
 	_ = h.tdb.WithTx(ctx, func(tx db.Tx) error {
-		_, err := tx.Exec(ctx, `UPDATE for_sales SET status='draft', published_at=NULL, updated_at=NOW() WHERE id=$1`, forSaleID)
+		_, err := tx.Exec(ctx, `UPDATE for_sales SET status='sold', published_at=NOW(), updated_at=NOW() WHERE id=$1`, forSaleID)
 		return err
 	})
 	_, err := h.svc.StartNegotiation(ctx, negotiationApp.StartNegotiationRequest{
 		ResourceType: negotiationEntity.NegotiationResourceForSale, ForSaleID: forSaleID, BuyerID: buyerID, InitialPrice: 400000, RoomID: roomID, RoomOtherParticipantID: sellerID,
 	})
 	if err == nil {
-		t.Fatal("expected Start rejected when draft")
+		t.Fatal("expected Start rejected when not active")
 	}
 	var notNegotiable *negotiationApp.ErrResourceNotNegotiable
 	if !errors.As(err, &notNegotiable) {
-		t.Fatalf("expected ErrResourceNotNegotiable for draft, got %T: %v", err, err)
+		t.Fatalf("expected ErrResourceNotNegotiable for non-active status, got %T: %v", err, err)
 	}
 }
 

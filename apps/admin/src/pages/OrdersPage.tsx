@@ -4,6 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/Table'
+import { Input } from '@/components/ui/Input'
+import { Select } from '@/components/ui/Select'
+import { AdminLoadingState, AdminErrorState, AdminEmptyState, AdminPagination, PageHeader } from '@/components/common'
 import { OrderDetailModal } from '@/components/orders/OrderDetailModal'
 import { useOrders } from '@/hooks/useOrders'
 import { formatDate, formatRupiah } from '@/lib/utils'
@@ -46,7 +49,7 @@ export function OrdersPage() {
   const [selectedOrder, setSelectedOrder] = useState<OrderListItem | null>(null)
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
 
-  const { orders, loading, error, total, refetch } = useOrders(
+  const { orders, loading, error, total, page, setPage, totalPages, refetch } = useOrders(
     statusFilter || sourceFilter || searchQuery
       ? {
           ...(statusFilter && { status: statusFilter }),
@@ -66,31 +69,24 @@ export function OrdersPage() {
     setSelectedOrder(null)
   }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
-          <p className="mt-4 text-muted-foreground">Loading orders...</p>
-        </div>
-      </div>
-    )
+  const hasActiveFilters = statusFilter || sourceFilter || searchQuery
+
+  const handleClearFilters = () => {
+    setStatusFilter('')
+    setSourceFilter('')
+    setSearchQuery('')
+    setPage(1)
+  }
+
+  if (loading && orders.length === 0) {
+    return <AdminLoadingState />
   }
 
   if (error) {
     return (
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Orders</h1>
-          <p className="text-muted-foreground mt-1">View and manage all marketplace orders</p>
-        </div>
-        <Card>
-          <CardContent className="p-6">
-            <div className="text-center text-destructive">
-              <p>Error loading orders: {error.message}</p>
-            </div>
-          </CardContent>
-        </Card>
+        <PageHeader title="Orders" description="View and manage all marketplace orders" />
+        <AdminErrorState title="Failed to load orders" message={error.message} onRetry={refetch} />
       </div>
     )
   }
@@ -98,20 +94,16 @@ export function OrdersPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Orders</h1>
-          <p className="text-muted-foreground mt-1">View and manage all marketplace orders</p>
-        </div>
-        <Button
-          variant="secondary"
-          onClick={refetch}
-          className="gap-2"
-        >
-          <RefreshCw className="h-4 w-4" />
-          Refresh
-        </Button>
-      </div>
+      <PageHeader
+        title="Orders"
+        description="View and manage all marketplace orders"
+        actions={
+          <Button variant="secondary" onClick={refetch} className="gap-2">
+            <RefreshCw className="h-4 w-4" />
+            Refresh
+          </Button>
+        }
+      />
 
       {/* Stats Card */}
       <Card>
@@ -119,7 +111,7 @@ export function OrdersPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-muted-foreground">Total Orders</p>
-              <p className="text-3xl font-bold text-primary mt-1">{total}</p>
+              <p className="type-metric-lg text-primary mt-1">{total}</p>
             </div>
             <div className="p-4 rounded-lg bg-info-bg">
               <ShoppingBag className="h-8 w-8 text-info" />
@@ -131,50 +123,40 @@ export function OrdersPage() {
       {/* Filters */}
       <Card>
         <CardContent className="pt-6">
-          <div className="flex items-center gap-6 flex-wrap">
-            <div className="flex items-center gap-4">
-              <Filter className="h-5 w-5 text-muted-foreground" />
-              <label htmlFor="status-filter" className="text-sm font-medium text-foreground">
-                Status:
-              </label>
-              <select
-                id="status-filter"
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as OrderStatus | '')}
-                className="px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-              >
+          <div className="flex items-end gap-6 flex-wrap">
+            <div className="flex items-end gap-2">
+              <Filter className="h-5 w-5 text-muted-foreground mb-2" />
+                <Select
+                  label="Status:"
+                  value={statusFilter}
+                  onChange={(e) => { setStatusFilter(e.target.value as OrderStatus | ''); setPage(1) }}
+                >
                 {ORDER_STATUSES.map((status) => (
                   <option key={status.value} value={status.value}>
                     {status.label}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
-            <div className="flex items-center gap-4">
-              <label htmlFor="source-filter" className="text-sm font-medium text-foreground">
-                Source:
-              </label>
-              <select
-                id="source-filter"
-                value={sourceFilter}
-                onChange={(e) => setSourceFilter(e.target.value as SourceType | '')}
-                className="px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-              >
-                {SOURCE_TYPES.map((source) => (
-                  <option key={source.value} value={source.value}>
-                    {source.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <Select
+              label="Source:"
+              value={sourceFilter}
+              onChange={(e) => { setSourceFilter(e.target.value as SourceType | ''); setPage(1) }}
+            >
+              {SOURCE_TYPES.map((source) => (
+                <option key={source.value} value={source.value}>
+                  {source.label}
+                </option>
+              ))}
+            </Select>
             <div className="flex items-center gap-2 ml-auto">
               <Search className="h-4 w-4 text-muted-foreground" />
-              <input
+              <Input
                 type="text"
                 placeholder="Order number or UUID…"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="px-3 py-2 border border-border rounded-lg text-sm w-56 focus:outline-none focus:ring-2 focus:ring-primary"
+                onChange={(e) => { setSearchQuery(e.target.value); setPage(1) }}
+                className="w-56"
               />
             </div>
           </div>
@@ -188,15 +170,17 @@ export function OrdersPage() {
         </CardHeader>
         <CardContent>
           {orders.length === 0 ? (
-            <div className="text-center py-12">
-              <ShoppingBag className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-foreground mb-2">No Orders Found</h3>
-              <p className="text-muted-foreground">
-                {statusFilter || sourceFilter
+            <AdminEmptyState
+              icon={ShoppingBag}
+              title="No Orders Found"
+              description={
+                hasActiveFilters
                   ? 'No orders match the current filters.'
-                  : 'No orders in the system.'}
-              </p>
-            </div>
+                  : 'No orders in the system.'
+              }
+              filtered={Boolean(hasActiveFilters)}
+              onClearFilters={handleClearFilters}
+            />
           ) : (
             <div className="border border-border rounded-lg overflow-hidden">
               <Table>
@@ -217,7 +201,7 @@ export function OrdersPage() {
                       <TableCell className="font-mono text-sm">
                         <div className="flex flex-col gap-0.5">
                           <span className="font-medium">{order.order_number || '—'}</span>
-                          <span className="text-xs text-muted-foreground">{order.id.slice(0, 8)}</span>
+                          <span className="type-caption">{order.id.slice(0, 8)}</span>
                         </div>
                       </TableCell>
                       <TableCell>
@@ -254,7 +238,7 @@ export function OrdersPage() {
                               {order.seller_username ? `@${order.seller_username}` : 'Unknown'}
                             </span>
                             {order.seller_farm_name && (
-                              <span className="text-xs text-muted-foreground truncate max-w-[120px] block">
+                              <span className="type-caption truncate max-w-[120px] block">
                                 {order.seller_farm_name}
                               </span>
                             )}
@@ -269,7 +253,7 @@ export function OrdersPage() {
                       <TableCell className="text-sm">
                         {formatRupiah(order.total_before_coins_amount)}
                       </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
+                      <TableCell className="type-secondary">
                         {formatDate(order.created_at)}
                       </TableCell>
                       <TableCell className="text-right">
@@ -289,6 +273,16 @@ export function OrdersPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <AdminPagination
+          page={page}
+          totalPages={totalPages}
+          onPageChange={setPage}
+          disabled={loading}
+        />
+      )}
 
       {/* Order Detail Modal */}
       <OrderDetailModal

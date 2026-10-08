@@ -5,6 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/Table'
+import { Select } from '@/components/ui/Select'
+import { AdminLoadingState, AdminErrorState, AdminEmptyState, AdminPagination, PageHeader } from '@/components/common'
 import { DisputeDetailModal } from '@/components/orders/DisputeDetailModal'
 import { useDisputes } from '@/hooks/useDisputes'
 import { formatDate } from '@/lib/utils'
@@ -38,7 +40,7 @@ export function DisputesPage() {
   const [selectedDispute, setSelectedDispute] = useState<DisputeListItem | null>(null)
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
 
-  const { disputes, loading, error, total, refetch } = useDisputes(
+  const { disputes, loading, error, total, page, setPage, totalPages, refetch } = useDisputes(
     statusFilter ? { status: statusFilter } : {}
   )
 
@@ -60,31 +62,20 @@ export function DisputesPage() {
     refetch()
   }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
-          <p className="mt-4 text-[hsl(var(--muted-foreground))]">Loading disputes...</p>
-        </div>
-      </div>
-    )
+  const handleClearFilters = () => {
+    setStatusFilter('')
+    setPage(1)
+  }
+
+  if (loading && disputes.length === 0) {
+    return <AdminLoadingState />
   }
 
   if (error) {
     return (
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-[hsl(var(--foreground))]">Disputes</h1>
-          <p className="text-[hsl(var(--muted-foreground))] mt-1">Review and resolve buyer-seller disputes</p>
-        </div>
-        <Card>
-          <CardContent className="p-6">
-            <div className="text-center text-[hsl(var(--destructive))]">
-              <p>Error loading disputes: {error.message}</p>
-            </div>
-          </CardContent>
-        </Card>
+        <PageHeader title="Disputes" description="Review and resolve buyer-seller disputes" />
+        <AdminErrorState title="Failed to load disputes" message={error.message} onRetry={refetch} />
       </div>
     )
   }
@@ -94,32 +85,28 @@ export function DisputesPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-[hsl(var(--foreground))]">Disputes</h1>
-          <p className="text-[hsl(var(--muted-foreground))] mt-1">Review and resolve buyer-seller disputes</p>
-        </div>
-        <Button
-          variant="secondary"
-          onClick={refetch}
-          className="gap-2"
-        >
-          <RefreshCw className="h-4 w-4" />
-          Refresh
-        </Button>
-      </div>
+      <PageHeader
+        title="Disputes"
+        description="Review and resolve buyer-seller disputes"
+        actions={
+          <Button variant="secondary" onClick={refetch} className="gap-2">
+            <RefreshCw className="h-4 w-4" />
+            Refresh
+          </Button>
+        }
+      />
 
       {/* Stats Card */}
       <Card>
         <CardContent className="pt-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-[hsl(var(--muted-foreground))]">Total Disputes</p>
-              <p className="text-3xl font-bold text-primary mt-1">{total}</p>
-              <p className="text-xs text-[hsl(var(--muted-foreground))] mt-1">{openedCount} pending resolution</p>
+              <p className="text-sm font-medium text-muted-foreground">Total Disputes</p>
+              <p className="type-metric-lg text-primary mt-1">{total}</p>
+              <p className="type-caption mt-1">{openedCount} pending resolution</p>
             </div>
-            <div className="p-4 rounded-lg bg-[hsl(var(--warning-bg))]">
-              <AlertTriangle className="h-8 w-8 text-[hsl(var(--warning))]" />
+            <div className="p-4 rounded-lg bg-warning-bg">
+              <AlertTriangle className="h-8 w-8 text-warning" />
             </div>
           </div>
         </CardContent>
@@ -128,23 +115,19 @@ export function DisputesPage() {
       {/* Filters */}
       <Card>
         <CardContent className="pt-6">
-          <div className="flex items-center gap-4">
-            <Filter className="h-5 w-5 text-[hsl(var(--muted-foreground))]" />
-            <label htmlFor="status-filter" className="text-sm font-medium text-[hsl(var(--foreground))]">
-              Status:
-            </label>
-            <select
-              id="status-filter"
+          <div className="flex items-end gap-4">
+            <Filter className="h-5 w-5 text-muted-foreground mb-2" />
+            <Select
+              label="Status:"
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as DisputeStatus | '')}
-              className="px-3 py-2 border border-[hsl(var(--border))] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              onChange={(e) => { setStatusFilter(e.target.value as DisputeStatus | ''); setPage(1) }}
             >
               {DISPUTE_STATUSES.map((status) => (
                 <option key={status.value} value={status.value}>
                   {status.label}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
         </CardContent>
       </Card>
@@ -156,17 +139,19 @@ export function DisputesPage() {
         </CardHeader>
         <CardContent>
           {disputes.length === 0 ? (
-            <div className="text-center py-12">
-              <AlertTriangle className="h-12 w-12 text-[hsl(var(--muted-foreground))] mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-[hsl(var(--foreground))] mb-2">No Disputes Found</h3>
-              <p className="text-[hsl(var(--muted-foreground))]">
-                {statusFilter
+            <AdminEmptyState
+              icon={AlertTriangle}
+              title="No Disputes Found"
+              description={
+                statusFilter
                   ? 'No disputes match the current filter.'
-                  : 'No disputes in the system.'}
-              </p>
-            </div>
+                  : 'No disputes in the system.'
+              }
+              filtered={Boolean(statusFilter)}
+              onClearFilters={handleClearFilters}
+            />
           ) : (
-            <div className="border border-[hsl(var(--border))] rounded-lg overflow-hidden">
+            <div className="border border-border rounded-lg overflow-hidden">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -199,7 +184,7 @@ export function DisputesPage() {
                               className="w-6 h-6 rounded-full object-cover"
                             />
                           ) : (
-                            <div className="w-6 h-6 rounded-full bg-[hsl(var(--surface-muted))]" />
+                            <div className="w-6 h-6 rounded-full bg-surface-muted" />
                           )}
                           <span className="text-sm truncate max-w-[100px]">
                             {dispute.buyer_username || 'Unknown'}
@@ -215,14 +200,14 @@ export function DisputesPage() {
                               className="w-6 h-6 rounded-full object-cover"
                             />
                           ) : (
-                            <div className="w-6 h-6 rounded-full bg-[hsl(var(--surface-muted))]" />
+                            <div className="w-6 h-6 rounded-full bg-surface-muted" />
                           )}
                           <div className="min-w-0">
                             <p className="text-sm truncate max-w-[100px]">
                               {dispute.seller_username || 'Unknown'}
                             </p>
                             {dispute.seller_farm_name && (
-                              <p className="text-xs text-[hsl(var(--muted-foreground))] truncate max-w-[100px]">
+                              <p className="type-caption truncate max-w-[100px]">
                                 {dispute.seller_farm_name}
                               </p>
                             )}
@@ -242,14 +227,14 @@ export function DisputesPage() {
                       <TableCell>
                         {dispute.resolution_overdue ? (
                           <div className="flex items-center gap-1">
-                            <AlertTriangle className="h-3 w-3 text-[hsl(var(--destructive))]" />
+                            <AlertTriangle className="h-3 w-3 text-destructive" />
                             <Badge variant="error" className="text-xs">
                               OVERDUE
                             </Badge>
                           </div>
                         ) : dispute.admin_response_overdue ? (
                           <div className="flex items-center gap-1">
-                            <Clock className="h-3 w-3 text-[hsl(var(--warning))]" />
+                            <Clock className="h-3 w-3 text-warning" />
                             <Badge variant="warning" className="text-xs">
                               Response Late
                             </Badge>
@@ -260,7 +245,7 @@ export function DisputesPage() {
                           </Badge>
                         )}
                       </TableCell>
-                      <TableCell className="text-sm text-[hsl(var(--muted-foreground))]">
+                      <TableCell className="type-secondary">
                         {formatDate(dispute.opened_at)}
                       </TableCell>
                       <TableCell className="text-right">
@@ -289,6 +274,16 @@ export function DisputesPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <AdminPagination
+          page={page}
+          totalPages={totalPages}
+          onPageChange={setPage}
+          disabled={loading}
+        />
+      )}
 
       {/* Dispute Detail Modal */}
       <DisputeDetailModal

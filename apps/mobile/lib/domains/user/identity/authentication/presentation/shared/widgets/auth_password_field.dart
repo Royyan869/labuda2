@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:labuda/core/core.dart';
+import 'package:labuda/shared/helpers/canonical_password_match.dart';
 
 /// Authentication password field with visibility toggle
 ///
@@ -51,8 +52,6 @@ class AuthPasswordField extends StatefulWidget {
 class _AuthPasswordFieldState extends State<AuthPasswordField> {
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -63,58 +62,26 @@ class _AuthPasswordFieldState extends State<AuthPasswordField> {
           enabled: widget.enabled,
           onChanged: widget.onChanged,
           textInputAction: widget.textInputAction,
+          // Border/fill/geometry AND hint/label/icon state come from
+          // `inputDecorationTheme` (AppTheme) — the one form-field authority.
+          // This wrapper only owns auth content (label/hint/lock + visibility
+          // toggle).
           decoration: InputDecoration(
             labelText: widget.labelText ?? 'Password',
             hintText: widget.hintText ?? 'Enter your password',
             floatingLabelBehavior: FloatingLabelBehavior.always,
-            hintStyle: TextStyle(
-              color: scheme.onSurfaceVariant.withValues(alpha: 0.6),
-            ),
-            prefixIcon: Icon(
-              Icons.lock_outline,
-              color: scheme.onSurfaceVariant,
-            ),
+            prefixIcon: const Icon(Icons.lock_outline),
             suffixIcon: IconButton(
               onPressed: widget.onToggleVisibility,
               icon: Icon(
                 widget.isPasswordVisible
                     ? Icons.visibility_off
                     : Icons.visibility,
-                color: scheme.onSurfaceVariant,
-              ),
-              tooltip: widget.isPasswordVisible
-                  ? 'Hide password'
-                  : 'Show password',
-            ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppShape.r12),
-              borderSide: BorderSide(
-                color: scheme.outlineVariant,
+                semanticLabel: widget.isPasswordVisible
+                    ? 'Sembunyikan kata sandi'
+                    : 'Tampilkan kata sandi',
               ),
             ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppShape.r12),
-              borderSide: BorderSide(
-                color: scheme.outlineVariant,
-              ),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppShape.r12),
-              borderSide: BorderSide(
-                color: scheme.primary,
-                width: 2,
-              ),
-            ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppShape.r12),
-              borderSide: BorderSide(color: scheme.error),
-            ),
-            focusedErrorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppShape.r12),
-              borderSide: BorderSide(color: scheme.error, width: 2),
-            ),
-            filled: true,
-            fillColor: scheme.surfaceContainerHigh,
           ),
           validator: widget.validator,
         ),
@@ -220,23 +187,14 @@ class _AuthConfirmPasswordFieldState extends State<AuthConfirmPasswordField> {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-
-    // Canonical confirm-password matching: exact equality of TRIMMED values.
-    //
-    //   confirm empty (either side)              → neutral (no indicator)
-    //   password empty + confirm non-empty       → NOT MATCH
-    //   both non-empty + equal (trimmed)         → MATCH
-    //   both non-empty + different (trimmed)     → NOT MATCH
-    //
-    // Stage 4D: the indicator and the submit gates (sign_up _isFormValid,
-    // security validator) now agree — all compare trimmed text, so trailing
-    // whitespace cannot make the indicator say "match" while the gate stays
-    // disabled (or vice versa).
-    final password = widget.passwordController?.text.trim() ?? '';
-    final confirmPassword = widget.controller?.text.trim() ?? '';
-    final hasConfirm = confirmPassword.isNotEmpty;
-    final isMatch = hasConfirm && password == confirmPassword;
+    // Canonical confirm-password matching (one authority): exact equality of
+    // TRIMMED values. Empty confirmation (either side) is the neutral state
+    // and renders no indicator. The submit gates use the same rule, so the
+    // indicator and the gate can never disagree.
+    final password = widget.passwordController?.text ?? '';
+    final confirmPassword = widget.controller?.text ?? '';
+    final hasConfirm = confirmPassword.trim().isNotEmpty;
+    final isMatch = CanonicalPasswordMatch.matches(confirmPassword, password);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -247,54 +205,22 @@ class _AuthConfirmPasswordFieldState extends State<AuthConfirmPasswordField> {
           obscureText: !widget.isVisible,
           enabled: widget.enabled,
           textInputAction: TextInputAction.done,
+          // Border/fill/geometry AND hint/label/icon state come from
+          // `inputDecorationTheme` (AppTheme) — the one form-field authority.
           decoration: InputDecoration(
             labelText: widget.labelText ?? 'Confirm Password',
             hintText: widget.hintText ?? 'Re-enter your password',
             floatingLabelBehavior: FloatingLabelBehavior.always,
-            hintStyle: TextStyle(
-              color: scheme.onSurfaceVariant.withValues(alpha: 0.6),
-            ),
-            prefixIcon: Icon(
-              Icons.lock_outline,
-              color: scheme.onSurfaceVariant,
-            ),
+            prefixIcon: const Icon(Icons.lock_outline),
             suffixIcon: IconButton(
               onPressed: widget.onToggleVisibility,
               icon: Icon(
                 widget.isVisible ? Icons.visibility_off : Icons.visibility,
-                color: scheme.onSurfaceVariant,
-              ),
-              tooltip: widget.isVisible ? 'Hide password' : 'Show password',
-            ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppShape.r12),
-              borderSide: BorderSide(
-                color: scheme.outlineVariant,
+                semanticLabel: widget.isVisible
+                    ? 'Sembunyikan kata sandi'
+                    : 'Tampilkan kata sandi',
               ),
             ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppShape.r12),
-              borderSide: BorderSide(
-                color: scheme.outlineVariant,
-              ),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppShape.r12),
-              borderSide: BorderSide(
-                color: scheme.primary,
-                width: 2,
-              ),
-            ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppShape.r12),
-              borderSide: BorderSide(color: scheme.error),
-            ),
-            focusedErrorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppShape.r12),
-              borderSide: BorderSide(color: scheme.error, width: 2),
-            ),
-            filled: true,
-            fillColor: scheme.surfaceContainerHigh,
           ),
           validator: widget.validator,
         ),
@@ -314,9 +240,7 @@ class _AuthConfirmPasswordFieldState extends State<AuthConfirmPasswordField> {
         color: scheme.surfaceContainerHigh,
         borderRadius: BorderRadius.circular(AppShape.r8),
         border: Border.all(
-          color: isMatch
-              ? context.statusColors.success
-              : scheme.outlineVariant,
+          color: isMatch ? context.statusColors.success : scheme.outlineVariant,
         ),
       ),
       child: Row(
@@ -330,8 +254,7 @@ class _AuthConfirmPasswordFieldState extends State<AuthConfirmPasswordField> {
           Expanded(
             child: Text(
               isMatch ? 'Passwords match' : 'Passwords do not match',
-              style: TextStyle(
-                fontSize: AppType.s14,
+              style: context.typeRoles.bodyDense.copyWith(
                 fontWeight: FontWeight.w500,
                 color: isMatch ? context.statusColors.success : scheme.error,
               ),

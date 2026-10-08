@@ -8,9 +8,8 @@ import 'package:labuda/shared/domain/entities/resource_projection.dart';
 /// owns a second formatting engine: every grouping below delegates to
 /// [formatGroupedAmount] (the canonical envelope loop), so seller/wallet
 /// screens and chat/discovery cards cannot drift apart. `intl` is kept out
-/// of display entirely — it survives only in `currency_input_formatter.dart`,
-/// which is an input mask (groups while the user types), not a display
-/// formatter.
+/// of display entirely: unambiguous, deterministic grouping beats
+/// locale-dependent interpolation.
 ///
 /// Usage:
 /// ```dart

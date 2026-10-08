@@ -1071,7 +1071,7 @@ func (w *OutboxWorker) SetupOrderChatLinkHandler(
 
 // SetupAuctionSettlementFailedHandler registers the notification consumer for
 // auction.settlement_failed events (emitted by AuctionSettlementWorker when a
-// settlement deadline passes and the auction returns to DRAFT). The canonical
+// settlement deadline passes and the auction auto-reschedules). The canonical
 // violation + restriction are recorded inline in the worker's transaction;
 // this fanout only delivers notifications.
 func (w *OutboxWorker) SetupAuctionSettlementFailedHandler(notifHandler EventHandler) *OutboxWorker {

@@ -5,20 +5,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:labuda/core/core.dart';
+import 'package:labuda/domains/system/shared/domain/services/time_format_service.dart';
 import 'package:labuda/shared/shared.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
 import 'package:labuda/domains/social/content/content.dart';
 import 'package:labuda/domains/social/content/presentation/providers/content_state.dart';
 import 'package:labuda/domains/social/content/presentation/widgets/content_resource_projection_card.dart';
 import 'package:labuda/domains/social/share/share.dart';
-import 'package:labuda/domains/social/like/domain/entities/like.dart';
-import 'package:labuda/domains/social/like/presentation/providers/like_notifier.dart';
-import 'package:labuda/domains/social/content/presentation/utils/content_like_handlers.dart';
+import 'package:labuda/domains/social/content/presentation/widgets/content_engagement_actions.dart';
 import 'package:labuda/domains/user/profile/presentation/providers/user_data_provider.dart';
 import 'package:labuda/domains/system/report/domain/entities/entities.dart';
-import 'package:labuda/domains/system/report/presentation/dialogs/report_submission_dialog.dart';
 import 'package:labuda/shared/widgets/carousel_video_player.dart';
-
 
 /// Content Detail Screen
 class ContentDetailScreen extends ConsumerStatefulWidget {
@@ -46,45 +43,22 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
   Widget build(BuildContext context) {
     final detailState = ref.watch(contentDetailProvider);
 
-    // Get current user info for like functionality
     final authState = ref.watch(authControllerProvider);
-    final currentUserId = authState is AuthStateAuthenticated
-        ? authState.user.id
-        : null;
-    final currentUserName = authState is AuthStateAuthenticated
-        ? authState.user.username
-        : null;
-
-    // Watch like stats for this content (only if authenticated)
-    AsyncValue<LikeStats>? likeStatsAsync;
-    if (currentUserId == null || currentUserId.isEmpty) {
-      likeStatsAsync = null;
-    } else {
-      likeStatsAsync = ref.watch(
-        likeStatsProvider(
-          LikeStatsParams(
-            targetId: widget.contentId,
-            // BACKEND ALIGNMENT V1: Use "content" for all universal content rows
-            targetType: LikeTargetType.content,
-            currentUserId: currentUserId,
-          ),
-        ),
-      );
-    }
 
     return Scaffold(
       appBar: _buildAppBar(context, detailState, authState),
-      body: detailState.map(
-        initial: (_) => const SizedBox.shrink(),
-        loading: (_) => const Center(child: CircularProgressIndicator()),
-        loaded: (state) => _buildContent(
-          context,
-          state.content,
-          likeStatsAsync: likeStatsAsync,
-          currentUserId: currentUserId,
-          currentUserName: currentUserName,
+      // This screen has NO bottom action bar, so the BODY is the layer that
+      // owns the system bottom inset: `SafeArea` consumes the real, live inset
+      // exactly once (Scaffold has already removed the top inset because an
+      // AppBar is present), replacing the fixed 100px spacer that used to stand
+      // in for the inset and stayed behind when the system bar disappeared.
+      body: SafeArea(
+        child: detailState.map(
+          initial: (_) => const SizedBox.shrink(),
+          loading: (_) => const Center(child: CircularProgressIndicator()),
+          loaded: (state) => _buildContent(context, state.content),
+          error: (state) => _buildError(context, state.message),
         ),
-        error: (state) => _buildError(context, state.message),
       ),
     );
   }
@@ -96,7 +70,7 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
   ) {
     return AppBar(
       leading: IconButton(
-        icon: const Icon(Icons.arrow_back),
+        icon: const Icon(Icons.arrow_back, semanticLabel: 'Kembali'),
         onPressed: () => context.pop(),
       ),
       title: const Text('Content Detail'),
@@ -131,7 +105,7 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
     final authState = ref.read(authControllerProvider);
     if (authState is! AuthStateAuthenticated) {
       if (mounted) {
-        AppSnackBar.showError(context, 'Please login to report content');
+        ref.read(navigationHandlerProvider).navigateToSignIn();
       }
       return;
     }
@@ -139,30 +113,28 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
     // Check if user is trying to report their own content
     if (content.authorId == authState.user.id) {
       if (mounted) {
-        AppSnackBar.showError(context, 'Cannot report your own content');
+        AppSnackBar.showError(
+          context,
+          'Tidak dapat melaporkan konten Anda sendiri',
+        );
       }
       return;
     }
 
-    // Show report submission dialog (content reporting is ENABLED)
-    await ReportSubmissionDialog.show(
-      context,
-      targetId: content.id,
-      targetType: ReportTargetType.content,
-      targetTitle: content.content.substring(
-        0,
-        content.content.length > 100 ? 100 : content.content.length,
+    // Open the canonical report destination (content reporting is ENABLED)
+    await context.push<bool>(
+      RoutePaths.reportLocation(
+        targetType: ReportTargetType.content.name,
+        targetId: content.id,
+        targetTitle: content.content.substring(
+          0,
+          content.content.length > 100 ? 100 : content.content.length,
+        ),
       ),
     );
   }
 
-  Widget _buildContent(
-    BuildContext context,
-    Content content, {
-    AsyncValue<LikeStats>? likeStatsAsync,
-    String? currentUserId,
-    String? currentUserName,
-  }) {
+  Widget _buildContent(BuildContext context, Content content) {
     // D1 — governance lifecycle gate. Detail surface preserves architectural
     // truth (HTTP 404 for removed) but defends in depth against any future
     // path where lifecycle=removed reaches the screen.
@@ -198,21 +170,23 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
                 child: _buildResourceProjection(context, content),
               ),
             ),
-          // Engagement — icon+count only (canonical, no labels)
+          // Engagement — the canonical icon+count producer (like/comment/share)
           SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p12),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppMetrics.p16,
+              vertical: AppMetrics.p12,
+            ),
             sliver: SliverToBoxAdapter(
-              child: _buildEngagementSection(
-                context,
-                content,
-                likeStatsAsync: likeStatsAsync,
-                currentUserId: currentUserId,
-                currentUserName: currentUserName,
+              child: ContentEngagementActions(
+                targetId: content.id,
+                targetOwnerId: content.authorId,
+                likeCount: content.engagement.likeCount,
+                commentCount: content.engagement.commentCount,
+                onComment: () => _navigateToComments(context),
+                onShare: () => _handleShareContent(context, content),
               ),
             ),
           ),
-          // Bottom spacing
-          const SliverToBoxAdapter(child: SizedBox(height: 100)),
         ],
       ),
     );
@@ -246,16 +220,20 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
             top: 16,
             right: 16,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p8),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppMetrics.p12,
+                vertical: AppMetrics.p8,
+              ),
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.scrim.withValues(alpha: 0.6),
+                color: Theme.of(
+                  context,
+                ).colorScheme.scrim.withValues(alpha: 0.6),
                 borderRadius: BorderRadius.circular(AppShape.r16),
               ),
               child: Text(
                 '${_currentMediaIndex + 1} / ${content.media.length}',
-                style: TextStyle(
+                style: context.typeRoles.labelMicro.copyWith(
                   color: Theme.of(context).colorScheme.onPrimary,
-                  fontSize: AppType.s12,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -309,7 +287,11 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
           width: double.infinity,
           height: double.infinity,
           color: scheme.surfaceContainerHighest,
-          child: Icon(Icons.image, size: AppIconSize.display, color: scheme.onSurfaceVariant),
+          child: Icon(
+            Icons.image,
+            size: AppIconSize.display,
+            color: scheme.onSurfaceVariant,
+          ),
         );
       },
     );
@@ -326,9 +308,7 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
         // Content text
         Text(
           content.content,
-          style: Theme.of(
-            context,
-          ).textTheme.bodyLarge?.copyWith(fontSize: AppType.s16, height: 1.5),
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(height: 1.5),
         ),
 
         // Tags
@@ -340,7 +320,7 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
             children: content.tags.map((tag) {
               return Chip(
                 label: Text('#$tag'),
-                labelStyle: const TextStyle(fontSize: AppType.s12),
+                labelStyle: Theme.of(context).textTheme.labelLarge,
                 padding: EdgeInsets.zero,
                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               );
@@ -393,9 +373,8 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
                         Flexible(
                           child: Text(
                             authorPlaceholder,
-                            style: TextStyle(
+                            style: context.typeRoles.bodyDense.copyWith(
                               fontWeight: FontWeight.w600,
-                              fontSize: AppType.s14,
                               fontStyle: FontStyle.italic,
                               color: scheme.onSurfaceVariant,
                             ),
@@ -405,9 +384,8 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
                         Flexible(
                           child: Text(
                             '@${content.authorUsername}',
-                            style: const TextStyle(
+                            style: context.typeRoles.bodyDense.copyWith(
                               fontWeight: FontWeight.w600,
-                              fontSize: AppType.s14,
                             ),
                           ),
                         ),
@@ -431,9 +409,18 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
           ),
         ),
         const SizedBox(width: 8),
-        Text(
-          _formatTime(content.createdAt),
-          style: TextStyle(fontSize: AppType.s12, color: scheme.onSurfaceVariant),
+        // Trailing timestamp is compact secondary metadata: flex-bounded so
+        // it can never push the author row out of bounds, with the same
+        // single-line ellipsis strategy as the username body.
+        Flexible(
+          child: Text(
+            const TimeFormatService().formatTimeAgo(content.createdAt),
+            style: context.typeRoles.labelMicro.copyWith(
+              color: scheme.onSurfaceVariant,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
         ),
       ],
     );
@@ -466,19 +453,15 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
     return Builder(
       builder: (context) {
         final scheme = Theme.of(context).colorScheme;
-        return Row(
-          children: [
-            Icon(
-              Icons.location_on,
-              size: AppIconSize.inlineGlyph,
-              color: scheme.onSurfaceVariant,
-            ),
-            const SizedBox(width: 4),
-            Text(
-              location.displayLocation,
-              style: TextStyle(fontSize: AppType.s14, color: scheme.onSurfaceVariant),
-            ),
-          ],
+        return AddressLocationView(
+          location: location.displayLocation,
+          mode: AddressLocationMode.compact,
+          icon: Icons.location_on,
+          iconSize: AppIconSize.inlineGlyph,
+          spacing: 4,
+          style: context.typeRoles.bodyDense.copyWith(
+            color: scheme.onSurfaceVariant,
+          ),
         );
       },
     );
@@ -493,167 +476,6 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
       resourceProjection: content.resourceProjection!,
       onTap: () => _navigateToResourceProjection(context, content),
     );
-  }
-
-  Widget _buildEngagementSection(
-    BuildContext context,
-    Content content, {
-    AsyncValue<LikeStats>? likeStatsAsync,
-    String? currentUserId,
-    String? currentUserName,
-  }) {
-    final scheme = Theme.of(context).colorScheme;
-    return Row(
-      children: [
-        _buildLikeEngagementItem(
-          context,
-          content: content,
-          likeStatsAsync: likeStatsAsync,
-          currentUserId: currentUserId,
-          currentUserName: currentUserName,
-        ),
-        const SizedBox(width: 16),
-        InkWell(
-          onTap: () => _navigateToComments(context),
-          borderRadius: BorderRadius.circular(AppShape.r8),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p4, vertical: AppMetrics.p8),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.chat_bubble_outline,
-                  size: AppIconSize.inlineGlyph,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-                if (content.engagement.commentCount > 0) ...[
-                  const SizedBox(width: 4),
-                  Text(
-                    '${content.engagement.commentCount}',
-                    style: TextStyle(
-                      fontSize: AppType.s12,
-                      color: Theme.of(context).colorScheme.primary,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(width: 16),
-        InkWell(
-          onTap: () => _handleShareContent(context, content),
-          borderRadius: BorderRadius.circular(AppShape.r8),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p4, vertical: AppMetrics.p8),
-            child: Icon(
-              Icons.share_outlined,
-              size: AppIconSize.inlineGlyph,
-              color: scheme.onSurfaceVariant,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildLikeEngagementItem(
-    BuildContext context, {
-    required Content content,
-    AsyncValue<LikeStats>? likeStatsAsync,
-    String? currentUserId,
-    String? currentUserName,
-  }) {
-    Widget buildLikeRow({
-      required IconData icon,
-      required int count,
-      required bool isActive,
-      VoidCallback? onTap,
-    }) {
-      final scheme = Theme.of(context).colorScheme;
-      final color = isActive
-          ? scheme.primary
-          : (onTap != null ? scheme.primary : scheme.onSurfaceVariant);
-      return InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppShape.r8),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p4, vertical: AppMetrics.p8),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: AppIconSize.inlineGlyph, color: color),
-              if (count > 0) ...[
-                const SizedBox(width: 4),
-                Text(
-                  '$count',
-                  style: TextStyle(
-                    fontSize: AppType.s12,
-                    color: color,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-      );
-    }
-
-    if (currentUserId == null || currentUserId.isEmpty) {
-      return buildLikeRow(
-        icon: Icons.favorite_border,
-        count: content.engagement.likeCount,
-        isActive: false,
-      );
-    }
-
-    return likeStatsAsync?.when(
-          data: (stats) => buildLikeRow(
-            icon: stats.isLikedByCurrentUser
-                ? Icons.favorite
-                : Icons.favorite_border,
-            count: stats.totalLikes,
-            isActive: stats.isLikedByCurrentUser,
-            onTap: () => _handleContentLike(
-              context,
-              content,
-              currentUserId,
-              currentUserName ?? '',
-            ),
-          ),
-          loading: () => buildLikeRow(
-            icon: Icons.favorite_border,
-            count: content.engagement.likeCount,
-            isActive: false,
-          ),
-          error: (_, _) => buildLikeRow(
-            icon: Icons.favorite_border,
-            count: content.engagement.likeCount,
-            isActive: false,
-          ),
-        ) ??
-        buildLikeRow(
-          icon: Icons.favorite_border,
-          count: content.engagement.likeCount,
-          isActive: false,
-        );
-  }
-
-  /// Handle content like action using canonical Like system
-  void _handleContentLike(
-    BuildContext context,
-    Content content,
-    String currentUserId,
-    String currentUserName,
-  ) {
-    final handlers = ContentLikeHandlers(
-      ref: ref,
-      context: context,
-      content: content,
-    );
-    handlers.handleLike(currentUserId, currentUserName);
   }
 
   /// Handle share action - opens ShareBottomSheet for content
@@ -715,14 +537,13 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
     final scheme = Theme.of(context).colorScheme;
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p12),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppMetrics.p16,
+        vertical: AppMetrics.p12,
+      ),
       decoration: BoxDecoration(
         color: scheme.surfaceContainerHigh,
-        border: Border(
-          bottom: BorderSide(
-            color: scheme.outlineVariant,
-          ),
-        ),
+        border: Border(bottom: BorderSide(color: scheme.outlineVariant)),
       ),
       child: Row(
         children: [
@@ -741,8 +562,7 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
           const SizedBox(width: 8),
           Text(
             'Tidak tersedia',
-            style: TextStyle(
-              fontSize: AppType.s14,
+            style: context.typeRoles.bodyDense.copyWith(
               fontWeight: FontWeight.w600,
               color: scheme.onSurface,
             ),
@@ -771,14 +591,18 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
               color: scheme.outline,
             ),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'Konten dihapus',
-              style: TextStyle(fontSize: AppType.s20, fontWeight: FontWeight.w500),
+              style: context.typeRoles.titleProminent.copyWith(
+                fontWeight: FontWeight.w500,
+              ),
             ),
             const SizedBox(height: 8),
             Text(
               'Konten ini sudah tidak tersedia.',
-              style: TextStyle(fontSize: AppType.s14, color: scheme.onSurfaceVariant),
+              style: context.typeRoles.bodyDense.copyWith(
+                color: scheme.onSurfaceVariant,
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
@@ -804,15 +628,16 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
             color: scheme.error,
           ),
           const SizedBox(height: 16),
-          const Text(
+          Text(
             'Failed to load content',
-            style: TextStyle(fontSize: AppType.s20, fontWeight: FontWeight.w500),
+            style: context.typeRoles.titleProminent.copyWith(
+              fontWeight: FontWeight.w500,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
             message,
-            style: TextStyle(
-              fontSize: AppType.s14,
+            style: context.typeRoles.bodyDense.copyWith(
               color: scheme.onSurfaceVariant,
             ),
             textAlign: TextAlign.center,
@@ -829,16 +654,6 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
         ],
       ),
     );
-  }
-
-  String _formatTime(DateTime dateTime) {
-    final now = DateTime.now();
-    final diff = now.difference(dateTime);
-    if (diff.inMinutes < 1) return 'baru saja';
-    if (diff.inMinutes < 60) return '${diff.inMinutes}m';
-    if (diff.inHours < 24) return '${diff.inHours}j';
-    if (diff.inDays < 7) return '${diff.inDays}h';
-    return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
   }
 
   void _navigateToResourceProjection(BuildContext context, Content content) {
@@ -873,7 +688,11 @@ class _ContentAuthorVerificationBadge extends ConsumerWidget {
         if (!isVerified) return const SizedBox.shrink();
         return Padding(
           padding: EdgeInsets.only(left: AppMetrics.p8),
-          child: Icon(Icons.verified, size: AppIconSize.inlineGlyph, color: context.statusColors.info),
+          child: Icon(
+            Icons.verified,
+            size: AppIconSize.inlineGlyph,
+            color: context.statusColors.info,
+          ),
         );
       },
       loading: () => const SizedBox.shrink(),

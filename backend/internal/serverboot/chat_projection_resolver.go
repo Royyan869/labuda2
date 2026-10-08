@@ -183,7 +183,6 @@ func (r *profileProjectionBatchResolver) ResolveProfiles(
 					CanInteract:        false,
 					BlockedByTombstone: false,
 				},
-				nil,
 			)
 			if err != nil {
 				return err

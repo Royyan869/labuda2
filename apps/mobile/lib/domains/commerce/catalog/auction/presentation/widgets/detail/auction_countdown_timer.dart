@@ -47,10 +47,17 @@ class AuctionCountdownTimer extends StatelessWidget {
 
     return Container(
       color: display.backgroundColor,
-      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p12),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppMetrics.p16,
+        vertical: AppMetrics.p12,
+      ),
       child: Row(
         children: [
-          Icon(display.icon, size: AppIconSize.action, color: display.iconColor),
+          Icon(
+            display.icon,
+            size: AppIconSize.action,
+            color: display.iconColor,
+          ),
           const SizedBox(width: 8),
           Expanded(
             child: Column(
@@ -58,8 +65,7 @@ class AuctionCountdownTimer extends StatelessWidget {
               children: [
                 Text(
                   display.label,
-                  style: TextStyle(
-                    fontSize: AppType.s14,
+                  style: context.typeRoles.bodyDense.copyWith(
                     fontWeight: display.fontWeight,
                     color: display.textColor,
                   ),
@@ -68,8 +74,7 @@ class AuctionCountdownTimer extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     display.subtitle,
-                    style: TextStyle(
-                      fontSize: AppType.s12,
+                    style: context.typeRoles.labelMicro.copyWith(
                       color: display.textColor.withValues(alpha: 0.8),
                     ),
                   ),
@@ -82,8 +87,7 @@ class AuctionCountdownTimer extends StatelessWidget {
           if (auction.status == AuctionStatus.active && !hasEnded) ...[
             Text(
               _formatDuration(timeRemaining),
-              style: TextStyle(
-                fontSize: AppType.s16,
+              style: context.typeRoles.titleCompact.copyWith(
                 fontWeight: FontWeight.bold,
                 color: _getTimeColor(context, scheme, timeRemaining),
               ),
@@ -93,8 +97,7 @@ class AuctionCountdownTimer extends StatelessWidget {
           if (auction.status == AuctionStatus.scheduled) ...[
             Text(
               _formatDuration(timeRemaining),
-              style: TextStyle(
-                fontSize: AppType.s16,
+              style: context.typeRoles.titleCompact.copyWith(
                 fontWeight: FontWeight.bold,
                 color: scheme.secondary,
               ),
@@ -105,7 +108,8 @@ class AuctionCountdownTimer extends StatelessWidget {
     );
   }
 
-  _TimerDisplay _getDisplay(BuildContext context,
+  _TimerDisplay _getDisplay(
+    BuildContext context,
     ColorScheme scheme,
     bool hasEnded,
     Duration timeRemaining,

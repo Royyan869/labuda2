@@ -14,9 +14,8 @@ import 'package:labuda/domains/commerce/transaction/shipping/presentation/provid
 import 'package:labuda/domains/commerce/transaction/shipping/presentation/providers/shipping_notifier.dart';
 import 'package:labuda/domains/commerce/transaction/shipping/presentation/providers/shipping_state.dart';
 import 'package:labuda/domains/user/preference/seller/domain/entities/seller_earnings.dart';
-import 'package:labuda/domains/user/preference/seller/domain/entities/seller_activity.dart';
-import 'package:labuda/domains/user/preference/seller/domain/entities/seller_analytics.dart';
-import 'package:labuda/domains/user/preference/seller/domain/entities/seller_dashboard.dart';
+import 'package:labuda/domains/user/preference/seller/domain/entities/seller_analytics_read.dart';
+import 'package:labuda/domains/user/preference/seller/domain/entities/seller_performance.dart';
 import 'package:labuda/domains/user/preference/seller/domain/entities/seller_subscription.dart';
 import 'package:labuda/domains/user/preference/seller/domain/entities/withdrawal.dart';
 import 'package:labuda/domains/user/preference/seller/domain/repositories/seller_repository.dart';
@@ -24,8 +23,6 @@ import 'package:labuda/domains/user/preference/seller/seller_di.dart';
 import 'package:labuda/domains/user/preference/seller/presentation/screens/seller_dashboard_screen.dart';
 import 'package:labuda/domains/user/preference/seller/presentation/screens/seller_earnings_screen.dart';
 import 'package:labuda/domains/user/preference/seller/presentation/providers/withdraw_notifier.dart';
-import 'package:labuda/domains/user/profile/domain/entities/address_entity.dart';
-import 'package:labuda/domains/user/profile/presentation/providers/address_list_provider.dart';
 import 'package:labuda/domains/user/profile/domain/entities/bank_account_entity.dart';
 import 'package:labuda/domains/user/profile/presentation/providers/bank_account_provider.dart';
 import 'package:labuda/shared/models/wilayah_models.dart';
@@ -39,8 +36,7 @@ class _FakeSellerAuthController extends AuthController {
   AuthState build() => _state;
 }
 
-class _VerifiedSellerVerificationNotifier
-    extends SellerVerificationV2Notifier {
+class _VerifiedSellerVerificationNotifier extends SellerVerificationV2Notifier {
   @override
   SellerVerificationV2State build() => const SellerVerificationV2State(
     isVerified: true,
@@ -74,34 +70,12 @@ class _ReadyShippingNotifier extends ShippingNotifier {
 
 class _FailingSellerRepository implements SellerRepository {
   @override
-  Future<Result<SellerDashboardStats>> getDashboardStats(
-    String sellerId,
-  ) async {
+  Future<Result<SellerAnalytics>> getAnalytics(String sellerId) async {
     throw UnimplementedError();
   }
 
   @override
-  Future<Result<SellerAnalytics>> getAnalytics({
-    required String sellerId,
-    required AnalyticsPeriod period,
-    required DateTime startDate,
-    required DateTime endDate,
-  }) async {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<Result<SellerPerformance>> getPerformance(
-    String sellerId,
-  ) async {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<Result<List<SalesDataPoint>>> getSalesTrendData({
-    required String sellerId,
-    int days = 30,
-  }) async {
+  Future<Result<SellerPerformance>> getPerformance(String sellerId) async {
     throw UnimplementedError();
   }
 
@@ -129,31 +103,8 @@ class _FailingSellerRepository implements SellerRepository {
   }
 
   @override
-  Future<Result<List<RecentActivityItem>>> getRecentActivity(
-    String sellerId, {
-    int limit = 10,
-  }) async {
+  Future<Result<SellerSubscription>> getSubscription(String sellerId) async {
     throw UnimplementedError();
-  }
-
-  @override
-  Future<Result<List<RecentActivityItem>>> getActivityHistory(
-    ActivityHistoryParams params, {
-    int limit = 100,
-  }) async {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<Result<SellerSubscription>> getSubscription(
-    String sellerId,
-  ) async {
-    throw UnimplementedError();
-  }
-
-  @override
-  Stream<SellerSubscription?> watchSubscription(String sellerId) {
-    return const Stream<SellerSubscription?>.empty();
   }
 
   @override
@@ -228,30 +179,6 @@ BankAccountEntity _defaultBankAccount() {
   );
 }
 
-AddressEntity _senderAddress() {
-  final now = DateTime.utc(2026, 8, 1);
-  return AddressEntity(
-    id: 'sender-address-001',
-    userId: _sellerUser().id,
-    tags: const [AddressTag.sender],
-    recipientName: 'Farm Sentosa',
-    phone: '08123456789',
-    province: const Province(id: '33', name: 'Jawa Tengah'),
-    city: const City(id: '3301', name: 'Kabupaten Demak', provinceId: '33'),
-    district: const District(id: '330101', name: 'Mranggen', cityId: '3301'),
-    village: const Village(
-      id: '3301012001',
-      name: 'Rowosari',
-      districtId: '330101',
-    ),
-    streetAddress: 'Jl. Melati No. 12',
-    postalCode: '59511',
-    isPrimary: true,
-    createdAt: now,
-    updatedAt: now,
-  );
-}
-
 ShippingSetup _activeShippingSetup() {
   final now = DateTime.utc(2026, 8, 1);
   return ShippingSetup(
@@ -289,9 +216,6 @@ dynamic _queueSafeOverrides() {
       sellerId: _sellerUser().id,
       status: OrderStatus.paid,
     ).overrideWith((ref) => Stream.value(const [])),
-    primaryAddressProvider(
-      _sellerUser().id,
-    ).overrideWith((ref) async => Result.success(_senderAddress())),
     sellerSubscriptionFutureProvider(
       _sellerUser().id,
     ).overrideWith((ref) async => _activeSubscription()),
@@ -397,12 +321,11 @@ void main() {
 
         // Production balance card titles (Indonesian — this screen is id-first;
         // the old English pins were aligned to the codebase, per doctrine
-        // "test mengikuti codebase").
-        // 'Saldo Tersedia' and 'Saldo Tertahan' also appear in the
-        // 'Tentang Penghasilan' info section, so use findsWidgets.
-        expect(find.text('Saldo Tersedia'), findsWidgets);
+        // "test mengikuti codebase"). The detailed definitions moved to the
+        // canonical AppBar Info surface, so each title now appears once.
+        expect(find.text('Saldo Tersedia'), findsOneWidget);
         expect(find.text('Total Penghasilan'), findsOneWidget);
-        expect(find.text('Saldo Tertahan'), findsWidgets);
+        expect(find.text('Saldo Tertahan'), findsOneWidget);
         expect(find.text('Total Penarikan'), findsOneWidget);
 
         // Production withdraw button text.
@@ -480,73 +403,71 @@ void main() {
       },
     );
 
-    testWidgets(
-      'pending balance card shows when backend returns non-zero',
-      (tester) async {
-        await tester.pumpWidget(
-          _buildApp(
-            overrides: [
-              authControllerProvider.overrideWith(
-                () => _FakeSellerAuthController(
-                  AuthState.authenticated(_sellerUser(), emailVerified: true),
-                ),
+    testWidgets('pending balance card shows when backend returns non-zero', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _buildApp(
+          overrides: [
+            authControllerProvider.overrideWith(
+              () => _FakeSellerAuthController(
+                AuthState.authenticated(_sellerUser(), emailVerified: true),
               ),
-              sellerVerificationV2NotifierProvider.overrideWith(
-                _VerifiedSellerVerificationNotifier.new,
-              ),
-              sellerEarningsProvider.overrideWith(
-                (ref, sellerId) async => _earnings(pendingRevenue: 65000),
-              ),
-              bankAccountsStreamProvider(_sellerUser().id).overrideWith(
-                (ref) => Stream.value(Result.success([_defaultBankAccount()])),
-              ),
-              withdrawalHistoryProvider.overrideWith((ref) async => const []),
-            ],
-            initialLocation: RoutePaths.sellerEarnings,
-          ),
-        );
-        await tester.pumpAndSettle();
+            ),
+            sellerVerificationV2NotifierProvider.overrideWith(
+              _VerifiedSellerVerificationNotifier.new,
+            ),
+            sellerEarningsProvider.overrideWith(
+              (ref, sellerId) async => _earnings(pendingRevenue: 65000),
+            ),
+            bankAccountsStreamProvider(_sellerUser().id).overrideWith(
+              (ref) => Stream.value(Result.success([_defaultBankAccount()])),
+            ),
+            withdrawalHistoryProvider.overrideWith((ref) async => const []),
+          ],
+          initialLocation: RoutePaths.sellerEarnings,
+        ),
+      );
+      await tester.pumpAndSettle();
 
-        // Pending Balance card is rendered (production uses this exact title
-        // unconditionally, regardless of zero/non-zero pendingRevenue).
-        // The text also appears in the 'Tentang Penghasilan' info section.
-        expect(find.text('Saldo Tertahan'), findsWidgets);
-      },
-    );
+      // Pending Balance card is rendered (production uses this exact title
+      // unconditionally, regardless of zero/non-zero pendingRevenue). The
+      // definitions card moved to Page Info, so the title appears once.
+      expect(find.text('Saldo Tertahan'), findsOneWidget);
+    });
 
-    testWidgets(
-      'withdrawal history error shows canonical error text',
-      (tester) async {
-        await tester.pumpWidget(
-          _buildApp(
-            overrides: [
-              authControllerProvider.overrideWith(
-                () => _FakeSellerAuthController(
-                  AuthState.authenticated(_sellerUser(), emailVerified: true),
-                ),
+    testWidgets('withdrawal history error shows canonical error text', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _buildApp(
+          overrides: [
+            authControllerProvider.overrideWith(
+              () => _FakeSellerAuthController(
+                AuthState.authenticated(_sellerUser(), emailVerified: true),
               ),
-              sellerVerificationV2NotifierProvider.overrideWith(
-                _VerifiedSellerVerificationNotifier.new,
-              ),
-              sellerEarningsProvider.overrideWith(
-                (ref, sellerId) async => _earnings(),
-              ),
-              bankAccountsStreamProvider(_sellerUser().id).overrideWith(
-                (ref) => Stream.value(Result.success([_defaultBankAccount()])),
-              ),
-              withdrawalHistoryProvider.overrideWith((ref) async {
-                throw Exception('history boom');
-              }),
-            ],
-            initialLocation: RoutePaths.sellerEarnings,
-          ),
-        );
-        await tester.pumpAndSettle();
+            ),
+            sellerVerificationV2NotifierProvider.overrideWith(
+              _VerifiedSellerVerificationNotifier.new,
+            ),
+            sellerEarningsProvider.overrideWith(
+              (ref, sellerId) async => _earnings(),
+            ),
+            bankAccountsStreamProvider(_sellerUser().id).overrideWith(
+              (ref) => Stream.value(Result.success([_defaultBankAccount()])),
+            ),
+            withdrawalHistoryProvider.overrideWith((ref) async {
+              throw Exception('history boom');
+            }),
+          ],
+          initialLocation: RoutePaths.sellerEarnings,
+        ),
+      );
+      await tester.pumpAndSettle();
 
-        // Production error handler renders this exact text (no key, no retry
-        // button — this is the canonical error state).
-        expect(find.text('Gagal memuat riwayat penarikan'), findsOneWidget);
-      },
-    );
+      // Production error handler renders this exact text (no key, no retry
+      // button — this is the canonical error state).
+      expect(find.text('Gagal memuat riwayat penarikan'), findsOneWidget);
+    });
   });
 }

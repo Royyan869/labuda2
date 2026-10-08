@@ -7,33 +7,26 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestUpdateDraft_DeniesNonDraftStatuses(t *testing.T) {
+// Scheduled is the ONLY editable lifecycle state (create = publish), so every
+// other state must reject an update without touching the auction.
+func TestUpdateScheduled_DeniesNonScheduledStatuses(t *testing.T) {
 	statuses := []Status{
-		StatusScheduled,
 		StatusActive,
 		StatusWaitingSettlement,
 		StatusEnded,
 		StatusCancelled,
+		StatusLapsed,
 	}
 
 	for _, status := range statuses {
 		t.Run(string(status), func(t *testing.T) {
-			auction := createTestDraftAuction()
+			auction := createTestAuction()
 			auction.Status = status
 			before := *auction
 
-			err := auction.UpdateDraft(
-				20000,
-				2000,
-				nil,
-				auction.StartAt,
-				auction.EndAt,
-			)
+			err := auction.UpdateScheduled(auction.StartAt, auction.EndAt)
 
 			require.Error(t, err)
-			assert.Equal(t, before.StartPrice, auction.StartPrice)
-			assert.Equal(t, before.BidIncrement, auction.BidIncrement)
-			assert.Equal(t, before.BuyNowPrice, auction.BuyNowPrice)
 			assert.Equal(t, before.StartAt, auction.StartAt)
 			assert.Equal(t, before.EndAt, auction.EndAt)
 			assert.Equal(t, before.Status, auction.Status)

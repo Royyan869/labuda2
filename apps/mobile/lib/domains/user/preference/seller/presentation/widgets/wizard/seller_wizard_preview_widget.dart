@@ -10,7 +10,7 @@ import 'package:labuda/shared/shared.dart';
 class SellerWizardPreviewWidget extends StatelessWidget {
   final String username;
   final String phoneNumber;
-  final String senderAddress;
+  final String primaryAddress;
   final bool emailVerified;
   final double packageFee;
   final int packageDurationDays;
@@ -27,7 +27,7 @@ class SellerWizardPreviewWidget extends StatelessWidget {
     super.key,
     required this.username,
     required this.phoneNumber,
-    required this.senderAddress,
+    required this.primaryAddress,
     required this.emailVerified,
     required this.packageFee,
     required this.packageDurationDays,
@@ -51,8 +51,7 @@ class SellerWizardPreviewWidget extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             'Review the package, account data, and store details before you continue to payment.',
-            style: TextStyle(
-              fontSize: AppType.s14,
+            style: context.typeRoles.bodyDense.copyWith(
               color: scheme.onSurfaceVariant,
             ),
           ),
@@ -68,15 +67,6 @@ class SellerWizardPreviewWidget extends StatelessWidget {
                 AppFormatters.formatCurrency(packageFee),
               ),
               _buildInfoRow(context, 'Duration', '$packageDurationDays days'),
-              const SizedBox(height: 4),
-              Text(
-                'Payment is required before seller authority becomes active. KYC and bank review are handled later for payout access.',
-                style: TextStyle(
-                  fontSize: AppType.s12,
-                  height: 1.5,
-                  color: scheme.onSurfaceVariant,
-                ),
-              ),
             ],
           ),
 
@@ -93,7 +83,7 @@ class SellerWizardPreviewWidget extends StatelessWidget {
                 emailVerified ? 'Verified' : 'Not verified',
               ),
               _buildInfoRow(context, 'Phone', phoneNumber),
-              _buildInfoRow(context, 'Sender Address', senderAddress),
+              _buildInfoRow(context, 'Alamat Utama', primaryAddress),
             ],
           ),
 
@@ -123,38 +113,6 @@ class SellerWizardPreviewWidget extends StatelessWidget {
 
           _buildTermsAgreement(context),
 
-          const SizedBox(height: 24),
-
-          Container(
-            padding: const EdgeInsets.all(AppMetrics.p16),
-            decoration: BoxDecoration(
-              color: context.statusColors.warning.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(AppShape.r12),
-              border: Border.all(
-                color: context.statusColors.warning.withValues(alpha: 0.3),
-              ),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(
-                  Icons.info_outline,
-                  color: context.statusColors.warning,
-                  size: AppIconSize.action,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    'Payment activates seller authority. KYC and bank review are handled later for payout access.',
-                    style: TextStyle(
-                      fontSize: AppType.s14,
-                      color: scheme.onSurfaceVariant,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
         ],
       ),
     );
@@ -163,8 +121,7 @@ class SellerWizardPreviewWidget extends StatelessWidget {
   Widget _buildSectionHeader(BuildContext context, String title) {
     return Text(
       title,
-      style: TextStyle(
-        fontSize: AppType.s20,
+      style: context.typeRoles.titleSection.copyWith(
         fontWeight: FontWeight.bold,
         color: Theme.of(context).colorScheme.onSurface,
       ),
@@ -190,8 +147,7 @@ class SellerWizardPreviewWidget extends StatelessWidget {
         children: [
           Text(
             title,
-            style: TextStyle(
-              fontSize: AppType.s16,
+            style: context.typeRoles.titleCompact.copyWith(
               fontWeight: FontWeight.bold,
               color: scheme.onSurface,
             ),
@@ -214,8 +170,7 @@ class SellerWizardPreviewWidget extends StatelessWidget {
             width: AppContentSize.termLabel,
             child: Text(
               label,
-              style: TextStyle(
-                fontSize: AppType.s14,
+              style: context.typeRoles.bodyDense.copyWith(
                 fontWeight: FontWeight.w600,
                 color: scheme.onSurfaceVariant,
               ),
@@ -224,8 +179,7 @@ class SellerWizardPreviewWidget extends StatelessWidget {
           Expanded(
             child: Text(
               value,
-              style: TextStyle(
-                fontSize: AppType.s14,
+              style: context.typeRoles.bodyDense.copyWith(
                 color: scheme.onSurface,
               ),
             ),
@@ -244,28 +198,28 @@ class SellerWizardPreviewWidget extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppShape.r12),
         border: Border.all(color: scheme.outlineVariant),
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Checkbox(
-            value: agreeToTerms,
-            onChanged: (value) => onAgreeToTermsChanged(value ?? false),
-          ),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.only(top: AppMetrics.p12),
-              child: Text(
-                'I agree to the Seller Terms and understand that seller authority starts after payment is confirmed.',
-                style: TextStyle(
-                  fontSize: AppType.s14,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+      child: MergeSemantics(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Checkbox(
+              value: agreeToTerms,
+              onChanged: (value) => onAgreeToTermsChanged(value ?? false),
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(top: AppMetrics.p12),
+                child: Text(
+                  'I agree to the Seller Terms and understand that seller authority starts after payment is confirmed.',
+                  style: context.typeRoles.bodyDense.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
-
 }

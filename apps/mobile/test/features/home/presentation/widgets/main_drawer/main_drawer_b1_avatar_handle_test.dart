@@ -130,7 +130,6 @@ Widget _wrap(AuthController controller, {ProfileEntity? decoyProfile}) {
           onHandleSignOut: () {},
           onHandleSettings: () {},
           onHandleProfile: () {},
-          onHandleComingSoon: (context, message) {},
         ),
       ),
     ),

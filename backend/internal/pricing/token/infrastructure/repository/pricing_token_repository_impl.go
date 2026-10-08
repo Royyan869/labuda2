@@ -53,10 +53,11 @@ func (r *PricingTokenRepositoryImpl) CreateTx(
 			negotiation_id, auction_id,
 			coins_used, max_coins_allowed, order_value_for_coins,
 			is_used, used_at, order_id,
-			expires_at, created_at, updated_at
+			expires_at, created_at, updated_at,
+			shipping_quote_id, chat_id
 		)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17,
-		        $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35)
+		        $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37)
 	`,
 		token.ID,
 		token.Token,
@@ -93,6 +94,8 @@ func (r *PricingTokenRepositoryImpl) CreateTx(
 		token.ExpiresAt,
 		token.CreatedAt,
 		token.UpdatedAt,
+		token.ShippingQuoteID,
+		token.ChatID,
 	)
 
 	if err != nil {
@@ -120,6 +123,7 @@ func (r *PricingTokenRepositoryImpl) GetByToken(
 	var discountValueStr *string
 	var shippingSetupName, shippingTransportType string
 	var negotiationID, auctionID *uuid.UUID
+	var shippingQuoteID, chatID *uuid.UUID
 	var isUsed bool
 	var usedAt *time.Time
 	var orderID *uuid.UUID
@@ -137,7 +141,8 @@ func (r *PricingTokenRepositoryImpl) GetByToken(
 		       negotiation_id, auction_id,
 		       coins_used, max_coins_allowed, order_value_for_coins,
 		       is_used, used_at, order_id,
-		       expires_at, created_at, updated_at
+		       expires_at, created_at, updated_at,
+		       shipping_quote_id, chat_id
 		FROM pricing_tokens
 		WHERE token = $1
 	`, token).Scan(
@@ -152,6 +157,7 @@ func (r *PricingTokenRepositoryImpl) GetByToken(
 		&coinsUsed, &maxCoinsAllowed, &orderValueForCoins,
 		&isUsed, &usedAt, &orderID,
 		&expiresAt, &createdAt, &updatedAt,
+		&shippingQuoteID, &chatID,
 	)
 
 	if err != nil {
@@ -175,32 +181,32 @@ func (r *PricingTokenRepositoryImpl) GetByToken(
 	}
 
 	return &entity.PricingToken{
-		ID:                     id,
-		Token:                  tokenValue,
-		UserID:                 userID,
-		ProductID:              productID,
-		SourceType:             tokenSourceType,
-		SourceID:               tokenSourceID,
-		NegotiationID:          negotiationID,
-		AuctionID:              auctionID,
-		Quantity:               quantity,
-		UnitPrice:              money.New(unitPrice),
-		Subtotal:               money.New(subtotal),
-		ShippingTotal:          money.New(shippingTotal),
-		CommissionPercent:      commissionPercent,
-		CommissionAmount:       money.New(commissionAmount),
-		EscrowAmount:           money.New(escrowAmount),
-		ServiceFeeAmount:       money.New(serviceFeeAmount),
-		TotalPayableAmount:     money.New(totalPayableAmount),
-		DiscountCode:           discountCode,
-		DiscountType:           discountType,
-		DiscountValue:          discountValue,
-		DiscountAmount:         money.New(discountAmount),
-		CoinsUsed:              coinsUsed,
-		MaxCoinsAllowed:        maxCoinsAllowed,
-		OrderValueForCoins:     orderValueForCoins,
-		ShippingSetupID:      shippingSetupID,
-		ShippingSetupName:    shippingSetupName,
+		ID:                    id,
+		Token:                 tokenValue,
+		UserID:                userID,
+		ProductID:             productID,
+		SourceType:            tokenSourceType,
+		SourceID:              tokenSourceID,
+		NegotiationID:         negotiationID,
+		AuctionID:             auctionID,
+		Quantity:              quantity,
+		UnitPrice:             money.New(unitPrice),
+		Subtotal:              money.New(subtotal),
+		ShippingTotal:         money.New(shippingTotal),
+		CommissionPercent:     commissionPercent,
+		CommissionAmount:      money.New(commissionAmount),
+		EscrowAmount:          money.New(escrowAmount),
+		ServiceFeeAmount:      money.New(serviceFeeAmount),
+		TotalPayableAmount:    money.New(totalPayableAmount),
+		DiscountCode:          discountCode,
+		DiscountType:          discountType,
+		DiscountValue:         discountValue,
+		DiscountAmount:        money.New(discountAmount),
+		CoinsUsed:             coinsUsed,
+		MaxCoinsAllowed:       maxCoinsAllowed,
+		OrderValueForCoins:    orderValueForCoins,
+		ShippingSetupID:       shippingSetupID,
+		ShippingSetupName:     shippingSetupName,
 		ShippingTransportType: shippingTransportType,
 		AddressID:             addressID,
 		AddressSnapshot:       addressSnapshot,
@@ -210,6 +216,8 @@ func (r *PricingTokenRepositoryImpl) GetByToken(
 		ExpiresAt:             expiresAt,
 		CreatedAt:             createdAt,
 		UpdatedAt:             updatedAt,
+		ShippingQuoteID:       shippingQuoteID,
+		ChatID:                chatID,
 	}, nil
 }
 
@@ -231,6 +239,7 @@ func (r *PricingTokenRepositoryImpl) GetByTokenForUpdate(
 	var discountValueStr *string
 	var shippingSetupName, shippingTransportType string
 	var negotiationID, auctionID *uuid.UUID
+	var shippingQuoteID, chatID *uuid.UUID
 	var isUsed bool
 	var usedAt *time.Time
 	var orderID *uuid.UUID
@@ -248,7 +257,8 @@ func (r *PricingTokenRepositoryImpl) GetByTokenForUpdate(
 		       negotiation_id, auction_id,
 		       coins_used, max_coins_allowed, order_value_for_coins,
 		       is_used, used_at, order_id,
-		       expires_at, created_at, updated_at
+		       expires_at, created_at, updated_at,
+		       shipping_quote_id, chat_id
 		FROM pricing_tokens
 		WHERE token = $1
 		FOR UPDATE
@@ -264,6 +274,7 @@ func (r *PricingTokenRepositoryImpl) GetByTokenForUpdate(
 		&coinsUsed, &maxCoinsAllowed, &orderValueForCoins,
 		&isUsed, &usedAt, &orderID,
 		&expiresAt, &createdAt, &updatedAt,
+		&shippingQuoteID, &chatID,
 	)
 
 	if err != nil {
@@ -287,41 +298,43 @@ func (r *PricingTokenRepositoryImpl) GetByTokenForUpdate(
 	}
 
 	return &entity.PricingToken{
-		ID:                     id,
-		Token:                  tokenValue,
-		UserID:                 userID,
-		ProductID:              productID,
-		SourceType:             tokenSourceType,
-		SourceID:               tokenSourceID,
-		NegotiationID:          negotiationID,
-		AuctionID:              auctionID,
-		Quantity:               quantity,
-		UnitPrice:              money.New(unitPrice),
-		Subtotal:               money.New(subtotal),
-		ShippingTotal:          money.New(shippingTotal),
-		CommissionPercent:      commissionPercent,
-		CommissionAmount:       money.New(commissionAmount),
-		EscrowAmount:           money.New(escrowAmount),
-		ServiceFeeAmount:       money.New(serviceFeeAmount),
-		TotalPayableAmount:     money.New(totalPayableAmount),
-		DiscountCode:           discountCode,
-		DiscountType:           discountType,
-		DiscountValue:          discountValue,
-		DiscountAmount:         money.New(discountAmount),
-		CoinsUsed:              coinsUsed,
-		MaxCoinsAllowed:        maxCoinsAllowed,
-		OrderValueForCoins:     orderValueForCoins,
-		ShippingSetupID:      shippingSetupID,
-		ShippingSetupName:    shippingSetupName,
+		ID:                    id,
+		Token:                 tokenValue,
+		UserID:                userID,
+		ProductID:             productID,
+		SourceType:            tokenSourceType,
+		SourceID:              tokenSourceID,
+		NegotiationID:         negotiationID,
+		AuctionID:             auctionID,
+		Quantity:              quantity,
+		UnitPrice:             money.New(unitPrice),
+		Subtotal:              money.New(subtotal),
+		ShippingTotal:         money.New(shippingTotal),
+		CommissionPercent:     commissionPercent,
+		CommissionAmount:      money.New(commissionAmount),
+		EscrowAmount:          money.New(escrowAmount),
+		ServiceFeeAmount:      money.New(serviceFeeAmount),
+		TotalPayableAmount:    money.New(totalPayableAmount),
+		DiscountCode:          discountCode,
+		DiscountType:          discountType,
+		DiscountValue:         discountValue,
+		DiscountAmount:        money.New(discountAmount),
+		CoinsUsed:             coinsUsed,
+		MaxCoinsAllowed:       maxCoinsAllowed,
+		OrderValueForCoins:    orderValueForCoins,
+		ShippingSetupID:       shippingSetupID,
+		ShippingSetupName:     shippingSetupName,
 		ShippingTransportType: shippingTransportType,
 		AddressID:             addressID,
-		AddressSnapshot:        addressSnapshot,
-		IsUsed:                 isUsed,
-		UsedAt:                 usedAt,
-		OrderID:                orderID,
-		ExpiresAt:              expiresAt,
-		CreatedAt:              createdAt,
-		UpdatedAt:              updatedAt,
+		AddressSnapshot:       addressSnapshot,
+		IsUsed:                isUsed,
+		UsedAt:                usedAt,
+		OrderID:               orderID,
+		ExpiresAt:             expiresAt,
+		CreatedAt:             createdAt,
+		UpdatedAt:             updatedAt,
+		ShippingQuoteID:       shippingQuoteID,
+		ChatID:                chatID,
 	}, nil
 }
 
@@ -374,5 +387,3 @@ func (r *PricingTokenRepositoryImpl) DeleteExpiredTokensTx(
 
 	return result.RowsAffected(), nil
 }
-
-

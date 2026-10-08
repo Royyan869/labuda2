@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/social/follow/follow.dart';
 import 'package:labuda/domains/social/rating/rating.dart';
@@ -25,16 +26,15 @@ class ProfileStats extends ConsumerWidget {
     final followStatsAsync = ref.watch(followStatsStreamProvider(userId));
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p12),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppMetrics.p16,
+        vertical: AppMetrics.p12,
+      ),
       decoration: BoxDecoration(
         color: scheme.surface,
         border: Border(
-          top: BorderSide(
-            color: scheme.outlineVariant,
-          ),
-          bottom: BorderSide(
-            color: scheme.outlineVariant,
-          ),
+          top: BorderSide(color: scheme.outlineVariant),
+          bottom: BorderSide(color: scheme.outlineVariant),
         ),
       ),
       child: Row(
@@ -144,21 +144,11 @@ class ProfileStats extends ConsumerWidget {
   }
 
   void _navigateToFollowers(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) =>
-            FollowListScreen(userId: userId, type: FollowListType.followers),
-      ),
-    );
+    context.push(RoutePaths.followListPath(userId));
   }
 
   void _navigateToFollowing(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) =>
-            FollowListScreen(userId: userId, type: FollowListType.following),
-      ),
-    );
+    context.push(RoutePaths.followListPath(userId, following: true));
   }
 
   void _navigateToReviews(BuildContext context) {
@@ -199,13 +189,16 @@ class _StatItem extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (icon != null) ...[
-            Icon(icon, size: AppIconSize.inlineGlyph, color: scheme.onSurfaceVariant),
+            Icon(
+              icon,
+              size: AppIconSize.inlineGlyph,
+              color: scheme.onSurfaceVariant,
+            ),
             const SizedBox(height: 2),
           ],
           Text(
             value,
-            style: TextStyle(
-              fontSize: AppType.s20,
+            style: context.typeRoles.titleSection.copyWith(
               fontWeight: FontWeight.bold,
               color: scheme.onSurface,
             ),
@@ -213,8 +206,7 @@ class _StatItem extends StatelessWidget {
           const SizedBox(height: 2),
           Text(
             label,
-            style: TextStyle(
-              fontSize: AppType.s12,
+            style: context.typeRoles.labelMicro.copyWith(
               color: scheme.onSurfaceVariant,
             ),
           ),
@@ -265,8 +257,7 @@ class _RatingStatItem extends StatelessWidget {
           const SizedBox(height: 2),
           Text(
             rating == null ? '-' : rating!.toStringAsFixed(1),
-            style: TextStyle(
-              fontSize: AppType.s20,
+            style: context.typeRoles.titleSection.copyWith(
               fontWeight: FontWeight.bold,
               color: scheme.onSurface,
             ),
@@ -274,8 +265,7 @@ class _RatingStatItem extends StatelessWidget {
           const SizedBox(height: 2),
           Text(
             reviewCount > 0 ? 'Rating ($reviewCount)' : 'Rating',
-            style: TextStyle(
-              fontSize: AppType.s12,
+            style: context.typeRoles.labelMicro.copyWith(
               color: scheme.onSurfaceVariant,
             ),
           ),

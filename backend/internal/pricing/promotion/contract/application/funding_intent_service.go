@@ -42,6 +42,13 @@ type FundingIntentResult struct {
 
 	// AvailableFunding is the seller's current PROMOTE_BALANCE (informational snapshot).
 	AvailableFunding int64 `json:"available_funding"`
+
+	// EstimatedImpressions is the informational estimate of how many Qualified
+	// Impressions the budget can approximately buy at the current platform CPM,
+	// carried from the canonical preview projection
+	// (finance.PromotionEstimatedImpressions — no second formula). It must be
+	// visible to the seller BEFORE payment.
+	EstimatedImpressions int64 `json:"estimated_impressions"`
 }
 
 // FundingIntentService creates exact-shortage payment intents for promotion
@@ -130,10 +137,11 @@ func (s *FundingIntentService) CreateFundingIntent(
 	// Step 2: No shortage → no payment needed
 	if preview.Shortage == 0 {
 		return &FundingIntentResult{
-			PaymentRequired:  false,
-			Shortage:         0,
-			RequiredCost:     preview.RequiredCost,
-			AvailableFunding: preview.AvailableFunding,
+			PaymentRequired:      false,
+			Shortage:             0,
+			RequiredCost:         preview.RequiredCost,
+			AvailableFunding:     preview.AvailableFunding,
+			EstimatedImpressions: preview.EstimatedImpressions,
 		}, nil
 	}
 
@@ -177,23 +185,25 @@ func (s *FundingIntentService) CreateFundingIntent(
 				}
 				// Return existing intent if billing is pending or paid
 				result = &FundingIntentResult{
-					PaymentRequired:  true,
-					Shortage:         existing.ShortageAmount,
-					IntentID:         existing.ID.String(),
-					BillingID:        billing.ID.String(),
-					RequiredCost:     preview.RequiredCost,
-					AvailableFunding: preview.AvailableFunding,
+					PaymentRequired:      true,
+					Shortage:             existing.ShortageAmount,
+					IntentID:             existing.ID.String(),
+					BillingID:            billing.ID.String(),
+					RequiredCost:         preview.RequiredCost,
+					AvailableFunding:     preview.AvailableFunding,
+					EstimatedImpressions: preview.EstimatedImpressions,
 				}
 				return nil
 			}
 			// No billing linked yet — return existing (idempotent)
 			result = &FundingIntentResult{
-				PaymentRequired:  true,
-				Shortage:         existing.ShortageAmount,
-				IntentID:         existing.ID.String(),
-				BillingID:        "",
-				RequiredCost:     preview.RequiredCost,
-				AvailableFunding: preview.AvailableFunding,
+				PaymentRequired:      true,
+				Shortage:             existing.ShortageAmount,
+				IntentID:             existing.ID.String(),
+				BillingID:            "",
+				RequiredCost:         preview.RequiredCost,
+				AvailableFunding:     preview.AvailableFunding,
+				EstimatedImpressions: preview.EstimatedImpressions,
 			}
 			return nil
 		}
@@ -219,12 +229,13 @@ func (s *FundingIntentService) CreateFundingIntent(
 		}
 
 		result = &FundingIntentResult{
-			PaymentRequired:  true,
-			Shortage:         preview.Shortage,
-			IntentID:         insertedID.String(),
-			BillingID:        billing.ID.String(),
-			RequiredCost:     preview.RequiredCost,
-			AvailableFunding: preview.AvailableFunding,
+			PaymentRequired:      true,
+			Shortage:             preview.Shortage,
+			IntentID:             insertedID.String(),
+			BillingID:            billing.ID.String(),
+			RequiredCost:         preview.RequiredCost,
+			AvailableFunding:     preview.AvailableFunding,
+			EstimatedImpressions: preview.EstimatedImpressions,
 		}
 		return nil
 	})

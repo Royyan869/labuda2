@@ -22,9 +22,9 @@ import (
 	"github.com/google/uuid"
 
 	forsaleEntity "github.com/labuda/backend/internal/commerce/forsale/entity"
+	forsaleRepo "github.com/labuda/backend/internal/commerce/forsale/infrastructure/repository"
 	productEntity "github.com/labuda/backend/internal/commerce/product/entity"
 	productInfraRepo "github.com/labuda/backend/internal/commerce/product/infrastructure/repository"
-	forsaleRepo "github.com/labuda/backend/internal/commerce/forsale/infrastructure/repository"
 	"github.com/labuda/backend/pkg/db"
 	"github.com/labuda/backend/pkg/money"
 	"github.com/labuda/backend/pkg/testdb"
@@ -64,30 +64,28 @@ func TestForSaleStockRoundTrip_Qty1(t *testing.T) {
 
 	err = testDB.WithTx(ctx, func(tx db.Tx) error {
 		forSale_product := &productEntity.Product{
-	SellerID: sellerID,
-	Title: "Showa Koi — Round-Trip Test",
-	Description: "Proves qty=1 reservation cycle",
-	MediaURLs: []string{"https://picsum.photos/seed/koi1/800/600"},
-	Variety: "Showa",
-	SizeCm: intPtr(25),
-	AgeMonths: intPtr(8),
-	Gender: strPtr("male"),
-	Breeder: nil,
-	Bloodline: nil,
-	Certificates: []string{"global"},
-	FarmAddressID: nil,
-	PreparationTime: string(forsaleEntity.PreparationTime1To3Days),
-	SellingSurface: productEntity.SellingSurfaceForSale,
-}
-	productRepo := productInfraRepo.NewProductRepository()
-	if err := productRepo.Create(ctx, tx, forSale_product); err != nil {
-		return err
-	}
-	forSale, err := forsaleEntity.NewForSaleSurface(sellerID, money.New(750000), 1, false, forsaleEntity.ForSaleVisibilityPublic)
-	forSale.ProductID = forSale_product.ID
-	forSale.Product = forSale_product
+			SellerID:        sellerID,
+			Title:           "Showa Koi — Round-Trip Test",
+			Description:     "Proves qty=1 reservation cycle",
+			MediaURLs:       []productEntity.ProductMedia{{URL: "https://picsum.photos/seed/koi1/800/600"}},
+			Variety:         "Showa",
+			SizeCm:          intPtr(25),
+			AgeMonths:       intPtr(8),
+			Gender:          strPtr("male"),
+			Breeder:         nil,
+			Bloodline:       nil,
+			Certificates:    []string{"global"},
+			PreparationTime: string(forsaleEntity.PreparationTime1To3Days),
+			SellingSurface:  productEntity.SellingSurfaceForSale,
+		}
+		productRepo := productInfraRepo.NewProductRepository()
+		if err := productRepo.Create(ctx, tx, forSale_product); err != nil {
+			return err
+		}
+		forSale, err := forsaleEntity.NewForSaleSurface(sellerID, money.New(750000), 1, false)
+		forSale.ProductID = forSale_product.ID
+		forSale.Product = forSale_product
 		require.NoError(t, err)
-		require.NoError(t, forSale.Publish())
 		require.NoError(t, forSaleRepo.Create(ctx, tx, forSale))
 		forSaleID = forSale.ID
 		return nil
@@ -191,31 +189,29 @@ func TestForSaleStockRoundTrip_MultiQty(t *testing.T) {
 
 	err = testDB.WithTx(ctx, func(tx db.Tx) error {
 		forSale_product := &productEntity.Product{
-	SellerID: sellerID,
-	Title: "Kohaku Koi Batch — Multi-Qty Test",
-	Description: "Proves partial reservation",
-	MediaURLs: []string{},
-	Variety: "Kohaku",
-	SizeCm: intPtr(20),
-	AgeMonths: nil,
-	Gender: nil,
-	Breeder: nil,
-	Bloodline: nil,
-	Certificates: []string{"global"},
-	FarmAddressID: nil,
-	PreparationTime: string(forsaleEntity.PreparationTime1To3Days),
-	SellingSurface: productEntity.SellingSurfaceForSale,
-}
-	productRepo := productInfraRepo.NewProductRepository()
-	if err := productRepo.Create(ctx, tx, forSale_product); err != nil {
-		return err
-	}
-	forSale, err := forsaleEntity.NewForSaleSurface(sellerID, money.New(300000), 5, // qty=5
-			false, forsaleEntity.ForSaleVisibilityPublic)
-	forSale.ProductID = forSale_product.ID
-	forSale.Product = forSale_product
+			SellerID:        sellerID,
+			Title:           "Kohaku Koi Batch — Multi-Qty Test",
+			Description:     "Proves partial reservation",
+			MediaURLs:       []productEntity.ProductMedia{},
+			Variety:         "Kohaku",
+			SizeCm:          intPtr(20),
+			AgeMonths:       nil,
+			Gender:          nil,
+			Breeder:         nil,
+			Bloodline:       nil,
+			Certificates:    []string{"global"},
+			PreparationTime: string(forsaleEntity.PreparationTime1To3Days),
+			SellingSurface:  productEntity.SellingSurfaceForSale,
+		}
+		productRepo := productInfraRepo.NewProductRepository()
+		if err := productRepo.Create(ctx, tx, forSale_product); err != nil {
+			return err
+		}
+		forSale, err := forsaleEntity.NewForSaleSurface(sellerID, money.New(300000), 5, // qty=5
+			false)
+		forSale.ProductID = forSale_product.ID
+		forSale.Product = forSale_product
 		require.NoError(t, err)
-		require.NoError(t, forSale.Publish())
 		require.NoError(t, forSaleRepo.Create(ctx, tx, forSale))
 		forSaleID = forSale.ID
 		return nil
@@ -284,30 +280,28 @@ func TestNegativeQuantityStillBlocked(t *testing.T) {
 
 	err = testDB.WithTx(ctx, func(tx db.Tx) error {
 		forSale_product := &productEntity.Product{
-	SellerID: sellerID,
-	Title: "Guard Test Koi",
-	Description: "Negative qty must fail",
-	MediaURLs: []string{},
-	Variety: "Sanke",
-	SizeCm: nil,
-	AgeMonths: nil,
-	Gender: nil,
-	Breeder: nil,
-	Bloodline: nil,
-	Certificates: []string{"global"},
-	FarmAddressID: nil,
-	PreparationTime: string(forsaleEntity.PreparationTime1To3Days),
-	SellingSurface: productEntity.SellingSurfaceForSale,
-}
-	productRepo := productInfraRepo.NewProductRepository()
-	if err := productRepo.Create(ctx, tx, forSale_product); err != nil {
-		return err
-	}
-	forSale, err := forsaleEntity.NewForSaleSurface(sellerID, money.New(100000), 1, false, forsaleEntity.ForSaleVisibilityPublic)
-	forSale.ProductID = forSale_product.ID
-	forSale.Product = forSale_product
+			SellerID:        sellerID,
+			Title:           "Guard Test Koi",
+			Description:     "Negative qty must fail",
+			MediaURLs:       []productEntity.ProductMedia{},
+			Variety:         "Sanke",
+			SizeCm:          nil,
+			AgeMonths:       nil,
+			Gender:          nil,
+			Breeder:         nil,
+			Bloodline:       nil,
+			Certificates:    []string{"global"},
+			PreparationTime: string(forsaleEntity.PreparationTime1To3Days),
+			SellingSurface:  productEntity.SellingSurfaceForSale,
+		}
+		productRepo := productInfraRepo.NewProductRepository()
+		if err := productRepo.Create(ctx, tx, forSale_product); err != nil {
+			return err
+		}
+		forSale, err := forsaleEntity.NewForSaleSurface(sellerID, money.New(100000), 1, false)
+		forSale.ProductID = forSale_product.ID
+		forSale.Product = forSale_product
 		require.NoError(t, err)
-		require.NoError(t, forSale.Publish())
 		require.NoError(t, forSaleRepo.Create(ctx, tx, forSale))
 		forSaleID = forSale.ID
 		return nil

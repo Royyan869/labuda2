@@ -21,7 +21,9 @@ type fakeForSaleRepository struct {
 	updateCalled bool
 }
 
-func (r *fakeForSaleRepository) Create(_ context.Context, _ db.Tx, _ *entity.ForSale) error { return nil }
+func (r *fakeForSaleRepository) Create(_ context.Context, _ db.Tx, _ *entity.ForSale) error {
+	return nil
+}
 func (r *fakeForSaleRepository) GetByID(_ context.Context, _ db.Tx, _ uuid.UUID) (*entity.ForSale, error) {
 	return r.current, nil
 }
@@ -35,8 +37,12 @@ func (r *fakeForSaleRepository) Update(_ context.Context, _ db.Tx, _ *entity.For
 	r.updateCalled = true
 	return nil
 }
-func (r *fakeForSaleRepository) UpdateStock(_ context.Context, _ db.Tx, _ *entity.ForSale) error { return nil }
-func (r *fakeForSaleRepository) UpdateStatus(_ context.Context, _ db.Tx, _ *entity.ForSale) error { return nil }
+func (r *fakeForSaleRepository) UpdateStock(_ context.Context, _ db.Tx, _ *entity.ForSale) error {
+	return nil
+}
+func (r *fakeForSaleRepository) UpdateStatus(_ context.Context, _ db.Tx, _ *entity.ForSale) error {
+	return nil
+}
 func (r *fakeForSaleRepository) GetBySellerIDPaginated(_ context.Context, _ db.Tx, _ uuid.UUID, _, _ int, _ bool) ([]*entity.ForSale, error) {
 	return nil, nil
 }
@@ -54,7 +60,9 @@ type fakeProductRepoForUpdateSeller struct {
 	updateCalled bool
 }
 
-func (f *fakeProductRepoForUpdateSeller) Create(_ context.Context, _ db.Tx, _ *productEntity.Product) error { return nil }
+func (f *fakeProductRepoForUpdateSeller) Create(_ context.Context, _ db.Tx, _ *productEntity.Product) error {
+	return nil
+}
 func (f *fakeProductRepoForUpdateSeller) GetByID(_ context.Context, _ db.Tx, _ uuid.UUID) (*productEntity.Product, error) {
 	return nil, nil
 }
@@ -66,7 +74,7 @@ func (f *fakeProductRepoForUpdateSeller) ClaimSellingSurface(_ context.Context, 
 	return nil
 }
 
-func newDraftForSaleForUpdateSeller(sellerID, forSaleID, productID uuid.UUID, status entity.ForSaleStatus) *entity.ForSale {
+func newForSaleForUpdateSeller(sellerID, forSaleID, productID uuid.UUID, status entity.ForSaleStatus) *entity.ForSale {
 	return &entity.ForSale{
 		ID:        forSaleID,
 		ProductID: productID,
@@ -80,29 +88,11 @@ func newDraftForSaleForUpdateSeller(sellerID, forSaleID, productID uuid.UUID, st
 	}
 }
 
-func TestUpdateSeller_AllowsDraft(t *testing.T) {
-	sellerID := uuid.New()
-	forSaleID := uuid.New()
-	productID := uuid.New()
-	repo := &fakeForSaleRepository{current: newDraftForSaleForUpdateSeller(sellerID, forSaleID, productID, entity.ForSaleStatusDraft)}
-	prodRepo := &fakeProductRepoForUpdateSeller{}
-	svc := &ForSaleService{repo: repo, productRepo: prodRepo}
-	title := "new title"
-	_, err := svc.UpdateSeller(context.Background(), nil, UpdateSellerInput{
-		ForSaleID: forSaleID,
-		SellerID:  sellerID,
-		Title:     &title,
-	})
-	require.NoError(t, err)
-	assert.True(t, repo.updateCalled, "for_sale Update should be called")
-	assert.True(t, prodRepo.updateCalled, "product Update should be called")
-}
-
 func TestUpdateSeller_RejectsActive(t *testing.T) {
 	sellerID := uuid.New()
 	forSaleID := uuid.New()
 	productID := uuid.New()
-	repo := &fakeForSaleRepository{current: newDraftForSaleForUpdateSeller(sellerID, forSaleID, productID, entity.ForSaleStatusActive)}
+	repo := &fakeForSaleRepository{current: newForSaleForUpdateSeller(sellerID, forSaleID, productID, entity.ForSaleStatusActive)}
 	prodRepo := &fakeProductRepoForUpdateSeller{}
 	svc := &ForSaleService{repo: repo, productRepo: prodRepo}
 	title := "hacked"
@@ -121,7 +111,7 @@ func TestUpdateSeller_RejectsSold(t *testing.T) {
 	sellerID := uuid.New()
 	forSaleID := uuid.New()
 	productID := uuid.New()
-	repo := &fakeForSaleRepository{current: newDraftForSaleForUpdateSeller(sellerID, forSaleID, productID, entity.ForSaleStatusSold)}
+	repo := &fakeForSaleRepository{current: newForSaleForUpdateSeller(sellerID, forSaleID, productID, entity.ForSaleStatusSold)}
 	prodRepo := &fakeProductRepoForUpdateSeller{}
 	svc := &ForSaleService{repo: repo, productRepo: prodRepo}
 	title := "hacked"
@@ -139,7 +129,7 @@ func TestUpdateSeller_RejectsWithdrawn(t *testing.T) {
 	sellerID := uuid.New()
 	forSaleID := uuid.New()
 	productID := uuid.New()
-	repo := &fakeForSaleRepository{current: newDraftForSaleForUpdateSeller(sellerID, forSaleID, productID, entity.ForSaleStatusWithdrawn)}
+	repo := &fakeForSaleRepository{current: newForSaleForUpdateSeller(sellerID, forSaleID, productID, entity.ForSaleStatusWithdrawn)}
 	prodRepo := &fakeProductRepoForUpdateSeller{}
 	svc := &ForSaleService{repo: repo, productRepo: prodRepo}
 	title := "hacked"
@@ -157,7 +147,7 @@ func TestUpdateSeller_CommerceRestriction_Blocked(t *testing.T) {
 	sellerID := uuid.New()
 	forSaleID := uuid.New()
 	productID := uuid.New()
-	repo := &fakeForSaleRepository{current: newDraftForSaleForUpdateSeller(sellerID, forSaleID, productID, entity.ForSaleStatusDraft)}
+	repo := &fakeForSaleRepository{current: newForSaleForUpdateSeller(sellerID, forSaleID, productID, entity.ForSaleStatusActive)}
 	prodRepo := &fakeProductRepoForUpdateSeller{}
 	svc := &ForSaleService{
 		repo:            repo,

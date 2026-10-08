@@ -133,8 +133,7 @@ class _AvatarItem extends StatelessWidget {
         const SizedBox(height: 8),
         Text(
           label,
-          style: TextStyle(
-            fontSize: AppType.s12,
+          style: context.typeRoles.labelMicro.copyWith(
             color: scheme.onSurfaceVariant,
           ),
         ),
@@ -143,7 +142,9 @@ class _AvatarItem extends StatelessWidget {
             onPressed: onRemove,
             child: Text(
               'Remove',
-              style: TextStyle(color: scheme.primary, fontSize: AppType.s12),
+              style: Theme.of(
+                context,
+              ).textTheme.labelLarge?.copyWith(color: scheme.primary),
             ),
           ),
       ],

@@ -4,324 +4,19 @@ library;
 ///
 /// Provides self-help resources before escalating to human support.
 /// This is the MATURITY LAYER that reduces unnecessary support tickets.
+///
+/// LOCALIZATION AUTHORITY: every user-facing string on these surfaces is
+/// resolved from `AppLocalizations` (lib/l10n/app_en.arb + app_id.arb) at
+/// build time, so the active app locale controls the Help Center language.
+/// The former private `_Strings` bag is purged — there is no second content
+/// authority and no manual localization map.
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/system/support/support.dart';
+import 'package:labuda/generated/app_localizations.dart';
 import 'package:labuda/shared/shared.dart';
-
-// Hardcoded strings for now - localization will be added after fixing gen-l10n issue
-class _Strings {
-  static const String helpSupport = 'Help & Support';
-  static const String howCanWeHelp = 'How can we help you today?';
-  static const String helpCenterDescription =
-      'Find answers quickly or get in touch with our support team.';
-  static const String searchHelpArticles = 'Search help articles...';
-  static const String quickHelp = 'Quick Help';
-  static const String browseByCategory = 'Browse by Category';
-  static const String popularArticles = 'Popular Articles';
-  static const String orders = 'Orders';
-  static const String payments = 'Payments';
-  static const String selling = 'Selling';
-  static const String account = 'Account';
-  static const String verification = 'Verification';
-  static const String technical = 'Technical';
-  static const String orderHelpSubtitle = 'Track, cancel, or refund orders';
-  static const String paymentHelpSubtitle =
-      'Payment methods and failed transactions';
-  static const String sellingHelpSubtitle =
-      'Become a seller and manage your store';
-  static const String accountHelpSubtitle = 'Profile, password, and settings';
-  static const String verificationHelpSubtitle = 'Seller verification and KTP';
-  static const String technicalHelpSubtitle = 'App issues and troubleshooting';
-  static const String stillNeedHelp = 'Still need help?';
-  static const String contactSupportDescription =
-      'Our support team is here to help you with any questions or issues.';
-  static const String contactSupport = 'Contact Support';
-  static const String helpArticle = 'Help Article';
-  static const String wasThisHelpful = 'Was this helpful?';
-  static const String yes = 'Yes';
-  static const String no = 'No';
-  static const String feedbackThanks = 'Thank you for your feedback!';
-  static const String pleaseLoginToManage =
-      'Please login to access this feature';
-
-  // Article titles
-  static const String articleHowToPay = 'How to pay for my order?';
-  static const String articleHowToPayContent = '''To pay for your order:
-
-1. Go to your order from the Orders screen
-2. Tap the 'Pay Now' button
-3. Select your payment method (GoPay, Bank Transfer, etc.)
-4. Follow the instructions to complete payment
-5. Your payment will be confirmed within 24 hours
-
-If payment fails, you can retry from the order screen.''';
-
-  static const String articleTrackOrder = 'How to track my order?';
-  static const String articleTrackOrderContent = '''To track your order:
-
-1. Go to 'My Orders' from the profile menu
-2. Tap on the order you want to track
-3. You'll see the current status and tracking information
-
-Order statuses:
-- Pending: Waiting for payment
-- Processing: Seller is preparing your order
-- Shipped: Order is on the way
-- Delivered: Order has arrived
-- Completed: Order is finished''';
-
-  static const String articleRequestRefund = 'How to request a refund?';
-  static const String articleRequestRefundContent = '''To request a refund:
-
-1. Open the order details
-2. Tap 'Request Refund'
-3. Select a reason and describe the issue
-4. Upload unboxing video as proof (required)
-5. Submit your request
-
-The seller will review your request. If rejected, you can escalate to admin for final decision.''';
-
-  static const String articleBecomeSeller = 'How to become a seller?';
-  static const String articleBecomeSellerContent =
-      '''To become a seller on LABUDA:
-
-1. Go to Settings → Upgrade to Seller
-2. Choose your plan (Basic or Pro)
-3. Fill in your business information
-4. Complete payment for the subscription
-5. Wait for verification approval
-
-Once approved, you can start forSale your koi for sale!''';
-
-  static const String articleCancelOrder = 'How to cancel an order?';
-  static const String articleCancelOrderContent =
-      '''Order cancellation depends on the status:
-
-- Pending payment: Auto-cancelled if not paid within 24 hours
-- Processing: Contact seller to cancel
-- Shipped: Cannot cancel, use refund process instead
-
-To request cancellation, tap the order and select 'Contact Seller' to discuss.''';
-
-  static const String articleConfirmDelivery = 'How to complete an order?';
-  static const String articleConfirmDeliveryContent =
-      '''To complete your order after receiving items:
-
-1. Open the order details
-2. Tap 'Terima Barang' button
-3. Confirm that items match your order
-
-If you don't confirm within 5 days of shipment, the order will auto-complete.''';
-
-  static const String articlePaymentFailed = 'Payment failed, what to do?';
-  static const String articlePaymentFailedContent = '''If your payment fails:
-
-1. Check your payment method balance
-2. Try a different payment method
-3. Ensure you have stable internet connection
-4. Retry payment from the order screen
-
-If the issue persists, contact support with your order number.''';
-
-  static const String articleRefundTime = 'How long does refund take?';
-  static const String articleRefundTimeContent = '''Refund processing time:
-
-1. Seller review: 1-3 days
-2. If approved: 3-7 business days for funds to return
-
-The exact time depends on your payment method. GoPay refunds are usually faster than bank transfers.''';
-
-  static const String articleCreateForSale = 'How to create a forSale?';
-  static const String articleCreateForSaleContent = '''To create a new forSale:
-
-1. Tap the + button on the home screen
-2. Select 'ForSale'
-3. Add photos of your koi (multiple angles recommended)
-4. Fill in details (variety, size, price, location)
-5. Write a description
-6. Publish your forSale
-
-Your forSale will be visible to buyers immediately!''';
-
-  static const String articleShippingSetup = 'How to set up shipping?';
-  static const String articleShippingSetupContent = '''To set up shipping:
-
-1. Go to Settings → Pengiriman (or Seller Dashboard → Atur Pengiriman)
-2. Add a shipping option (train, bus, travel, plane, or custom)
-3. Add province coverage with the rate you charge for each province
-4. Toggle the option active to make it available for your forSales
-5. When creating a forSale, choose which of your options apply to that forSale
-
-Shipping is seller-managed: you decide the options, rates, and courier.
-For irregular cases (large fish, special handling), send a shipping quote to the buyer in chat as a fallback.
-
-Always use proper packaging with oxygen for live koi shipping!''';
-
-  static const String articleEditProfile = 'How to edit my profile?';
-  static const String articleEditProfileContent = '''To edit your profile:
-
-1. Go to your profile screen
-2. Tap the edit icon
-3. Update your information:
-   - Profile photo
-   - Display name
-   - Bio
-   - Location
-4. Tap 'Save' to apply changes''';
-
-  static const String articleChangePassword = 'How to change my password?';
-  static const String articleChangePasswordContent = '''To change your password:
-
-1. Go to Settings → Security
-2. Tap 'Change Password'
-3. Enter your current password
-4. Enter your new password (min 8 characters)
-5. Confirm the new password
-6. Tap 'Update Password'
-
-You'll be logged out from other devices after changing password.''';
-
-  static const String articleSellerVerification =
-      'Seller verification requirements';
-  static const String articleSellerVerificationContent =
-      '''Seller verification requires:
-
-1. Valid KTP (Indonesian ID card)
-2. Clear photo of KTP
-3. KTP number (16 digits)
-4. Name matching KTP
-5. Business address
-6. Active phone number
-
-Verification usually takes 1-3 business days.''';
-
-  static const String articleAppNotWorking = 'App not working properly?';
-  static const String articleAppNotWorkingContent =
-      '''If the app is not working:
-
-1. Check your internet connection
-2. Close and reopen the app
-3. Clear app cache (Settings → Clear Cache)
-4. Update to the latest app version
-5. Restart your phone
-
-If issues persist, contact support with details of what's not working.''';
-
-  static const String articleClearCache = 'How to clear app cache?';
-  static const String articleClearCacheContent = '''To clear app cache:
-
-1. Go to Settings
-2. Scroll to 'App Preferences'
-3. Tap 'Clear Cache'
-4. Confirm when prompted
-
-This will free up storage but won't delete your data. You'll need to log in again.''';
-
-  // ========== SELLER-SPECIFIC ARTICLES (PHASE 3 HARDENING) ==========
-
-  static const String articleWithdrawalFailed =
-      'Withdrawal failed, what to do?';
-  static const String articleWithdrawalFailedContent =
-      '''If your withdrawal fails:
-
-1. Check your bank account details are correct
-2. Ensure you've completed seller verification (KTP)
-3. Minimum withdrawal is Rp 10.000
-4. Bank transfers process within 1-3 business days
-
-Next steps:
-• Go to Earnings → Check withdrawal status
-• If status shows "failed", update bank details and try again
-• Contact support if funds are deducted but not received
-
-👉 Contact Support for withdrawal issues''';
-
-  static const String articleForSaleNotVisible =
-      'Why is my forSale not visible?';
-  static const String articleForSaleNotVisibleContent =
-      '''Your forSale may not be visible because:
-
-1. Not yet published - Check status is "Active"
-2. Incomplete information - Fill all required fields
-3. Pending review - Some forSales need approval
-4. Search ranking - Optimize title and description
-
-Next steps:
-• Go to My ForSales → Check forSale status
-• Edit forSale to complete missing information
-• Use clear photos and detailed descriptions
-• Share forSale link to social media
-
-👉 Contact Support if forSale is active but not shown''';
-
-  static const String articleSellerPaymentPending =
-      'Payment from order not received?';
-  static const String articleSellerPaymentPendingContent =
-      '''Order payments go through these stages:
-
-1. Paid → In escrow (waiting for delivery)
-2. Shipped → Still in escrow
-3. Delivered → Buyer must confirm (3 days)
-4. Completed → Funds mature and become withdrawable
-
-Your earnings show as:
-• Pending Balance: In escrow, not yet withdrawable
-• Available Balance: Ready to withdraw
-
-Check:
-• Order status in Seller Dashboard
-• Earnings screen for balance breakdown
-• Funds typically mature 3-7 days after delivery
-
-👉 Contact Support if completed orders not showing in earnings''';
-
-  static const String articleOrderShipmentHelp =
-      'Track shipment and delivery issues';
-  static const String articleOrderShipmentHelpContent = '''For shipment issues:
-
-1. Open order details
-2. Check tracking number in Shipping Info
-3. Track with courier's website or app
-
-Common issues:
-• Tracking not updating: Allow 24h for courier scan
-• Delivery delayed: Contact seller for update
-• Wrong address: Message seller immediately
-
-If package not received:
-• Check delivery confirmation status
-• Contact seller through order chat
-• Request refund if delivery deadline passed
-
-👉 Still having issues? Contact Support with order number''';
-
-  static const String articleItemNotReceived = 'Item paid but not received?';
-  static const String articleItemNotReceivedContent =
-      '''If you paid but haven't received your item:
-
-Step 1: Check order status
-• Paid: Seller is preparing your order
-• Shipped: Check tracking number
-• Delivered: Confirm within 3 days or auto-confirm
-
-Step 2: Contact seller
-• Use "Chat Penjual" button in order
-• Ask for shipping update or tracking info
-
-Step 3: Escalate if needed
-• If seller doesn't respond in 24h
-• If delivery deadline has passed
-• Open dispute for refund
-
-Next actions:
-1. Chat seller first (fastest resolution)
-2. If no response, use Request Support button
-3. For urgent cases, select "Order Problems" category
-
-👉 Contact Support now with your order details''';
-}
 
 /// Main Help Center Screen
 class HelpCenterScreen extends StatelessWidget {
@@ -338,61 +33,68 @@ class HelpCenterScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      appBar: AppBarCustom(title: _Strings.helpSupport),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppMetrics.p16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header
-            _buildHeader(context),
-            const SizedBox(height: 24),
-            // Search Bar
-            _buildSearchBar(context),
-            const SizedBox(height: 24),
-            // Quick Help Cards
-            _buildSectionTitle(context, _Strings.quickHelp),
-            const SizedBox(height: 12),
-            _buildQuickHelpCards(context),
-            const SizedBox(height: 24),
-            // Browse by Category
-            _buildSectionTitle(context, _Strings.browseByCategory),
-            const SizedBox(height: 12),
-            _buildCategoryCards(context),
-            const SizedBox(height: 24),
-            // Popular Articles
-            _buildSectionTitle(context, _Strings.popularArticles),
-            const SizedBox(height: 12),
-            _buildPopularArticles(context),
-            const SizedBox(height: 24),
-            // Still Need Help Section
-            _buildStillNeedHelpSection(context),
-            const SizedBox(height: 32),
-          ],
+      appBar: AppBarCustom(title: l10n.helpSupport),
+      // Canonical body-level bottom-inset authority (SAFE-AREA-22): the ONE
+      // `SafeArea` consumes the live system bottom inset for the whole body,
+      // so the scroll end (the "Hubungi Support" CTA) clears the system
+      // navigation region. The scroll view's explicit `p16` padding below is
+      // DESIGN spacing only — an explicit `ScrollView.padding` never inherits
+      // MediaQuery padding, so nothing else reserves the inset.
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(AppMetrics.p16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header
+              _buildHeader(context, l10n),
+              const SizedBox(height: 24),
+              // Search Bar
+              _buildSearchBar(context, l10n),
+              const SizedBox(height: 24),
+              // Quick Help Cards
+              _buildSectionTitle(context, l10n.quickHelp),
+              const SizedBox(height: 12),
+              _buildQuickHelpCards(context, l10n),
+              const SizedBox(height: 24),
+              // Browse by Category
+              _buildSectionTitle(context, l10n.browseByCategory),
+              const SizedBox(height: 12),
+              _buildCategoryCards(context, l10n),
+              const SizedBox(height: 24),
+              // Popular Articles
+              _buildSectionTitle(context, l10n.popularArticles),
+              const SizedBox(height: 12),
+              _buildPopularArticles(context, l10n),
+              const SizedBox(height: 24),
+              // Still Need Help Section
+              _buildStillNeedHelpSection(context, l10n),
+              const SizedBox(height: 32),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeader(BuildContext context, AppLocalizations l10n) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          _Strings.howCanWeHelp,
-          style: TextStyle(
-            fontSize: AppType.s24,
+          l10n.howCanWeHelp,
+          style: context.typeRoles.titleProminent.copyWith(
             fontWeight: FontWeight.bold,
             color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
         const SizedBox(height: 8),
         Text(
-          _Strings.helpCenterDescription,
-          style: TextStyle(
-            fontSize: AppType.s14,
+          l10n.helpCenterDescription,
+          style: context.typeRoles.bodyDense.copyWith(
             color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
@@ -400,23 +102,15 @@ class HelpCenterScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSearchBar(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainer,
-        borderRadius: BorderRadius.circular(AppShape.r12),
-      ),
-      child: TextField(
-        decoration: InputDecoration(
-          hintText: _Strings.searchHelpArticles,
-          prefixIcon: const Icon(Icons.search),
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: AppMetrics.p16,
-            vertical: AppMetrics.p12,
-          ),
-        ),
-      ),
+  Widget _buildSearchBar(BuildContext context, AppLocalizations l10n) {
+    // Canonical editable-search decoration (one authority). Help Center search
+    // is intended product behavior, but the field is not wired to a query yet:
+    // the search backend (Elasticsearch) is still an implementation gap.
+    return TextField(
+      decoration: AppTheme.searchDecoration(
+        Theme.of(context).colorScheme,
+        hintText: l10n.searchHelpArticles,
+      ).copyWith(prefixIcon: const Icon(Icons.search)),
     );
   }
 
@@ -425,8 +119,7 @@ class HelpCenterScreen extends StatelessWidget {
       padding: const EdgeInsets.only(left: AppMetrics.p4),
       child: Text(
         title,
-        style: TextStyle(
-          fontSize: AppType.s16,
+        style: context.typeRoles.titleSection.copyWith(
           fontWeight: FontWeight.w600,
           color: Theme.of(context).colorScheme.onSurface,
         ),
@@ -434,13 +127,13 @@ class HelpCenterScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildQuickHelpCards(BuildContext context) {
+  Widget _buildQuickHelpCards(BuildContext context, AppLocalizations l10n) {
     return Row(
       children: [
         Expanded(
           child: _QuickHelpCard(
             icon: Icons.shopping_cart_outlined,
-            title: _Strings.orders,
+            title: l10n.orders,
             color: Theme.of(context).colorScheme.primary,
             onTap: () => _navigateToCategory(context, HelpCategory.order),
           ),
@@ -449,7 +142,7 @@ class HelpCenterScreen extends StatelessWidget {
         Expanded(
           child: _QuickHelpCard(
             icon: Icons.payment_outlined,
-            title: _Strings.payments,
+            title: l10n.payments,
             color: context.statusColors.warning,
             onTap: () => _navigateToCategory(context, HelpCategory.payment),
           ),
@@ -458,47 +151,47 @@ class HelpCenterScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildCategoryCards(BuildContext context) {
+  Widget _buildCategoryCards(BuildContext context, AppLocalizations l10n) {
     final categories = [
       _CategoryItem(
         icon: Icons.shopping_bag_outlined,
-        title: _Strings.orders,
-        subtitle: _Strings.orderHelpSubtitle,
+        title: l10n.orders,
+        subtitle: l10n.orderHelpSubtitle,
         color: Theme.of(context).colorScheme.primary,
         category: HelpCategory.order,
       ),
       _CategoryItem(
         icon: Icons.account_balance_wallet_outlined,
-        title: _Strings.payments,
-        subtitle: _Strings.paymentHelpSubtitle,
+        title: l10n.payments,
+        subtitle: l10n.paymentHelpSubtitle,
         color: context.statusColors.warning,
         category: HelpCategory.payment,
       ),
       _CategoryItem(
         icon: Icons.store_outlined,
-        title: _Strings.selling,
-        subtitle: _Strings.sellingHelpSubtitle,
+        title: l10n.selling,
+        subtitle: l10n.sellingHelpSubtitle,
         color: context.statusColors.success,
         category: HelpCategory.selling,
       ),
       _CategoryItem(
         icon: Icons.person_outlined,
-        title: _Strings.account,
-        subtitle: _Strings.accountHelpSubtitle,
+        title: l10n.account,
+        subtitle: l10n.accountHelpSubtitle,
         color: Theme.of(context).colorScheme.secondary,
         category: HelpCategory.account,
       ),
       _CategoryItem(
         icon: Icons.verified_user_outlined,
-        title: _Strings.verification,
-        subtitle: _Strings.verificationHelpSubtitle,
+        title: l10n.verification,
+        subtitle: l10n.verificationHelpSubtitle,
         color: Theme.of(context).colorScheme.primary,
         category: HelpCategory.verification,
       ),
       _CategoryItem(
         icon: Icons.build_outlined,
-        title: _Strings.technical,
-        subtitle: _Strings.technicalHelpSubtitle,
+        title: l10n.technical,
+        subtitle: l10n.technicalHelpSubtitle,
         color: Theme.of(context).colorScheme.onSurfaceVariant,
         category: HelpCategory.technical,
       ),
@@ -527,8 +220,8 @@ class HelpCenterScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildPopularArticles(BuildContext context) {
-    final articles = _getPopularArticles();
+  Widget _buildPopularArticles(BuildContext context, AppLocalizations l10n) {
+    final articles = _getPopularArticles(l10n);
 
     return Column(
       children: articles.map((article) {
@@ -541,7 +234,10 @@ class HelpCenterScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStillNeedHelpSection(BuildContext context) {
+  Widget _buildStillNeedHelpSection(
+    BuildContext context,
+    AppLocalizations l10n,
+  ) {
     return Container(
       padding: const EdgeInsets.all(AppMetrics.p24),
       decoration: BoxDecoration(
@@ -552,20 +248,24 @@ class HelpCenterScreen extends StatelessWidget {
           ],
         ),
         borderRadius: BorderRadius.circular(AppShape.r16),
-        border: Border.all(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2)),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.support_agent, color: Theme.of(context).colorScheme.primary),
+              Icon(
+                Icons.support_agent,
+                color: Theme.of(context).colorScheme.primary,
+              ),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  _Strings.stillNeedHelp,
-                  style: TextStyle(
-                    fontSize: AppType.s20,
+                  l10n.stillNeedHelp,
+                  style: context.typeRoles.titleSection.copyWith(
                     fontWeight: FontWeight.bold,
                     color: Theme.of(context).colorScheme.onSurface,
                   ),
@@ -575,9 +275,8 @@ class HelpCenterScreen extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            _Strings.contactSupportDescription,
-            style: TextStyle(
-              fontSize: AppType.s14,
+            l10n.contactSupportDescription,
+            style: context.typeRoles.bodyDense.copyWith(
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
@@ -589,7 +288,7 @@ class HelpCenterScreen extends StatelessWidget {
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: AppMetrics.p16),
               ),
-              child: Text(_Strings.contactSupport),
+              child: Text(l10n.contactSupport),
             ),
           ),
         ],
@@ -598,57 +297,56 @@ class HelpCenterScreen extends StatelessWidget {
   }
 
   void _navigateToCategory(BuildContext context, HelpCategory category) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => HelpCategoryScreen(
-          category: category,
-          userId: userId,
-          userName: userName,
-          userAvatar: userAvatar,
-        ),
-      ),
-    );
+    // Canonical category route: the enum name is the stable, shareable
+    // identity; the reader identity is resolved by the route itself.
+    context.push(RoutePaths.helpCategoryPath(category.name));
   }
 
   void _showArticle(BuildContext context, HelpArticle article) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => HelpArticleScreen(
-          article: article,
-          userId: userId,
-          userName: userName,
-          userAvatar: userAvatar,
-        ),
-      ),
-    );
+    // Articles carry localized content with no stable content id yet, so the
+    // article travels as route extra. The content is resolved from the active
+    // locale by the screen that builds the list.
+    context.push(RoutePaths.helpArticle, extra: article);
   }
 
   void _navigateToSupportForm(BuildContext context) {
-    // Navigate back with result indicating user wants to contact support
-    Navigator.of(context).pop(true);
+    // The canonical support flow is the pre-chat form used by the rest of the
+    // app (verification, earnings, order detail). Without a session, the
+    // sign-in route is the canonical entry — the silent pop(true) dead-end is
+    // gone.
+    if (userId != null && userName != null) {
+      showPreChatFormRefactored(
+        context,
+        userId: userId!,
+        userName: userName!,
+        userAvatar: userAvatar,
+      );
+    } else {
+      context.push(RoutePaths.signIn);
+    }
   }
 
-  List<HelpArticle> _getPopularArticles() {
+  List<HelpArticle> _getPopularArticles(AppLocalizations l10n) {
     return [
       HelpArticle(
-        title: _Strings.articleHowToPay,
-        category: _Strings.payments,
-        content: _Strings.articleHowToPayContent,
+        title: l10n.articleHowToPay,
+        category: l10n.payments,
+        content: l10n.articleHowToPayContent,
       ),
       HelpArticle(
-        title: _Strings.articleTrackOrder,
-        category: _Strings.orders,
-        content: _Strings.articleTrackOrderContent,
+        title: l10n.articleTrackOrder,
+        category: l10n.orders,
+        content: l10n.articleTrackOrderContent,
       ),
       HelpArticle(
-        title: _Strings.articleRequestRefund,
-        category: _Strings.orders,
-        content: _Strings.articleRequestRefundContent,
+        title: l10n.articleRequestRefund,
+        category: l10n.orders,
+        content: l10n.articleRequestRefundContent,
       ),
       HelpArticle(
-        title: _Strings.articleBecomeSeller,
-        category: _Strings.selling,
-        content: _Strings.articleBecomeSellerContent,
+        title: l10n.articleBecomeSeller,
+        category: l10n.selling,
+        content: l10n.articleBecomeSellerContent,
       ),
     ];
   }
@@ -675,172 +373,170 @@ class HelpCategoryScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final articles = _getArticlesForCategory();
+    final l10n = AppLocalizations.of(context)!;
+    final articles = _getArticlesForCategory(l10n);
 
     return Scaffold(
-      appBar: AppBarCustom(title: _getCategoryTitle()),
-      body: ListView.separated(
-        padding: const EdgeInsets.all(AppMetrics.p16),
-        itemCount: articles.length,
-        separatorBuilder: (_, _) => const SizedBox(height: 8),
-        itemBuilder: (context, index) {
-          final article = articles[index];
-          return _ArticleTile(
-            title: article.title,
-            category: article.category,
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => HelpArticleScreen(
-                  article: article,
-                  userId: userId,
-                  userName: userName,
-                  userAvatar: userAvatar,
-                ),
-              ),
-            ),
-          );
-        },
+      appBar: AppBarCustom(title: _getCategoryTitle(l10n)),
+      // Canonical body-level bottom-inset authority (SAFE-AREA-24): the ONE
+      // `SafeArea` consumes the live system bottom inset for the whole body, so
+      // the last article row clears the system navigation region. The list's
+      // explicit `p16` padding below is DESIGN spacing only — an explicit
+      // `ListView.padding` never inherits MediaQuery padding.
+      body: SafeArea(
+        child: ListView.separated(
+          padding: const EdgeInsets.all(AppMetrics.p16),
+          itemCount: articles.length,
+          separatorBuilder: (_, _) => const SizedBox(height: 8),
+          itemBuilder: (context, index) {
+            final article = articles[index];
+            return _ArticleTile(
+              title: article.title,
+              category: article.category,
+              onTap: () =>
+                  context.push(RoutePaths.helpArticle, extra: article),
+            );
+          },
+        ),
       ),
     );
   }
 
-  String _getCategoryTitle() {
+  String _getCategoryTitle(AppLocalizations l10n) {
     switch (category) {
       case HelpCategory.order:
-        return _Strings.orders;
+        return l10n.orders;
       case HelpCategory.payment:
-        return _Strings.payments;
+        return l10n.payments;
       case HelpCategory.selling:
-        return _Strings.selling;
+        return l10n.selling;
       case HelpCategory.account:
-        return _Strings.account;
+        return l10n.account;
       case HelpCategory.verification:
-        return _Strings.verification;
+        return l10n.verification;
       case HelpCategory.technical:
-        return _Strings.technical;
+        return l10n.technical;
     }
   }
 
-  List<HelpArticle> _getArticlesForCategory() {
+  List<HelpArticle> _getArticlesForCategory(AppLocalizations l10n) {
     switch (category) {
       case HelpCategory.order:
         return [
           HelpArticle(
-            title: _Strings.articleTrackOrder,
-            category: _Strings.orders,
-            content: _Strings.articleTrackOrderContent,
+            title: l10n.articleTrackOrder,
+            category: l10n.orders,
+            content: l10n.articleTrackOrderContent,
           ),
           HelpArticle(
-            title: _Strings.articleRequestRefund,
-            category: _Strings.orders,
-            content: _Strings.articleRequestRefundContent,
+            title: l10n.articleRequestRefund,
+            category: l10n.orders,
+            content: l10n.articleRequestRefundContent,
           ),
           HelpArticle(
-            title: _Strings.articleCancelOrder,
-            category: _Strings.orders,
-            content: _Strings.articleCancelOrderContent,
+            title: l10n.articleCancelOrder,
+            category: l10n.orders,
+            content: l10n.articleCancelOrderContent,
           ),
           HelpArticle(
-            title: _Strings.articleConfirmDelivery,
-            category: _Strings.orders,
-            content: _Strings.articleConfirmDeliveryContent,
-          ),
-          // PHASE 3 HARDENING: Shipping and delivery articles
-          HelpArticle(
-            title: _Strings.articleOrderShipmentHelp,
-            category: _Strings.orders,
-            content: _Strings.articleOrderShipmentHelpContent,
+            title: l10n.articleConfirmDelivery,
+            category: l10n.orders,
+            content: l10n.articleConfirmDeliveryContent,
           ),
           HelpArticle(
-            title: _Strings.articleItemNotReceived,
-            category: _Strings.orders,
-            content: _Strings.articleItemNotReceivedContent,
+            title: l10n.articleOrderShipmentHelp,
+            category: l10n.orders,
+            content: l10n.articleOrderShipmentHelpContent,
+          ),
+          HelpArticle(
+            title: l10n.articleItemNotReceived,
+            category: l10n.orders,
+            content: l10n.articleItemNotReceivedContent,
           ),
         ];
       case HelpCategory.payment:
         return [
           HelpArticle(
-            title: _Strings.articleHowToPay,
-            category: _Strings.payments,
-            content: _Strings.articleHowToPayContent,
+            title: l10n.articleHowToPay,
+            category: l10n.payments,
+            content: l10n.articleHowToPayContent,
           ),
           HelpArticle(
-            title: _Strings.articlePaymentFailed,
-            category: _Strings.payments,
-            content: _Strings.articlePaymentFailedContent,
+            title: l10n.articlePaymentFailed,
+            category: l10n.payments,
+            content: l10n.articlePaymentFailedContent,
           ),
           HelpArticle(
-            title: _Strings.articleRefundTime,
-            category: _Strings.payments,
-            content: _Strings.articleRefundTimeContent,
+            title: l10n.articleRefundTime,
+            category: l10n.payments,
+            content: l10n.articleRefundTimeContent,
           ),
         ];
       case HelpCategory.selling:
         return [
           HelpArticle(
-            title: _Strings.articleBecomeSeller,
-            category: _Strings.selling,
-            content: _Strings.articleBecomeSellerContent,
+            title: l10n.articleBecomeSeller,
+            category: l10n.selling,
+            content: l10n.articleBecomeSellerContent,
           ),
           HelpArticle(
-            title: _Strings.articleCreateForSale,
-            category: _Strings.selling,
-            content: _Strings.articleCreateForSaleContent,
+            title: l10n.articleCreateForSale,
+            category: l10n.selling,
+            content: l10n.articleCreateForSaleContent,
           ),
           HelpArticle(
-            title: _Strings.articleShippingSetup,
-            category: _Strings.selling,
-            content: _Strings.articleShippingSetupContent,
-          ),
-          // PHASE 3 HARDENING: Seller-specific support articles
-          HelpArticle(
-            title: _Strings.articleWithdrawalFailed,
-            category: _Strings.selling,
-            content: _Strings.articleWithdrawalFailedContent,
+            title: l10n.articleShippingSetup,
+            category: l10n.selling,
+            content: l10n.articleShippingSetupContent,
           ),
           HelpArticle(
-            title: _Strings.articleForSaleNotVisible,
-            category: _Strings.selling,
-            content: _Strings.articleForSaleNotVisibleContent,
+            title: l10n.articleWithdrawalFailed,
+            category: l10n.selling,
+            content: l10n.articleWithdrawalFailedContent,
           ),
           HelpArticle(
-            title: _Strings.articleSellerPaymentPending,
-            category: _Strings.selling,
-            content: _Strings.articleSellerPaymentPendingContent,
+            title: l10n.articleForSaleNotVisible,
+            category: l10n.selling,
+            content: l10n.articleForSaleNotVisibleContent,
+          ),
+          HelpArticle(
+            title: l10n.articleSellerPaymentPending,
+            category: l10n.selling,
+            content: l10n.articleSellerPaymentPendingContent,
           ),
         ];
       case HelpCategory.account:
         return [
           HelpArticle(
-            title: _Strings.articleEditProfile,
-            category: _Strings.account,
-            content: _Strings.articleEditProfileContent,
+            title: l10n.articleEditProfile,
+            category: l10n.account,
+            content: l10n.articleEditProfileContent,
           ),
           HelpArticle(
-            title: _Strings.articleChangePassword,
-            category: _Strings.account,
-            content: _Strings.articleChangePasswordContent,
+            title: l10n.articleChangePassword,
+            category: l10n.account,
+            content: l10n.articleChangePasswordContent,
           ),
         ];
       case HelpCategory.verification:
         return [
           HelpArticle(
-            title: _Strings.articleSellerVerification,
-            category: _Strings.verification,
-            content: _Strings.articleSellerVerificationContent,
+            title: l10n.articleSellerVerification,
+            category: l10n.verification,
+            content: l10n.articleSellerVerificationContent,
           ),
         ];
       case HelpCategory.technical:
         return [
           HelpArticle(
-            title: _Strings.articleAppNotWorking,
-            category: _Strings.technical,
-            content: _Strings.articleAppNotWorkingContent,
+            title: l10n.articleAppNotWorking,
+            category: l10n.technical,
+            content: l10n.articleAppNotWorkingContent,
           ),
           HelpArticle(
-            title: _Strings.articleClearCache,
-            category: _Strings.technical,
-            content: _Strings.articleClearCacheContent,
+            title: l10n.articleAppSlowOrNotLoading,
+            category: l10n.technical,
+            content: l10n.articleAppSlowOrNotLoadingContent,
           ),
         ];
     }
@@ -864,60 +560,71 @@ class HelpArticleScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      appBar: AppBarCustom(title: _Strings.helpArticle),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppMetrics.p24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Category Badge
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p8),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(AppShape.r16),
-              ),
-              child: Text(
-                article.category,
-                style: TextStyle(
-                  fontSize: AppType.s12,
-                  fontWeight: FontWeight.w600,
-                  color: Theme.of(context).colorScheme.secondary,
+      appBar: AppBarCustom(title: l10n.helpArticle),
+      // Canonical body-level bottom-inset authority (SAFE-AREA-25): the ONE
+      // `SafeArea` consumes the live system bottom inset for the whole body, so
+      // the "Was this helpful" block (the last meaningful content, carrying
+      // the Yes/No actions) clears the system navigation region. The scroll
+      // view's explicit `p24` padding below is DESIGN spacing only — an
+      // explicit `ScrollView.padding` never inherits MediaQuery padding.
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(AppMetrics.p24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Category Badge
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppMetrics.p12,
+                  vertical: AppMetrics.p8,
+                ),
+                decoration: BoxDecoration(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.secondary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(AppShape.r16),
+                ),
+                child: Text(
+                  article.category,
+                  style: context.typeRoles.labelMicro.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: Theme.of(context).colorScheme.secondary,
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-            // Title
-            Text(
-              article.title,
-              style: TextStyle(
-                fontSize: AppType.s24,
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).colorScheme.onSurface,
+              const SizedBox(height: 16),
+              // Title
+              Text(
+                article.title,
+                style: context.typeRoles.titleProminent.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
               ),
-            ),
-            const SizedBox(height: 24),
-            // Content
-            Text(
-              article.content,
-              style: TextStyle(
-                fontSize: AppType.s16,
-                height: 1.6,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              const SizedBox(height: 24),
+              // Content
+              Text(
+                article.content,
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  height: 1.6,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
-            ),
-            const SizedBox(height: 32),
-            // Helpful Section
-            _buildHelpfulSection(context),
-          ],
+              const SizedBox(height: 32),
+              // Helpful Section
+              _buildHelpfulSection(context, l10n),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildHelpfulSection(BuildContext context) {
+  Widget _buildHelpfulSection(BuildContext context, AppLocalizations l10n) {
     return Container(
       padding: const EdgeInsets.all(AppMetrics.p16),
       decoration: BoxDecoration(
@@ -928,9 +635,8 @@ class HelpArticleScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            _Strings.wasThisHelpful,
-            style: TextStyle(
-              fontSize: AppType.s14,
+            l10n.wasThisHelpful,
+            style: context.typeRoles.titleCompact.copyWith(
               fontWeight: FontWeight.w600,
               color: Theme.of(context).colorScheme.onSurface,
             ),
@@ -940,15 +646,18 @@ class HelpArticleScreen extends StatelessWidget {
             children: [
               Expanded(
                 child: OutlinedButton.icon(
+                  // Persisting the article rating is a separate, unimplemented
+                  // feedback backend; the UI stays honest and claims nothing
+                  // beyond an acknowledgement.
                   onPressed: () {
                     Navigator.of(context).pop();
-                    AppSnackBar.showSuccess(
-                      context,
-                      _Strings.feedbackThanks,
-                    );
+                    AppSnackBar.showSuccess(context, l10n.feedbackThanks);
                   },
-                  icon: const Icon(Icons.thumb_up_outlined, size: AppIconSize.action),
-                  label: Text(_Strings.yes),
+                  icon: const Icon(
+                    Icons.thumb_up_outlined,
+                    size: AppIconSize.action,
+                  ),
+                  label: Text(l10n.yes),
                 ),
               ),
               const SizedBox(width: 12),
@@ -963,14 +672,19 @@ class HelpArticleScreen extends StatelessWidget {
                         userAvatar: userAvatar,
                       );
                     } else {
+                      // Authentication required: the canonical flow is the
+                      // sign-in route, not a transient toast. Capture the
+                      // router before closing this sheet.
+                      final router = GoRouter.of(context);
                       Navigator.of(context).pop();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(_Strings.pleaseLoginToManage)),
-                      );
+                      router.push(RoutePaths.signIn);
                     }
                   },
-                  icon: const Icon(Icons.thumb_down_outlined, size: AppIconSize.action),
-                  label: Text(_Strings.no),
+                  icon: const Icon(
+                    Icons.thumb_down_outlined,
+                    size: AppIconSize.action,
+                  ),
+                  label: Text(l10n.no),
                 ),
               ),
             ],
@@ -1000,7 +714,6 @@ class _QuickHelpCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(AppShape.r12),
@@ -1026,8 +739,7 @@ class _QuickHelpCard extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               title,
-              style: TextStyle(
-                fontSize: AppType.s12,
+              style: context.typeRoles.labelMicro.copyWith(
                 fontWeight: FontWeight.w500,
                 color: Theme.of(context).colorScheme.onSurface,
               ),
@@ -1056,7 +768,6 @@ class _CategoryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(AppShape.r12),
@@ -1076,8 +787,7 @@ class _CategoryCard extends StatelessWidget {
             const SizedBox(height: 12),
             Text(
               title,
-              style: TextStyle(
-                fontSize: AppType.s14,
+              style: context.typeRoles.titleCompact.copyWith(
                 fontWeight: FontWeight.w600,
                 color: Theme.of(context).colorScheme.onSurface,
               ),
@@ -1086,8 +796,7 @@ class _CategoryCard extends StatelessWidget {
             Expanded(
               child: Text(
                 subtitle,
-                style: TextStyle(
-                  fontSize: AppType.s12,
+                style: context.typeRoles.labelMicro.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
                 maxLines: 2,
@@ -1114,7 +823,6 @@ class _ArticleTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(AppShape.r10),
@@ -1135,8 +843,7 @@ class _ArticleTile extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: TextStyle(
-                      fontSize: AppType.s14,
+                    style: context.typeRoles.titleCompact.copyWith(
                       fontWeight: FontWeight.w500,
                       color: Theme.of(context).colorScheme.onSurface,
                     ),
@@ -1144,8 +851,7 @@ class _ArticleTile extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     category,
-                    style: TextStyle(
-                      fontSize: AppType.s12,
+                    style: context.typeRoles.labelMicro.copyWith(
                       color: Theme.of(context).colorScheme.secondary,
                     ),
                   ),

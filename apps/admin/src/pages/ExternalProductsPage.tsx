@@ -5,6 +5,9 @@ import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/Table'
 import { Modal } from '@/components/ui/Modal'
+import { Select } from '@/components/ui/Select'
+import { Textarea } from '@/components/ui/Textarea'
+import { AdminLoadingState, AdminErrorState, AdminEmptyState, AdminPagination, PageHeader } from '@/components/common'
 import {
   listAdminExternalProducts,
   getAdminExternalProduct,
@@ -135,17 +138,10 @@ function DetailModal({ productId, isOpen, onClose, onSuccess }: DetailModalProps
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="External Product Review" size="lg">
-      {loading && (
-        <div className="flex items-center justify-center py-12">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent" />
-        </div>
-      )}
+      {loading && <AdminLoadingState embedded label="Loading external product" />}
 
       {fetchError && (
-        <div className="flex items-center gap-2 text-destructive py-4">
-          <AlertTriangle className="h-4 w-4" />
-          <span className="text-sm">{fetchError}</span>
-        </div>
+        <AdminErrorState title="Failed to load product" message={fetchError} />
       )}
 
       {product && !loading && (
@@ -239,7 +235,7 @@ function DetailModal({ productId, isOpen, onClose, onSuccess }: DetailModalProps
           {/* Media */}
           {product.media && product.media.length > 0 && (
             <div>
-              <h3 className="text-sm font-medium text-foreground mb-2">
+              <h3 className="type-label mb-2">
                 Media ({product.media.length})
               </h3>
               <div className="flex flex-wrap gap-2">
@@ -255,7 +251,7 @@ function DetailModal({ productId, isOpen, onClose, onSuccess }: DetailModalProps
                     {m.media_type === 'image' ? (
                       <img src={m.thumbnail_url ?? m.url} alt="" className="h-full w-full object-cover" />
                     ) : (
-                      <span className="text-xs text-muted-foreground">Video</span>
+                      <span className="type-caption">Video</span>
                     )}
                   </a>
                 ))}
@@ -266,10 +262,10 @@ function DetailModal({ productId, isOpen, onClose, onSuccess }: DetailModalProps
           {/* Review History */}
           {product.review_history && product.review_history.length > 0 && (
             <div>
-              <h3 className="text-sm font-medium text-foreground mb-2">Review History</h3>
+              <h3 className="type-label mb-2">Review History</h3>
               <div className="space-y-2">
                 {product.review_history.map((h) => (
-                  <div key={h.id} className="flex items-start gap-2 text-xs text-muted-foreground bg-surface-muted rounded p-2">
+                  <div key={h.id} className="flex items-start gap-2 type-caption bg-surface-muted rounded p-2">
                     <Clock className="h-3 w-3 mt-0.5 flex-shrink-0 text-muted-foreground" />
                     <div>
                       <span className="font-medium text-foreground">
@@ -321,7 +317,7 @@ function DetailModal({ productId, isOpen, onClose, onSuccess }: DetailModalProps
                   <span className="ml-1 text-destructive">*</span>
                 )}
               </h3>
-              <textarea
+              <Textarea
                 rows={3}
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
@@ -332,7 +328,6 @@ function DetailModal({ productId, isOpen, onClose, onSuccess }: DetailModalProps
                     ? 'Describe what needs to be changed (required)'
                     : 'Optional note'
                 }
-                className="w-full border border-border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-info"
               />
               {submitError && (
                 <p className="text-sm text-destructive flex items-center gap-1">
@@ -363,21 +358,31 @@ function DetailModal({ productId, isOpen, onClose, onSuccess }: DetailModalProps
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
+const PAGE_SIZE = 20
+
 export function ExternalProductsPage() {
   const [statusFilter, setStatusFilter] = useState<ExternalProductReviewStatus | ''>('pending_review')
   const [products, setProducts] = useState<AdminExternalProduct[]>([])
   const [total, setTotal] = useState(0)
+  const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
 
+  // `count` from the server is the truthful total for the current filter.
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
+
   const fetchProducts = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
-      const res = await listAdminExternalProducts({ status: statusFilter || undefined })
+      const res = await listAdminExternalProducts({
+        status: statusFilter || undefined,
+        page,
+        limit: PAGE_SIZE,
+      })
       setProducts(res.items ?? [])
       setTotal(res.count ?? 0)
     } catch (err) {
@@ -385,7 +390,7 @@ export function ExternalProductsPage() {
     } finally {
       setLoading(false)
     }
-  }, [statusFilter])
+  }, [statusFilter, page])
 
   useEffect(() => {
     fetchProducts()
@@ -399,31 +404,22 @@ export function ExternalProductsPage() {
   const pendingCount = products.filter((p) => p.review_status === 'pending_review').length
 
   if (loading && products.length === 0) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent" />
-          <p className="mt-4 text-muted-foreground">Loading external products…</p>
-        </div>
-      </div>
-    )
+    return <AdminLoadingState />
   }
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">External Product Review</h1>
-          <p className="text-muted-foreground mt-1">
-            Review seller-submitted external products for promotion discovery.
-          </p>
-        </div>
-        <Button variant="ghost" size="sm" onClick={fetchProducts} disabled={loading}>
-          <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
-        </Button>
-      </div>
+      <PageHeader
+        title="External Product Review"
+        description="Review seller-submitted external products for promotion discovery."
+        actions={
+          <Button variant="ghost" size="sm" onClick={fetchProducts} disabled={loading}>
+            <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+        }
+      />
 
       {/* Stats */}
       <Card>
@@ -433,9 +429,9 @@ export function ExternalProductsPage() {
               <p className="text-sm font-medium text-muted-foreground">
                 {statusFilter ? externalProductStatusLabels[statusFilter as ExternalProductReviewStatus] : 'All'} Products
               </p>
-              <p className="text-3xl font-bold text-primary mt-1">{total}</p>
+              <p className="type-metric-lg text-primary mt-1">{total}</p>
               {!statusFilter && (
-                <p className="text-xs text-muted-foreground mt-1">{pendingCount} pending review</p>
+                <p className="type-caption mt-1">{pendingCount} pending review</p>
               )}
             </div>
             <div className="p-4 rounded-lg bg-info-bg">
@@ -448,39 +444,33 @@ export function ExternalProductsPage() {
       {/* Filters */}
       <Card>
         <CardContent className="pt-6">
-          <div className="flex items-center gap-4">
-            <Filter className="h-5 w-5 text-muted-foreground" />
-            <label htmlFor="status-filter" className="text-sm font-medium text-foreground">
-              Status:
-            </label>
-            <select
-              id="status-filter"
+          <div className="flex items-end gap-4">
+            <Filter className="h-5 w-5 text-muted-foreground mb-2" />
+            <Select
+              label="Status:"
               value={statusFilter}
-              onChange={(e) =>
+              onChange={(e) => {
                 setStatusFilter(e.target.value as ExternalProductReviewStatus | '')
-              }
-              className="px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                setPage(1)
+              }}
             >
               {STATUS_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
                   {opt.label}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
         </CardContent>
       </Card>
 
       {/* Error */}
       {error && (
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-2 text-destructive">
-              <AlertTriangle className="h-5 w-5" />
-              <p className="text-sm">{error}</p>
-            </div>
-          </CardContent>
-        </Card>
+        <AdminErrorState
+          title="Failed to load external products"
+          message={error}
+          onRetry={fetchProducts}
+        />
       )}
 
       {/* Table */}
@@ -490,15 +480,17 @@ export function ExternalProductsPage() {
         </CardHeader>
         <CardContent>
           {products.length === 0 && !loading ? (
-            <div className="text-center py-12">
-              <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-foreground mb-2">No Products Found</h3>
-              <p className="text-muted-foreground">
-                {statusFilter
+            <AdminEmptyState
+              icon={Package}
+              title="No Products Found"
+              description={
+                statusFilter
                   ? `No external products with status "${externalProductStatusLabels[statusFilter as ExternalProductReviewStatus]}".`
-                  : 'No external products in the review queue.'}
-              </p>
-            </div>
+                  : 'No external products in the review queue.'
+              }
+              filtered={Boolean(statusFilter)}
+              onClearFilters={() => { setStatusFilter(''); setPage(1) }}
+            />
           ) : (
             <div className="border border-border rounded-lg overflow-hidden">
               <Table>
@@ -516,7 +508,7 @@ export function ExternalProductsPage() {
                 <TableBody>
                   {products.map((p) => (
                     <TableRow key={p.id}>
-                      <TableCell className="font-mono text-xs text-muted-foreground">
+                      <TableCell className="font-mono type-caption">
                         {p.id.slice(0, 8)}
                       </TableCell>
                       <TableCell>
@@ -546,10 +538,10 @@ export function ExternalProductsPage() {
                           {p.normalized_external_url.replace(/^https?:\/\//, '').slice(0, 30)}
                         </a>
                       </TableCell>
-                      <TableCell className="font-mono text-xs text-muted-foreground">
+                      <TableCell className="font-mono type-caption">
                         {p.owner_user_id.slice(0, 8)}
                       </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
+                      <TableCell className="type-caption">
                         {p.submitted_at ? formatDate(p.submitted_at) : '-'}
                       </TableCell>
                       <TableCell className="text-right">
@@ -566,6 +558,16 @@ export function ExternalProductsPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <AdminPagination
+          page={page}
+          totalPages={totalPages}
+          onPageChange={setPage}
+          disabled={loading}
+        />
+      )}
 
       {/* Detail Modal */}
       <DetailModal

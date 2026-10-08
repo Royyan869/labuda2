@@ -14,6 +14,8 @@ import 'package:labuda/shared/domain/entities/resource_projection.dart';
 import 'package:labuda/domains/user/preference/seller/presentation/providers/withdraw_notifier.dart';
 import 'package:labuda/domains/user/preference/seller/presentation/providers/withdraw_state.dart';
 import 'package:labuda/shared/utils/app_formatters.dart';
+import 'package:labuda/shared/utils/money_input_formatter.dart';
+import 'package:labuda/shared/widgets/app_text_field.dart';
 import 'package:labuda/domains/user/identity/verification/verification.dart';
 
 bool hasPayoutAuthority(SellerVerificationV2State verificationState) =>
@@ -59,7 +61,9 @@ class _WithdrawDialogState extends ConsumerState<WithdrawDialog> {
     // fee is deducted from it at settlement, not added on top, so no
     // reservation is needed here.
     final prefillAmount = math.max(widget.availableBalance, minWithdrawAmount);
-    _amountController.text = prefillAmount.toStringAsFixed(0);
+    // Canonical money display: grouped while the parsed business value stays
+    // a plain int.
+    _amountController.text = MoneyInputFormatter.display(prefillAmount.round());
     _amountFocusNode.requestFocus();
     _amountController.addListener(_validateAmount);
   }
@@ -73,16 +77,10 @@ class _WithdrawDialogState extends ConsumerState<WithdrawDialog> {
 
   void _validateAmount() {
     final text = _amountController.text.trim();
-    // Digits-only policy — reject separator input without stripping.
-    // Stripping '.' before parse converts '1.5' → '15' (100x smaller).
-    if (text.isNotEmpty && (text.contains('.') || text.contains(','))) {
-      setState(() {
-        _isValid = false;
-        _errorMessage = 'Jumlah harus bilangan bulat tanpa koma atau titik.';
-      });
-      return;
-    }
-    final amount = int.tryParse(text);
+    // Canonical money parse: the mask groups with '.' while typing, so the
+    // dots here are display separators, never a fractional value — the parse
+    // reads the digits (`1.000.000` → 1000000) and there is no double step.
+    final amount = MoneyInputFormatter.parseAmount(text);
     // PASS_18H: the entered amount is the full requested withdrawal amount
     // and is debited from the balance as-is — the fee is deducted from it
     // at settlement, not added on top.
@@ -113,8 +111,7 @@ class _WithdrawDialogState extends ConsumerState<WithdrawDialog> {
   Future<void> _handleWithdraw() async {
     if (!_isValid) return;
 
-    final text = _amountController.text.trim();
-    final amount = int.tryParse(text) ?? 0;
+    final amount = MoneyInputFormatter.parseAmount(_amountController.text) ?? 0;
 
     // Close dialog on success
     final success = await ref
@@ -132,7 +129,8 @@ class _WithdrawDialogState extends ConsumerState<WithdrawDialog> {
     final withdrawState = ref.watch(withdrawNotifierProvider);
     final verificationState = ref.watch(sellerVerificationV2NotifierProvider);
     final enteredAmount =
-        int.tryParse(_amountController.text.trim())?.toDouble() ?? 0.0;
+        MoneyInputFormatter.parseAmount(_amountController.text)?.toDouble() ??
+        0.0;
     final withdrawalFeeAmount = normalizeBackendWithdrawalFee(
       widget.withdrawalFeeAmount,
     );
@@ -175,15 +173,13 @@ class _WithdrawDialogState extends ConsumerState<WithdrawDialog> {
                 children: [
                   Text(
                     'Available Balance',
-                    style: TextStyle(
-                      fontSize: AppType.s14,
+                    style: context.typeRoles.bodyDense.copyWith(
                       color: scheme.onSurfaceVariant,
                     ),
                   ),
                   Text(
                     AppFormatters.formatCurrency(widget.availableBalance),
-                    style: TextStyle(
-                      fontSize: AppType.s16,
+                    style: context.typeRoles.titleCompact.copyWith(
                       fontWeight: FontWeight.bold,
                       color: scheme.primary,
                     ),
@@ -196,31 +192,28 @@ class _WithdrawDialogState extends ConsumerState<WithdrawDialog> {
             // Amount Input
             Text(
               'Withdrawal Amount',
-              style: TextStyle(
-                fontSize: AppType.s14,
+              style: context.typeRoles.bodyDense.copyWith(
                 fontWeight: FontWeight.w500,
                 color: scheme.onSurface,
               ),
             ),
             const SizedBox(height: 8),
-            TextField(
+            AppTextField(
               controller: _amountController,
               focusNode: _amountFocusNode,
               enabled: withdrawState is! WithdrawProcessing,
-              decoration: InputDecoration(
-                labelText: 'Amount',
-                prefixText: 'Rp ',
-                border: const OutlineInputBorder(),
-                errorText: _errorMessage,
-                suffixIcon: _amountController.text.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear),
-                        onPressed: () {
-                          _amountController.clear();
-                        },
-                      )
-                    : null,
-              ),
+              inputFormatters: const [MoneyInputFormatter()],
+              labelText: 'Amount',
+              prefixText: 'Rp ',
+              errorText: _errorMessage,
+              suffixIcon: _amountController.text.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.clear, semanticLabel: 'Bersihkan'),
+                      onPressed: () {
+                        _amountController.clear();
+                      },
+                    )
+                  : null,
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: false,
               ),
@@ -267,7 +260,9 @@ class _WithdrawDialogState extends ConsumerState<WithdrawDialog> {
             if (showWithdrawalFee)
               Text(
                 'Biaya penarikan ${AppFormatters.formatCurrency(withdrawalFeeAmount)} dikenakan setiap penarikan.',
-                style: TextStyle(fontSize: AppType.s12, color: scheme.onSurfaceVariant),
+                style: context.typeRoles.labelMicro.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
               ),
 
             // Quick Amount Buttons
@@ -296,8 +291,7 @@ class _WithdrawDialogState extends ConsumerState<WithdrawDialog> {
                       const SizedBox(width: 8),
                       Text(
                         'Pencairan Dana',
-                        style: TextStyle(
-                          fontSize: AppType.s14,
+                        style: context.typeRoles.bodyDense.copyWith(
                           fontWeight: FontWeight.w500,
                           color: scheme.onSurface,
                         ),
@@ -307,8 +301,7 @@ class _WithdrawDialogState extends ConsumerState<WithdrawDialog> {
                   const SizedBox(height: 8),
                   Text(
                     'Permintaan pencairan akan diproses secara manual. Dana akan ditransfer ke rekening terdaftar dalam 1-3 hari kerja setelah disetujui.',
-                    style: TextStyle(
-                      fontSize: AppType.s12,
+                    style: context.typeRoles.labelMicro.copyWith(
                       color: scheme.onSurfaceVariant,
                       height: 1.4,
                     ),
@@ -337,8 +330,7 @@ class _WithdrawDialogState extends ConsumerState<WithdrawDialog> {
                   Expanded(
                     child: Text(
                       'Minimum pencairan: Rp ${formatGroupedAmount(minWithdrawAmount.round())}',
-                      style: TextStyle(
-                        fontSize: AppType.s12,
+                      style: context.typeRoles.labelMicro.copyWith(
                         color: scheme.primary,
                       ),
                     ),
@@ -383,8 +375,7 @@ class _WithdrawDialogState extends ConsumerState<WithdrawDialog> {
                     Expanded(
                       child: Text(
                         'Permintaan pencairan berhasil dikirim. Menunggu proses verifikasi.',
-                        style: TextStyle(
-                          fontSize: AppType.s14,
+                        style: context.typeRoles.bodyDense.copyWith(
                           color: context.statusColors.success,
                         ),
                       ),
@@ -414,8 +405,7 @@ class _WithdrawDialogState extends ConsumerState<WithdrawDialog> {
                     Expanded(
                       child: Text(
                         message,
-                        style: TextStyle(
-                          fontSize: AppType.s14,
+                        style: context.typeRoles.bodyDense.copyWith(
                           color: context.statusColors.error,
                         ),
                       ),
@@ -463,12 +453,13 @@ class _WithdrawDialogState extends ConsumerState<WithdrawDialog> {
       children: [
         Text(
           label,
-          style: TextStyle(fontSize: AppType.s14, color: scheme.onSurfaceVariant),
+          style: context.typeRoles.bodyDense.copyWith(
+            color: scheme.onSurfaceVariant,
+          ),
         ),
         Text(
           value,
-          style: TextStyle(
-            fontSize: AppType.s14,
+          style: context.typeRoles.bodyDense.copyWith(
             fontWeight: FontWeight.w600,
             color: scheme.onSurface,
           ),
@@ -498,10 +489,13 @@ class _WithdrawDialogState extends ConsumerState<WithdrawDialog> {
     return amounts.map((amount) {
       return OutlinedButton(
         onPressed: () {
-          _amountController.text = amount.toStringAsFixed(0);
+          _amountController.text = MoneyInputFormatter.display(amount.round());
         },
         style: OutlinedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p8),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppMetrics.p12,
+            vertical: AppMetrics.p8,
+          ),
           minimumSize: Size.zero,
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         ),
@@ -509,7 +503,7 @@ class _WithdrawDialogState extends ConsumerState<WithdrawDialog> {
           amount == availableBalance
               ? 'All'
               : '${(amount / availableBalance * 100).toInt()}%',
-          style: const TextStyle(fontSize: AppType.s12),
+          style: Theme.of(context).textTheme.labelLarge,
         ),
       );
     }).toList();
@@ -576,7 +570,9 @@ class _WithdrawDialogState extends ConsumerState<WithdrawDialog> {
                   Expanded(
                     child: Text(
                       'Dokumen verifikasi Anda ditolak. Mohon periksa dan ajukan kembali.',
-                      style: TextStyle(fontSize: AppType.s14, color: context.statusColors.error),
+                      style: context.typeRoles.bodyDense.copyWith(
+                        color: context.statusColors.error,
+                      ),
                     ),
                   ),
                 ],
@@ -594,12 +590,16 @@ class _WithdrawDialogState extends ConsumerState<WithdrawDialog> {
               ),
               child: Row(
                 children: [
-                  Icon(Icons.policy, color: context.statusColors.warning, size: AppIconSize.action),
+                  Icon(
+                    Icons.policy,
+                    color: context.statusColors.warning,
+                    size: AppIconSize.action,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'Verifikasi sedang ditinjau. Penarikan dana sementara tidak tersedia.',
-                      style: TextStyle(fontSize: AppType.s12),
+                      style: context.typeRoles.labelMicro,
                     ),
                   ),
                 ],
@@ -619,12 +619,16 @@ class _WithdrawDialogState extends ConsumerState<WithdrawDialog> {
               ),
               child: Row(
                 children: [
-                  Icon(Icons.pending, color: context.statusColors.warning, size: AppIconSize.action),
+                  Icon(
+                    Icons.pending,
+                    color: context.statusColors.warning,
+                    size: AppIconSize.action,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'Status saat ini: menunggu review admin.',
-                      style: TextStyle(fontSize: AppType.s12),
+                      style: context.typeRoles.labelMicro,
                     ),
                   ),
                 ],
@@ -653,7 +657,7 @@ class _WithdrawDialogState extends ConsumerState<WithdrawDialog> {
                   Expanded(
                     child: Text(
                       'Siapkan KTP dan foto selfie untuk verifikasi',
-                      style: TextStyle(fontSize: AppType.s12),
+                      style: context.typeRoles.labelMicro,
                     ),
                   ),
                 ],

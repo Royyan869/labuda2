@@ -31,9 +31,8 @@ class AuctionRepositoryImpl implements AuctionRepository {
   final Map<String, Auction?> _lastAuctionSnapshot = {};
   final Map<String, SplayTreeMap<String, AuctionBid>> _lastBidSnapshots = {};
 
-  // Polling monitors for tracking auction polling status
+  // Polling monitor for tracking auction polling status
   final Map<String, PollingMonitor> _auctionMonitors = {};
-  final Map<String, PollingMonitor> _bidMonitors = {};
 
   AuctionRepositoryImpl({
     required AuctionRemoteDatasource datasource,
@@ -60,7 +59,6 @@ class AuctionRepositoryImpl implements AuctionRepository {
     required String startMode,
     DateTime? scheduledStartAt,
     required int durationHours,
-    String? farmAddressId,
     required PreparationTime preparationTime,
     required List<String> shippingSetupIds,
   }) async {
@@ -81,7 +79,6 @@ class AuctionRepositoryImpl implements AuctionRepository {
         startMode: startMode,
         scheduledStartAt: scheduledStartAt,
         durationHours: durationHours,
-        farmAddressId: farmAddressId,
         preparationTime: preparationTime,
         shippingSetupIds: shippingSetupIds,
       );
@@ -221,8 +218,36 @@ class AuctionRepositoryImpl implements AuctionRepository {
     }
   }
 
-  // Note: View tracking is handled by backend automatically
-  // No explicit incrementViewCount needed
+  @override
+  Future<Result<void>> relistAuction({
+    required String auctionId,
+    required String title,
+    required String description,
+    required int openingBid,
+    required int bidIncrement,
+    int? buyNowPrice,
+    required String startMode,
+    DateTime? scheduledStartAt,
+    required int durationHours,
+  }) async {
+    try {
+      await _datasource.relistAuction(auctionId, {
+        'title': title,
+        'description': description,
+        'start_price': openingBid,
+        'bid_increment': bidIncrement,
+        if (buyNowPrice != null) 'buy_now_price': buyNowPrice,
+        'start_mode': startMode,
+        if (scheduledStartAt != null)
+          'scheduled_start_at': scheduledStartAt.toUtc().toIso8601String(),
+        'duration_hours': durationHours,
+      });
+      return Result.success(null);
+    } catch (e) {
+      _logger.error('Failed to relist auction: $e');
+      return Result.error(e.toString());
+    }
+  }
 
   // ========== Bidding Operations ==========
 
@@ -272,7 +297,9 @@ class AuctionRepositoryImpl implements AuctionRepository {
   Future<Result<String>> claimAuction({
     required String auctionId,
     required String addressId,
-    required String shippingSetupId,
+    String? shippingSetupId,
+    String? shippingQuoteId,
+    String? chatId,
     String? discountCode,
     bool useCoins = false,
   }) async {
@@ -281,6 +308,8 @@ class AuctionRepositoryImpl implements AuctionRepository {
         auctionId,
         addressId: addressId,
         shippingSetupId: shippingSetupId,
+        shippingQuoteId: shippingQuoteId,
+        chatId: chatId,
         discountCode: discountCode,
         useCoins: useCoins,
       );
@@ -527,12 +556,5 @@ class AuctionRepositoryImpl implements AuctionRepository {
 
     // Clean up monitors
     _auctionMonitors.clear();
-    _bidMonitors.clear();
-  }
-
-  /// Get polling status for an auction (for UI/debugging)
-  Map<String, dynamic>? getAuctionPollingStatus(String auctionId) {
-    final monitor = _auctionMonitors[auctionId];
-    return monitor?.getStatusSummary();
   }
 }

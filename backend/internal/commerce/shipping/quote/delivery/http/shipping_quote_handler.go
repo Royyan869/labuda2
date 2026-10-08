@@ -2,6 +2,7 @@ package http
 
 import (
 	"context"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -103,8 +104,22 @@ func (h *Handler) CreateShippingQuote(c *gin.Context) {
 		return
 	}
 
-	// Verify caller is a participant of the chat room
-	room, err := h.roomGetter.GetRoomByID(ctx, nil, chatID)
+	// Verify caller is a participant of the chat room.
+	//
+	// The production room getter is backed by the db.Tx-based chat repository,
+	// which rejects a nil transaction. Resolve the room inside a transaction
+	// when a DB is wired (production); the read-path tests inject a mock getter
+	// that ignores the transaction, so a nil DB is tolerated there.
+	var room *chatEntity.ChatRoom
+	if h.db != nil {
+		err = h.db.WithTx(ctx, func(tx db.Tx) error {
+			var e error
+			room, e = h.roomGetter.GetRoomByID(ctx, tx, chatID)
+			return e
+		})
+	} else {
+		room, err = h.roomGetter.GetRoomByID(ctx, nil, chatID)
+	}
 	if err != nil {
 		response.NotFound(c, "Chat room not found")
 		return
@@ -179,7 +194,7 @@ func (h *Handler) CreateShippingQuote(c *gin.Context) {
 		return
 	}
 
-	response.Success(c, h.quoteToResponse(quote))
+	response.Success(c, h.quoteToResponse(quote, sellerID))
 }
 
 // GetShippingQuoteByID handles GET /api/v1/shipping-quote/:quote_id
@@ -230,7 +245,7 @@ func (h *Handler) GetShippingQuoteByID(c *gin.Context) {
 		return
 	}
 
-	response.Success(c, h.quoteToResponse(quote))
+	response.Success(c, h.quoteToResponse(quote, userID))
 }
 
 // ========================================================================
@@ -240,14 +255,14 @@ func (h *Handler) GetShippingQuoteByID(c *gin.Context) {
 // ShippingQuoteResponse represents a shipping quote response.
 // TASK A-C: Enhanced with status, destination lock, expiration
 type ShippingQuoteResponse struct {
-	ID                    string `json:"id"`
-	ChatID                string `json:"chat_id"`
-	ProductID             string `json:"product_id"`
-	SourceType            string `json:"source_type"`
-	SourceID              string `json:"source_id"`
-	SellerID              string `json:"seller_id"`
-	BuyerID               string `json:"buyer_id"`
-	Cost                  int64  `json:"cost"`
+	ID                    string  `json:"id"`
+	ChatID                string  `json:"chat_id"`
+	ProductID             string  `json:"product_id"`
+	SourceType            string  `json:"source_type"`
+	SourceID              string  `json:"source_id"`
+	SellerID              string  `json:"seller_id"`
+	BuyerID               string  `json:"buyer_id"`
+	Cost                  int64   `json:"cost"`
 	Note                  *string `json:"note,omitempty"`
 	Status                string  `json:"status"`                            // TASK C: Quote status
 	DestinationCityID     *string `json:"destination_city_id,omitempty"`     // TASK D
@@ -255,10 +270,17 @@ type ShippingQuoteResponse struct {
 	ExpiresAt             *string `json:"expires_at,omitempty"`              // TASK C
 	UsedAt                *string `json:"used_at,omitempty"`                 // TASK C
 	CreatedAt             string  `json:"created_at"`
+	// Canonical Commerce actionability projection for the requesting viewer.
+	// Conversation surfaces render these verbatim; they must never reconstruct
+	// "which quote is actionable" themselves.
+	IsCurrent        bool `json:"is_current"`
+	ViewerActionable bool `json:"viewer_actionable"`
 }
 
-// quoteToResponse converts a ShippingQuote entity to a response DTO.
-func (h *Handler) quoteToResponse(quote *shippingQuoteEntity.ShippingQuote) ShippingQuoteResponse {
+// quoteToResponse converts a ShippingQuote entity to a response DTO, including
+// the canonical viewer-scoped actionability projection.
+func (h *Handler) quoteToResponse(quote *shippingQuoteEntity.ShippingQuote, viewerID uuid.UUID) ShippingQuoteResponse {
+	actionability := shippingQuoteApp.EvaluateQuoteActionability(quote, viewerID, time.Now())
 	resp := ShippingQuoteResponse{
 		ID:         quote.ID.String(),
 		ChatID:     quote.ChatID.String(),
@@ -288,6 +310,10 @@ func (h *Handler) quoteToResponse(quote *shippingQuoteEntity.ShippingQuote) Ship
 		usedAt := quote.UsedAt.Format("2006-01-02T15:04:05Z07:00")
 		resp.UsedAt = &usedAt
 	}
+
+	// Canonical Commerce actionability projection (viewer-scoped).
+	resp.IsCurrent = actionability.IsCurrent
+	resp.ViewerActionable = actionability.ViewerActionable
 
 	return resp
 }

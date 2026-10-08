@@ -13,12 +13,12 @@ import (
 	auctionentity "github.com/labuda/backend/internal/commerce/auction/entity"
 	auctionRepoImpl "github.com/labuda/backend/internal/commerce/auction/infrastructure/repository"
 	fpsentity "github.com/labuda/backend/internal/commerce/forsale/entity"
-	productEntity "github.com/labuda/backend/internal/commerce/product/entity"
-	productInfraRepo "github.com/labuda/backend/internal/commerce/product/infrastructure/repository"
 	forsaleRepoImpl "github.com/labuda/backend/internal/commerce/forsale/infrastructure/repository"
 	orderentity "github.com/labuda/backend/internal/commerce/order/entity"
 	orderRepoImpl "github.com/labuda/backend/internal/commerce/order/infrastructure/repository"
+	productEntity "github.com/labuda/backend/internal/commerce/product/entity"
 	productentity "github.com/labuda/backend/internal/commerce/product/entity"
+	productInfraRepo "github.com/labuda/backend/internal/commerce/product/infrastructure/repository"
 	productRepoImpl "github.com/labuda/backend/internal/commerce/product/infrastructure/repository"
 	"github.com/labuda/backend/pkg/db"
 	"github.com/labuda/backend/pkg/money"
@@ -65,35 +65,31 @@ func TestStage5_RestoreListingStock_ResolvesSurfaceFromOrderSource(t *testing.T)
 		}
 		productID = product.ID
 		listing_product := &productEntity.Product{
-	SellerID: sellerID,
-	Title: "Kohaku",
-	Description: "d",
-	MediaURLs: []string{},
-	Variety: "Kohaku",
-	SizeCm: nil,
-	AgeMonths: nil,
-	Gender: nil,
-	Breeder: nil,
-	Bloodline: nil,
-	Certificates: []string{},
-	FarmAddressID: nil,
-	PreparationTime: string(fpsentity.PreparationTime1To3Days),
-	SellingSurface: productEntity.SellingSurfaceForSale,
-}
-	productRepo := productInfraRepo.NewProductRepository()
-	if err := productRepo.Create(ctx, tx, listing_product); err != nil {
-		return err
-	}
-	listing, err := fpsentity.NewForSaleSurface(sellerID, money.New(50000), 2, false, fpsentity.ForSaleVisibilityPublic)
-	listing.ProductID = listing_product.ID
-	listing.Product = listing_product
+			SellerID:        sellerID,
+			Title:           "Kohaku",
+			Description:     "d",
+			MediaURLs:       []string{},
+			Variety:         "Kohaku",
+			SizeCm:          nil,
+			AgeMonths:       nil,
+			Gender:          nil,
+			Breeder:         nil,
+			Bloodline:       nil,
+			Certificates:    []string{},
+			PreparationTime: string(fpsentity.PreparationTime1To3Days),
+			SellingSurface:  productEntity.SellingSurfaceForSale,
+		}
+		productRepo := productInfraRepo.NewProductRepository()
+		if err := productRepo.Create(ctx, tx, listing_product); err != nil {
+			return err
+		}
+		listing, err := fpsentity.NewForSaleSurface(sellerID, money.New(50000), 2, false)
+		listing.ProductID = listing_product.ID
+		listing.Product = listing_product
 		if err != nil {
 			return err
 		}
 		listing.ProductID = product.ID
-		if err := listing.Publish(); err != nil {
-			return err
-		}
 		if err := forSaleRepo.Create(ctx, tx, listing); err != nil {
 			return err
 		}
@@ -169,13 +165,10 @@ func TestStage5_RestoreListingStock_ResolvesSurfaceFromOrderSource(t *testing.T)
 
 	var auctionID uuid.UUID
 	require.NoError(t, tdb.WithTx(ctx, func(tx db.Tx) error {
-		auction := auctionentity.NewDraft(
+		auction := auctionentity.NewScheduled(
 			sellerID, auctionProductID, 40000, 1000, nil,
 			time.Now().Add(-time.Hour), time.Now().Add(time.Hour),
 		)
-		if err := auction.Schedule(); err != nil {
-			return err
-		}
 		if err := auction.Activate(); err != nil {
 			return err
 		}

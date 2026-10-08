@@ -10,13 +10,7 @@ class OrderPaymentInfoCard extends StatelessWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    return Container(
-      padding: const EdgeInsets.all(core.AppMetrics.p16),
-      decoration: BoxDecoration(
-        color: colorScheme.surface,
-        borderRadius: BorderRadius.circular(core.AppShape.r12),
-        border: Border.all(color: colorScheme.outlineVariant),
-      ),
+    return OrderSectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -38,23 +32,30 @@ class OrderPaymentInfoCard extends StatelessWidget {
               // No verdict on the payment row: claim no payment state at all.
               if (order.paymentStatus != null)
                 _PaymentStatusBadge(
-                status: order.paymentStatus!,
-                colorScheme: colorScheme,
-              ),
+                  status: order.paymentStatus!,
+                  colorScheme: colorScheme,
+                ),
             ],
           ),
           const SizedBox(height: 16),
-          // Payment method
+          // Payment method — canonical bound code (backend payment_method_code).
           _PaymentInfoRow(
             label: 'Metode',
-            value: _getPaymentMethodDisplay(order.paymentMethod),
+            value: PaymentMethodVisuals.label(order.paymentMethodCode),
+            leading: PaymentMethodLogo(
+              visual: PaymentMethodVisuals.visual(order.paymentMethodCode),
+              size: 18,
+              maxWidth: 96,
+            ),
           ),
           const SizedBox(height: 8),
           // Total amount
           _PaymentInfoRow(
             label: 'Total',
             value: order.pricing.totalPayableAmount != null
-                ? AppFormatters.formatCurrency(order.pricing.totalPayableAmount!)
+                ? AppFormatters.formatCurrency(
+                    order.pricing.totalPayableAmount!,
+                  )
                 : '—',
             isBold: true,
             valueColor: colorScheme.primary,
@@ -91,11 +92,6 @@ class OrderPaymentInfoCard extends StatelessWidget {
     }
   }
 
-  String _getPaymentMethodDisplay(PaymentMethodType method) {
-    // Convert payment method enum to display name
-    // Using canonical PaymentMethodType from core/common/types/payment_types.dart
-    return method.displayName;
-  }
 }
 
 class _PaymentInfoRow extends StatelessWidget {
@@ -103,12 +99,14 @@ class _PaymentInfoRow extends StatelessWidget {
   final String value;
   final bool isBold;
   final Color? valueColor;
+  final Widget? leading;
 
   const _PaymentInfoRow({
     required this.label,
     required this.value,
     this.isBold = false,
     this.valueColor,
+    this.leading,
   });
 
   @override
@@ -119,11 +117,20 @@ class _PaymentInfoRow extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          label,
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: colorScheme.onSurfaceVariant,
-          ),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (leading != null) ...[
+              leading!,
+              const SizedBox(width: 6),
+            ],
+            Text(
+              label,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
         ),
         Text(
           value,
@@ -141,28 +148,27 @@ class _PaymentStatusBadge extends StatelessWidget {
   final PaymentStatus status;
   final ColorScheme colorScheme;
 
-  const _PaymentStatusBadge({
-    required this.status,
-    required this.colorScheme,
-  });
+  const _PaymentStatusBadge({required this.status, required this.colorScheme});
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: core.AppMetrics.p12, vertical: core.AppMetrics.p4),
+      padding: const EdgeInsets.symmetric(
+        horizontal: core.AppMetrics.p12,
+        vertical: core.AppMetrics.p4,
+      ),
       decoration: BoxDecoration(
-        color: _getBadgeColor(context, ).withValues(alpha: 0.1),
+        color: _getBadgeColor(context).withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(core.AppShape.r12),
-        border: Border.all(color: _getBadgeColor(context, ).withValues(alpha: 0.3)),
+        border: Border.all(
+          color: _getBadgeColor(context).withValues(alpha: 0.3),
+        ),
       ),
       child: Text(
         _getBadgeLabel(),
-        style: theme.textTheme.bodySmall?.copyWith(
-          color: _getBadgeColor(context, ),
+        style: context.typeRoles.labelMicro.copyWith(
+          color: _getBadgeColor(context),
           fontWeight: FontWeight.w600,
-          fontSize: core.AppType.s12,
         ),
       ),
     );
@@ -219,6 +225,6 @@ class _PaymentStatusBadge extends StatelessWidget {
 // - subtotal, shippingCost, serviceFeeAmount, totalPayableAmount
 //
 // The legacy fields (baseAmount, shippingFee, platformFee, discountAmount,
-// coinDiscount, taxAmount, paymentFee) and the "Contest" pricing variant were
-// never part of the canonical Order contract and were purged.
+// coinDiscount, taxAmount, paymentFee) were never part of the canonical Order
+// contract and were purged.
 // =============================================================================

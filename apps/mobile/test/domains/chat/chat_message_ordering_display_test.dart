@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:labuda/core/src/auth/app_role.dart';
 import 'package:labuda/domains/user/identity/authentication/authentication.dart';
 import 'package:labuda/domains/user/identity/authentication/domain/entities/account_status.dart';
@@ -48,6 +49,14 @@ class _FakeNegotiationNotifier extends NegotiationNotifier {
 }
 
 void main() {
+  // Message footers render through AppFormatters (intl date symbols).
+  // Production loads real locale data; widget tests must initialize it
+  // explicitly (same convention as order/support/promotion suites).
+  // No assertion below is changed by this setup.
+  setUpAll(() async {
+    await initializeDateFormatting();
+  });
+
   Chat makeChat() => Chat(
     id: _chatId,
     participantIds: const [_currentUserId, _otherUserId],

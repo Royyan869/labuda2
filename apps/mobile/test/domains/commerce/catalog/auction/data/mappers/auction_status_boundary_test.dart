@@ -5,12 +5,15 @@ import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction_
 
 /// SCOPE 3 — auction status boundary (mobile side).
 ///
-/// The backend now coarsens the public `status` wire field to the public
+/// The backend coarsens the public `status` wire field to the public
 /// phase vocabulary ({scheduled, active, waiting_settlement, ended,
-/// cancelled}) — raw `draft` NEVER crosses the public boundary. The exact
-/// internal state crosses ONLY via `seller_status`, and only on owner
+/// cancelled}) — raw internal states NEVER cross the public boundary. The
+/// exact internal state crosses ONLY via `seller_status`, and only on owner
 /// surfaces. The mapper must prefer `seller_status` (owner precision) and
 /// resolve through the public vocabulary otherwise.
+///
+/// DRAFT IS PURGED (owner decision, Oct 2026): create = publish. A legacy
+/// 'draft' value now maps to 'lapsed' (never-live, relistable).
 void main() {
   Map<String, dynamic> baseJson({String? status, String? sellerStatus}) {
     return <String, dynamic>{
@@ -41,14 +44,21 @@ void main() {
   test(
     'owner viewer: seller_status (exact internal state) takes precedence over public status',
     () {
-      // Public phase says cancelled; the owner slot carries the exact draft
-      // workspace state. The owner must see the true state.
+      // Public phase says cancelled; the owner slot carries the exact lapsed
+      // state (market authority expired before activation). The owner must
+      // see the true state.
       final auction = AuctionMapper.toEntity(
-        AuctionDto.fromJson(baseJson(status: 'cancelled', sellerStatus: 'draft')),
+        AuctionDto.fromJson(baseJson(status: 'cancelled', sellerStatus: 'lapsed')),
       );
-      expect(auction.status, AuctionStatus.draft);
+      expect(auction.status, AuctionStatus.lapsed);
     },
   );
+
+  test('lapsed is a first-class state (never-live, relistable)', () {
+    final auction = AuctionMapper.toEntity(AuctionDto.fromJson(baseJson(status: 'lapsed')));
+    expect(auction.status, AuctionStatus.lapsed);
+    expect(auction.isRelistable, isTrue);
+  });
 
   test('waiting_settlement survives the public vocabulary', () {
     final auction = AuctionMapper.toEntity(AuctionDto.fromJson(baseJson(status: 'waiting_settlement')));
@@ -62,8 +72,13 @@ void main() {
     expect(auction.status, AuctionStatus.active);
   });
 
-  test('unknown public value falls back conservatively (existing contract)', () {
+  test('legacy draft value maps to lapsed, never to a phantom enum state', () {
+    final auction = AuctionMapper.toEntity(AuctionDto.fromJson(baseJson(status: 'draft')));
+    expect(auction.status, AuctionStatus.lapsed);
+  });
+
+  test('unknown public value falls back to the backend PublicPhase default (cancelled)', () {
     final auction = AuctionMapper.toEntity(AuctionDto.fromJson(baseJson(status: 'mystery_state')));
-    expect(auction.status, AuctionStatus.draft);
+    expect(auction.status, AuctionStatus.cancelled);
   });
 }

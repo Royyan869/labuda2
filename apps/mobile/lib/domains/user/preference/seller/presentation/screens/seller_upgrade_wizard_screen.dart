@@ -14,7 +14,6 @@ import 'package:labuda/domains/finance/transaction/payment/presentation/widgets/
 import 'package:labuda/domains/user/preference/seller/data/dto/seller_dto.dart';
 import 'package:labuda/domains/user/preference/seller/data/seller_providers.dart'
     show sellerRemoteDatasourceProvider, storePhotoUploadServiceProvider;
-import 'package:labuda/domains/user/preference/seller/domain/entities/seller_state.dart';
 import 'package:labuda/domains/user/preference/seller/presentation/widgets/wizard/seller_wizard_helpers.dart';
 import 'package:labuda/domains/user/preference/seller/presentation/widgets/wizard/seller_wizard_navigation_buttons.dart';
 import 'package:labuda/domains/user/preference/seller/presentation/widgets/wizard/seller_wizard_preview_widget.dart';
@@ -22,6 +21,7 @@ import 'package:labuda/domains/user/preference/seller/presentation/widgets/wizar
 import 'package:labuda/domains/user/profile/profile.dart';
 import 'package:labuda/shared/shared.dart';
 import 'package:labuda/shared/helpers/canonical_phone_validator.dart';
+import 'package:labuda/shared/helpers/canonical_username_validator.dart';
 import 'package:go_router/go_router.dart';
 
 /// Seller Upgrade Wizard
@@ -49,6 +49,7 @@ enum _SellerUpgradeWizardMode {
 class _SellerPaymentOperationContext {
   final String initiatingUserId;
   final int requestEpoch;
+
   /// Payment id returned by the initiate call (POST /seller/subscription/initiate).
   /// Non-null once the Snap session exists; drives the on-demand status sync.
   final String? paymentId;
@@ -91,15 +92,17 @@ class _SellerUpgradeWizardScreenState
 
   String _initialUsername = '';
   String _initialPhone = '';
-  String? _initialSenderAddressId;
+  String? _initialPrimaryAddressId;
   String _initialFarmName = '';
   String? _initialFarmPhotoDisplayUrl;
   String? _initialSelectedStorePhotoPath;
   final bool _initialAgreeToTerms = false;
 
-  AddressEntity? _selectedSenderAddress;
-  String? _senderAddressError;
-  bool _isLoadingSenderAddress = false;
+  /// The account's primary address. Every product (and the seller store)
+  /// uses this as its origin — there is no separate sender address.
+  AddressEntity? _primaryAddress;
+  String? _primaryAddressError;
+  bool _isLoadingPrimaryAddress = false;
 
   // Canonical store photo state. The STORAGE KEY (images/stores/{user_id}.jpg)
   // is the ONLY value persisted to the backend (POST /seller/onboarding
@@ -196,17 +199,17 @@ class _SellerUpgradeWizardScreenState
       _farmNameController.clear();
       _initialUsername = '';
       _initialPhone = '';
-      _initialSenderAddressId = null;
+      _initialPrimaryAddressId = null;
       _initialFarmName = '';
       _initialFarmPhotoDisplayUrl = null;
       _initialSelectedStorePhotoPath = null;
-      _selectedSenderAddress = null;
-      _senderAddressError = null;
+      _primaryAddress = null;
+      _primaryAddressError = null;
       _farmPhotoStorageKey = null;
       _farmPhotoDisplayUrl = null;
       _selectedStorePhotoPath = null;
       _agreeToTerms = false;
-      _isLoadingSenderAddress = false;
+      _isLoadingPrimaryAddress = false;
       _isStorePhotoUploading = false;
       _isSubmitting = false;
     });
@@ -239,7 +242,7 @@ class _SellerUpgradeWizardScreenState
     });
 
     _bindProfileListener(user.id);
-    unawaited(_loadSenderAddress());
+    unawaited(_loadPrimaryAddress());
   }
 
   void _handleAuthStateChanged(AuthState? previous, AuthState next) {
@@ -298,24 +301,23 @@ class _SellerUpgradeWizardScreenState
     });
   }
 
-  Future<void> _loadSenderAddress() async {
+  Future<void> _loadPrimaryAddress() async {
     final requestEpoch = _principalEpoch;
     final userId = _currentAuthenticatedUserId();
     if (userId == null) return;
 
     if (mounted) {
       setState(() {
-        _isLoadingSenderAddress = true;
-        _senderAddressError = null;
+        _isLoadingPrimaryAddress = true;
+        _primaryAddressError = null;
       });
     }
 
     try {
+      // The account's primary address. Every product uses it as its origin;
+      // there is no separate sender address.
       final repository = ref.read(addressRepositoryProvider);
-      final result = await repository.getAddressesByTag(
-        userId,
-        AddressTag.sender,
-      );
+      final result = await repository.getPrimaryAddress(userId);
 
       if (!mounted || !_isCurrentPrincipalRequest(requestEpoch, userId)) {
         return;
@@ -325,29 +327,21 @@ class _SellerUpgradeWizardScreenState
         (error) {
           if (!_isCurrentPrincipalRequest(requestEpoch, userId)) return;
           setState(() {
-            _selectedSenderAddress = null;
-            _senderAddressError = 'Failed to load sender address: $error';
+            _primaryAddress = null;
+            _primaryAddressError =
+                'Tidak bisa memuat alamat utama. Coba lagi.';
           });
         },
-        (addresses) {
+        (primaryAddress) {
           if (!_isCurrentPrincipalRequest(requestEpoch, userId)) return;
-          if (addresses.isEmpty) {
-            setState(() {
-              _selectedSenderAddress = null;
-              _senderAddressError = 'Sender address is required.';
-            });
-            return;
-          }
-
-          final primaryAddress = addresses.firstWhere(
-            (address) => address.isPrimary,
-            orElse: () => addresses.first,
-          );
-
           setState(() {
-            _selectedSenderAddress = primaryAddress;
-            _senderAddressError = null;
-            _initialSenderAddressId ??= primaryAddress.id;
+            _primaryAddress = primaryAddress;
+            _primaryAddressError = primaryAddress == null
+                ? 'Tambahkan alamat utama dulu untuk melanjutkan.'
+                : null;
+            if (primaryAddress != null) {
+              _initialPrimaryAddressId ??= primaryAddress.id;
+            }
           });
         },
       );
@@ -356,18 +350,17 @@ class _SellerUpgradeWizardScreenState
         return;
       }
       setState(() {
-        _selectedSenderAddress = null;
-        _senderAddressError = 'Failed to load sender address: $e';
+        _primaryAddress = null;
+        _primaryAddressError = 'Tidak bisa memuat alamat utama. Coba lagi.';
       });
     } finally {
       if (mounted && _isCurrentPrincipalRequest(requestEpoch, userId)) {
-        setState(() => _isLoadingSenderAddress = false);
+        setState(() => _isLoadingPrimaryAddress = false);
       }
     }
   }
 
-  Widget _buildReadOnlyStatusCard(
-    {
+  Widget _buildReadOnlyStatusCard({
     required String title,
     required IconData icon,
     required String value,
@@ -379,9 +372,7 @@ class _SellerUpgradeWizardScreenState
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(AppShape.r12),
-        border: Border.all(
-          color: Theme.of(context).colorScheme.outlineVariant,
-        ),
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -398,8 +389,7 @@ class _SellerUpgradeWizardScreenState
               children: [
                 Text(
                   title,
-                  style: TextStyle(
-                    fontSize: AppType.s14,
+                  style: context.typeRoles.bodyDense.copyWith(
                     fontWeight: FontWeight.w600,
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
@@ -407,8 +397,7 @@ class _SellerUpgradeWizardScreenState
                 const SizedBox(height: 4),
                 Text(
                   value,
-                  style: TextStyle(
-                    fontSize: AppType.s14,
+                  style: context.typeRoles.bodyDense.copyWith(
                     color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
@@ -416,8 +405,7 @@ class _SellerUpgradeWizardScreenState
                   const SizedBox(height: 4),
                   Text(
                     note,
-                    style: TextStyle(
-                      fontSize: AppType.s12,
+                    style: context.typeRoles.labelMicro.copyWith(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
@@ -430,8 +418,8 @@ class _SellerUpgradeWizardScreenState
     );
   }
 
-  Widget _buildSenderAddressSection() {
-    final address = _selectedSenderAddress;
+  Widget _buildPrimaryAddressSection() {
+    final address = _primaryAddress;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -440,30 +428,29 @@ class _SellerUpgradeWizardScreenState
           children: [
             Expanded(
               child: Text(
-                'Sender Address *',
-                style: TextStyle(
-                  fontSize: AppType.s14,
+                'Alamat Utama *',
+                style: context.typeRoles.bodyDense.copyWith(
                   fontWeight: FontWeight.w600,
                   color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
             ),
             TextButton.icon(
-              onPressed: _isLoadingSenderAddress
+              onPressed: _isLoadingPrimaryAddress
                   ? null
-                  : _showSenderAddressDialog,
+                  : _showPrimaryAddressDialog,
               icon: Icon(
                 address == null ? Icons.add_location_alt_outlined : Icons.edit,
                 size: AppIconSize.action,
               ),
-              label: Text(address == null ? 'Add sender address' : 'Edit'),
+              label: Text(address == null ? 'Tambah alamat' : 'Edit'),
             ),
           ],
         ),
         const SizedBox(height: 12),
-        if (_isLoadingSenderAddress)
+        if (_isLoadingPrimaryAddress)
           const LinearProgressIndicator(minHeight: 2),
-        if (_isLoadingSenderAddress) const SizedBox(height: 12),
+        if (_isLoadingPrimaryAddress) const SizedBox(height: 12),
         if (address != null)
           Container(
             width: double.infinity,
@@ -489,9 +476,10 @@ class _SellerUpgradeWizardScreenState
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        address.displayLabel,
-                        style: TextStyle(
-                          fontSize: AppType.s14,
+                        (address.nickname?.trim().isNotEmpty ?? false)
+                            ? address.nickname!.trim()
+                            : address.recipientName,
+                        style: context.typeRoles.bodyDense.copyWith(
                           fontWeight: FontWeight.w600,
                           color: Theme.of(context).colorScheme.onSurface,
                         ),
@@ -502,38 +490,26 @@ class _SellerUpgradeWizardScreenState
                 const SizedBox(height: 12),
                 Text(
                   'Recipient: ${address.recipientName}',
-                  style: TextStyle(
-                    fontSize: AppType.s14,
+                  style: context.typeRoles.bodyDense.copyWith(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'Phone: ${address.phone}',
-                  style: TextStyle(
-                    fontSize: AppType.s14,
+                  style: context.typeRoles.bodyDense.copyWith(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  address.fullAddress,
-                  style: TextStyle(
-                    fontSize: AppType.s14,
+                AddressLocationText(
+                  location: address.fullAddress,
+                  mode: AddressLocationMode.detail,
+                  style: context.typeRoles.bodyDense.copyWith(
                     height: 1.5,
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
-                if (!address.isPrimary) ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    'This sender address is not marked primary yet.',
-                    style: TextStyle(
-                      fontSize: AppType.s12,
-                      color: context.statusColors.warning,
-                    ),
-                  ),
-                ],
               ],
             ),
           )
@@ -552,18 +528,16 @@ class _SellerUpgradeWizardScreenState
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'No sender address selected yet.',
-                  style: TextStyle(
-                    fontSize: AppType.s14,
+                  'Belum ada alamat utama.',
+                  style: context.typeRoles.bodyDense.copyWith(
                     fontWeight: FontWeight.w600,
                     color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Use the structured address form to add province, city/regency, district, village/subdistrict, street address, and postal code.',
-                  style: TextStyle(
-                    fontSize: AppType.s12,
+                  'Tambahkan alamat utama (provinsi, kota, kecamatan, kelurahan, alamat jalan, dan kode pos) untuk melanjutkan.',
+                  style: context.typeRoles.labelMicro.copyWith(
                     height: 1.4,
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
@@ -571,36 +545,35 @@ class _SellerUpgradeWizardScreenState
               ],
             ),
           ),
-        if (_senderAddressError != null) ...[
+        if (_primaryAddressError != null) ...[
           const SizedBox(height: 8),
           Text(
-            _senderAddressError!,
-            style: TextStyle(fontSize: AppType.s12, color: context.statusColors.error),
+            _primaryAddressError!,
+            style: context.typeRoles.labelMicro.copyWith(
+              color: context.statusColors.error,
+            ),
           ),
         ],
       ],
     );
   }
 
-  Future<void> _showSenderAddressDialog() async {
+  Future<void> _showPrimaryAddressDialog() async {
     final userId = _currentAuthenticatedUserId();
     if (userId == null) {
-      AppSnackBar.showError(context, 'User not authenticated');
+      ref.read(navigationHandlerProvider).navigateToSignIn();
       return;
     }
 
     FocusManager.instance.primaryFocus?.unfocus();
 
-    final saved = await showDialog<bool>(
+    final saved = await AppBottomSheetBase.show<bool>(
       context: context,
-      builder: (dialogContext) => AddressFormDialog(
-        addressToEdit: _selectedSenderAddress,
-        presetTags: const [AddressTag.sender],
-      ),
+      content: AddressFormDialog(addressToEdit: _primaryAddress),
     );
 
     if (saved == true) {
-      await _loadSenderAddress();
+      await _loadPrimaryAddress();
     }
   }
 
@@ -624,7 +597,7 @@ class _SellerUpgradeWizardScreenState
     return SellerWizardHelpers.isAccountStepValid(
       username: _usernameController.text.trim(),
       phoneNumber: _phoneController.text.trim(),
-      senderAddress: _selectedSenderAddress?.fullAddress.trim() ?? '',
+      primaryAddress: _primaryAddress?.fullAddress.trim() ?? '',
     );
   }
 
@@ -640,7 +613,7 @@ class _SellerUpgradeWizardScreenState
   bool get _hasAnyChanges {
     return _usernameController.text.trim() != _initialUsername ||
         _phoneController.text.trim() != _initialPhone ||
-        _selectedSenderAddress?.id != _initialSenderAddressId ||
+        _primaryAddress?.id != _initialPrimaryAddressId ||
         _farmNameController.text.trim() != _initialFarmName ||
         _farmPhotoDisplayUrl != _initialFarmPhotoDisplayUrl ||
         _selectedStorePhotoPath != _initialSelectedStorePhotoPath ||
@@ -658,14 +631,10 @@ class _SellerUpgradeWizardScreenState
     );
     final authState = ref.watch(authControllerProvider);
     final authenticatedUser = ref.watch(authenticatedUserProvider);
-    final sellerState = SellerState.fromAuthUser(authenticatedUser);
     final wizardMode = _wizardModeFrom(authState, authenticatedUser);
     final isEmailVerified = authState is AuthStateAuthenticated
         ? authState.user.isEmailVerified
         : false;
-    final lifecycleLabel = authState is AuthStateAuthenticated
-        ? authState.user.lifecycle.name
-        : 'unknown';
     final previewStepWidget = packageConfig == null
         ? _buildPackagePendingStep(
             'Seller package must load before you can preview the onboarding summary.',
@@ -673,7 +642,7 @@ class _SellerUpgradeWizardScreenState
         : SellerWizardPreviewWidget(
             username: _usernameController.text.trim(),
             phoneNumber: _phoneController.text.trim(),
-            senderAddress: _selectedSenderAddress?.fullAddress.trim() ?? '',
+            primaryAddress: _primaryAddress?.fullAddress.trim() ?? '',
             emailVerified: isEmailVerified,
             farmName: _farmNameController.text.trim(),
             farmPhotoUrl: _farmPhotoDisplayUrl,
@@ -693,7 +662,8 @@ class _SellerUpgradeWizardScreenState
     final canAdvanceFromPackage =
         packageConfig != null && packageConfig.isEnabled;
     // Registration wizard is only for first-time sellers; renewal uses SellerRenewalScreen.
-    final isOperationalMode = wizardMode == _SellerUpgradeWizardMode.registration;
+    final isOperationalMode =
+        wizardMode == _SellerUpgradeWizardMode.registration;
 
     return PopScope(
       canPop: false,
@@ -723,7 +693,7 @@ class _SellerUpgradeWizardScreenState
             _SellerUpgradeWizardMode.unhydrated => 'Memuat Seller',
           },
           leading: IconButton(
-            icon: const Icon(Icons.close),
+            icon: const Icon(Icons.close, semanticLabel: 'Tutup'),
             onPressed: () async {
               final shouldPop = await SellerWizardHelpers.showExitConfirmation(
                 context,
@@ -734,11 +704,19 @@ class _SellerUpgradeWizardScreenState
               }
             },
           ),
+          // Canonical Page Info trigger: the page owns the action, the surface
+          // is the shared AppDialog.info authority.
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.help_outline),
+              tooltip: 'Bantuan',
+              onPressed: _showSellerInfo,
+            ),
+          ],
         ),
         body: isOperationalMode
             ? Column(
                 children: [
-                  _buildModeBanner(sellerState),
                   WizardProgressIndicator(
                     currentStep: _currentStep,
                     totalSteps: _totalSteps,
@@ -760,7 +738,6 @@ class _SellerUpgradeWizardScreenState
                         packageStepWidget,
                         _buildAccountStep(
                           isEmailVerified,
-                          lifecycleLabel,
                           authState is AuthStateAuthenticated
                               ? authState.user.email
                               : '',
@@ -804,8 +781,7 @@ class _SellerUpgradeWizardScreenState
                   _SellerUpgradeWizardMode.restricted => Icons.block,
                   _SellerUpgradeWizardMode.unauthenticated => Icons.login,
                   _SellerUpgradeWizardMode.existingSeller => Icons.storefront,
-                  _SellerUpgradeWizardMode.unhydrated =>
-                    Icons.hourglass_bottom,
+                  _SellerUpgradeWizardMode.unhydrated => Icons.hourglass_bottom,
                   _SellerUpgradeWizardMode.registration =>
                     Icons.hourglass_bottom,
                 },
@@ -843,8 +819,7 @@ class _SellerUpgradeWizardScreenState
     );
   }
 
-  Widget _buildWizardGate(
-    {
+  Widget _buildWizardGate({
     required IconData icon,
     required String title,
     required String message,
@@ -877,8 +852,7 @@ class _SellerUpgradeWizardScreenState
               Text(
                 title,
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: AppType.s20,
+                style: context.typeRoles.titleSection.copyWith(
                   fontWeight: FontWeight.bold,
                   color: Theme.of(context).colorScheme.onSurface,
                 ),
@@ -887,8 +861,7 @@ class _SellerUpgradeWizardScreenState
               Text(
                 message,
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: AppType.s14,
+                style: context.typeRoles.bodyDense.copyWith(
                   height: 1.5,
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
@@ -910,66 +883,7 @@ class _SellerUpgradeWizardScreenState
     );
   }
 
-  Widget _buildModeBanner(SellerState sellerState) {
-    const headline = 'Registration mode';
-    const message =
-        'Never-sellers enter the canonical onboarding flow and may create a seller profile only through registration.';
-
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p16, AppMetrics.p16, AppMetrics.p12),
-      padding: const EdgeInsets.all(AppMetrics.p16),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Theme.of(context).colorScheme.secondary.withValues(alpha: 0.18),
-            Theme.of(context).colorScheme.secondary.withValues(alpha: 0.06),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(AppShape.r16),
-        border: Border.all(
-          color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.35),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            headline,
-            style: TextStyle(
-              fontSize: AppType.s14,
-              fontWeight: FontWeight.w700,
-              color: Theme.of(context).colorScheme.onSurface,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            message,
-            style: TextStyle(
-              fontSize: AppType.s14,
-              height: 1.4,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Seller identity: ${sellerState.displayLabel}',
-            style: TextStyle(
-              fontSize: AppType.s12,
-              fontWeight: FontWeight.w600,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAccountStep(
-    bool isEmailVerified,
-    String lifecycleLabel,
-    String email,
-  ) {
+  Widget _buildAccountStep(bool isEmailVerified, String email) {
     return Form(
       key: _accountFormKey,
       child: ListView(
@@ -977,18 +891,9 @@ class _SellerUpgradeWizardScreenState
         children: [
           Text(
             'Lengkapi Akun Seller Baru',
-            style: TextStyle(
-              fontSize: AppType.s20,
+            style: context.typeRoles.titleSection.copyWith(
               fontWeight: FontWeight.bold,
               color: Theme.of(context).colorScheme.onSurface,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Email status tetap read-only. Isi data akun sebelum lanjut ke info toko dan pembayaran pertama.',
-            style: TextStyle(
-              fontSize: AppType.s14,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(height: 16),
@@ -998,21 +903,12 @@ class _SellerUpgradeWizardScreenState
             value: email.isNotEmpty ? email : '-',
             note: isEmailVerified ? 'Verified' : 'Not verified',
           ),
-          const SizedBox(height: 12),
-          _buildStatusCard(
-            title: 'Account status',
-            items: [
-              'Lifecycle: $lifecycleLabel',
-              'First-time seller registration uses the canonical onboarding flow',
-            ],
-          ),
           const SizedBox(height: 24),
           if (_usernameController.text.trim().isNotEmpty)
             _buildReadOnlyStatusCard(
               title: 'Username',
               icon: Icons.alternate_email,
               value: _usernameController.text.trim(),
-              note: 'Read only from your profile.',
             )
           else
             AppTextField(
@@ -1020,8 +916,11 @@ class _SellerUpgradeWizardScreenState
               labelText: 'Username *',
               hintText: 'your_username',
               prefixIcon: Icons.alternate_email,
+              // Canonical username rule (same authority as sign-up /
+              // complete-profile): no surface may accept a username the
+              // backend identityusername contract would reject.
               validator: (value) =>
-                  value == null || value.trim().isEmpty ? 'Required' : null,
+                  CanonicalUsernameValidator.normalizeAndValidate(value),
             ),
           const SizedBox(height: 16),
           AppTextField(
@@ -1034,30 +933,13 @@ class _SellerUpgradeWizardScreenState
                 CanonicalPhoneValidator.validationMessage(value),
           ),
           const SizedBox(height: 16),
-          _buildSenderAddressSection(),
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(AppMetrics.p16),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(AppShape.r12),
-            ),
-            child: Text(
-              'Username is read only when already saved. Phone and sender address remain required for seller onboarding.',
-              style: TextStyle(
-                fontSize: AppType.s14,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ),
+          _buildPrimaryAddressSection(),
         ],
       ),
     );
   }
 
-  Widget _buildPackageDisclosureStep(
-    SellerUpgradeConfigEntity upgradeConfig,
-  ) {
+  Widget _buildPackageDisclosureStep(SellerUpgradeConfigEntity upgradeConfig) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(AppMetrics.p16),
       child: Column(
@@ -1065,17 +947,15 @@ class _SellerUpgradeWizardScreenState
         children: [
           Text(
             'Paket & Syarat Seller',
-            style: TextStyle(
-              fontSize: AppType.s24,
+            style: context.typeRoles.titleProminent.copyWith(
               fontWeight: FontWeight.bold,
               color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 8),
           Text(
-            'Lihat fee seller dari backend sebelum mengisi data akun. Pembayaran diperlukan agar seller aktif.',
-            style: TextStyle(
-              fontSize: AppType.s14,
+            'Lihat biaya dan manfaat paket seller sebelum mengisi data akun.',
+            style: context.typeRoles.bodyDense.copyWith(
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
@@ -1095,32 +975,12 @@ class _SellerUpgradeWizardScreenState
               ),
               child: Text(
                 'Seller registration is currently disabled by backend config.',
-                style: TextStyle(
-                  fontSize: AppType.s14,
+                style: context.typeRoles.bodyDense.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
             ),
           ],
-          const SizedBox(height: 24),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(AppMetrics.p16),
-            decoration: BoxDecoration(
-              color: context.statusColors.info.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(AppShape.r12),
-              border: Border.all(
-                color: context.statusColors.info.withValues(alpha: 0.2),
-              ),
-            ),
-            child: Text(
-              'KYC dan review bank dipakai untuk payout/withdrawal, bukan untuk registrasi seller awal.',
-              style: TextStyle(
-                fontSize: AppType.s14,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ),
           const SizedBox(height: 24),
           _buildFeaturesList(),
         ],
@@ -1128,9 +988,7 @@ class _SellerUpgradeWizardScreenState
     );
   }
 
-  Widget _buildPaymentStep(
-    SellerUpgradeConfigEntity upgradeConfig,
-  ) {
+  Widget _buildPaymentStep(SellerUpgradeConfigEntity upgradeConfig) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(AppMetrics.p16),
       child: Column(
@@ -1138,37 +996,13 @@ class _SellerUpgradeWizardScreenState
         children: [
           Text(
             'Pembayaran',
-            style: TextStyle(
-              fontSize: AppType.s24,
+            style: context.typeRoles.titleProminent.copyWith(
               fontWeight: FontWeight.bold,
               color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            'Onboarding hanya dipanggil setelah prerequisites valid. Subscription akan dimulai setelah onboarding sukses.',
-            style: TextStyle(
-              fontSize: AppType.s14,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
           _buildPaymentSection(upgradeConfig),
-          const SizedBox(height: 24),
-          Container(
-            padding: const EdgeInsets.all(AppMetrics.p16),
-            decoration: BoxDecoration(
-              color: context.statusColors.warning.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(AppShape.r12),
-            ),
-            child: Text(
-              'KYC dan review bank dipakai nanti untuk payout/withdrawal, terpisah dari registrasi seller.',
-              style: TextStyle(
-                fontSize: AppType.s14,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ),
         ],
       ),
     );
@@ -1208,8 +1042,7 @@ class _SellerUpgradeWizardScreenState
     );
   }
 
-  Widget _buildPackageStateCard(
-    {
+  Widget _buildPackageStateCard({
     required String title,
     required String message,
     Widget? leading,
@@ -1233,8 +1066,7 @@ class _SellerUpgradeWizardScreenState
           children: [
             Text(
               title,
-              style: TextStyle(
-                fontSize: AppType.s24,
+              style: context.typeRoles.titleProminent.copyWith(
                 fontWeight: FontWeight.bold,
                 color: Theme.of(context).colorScheme.onSurface,
               ),
@@ -1243,8 +1075,7 @@ class _SellerUpgradeWizardScreenState
             if (leading != null) ...[leading, const SizedBox(height: 16)],
             Text(
               message,
-              style: TextStyle(
-                fontSize: AppType.s14,
+              style: context.typeRoles.bodyDense.copyWith(
                 height: 1.5,
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
@@ -1265,53 +1096,7 @@ class _SellerUpgradeWizardScreenState
     );
   }
 
-  Widget _buildStatusCard(
-    {
-    required String title,
-    required List<String> items,
-  }) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(AppMetrics.p16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(AppShape.r12),
-        border: Border.all(
-          color: Theme.of(context).colorScheme.outlineVariant,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: AppType.s14,
-              fontWeight: FontWeight.w700,
-              color: Theme.of(context).colorScheme.onSurface,
-            ),
-          ),
-          const SizedBox(height: 8),
-          ...items.map(
-            (item) => Padding(
-              padding: const EdgeInsets.only(bottom: AppMetrics.p8),
-              child: Text(
-                '• $item',
-                style: TextStyle(
-                  fontSize: AppType.s14,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPaidPlanCard(
-    SellerUpgradeConfigEntity upgradeConfig,
-  ) {
+  Widget _buildPaidPlanCard(SellerUpgradeConfigEntity upgradeConfig) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(AppMetrics.p24),
@@ -1334,16 +1119,18 @@ class _SellerUpgradeWizardScreenState
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p8),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppMetrics.p12,
+              vertical: AppMetrics.p8,
+            ),
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.secondary,
               borderRadius: BorderRadius.circular(AppShape.r20),
             ),
             child: Text(
               'AKTIVASI SELLER',
-              style: TextStyle(
+              style: context.typeRoles.labelMicro.copyWith(
                 color: Theme.of(context).colorScheme.onSecondary,
-                fontSize: AppType.s12,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -1351,8 +1138,7 @@ class _SellerUpgradeWizardScreenState
           const SizedBox(height: 16),
           Text(
             'Aktivasi Seller',
-            style: TextStyle(
-              fontSize: AppType.s24,
+            style: context.typeRoles.titleProminent.copyWith(
               fontWeight: FontWeight.bold,
               color: Theme.of(context).colorScheme.onSurface,
             ),
@@ -1363,8 +1149,7 @@ class _SellerUpgradeWizardScreenState
             children: [
               Text(
                 AppFormatters.formatCurrency(upgradeConfig.yearlyFee),
-                style: TextStyle(
-                  fontSize: AppType.s24,
+                style: context.typeRoles.titleProminent.copyWith(
                   fontWeight: FontWeight.bold,
                   color: Theme.of(context).colorScheme.secondary,
                 ),
@@ -1374,29 +1159,12 @@ class _SellerUpgradeWizardScreenState
                 padding: const EdgeInsets.only(bottom: AppMetrics.p8),
                 child: Text(
                   '/${upgradeConfig.durationDays} hari',
-                  style: TextStyle(
-                    fontSize: AppType.s14,
+                  style: context.typeRoles.bodyDense.copyWith(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
               ),
             ],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Seller access stays active for ${upgradeConfig.durationDays} days after payment is confirmed.',
-            style: TextStyle(
-              fontSize: AppType.s14,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Fee sourced from backend config. KYC and bank review happen later for payout access.',
-            style: TextStyle(
-              fontSize: AppType.s12,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
           ),
         ],
       ),
@@ -1405,13 +1173,10 @@ class _SellerUpgradeWizardScreenState
 
   Widget _buildFeaturesList() {
     final features = [
-      ('Buat forSale', Icons.inventory_2_outlined),
-      ('Buat lelang', Icons.gavel),
-      ('Buat promosi', Icons.campaign_outlined),
-      (
-        'Seller authority stays active while subscription is valid',
-        Icons.verified_outlined,
-      ),
+      ('Buat For Sale', Icons.inventory_2_outlined),
+      ('Buat Auction', Icons.gavel),
+      ('Buat Promotion', Icons.campaign_outlined),
+      ('Berlaku selama subscription aktif', Icons.verified_outlined),
     ];
 
     return Column(
@@ -1419,8 +1184,7 @@ class _SellerUpgradeWizardScreenState
       children: [
         Text(
           'What You Get',
-          style: TextStyle(
-            fontSize: AppType.s16,
+          style: context.typeRoles.titleCompact.copyWith(
             fontWeight: FontWeight.bold,
             color: Theme.of(context).colorScheme.onSurface,
           ),
@@ -1454,8 +1218,7 @@ class _SellerUpgradeWizardScreenState
                 Expanded(
                   child: Text(
                     feature.$1,
-                    style: TextStyle(
-                      fontSize: AppType.s14,
+                    style: context.typeRoles.bodyDense.copyWith(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
@@ -1464,18 +1227,28 @@ class _SellerUpgradeWizardScreenState
             ),
           ),
         ),
+        const SizedBox(height: 4),
+        // Business truth (Owner decision A): the Seller status does not expire;
+        // only the For Sale / Auction / Promotion capability is unavailable
+        // while the subscription is expired.
+        Text(
+          'Jika subscription berakhir, For Sale, Auction, dan Promotion tidak '
+          'dapat digunakan, tetapi status Seller Anda tetap.',
+          style: context.typeRoles.labelMicro.copyWith(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
       ],
     );
   }
 
-  Widget _buildPaymentSection(
-    SellerUpgradeConfigEntity upgradeConfig,
-  ) {
+  Widget _buildPaymentSection(SellerUpgradeConfigEntity upgradeConfig) {
     // PMF-02: once the canonical methods payload is loaded it is the money
     // authority for the whole summary — principal A, fee F per method, and the
     // gross A + F. The config disclosure value is only a placeholder while the
     // methods are still loading.
     final methods = _subscriptionPaymentMethods;
+    final availableMethods = methods?.methods ?? const [];
     final principalAmount =
         (methods?.principalAmount ?? upgradeConfig.yearlyFee.round())
             .toDouble();
@@ -1487,17 +1260,14 @@ class _SellerUpgradeWizardScreenState
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(AppShape.r12),
-        border: Border.all(
-          color: Theme.of(context).colorScheme.outlineVariant,
-        ),
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             'Seller Payment Summary',
-            style: TextStyle(
-              fontSize: AppType.s16,
+            style: context.typeRoles.titleCompact.copyWith(
               fontWeight: FontWeight.bold,
               color: Theme.of(context).colorScheme.onSurface,
             ),
@@ -1505,7 +1275,17 @@ class _SellerUpgradeWizardScreenState
           const SizedBox(height: 16),
           _buildPaymentRow('Yearly subscription', principalAmount),
           const SizedBox(height: 12),
-          _buildSubscriptionMethodSelector(),
+          PaymentMethodTrigger(
+            selectedMethodCode: selectedMethod?.methodCode,
+            selectedMethodDisplayName: selectedMethod?.displayName,
+            isLoading: _isLoadingSubscriptionMethods,
+            hasMethods: availableMethods.isNotEmpty,
+            errorMessage: _subscriptionMethodsError,
+            onTap: availableMethods.isEmpty
+                ? () => unawaited(_ensureSubscriptionPaymentMethodsLoaded())
+                : () => unawaited(_selectSubscriptionPaymentMethod()),
+            onRetry: () => unawaited(_ensureSubscriptionPaymentMethodsLoaded()),
+          ),
           if (selectedMethod != null) ...[
             const SizedBox(height: 12),
             _buildPaymentRow('Payment method fee', feeAmount),
@@ -1515,7 +1295,9 @@ class _SellerUpgradeWizardScreenState
             'Total',
             selectedMethod == null
                 ? 'Belum dipilih'
-                : AppFormatters.formatCurrency(selectedMethod.grossAmount.toDouble()),
+                : AppFormatters.formatCurrency(
+                    selectedMethod.grossAmount.toDouble(),
+                  ),
             isBold: true,
           ),
           const SizedBox(height: 12),
@@ -1536,8 +1318,7 @@ class _SellerUpgradeWizardScreenState
                 Expanded(
                   child: Text(
                     'You will be redirected to the payment provider in a browser.',
-                    style: TextStyle(
-                      fontSize: AppType.s12,
+                    style: context.typeRoles.labelMicro.copyWith(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
@@ -1550,79 +1331,12 @@ class _SellerUpgradeWizardScreenState
     );
   }
 
-  /// PMF-02: the seller must explicitly choose a payment method. The picker
-  /// renders only backend-calculated fee and gross values (see
-  /// GET /seller/subscription/payment-methods); this widget never computes them.
-  Widget _buildSubscriptionMethodSelector() {
-    final methods = _subscriptionPaymentMethods?.methods ?? const [];
-    final selected = _selectedSubscriptionMethod;
-    final isLoading = _isLoadingSubscriptionMethods;
-    final error = _subscriptionMethodsError;
 
-    final label = isLoading
-        ? 'Memuat metode pembayaran...'
-        : methods.isEmpty
-        ? (error ?? 'Tidak ada metode pembayaran tersedia')
-        : (selected?.displayName ?? 'Pilih metode pembayaran');
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Payment method',
-          style: TextStyle(
-            fontSize: AppType.s14,
-            fontWeight: FontWeight.w600,
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
-          ),
-        ),
-        const SizedBox(height: 6),
-        InkWell(
-          onTap: isLoading
-              ? null
-              : methods.isEmpty
-              ? () => unawaited(_ensureSubscriptionPaymentMethodsLoaded())
-              : () => unawaited(_selectSubscriptionPaymentMethod()),
-          borderRadius: BorderRadius.circular(AppShape.r8),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p12),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(AppShape.r8),
-              border: Border.all(
-                color: Theme.of(context).colorScheme.outlineVariant,
-              ),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    label,
-                    style: TextStyle(
-                      fontSize: AppType.s14,
-                      color: methods.isEmpty && !isLoading
-                          ? context.statusColors.error
-                          : (Theme.of(context).colorScheme.onSurface),
-                    ),
-                  ),
-                ),
-                if (!isLoading)
-                  Icon(
-                    Icons.chevron_right,
-                    size: AppIconSize.action,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
 
   Widget _buildPaymentRowText(
+
     String label,
-    String amountText,
-    {
+    String amountText, {
     bool isBold = false,
   }) {
     return Row(
@@ -1632,8 +1346,7 @@ class _SellerUpgradeWizardScreenState
         Expanded(
           child: Text(
             label,
-            style: TextStyle(
-              fontSize: AppType.s14,
+            style: context.typeRoles.bodyDense.copyWith(
               fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
@@ -1642,22 +1355,20 @@ class _SellerUpgradeWizardScreenState
         const SizedBox(width: 8),
         Text(
           amountText,
-          style: TextStyle(
-            fontSize: isBold ? AppType.s16 : AppType.s14,
-            fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
-            color: Theme.of(context).colorScheme.onSurface,
-          ),
+          style:
+              (isBold
+                      ? context.typeRoles.titleCompact
+                      : context.typeRoles.bodyDense)
+                  .copyWith(
+                    fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
         ),
       ],
     );
   }
 
-  Widget _buildPaymentRow(
-    String label,
-    double amount,
-    {
-    bool isBold = false,
-  }) {
+  Widget _buildPaymentRow(String label, double amount, {bool isBold = false}) {
     return _buildPaymentRowText(
       label,
       AppFormatters.formatCurrency(amount),
@@ -1688,15 +1399,15 @@ class _SellerUpgradeWizardScreenState
     } else if (_currentStep == 1) {
       final valid = _accountFormKey.currentState?.validate() ?? false;
       if (!valid) {
-        AppSnackBar.showError(context, 'Please complete the account fields');
+        AppSnackBar.showError(context, 'Lengkapi data akun');
         return;
       }
 
-      if (_selectedSenderAddress == null) {
+      if (_primaryAddress == null) {
         setState(() {
-          _senderAddressError = 'Sender address is required.';
+          _primaryAddressError = 'Alamat utama wajib diisi.';
         });
-        AppSnackBar.showError(context, 'Sender address is required');
+        AppSnackBar.showError(context, 'Alamat utama wajib diisi');
         return;
       }
 
@@ -1705,12 +1416,12 @@ class _SellerUpgradeWizardScreenState
     } else if (_currentStep == 2) {
       final valid = _storeFormKey.currentState?.validate() ?? false;
       if (!valid || !_isStoreStepValid) {
-        AppSnackBar.showError(context, 'Please complete the store information');
+        AppSnackBar.showError(context, 'Lengkapi informasi toko');
         return;
       }
     } else if (_currentStep == 3) {
       if (!_agreeToTerms) {
-        AppSnackBar.showError(context, 'Please agree to the seller terms');
+        AppSnackBar.showError(context, 'Setujui syarat penjual');
         return;
       }
     }
@@ -1745,7 +1456,7 @@ class _SellerUpgradeWizardScreenState
     final requestEpoch = _principalEpoch;
     final userId = _currentAuthenticatedUserId();
     if (userId == null) {
-      AppSnackBar.showError(context, 'User not authenticated');
+      ref.read(navigationHandlerProvider).navigateToSignIn();
       return false;
     }
 
@@ -1753,13 +1464,13 @@ class _SellerUpgradeWizardScreenState
     // preflight — every authenticated user is already verified. The backend
     // stays authoritative (EMAIL_VERIFICATION_REQUIRED handler on submit).
 
-    final senderAddress = _selectedSenderAddress?.fullAddress.trim();
-    if (senderAddress == null || senderAddress.isEmpty) {
+    final primaryAddress = _primaryAddress?.fullAddress.trim();
+    if (primaryAddress == null || primaryAddress.isEmpty) {
       if (mounted) {
         setState(() {
-          _senderAddressError = 'Sender address is required.';
+          _primaryAddressError = 'Alamat utama wajib diisi.';
         });
-        AppSnackBar.showError(context, 'Sender address is required');
+        AppSnackBar.showError(context, 'Alamat utama wajib diisi');
       }
       return false;
     }
@@ -1775,7 +1486,7 @@ class _SellerUpgradeWizardScreenState
       if (mounted) {
         AppSnackBar.showError(
           context,
-          'Failed to save account prerequisites: ${result.error ?? 'Unknown error'}',
+          'Gagal menyimpan prasyarat akun. Coba lagi.',
         );
       }
       return false;
@@ -1792,7 +1503,7 @@ class _SellerUpgradeWizardScreenState
     ref.invalidate(profileStreamProvider(userId));
     if (mounted) {
       setState(() {
-        _senderAddressError = null;
+        _primaryAddressError = null;
       });
     }
     return true;
@@ -1806,7 +1517,7 @@ class _SellerUpgradeWizardScreenState
     final requestEpoch = _principalEpoch;
     final userId = _currentAuthenticatedUserId();
     if (userId == null) {
-      AppSnackBar.showError(context, 'User not authenticated');
+      ref.read(navigationHandlerProvider).navigateToSignIn();
       return;
     }
 
@@ -1833,7 +1544,7 @@ class _SellerUpgradeWizardScreenState
           _isStorePhotoUploading = true;
         });
 
-        AppSnackBar.showInfo(context, 'Uploading store logo...');
+        AppSnackBar.showInfo(context, 'Mengunggah logo toko...');
 
         try {
           final result = await ref
@@ -1855,11 +1566,10 @@ class _SellerUpgradeWizardScreenState
             });
             AppSnackBar.showSuccess(
               context,
-              'Store logo uploaded successfully',
+              'Logo toko berhasil diunggah',
             );
           } else {
-            if (!mounted ||
-                !_isCurrentPrincipalRequest(requestEpoch, userId)) {
+            if (!mounted || !_isCurrentPrincipalRequest(requestEpoch, userId)) {
               return;
             }
             setState(() {
@@ -1868,7 +1578,7 @@ class _SellerUpgradeWizardScreenState
               _farmPhotoStorageKey = null;
               _isStorePhotoUploading = false;
             });
-            AppSnackBar.showError(context, result.error ?? 'Upload failed');
+            AppSnackBar.showError(context, result.error ?? 'Gagal mengunggah');
           }
         } catch (e) {
           if (!mounted || !_isCurrentPrincipalRequest(requestEpoch, userId)) {
@@ -1891,14 +1601,14 @@ class _SellerUpgradeWizardScreenState
       return;
     }
     if (!_canSubmit) {
-      AppSnackBar.showError(context, 'Please complete the onboarding steps');
+      AppSnackBar.showError(context, 'Lengkapi langkah onboarding');
       return;
     }
 
     // PMF-02: every payment flow carries a payment-method fee, so an explicit
     // method choice is a prerequisite, not a defaulted detail.
     if (_selectedSubscriptionMethod == null) {
-      AppSnackBar.showError(context, 'Please select a payment method');
+      AppSnackBar.showError(context, 'Pilih metode pembayaran');
       return;
     }
 
@@ -1964,7 +1674,7 @@ class _SellerUpgradeWizardScreenState
         if (mounted && Navigator.of(context).canPop()) {
           Navigator.of(context).pop();
         }
-        AppSnackBar.showError(context, 'User not authenticated');
+        ref.read(navigationHandlerProvider).navigateToSignIn();
         return;
       }
 
@@ -1973,10 +1683,17 @@ class _SellerUpgradeWizardScreenState
         requestEpoch: requestEpoch,
       );
 
+      // SUBMISSION SNAPSHOT: capture the chosen subscription method BEFORE the
+      // onboarding await so a step/selection change mid-flight cannot switch
+      // the method that is actually paid.
+      final selectedMethod = _selectedSubscriptionMethod;
+
       // Registration lifecycle: onboarding creates the seller profile before the
       // subscription payment is initiated. Renewal is payment-only and lives in
       // SellerRenewalScreen — it never reaches this code path.
-      await ref.read(sellerRemoteDatasourceProvider).performOnboarding(
+      await ref
+          .read(sellerRemoteDatasourceProvider)
+          .performOnboarding(
             _farmNameController.text.trim(),
             storeImageUrl: _farmPhotoStorageKey,
           );
@@ -1992,7 +1709,6 @@ class _SellerUpgradeWizardScreenState
       // sends; the backend resolves the method, validates it and calculates the
       // fee it will snapshot. A pending payment already exists → the backend
       // reuses its immutable snapshot (Owner decision) rather than superseding it.
-      final selectedMethod = _selectedSubscriptionMethod;
       if (selectedMethod == null) {
         if (mounted && Navigator.of(context).canPop()) {
           Navigator.of(context).pop();
@@ -2137,6 +1853,7 @@ class _SellerUpgradeWizardScreenState
     final selectedCode = await PaymentMethodPickerSheet.show(
       context,
       methods: options,
+      selectedMethodCode: _selectedSubscriptionMethod?.methodCode,
     );
     if (!mounted || selectedCode == null) return;
 
@@ -2178,10 +1895,7 @@ class _SellerUpgradeWizardScreenState
         if (successHandled || !mounted || !isCurrentPrincipal()) return;
         if (confirmed) {
           successHandled = true;
-          AppSnackBar.showSuccess(
-            context,
-            'Selamat! Anda sekarang penjual',
-          );
+          AppSnackBar.showSuccess(context, 'Selamat! Anda sekarang penjual');
           Navigator.of(context).pop(true);
           return;
         }
@@ -2276,7 +1990,16 @@ class _SellerUpgradeWizardScreenState
         return;
       case 'MISSING_REQUIREMENTS':
         final missing = _extractMissingRequirements(e.details);
-        await _showMissingRequirementsDialog(missing);
+        final labels = missing.isEmpty
+            ? const ['prasyarat akun']
+            : missing.map(_formatRequirement).toList();
+        await AppDialog.info(
+          context: context,
+          title: 'Lengkapi Prasyarat Seller',
+          message:
+              'Selesaikan data berikut sebelum pembayaran:\n${labels.map((item) => '- $item').join('\n')}',
+          closeLabel: 'OK',
+        );
         return;
       case 'EMAIL_VERIFICATION_REQUIRED':
         // Backend-rejection handler (defense-in-depth): the backend stays
@@ -2287,17 +2010,21 @@ class _SellerUpgradeWizardScreenState
         );
         return;
       case 'ACCOUNT_SUSPENDED':
-        await _showAccountBlockedDialog(
+        await AppDialog.info(
+          context: context,
           title: 'Akun Ditangguhkan',
           message:
               'Akun Anda sedang ditangguhkan. Hubungi tim dukungan untuk informasi lebih lanjut.',
+          closeLabel: 'OK',
         );
         return;
       case 'ACCOUNT_BANNED':
-        await _showAccountBlockedDialog(
+        await AppDialog.info(
+          context: context,
           title: 'Akun Diblokir',
           message:
               'Akun Anda diblokir dan tidak dapat mengakses seller features.',
+          closeLabel: 'OK',
         );
         return;
       default:
@@ -2316,28 +2043,6 @@ class _SellerUpgradeWizardScreenState
     return const [];
   }
 
-  Future<void> _showMissingRequirementsDialog(List<String> missing) async {
-    final labels = missing.isEmpty
-        ? const ['prasyarat akun']
-        : missing.map(_formatRequirement).toList();
-
-    await showDialog<void>(
-      context: context,
-      builder: (dialogCtx) => AlertDialog(
-        title: const Text('Lengkapi Prasyarat Seller'),
-        content: Text(
-          'Selesaikan data berikut sebelum pembayaran:\n${labels.map((item) => '- $item').join('\n')}',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogCtx).pop(),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
-  }
-
   String _formatRequirement(String requirement) {
     switch (requirement) {
       case 'email_verified':
@@ -2346,9 +2051,9 @@ class _SellerUpgradeWizardScreenState
         return 'Username';
       case 'phone_number':
         return 'Nomor telepon';
-      case 'sender_address':
+      case 'primary_address':
       case 'location':
-        return 'Alamat pengiriman';
+        return 'Alamat utama';
       case 'seller_profile':
         return 'Profil seller';
       default:
@@ -2356,22 +2061,91 @@ class _SellerUpgradeWizardScreenState
     }
   }
 
-  Future<void> _showAccountBlockedDialog({
-    required String title,
-    required String message,
-  }) async {
-    await showDialog<void>(
+  /// Canonical Page Info / Help surface for the registration wizard.
+  ///
+  /// The page owns the trigger; the surface is the shared `AppDialog.info`.
+  /// This consolidates the secondary explanations that used to occupy wizard
+  /// steps (registration mode, KYC/payout, account guidance, payment and
+  /// activation).
+  void _showSellerInfo() {
+    AppDialog.info(
       context: context,
-      builder: (dialogCtx) => AlertDialog(
-        title: Text(title),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogCtx).pop(),
-            child: const Text('OK'),
+      title: 'Tentang Daftar Seller',
+      content: _buildSellerInfoContent(context),
+      closeLabel: 'Tutup',
+    );
+  }
+
+  Widget _buildSellerInfoContent(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSellerInfoSection(
+          context,
+          title: 'Pendaftaran Seller',
+          body:
+              'Wizard ini untuk pendaftaran seller baru. Setelah pembayaran '
+              'dikonfirmasi, akun Anda aktif sebagai Seller. Perpanjangan '
+              'langganan dilakukan terpisah dari pendaftaran ini.',
+        ),
+        const SizedBox(height: 16),
+        _buildSellerInfoSection(
+          context,
+          title: 'Paket & Review',
+          body:
+              'Langganan seller berlaku 365 hari sejak pembayaran '
+              'dikonfirmasi. Verifikasi KYC dan review bank dilakukan '
+              'setelahnya dan hanya diperlukan untuk pencairan dana '
+              '(withdrawal), bukan untuk mendaftar sebagai seller.',
+        ),
+        const SizedBox(height: 16),
+        _buildSellerInfoSection(
+          context,
+          title: 'Akun',
+          body:
+              'Username hanya dapat dibaca jika sudah tersimpan. Nomor '
+              'telepon dan alamat utama tetap wajib diisi untuk menyelesaikan '
+              'pendaftaran seller.',
+        ),
+        const SizedBox(height: 16),
+        _buildSellerInfoSection(
+          context,
+          title: 'Pembayaran & Aktivasi',
+          body:
+              'Kemampuan For Sale, Auction, dan Promotion aktif selama '
+              'subscription berlaku. Jika subscription berakhir, ketiga '
+              'kemampuan tersebut tidak dapat digunakan, namun status Seller '
+              'Anda tetap.',
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSellerInfoSection(
+    BuildContext context, {
+    required String title,
+    required String body,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: context.typeRoles.titleCompact.copyWith(
+            fontWeight: FontWeight.bold,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          body,
+          style: context.typeRoles.bodyDense.copyWith(
+            height: 1.5,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
+      ],
     );
   }
 }

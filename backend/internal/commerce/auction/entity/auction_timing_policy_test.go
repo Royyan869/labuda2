@@ -130,44 +130,49 @@ func TestResolveAuctionTiming_InvalidMode(t *testing.T) {
 }
 
 // ============================================================================
-// UpdateDraft / UpdateScheduled timing enforcement (PASS_18C)
+// RequireFutureAuctionEnd (fix #2: schedule gate on a past end_at)
 // ============================================================================
 
-func TestUpdateDraft_RejectsInvalidTiming(t *testing.T) {
-	t.Run("rejects end_at <= start_at", func(t *testing.T) {
-		auction := createTestDraftAuction()
-		start := time.Now().Add(time.Hour)
-		err := auction.UpdateDraft(1000, 100, nil, start, start)
-		assert.ErrorIs(t, err, ErrEndAtNotAfterStartAt)
+func TestRequireFutureAuctionEnd(t *testing.T) {
+	now := time.Now()
+
+	t.Run("rejects end_at in the past", func(t *testing.T) {
+		err := RequireFutureAuctionEnd(now.Add(-time.Hour), now)
+		var endErr *ErrAuctionEndAlreadyPassed
+		require.ErrorAs(t, err, &endErr)
+		assert.Equal(t, now.Add(-time.Hour), endErr.EndAt)
 	})
 
-	t.Run("rejects duration below 1 day", func(t *testing.T) {
-		auction := createTestDraftAuction()
-		start := time.Now().Add(time.Hour)
-		err := auction.UpdateDraft(1000, 100, nil, start, start.Add(23*time.Hour))
-		var durErr *ErrAuctionDurationOutOfRange
-		assert.ErrorAs(t, err, &durErr)
-	})
-
-	t.Run("rejects duration above 7 days", func(t *testing.T) {
-		auction := createTestDraftAuction()
-		start := time.Now().Add(time.Hour)
-		err := auction.UpdateDraft(1000, 100, nil, start, start.Add(8*24*time.Hour))
-		var durErr *ErrAuctionDurationOutOfRange
-		assert.ErrorAs(t, err, &durErr)
-	})
-
-	t.Run("accepts valid timing within bounds", func(t *testing.T) {
-		auction := createTestDraftAuction()
-		start := time.Now().Add(time.Hour)
-		err := auction.UpdateDraft(1000, 100, nil, start, start.Add(5*24*time.Hour))
+	t.Run("accepts end_at exactly now (inside skew window)", func(t *testing.T) {
+		// now is 0s before now — within the 1m skew tolerance, same as the
+		// near-now scheduled start case above.
+		err := RequireFutureAuctionEnd(now, now)
 		assert.NoError(t, err)
+	})
+
+	t.Run("tolerates end_at within clock-skew tolerance", func(t *testing.T) {
+		// 30s before now is inside scheduledStartClockSkewTolerance (1m).
+		err := RequireFutureAuctionEnd(now.Add(-30*time.Second), now)
+		assert.NoError(t, err)
+	})
+
+	t.Run("accepts end_at beyond tolerance", func(t *testing.T) {
+		assert.NoError(t, RequireFutureAuctionEnd(now.Add(24*time.Hour), now))
+	})
+
+	t.Run("rejects end_at beyond tolerance in the past", func(t *testing.T) {
+		err := RequireFutureAuctionEnd(now.Add(-2*time.Minute), now)
+		assert.Error(t, err)
 	})
 }
 
+// ============================================================================
+// UpdateScheduled timing enforcement (PASS_18C)
+// ============================================================================
+
 func TestUpdateScheduled_RejectsInvalidTiming(t *testing.T) {
 	t.Run("rejects end_at <= start_at", func(t *testing.T) {
-		auction := createTestDraftAuction()
+		auction := createTestAuction()
 		auction.Status = StatusScheduled
 		start := time.Now().Add(time.Hour)
 		err := auction.UpdateScheduled(start, start)
@@ -175,7 +180,7 @@ func TestUpdateScheduled_RejectsInvalidTiming(t *testing.T) {
 	})
 
 	t.Run("rejects duration below 1 day", func(t *testing.T) {
-		auction := createTestDraftAuction()
+		auction := createTestAuction()
 		auction.Status = StatusScheduled
 		start := time.Now().Add(time.Hour)
 		err := auction.UpdateScheduled(start, start.Add(23*time.Hour))
@@ -184,7 +189,7 @@ func TestUpdateScheduled_RejectsInvalidTiming(t *testing.T) {
 	})
 
 	t.Run("rejects duration above 7 days", func(t *testing.T) {
-		auction := createTestDraftAuction()
+		auction := createTestAuction()
 		auction.Status = StatusScheduled
 		start := time.Now().Add(time.Hour)
 		err := auction.UpdateScheduled(start, start.Add(8*24*time.Hour))
@@ -193,7 +198,7 @@ func TestUpdateScheduled_RejectsInvalidTiming(t *testing.T) {
 	})
 
 	t.Run("rejects a past start_at", func(t *testing.T) {
-		auction := createTestDraftAuction()
+		auction := createTestAuction()
 		auction.Status = StatusScheduled
 		past := time.Now().Add(-time.Hour)
 		err := auction.UpdateScheduled(past, past.Add(48*time.Hour))
@@ -202,7 +207,7 @@ func TestUpdateScheduled_RejectsInvalidTiming(t *testing.T) {
 	})
 
 	t.Run("accepts valid future timing within bounds", func(t *testing.T) {
-		auction := createTestDraftAuction()
+		auction := createTestAuction()
 		auction.Status = StatusScheduled
 		start := time.Now().Add(2 * time.Hour)
 		err := auction.UpdateScheduled(start, start.Add(3*24*time.Hour))

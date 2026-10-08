@@ -1,7 +1,7 @@
 # HANDOFF — ADDRESS: SATU BUKU ALAMAT PER AKUN
 
-**Status:** CLOSED — CANONICAL DESIGN LOCKED
-**Scope:** identity/address (backend) + profile address (mobile) + checkout/seller consumers
+**Status:** OPEN — canonical design implemented and converged
+**Scope:** identity/address (backend) + profile address (mobile) + seller/checkout/product/order consumers
 
 ---
 
@@ -9,170 +9,145 @@
 
 Domain `address`. Menjawab satu pertanyaan: *alamat itu milik siapa dan untuk apa?*
 
-## BUSINESS TRUTH (Owner, sesi ini)
+## BUSINESS TRUTH
 
-1. Alamat dimiliki **AKUN**, bukan peran. Satu buku alamat untuk seluruh akun.
-2. Satu alamat boleh memegang **lebih dari satu peran** (mis. rumah = tujuan kirim DAN asal kirim).
-3. Satu halaman di Settings, **tanpa tab**. Peran ditampilkan sebagai **tag pada kartu**.
-4. **Satu `isPrimary` per akun** — bukan primary per tab/per purpose.
-5. Checkout yang belum punya alamat shipping: **empty-state + CTA yang langsung membuka form**.
-6. Pendaftaran seller memakai **form alamat yang sama** (dengan tag sender terkunci), bukan form kedua.
-7. Promotion scope menyusul — `tags` disiapkan sebagai tempat menempel scope, **bukan scope itu sendiri**.
+1. Alamat dimiliki **AKUN**. Satu buku alamat untuk seluruh akun (0..N alamat).
+2. Jika akun punya ≥1 alamat aktif, **tepat satu alamat adalah alamat utama**.
+   Jika akun punya 0 alamat, tidak ada alamat utama.
+3. Alamat pertama otomatis menjadi alamat utama.
+4. Menambahkan alamat baru **tidak mengubah** alamat utama yang sudah ada.
+5. Alamat utama hanya berubah saat user **secara eksplisit** memilih
+   "Jadikan alamat utama".
+6. Menghapus alamat utama: sistem otomatis memilih **alamat aktif tertua**
+   (`created_at ASC, id ASC`) sebagai alamat utama baru. Menghapus alamat
+   terakhir: akun tidak punya alamat utama.
+7. **Alamat utama adalah satu-satunya default address akun**: default tujuan
+   kirim dan default origin untuk **semua produk**.
+8. Label/nickname adalah label pengenalan user (Rumah, Kantor, ...). Bukan
+   peran bisnis, bukan authority, tidak dipakai untuk branching.
+9. **Tidak ada** `shipping address`, `sender address`, `address purpose`,
+   `address tag`, atau `farm_address_id` (alamat per produk).
+
+Model:
+
+```text
+User
+ └── Address Book
+      ├── Address A
+      ├── Address B
+      └── Primary Address ← satu-satunya default address
+
+All Products
+ └── use User Primary Address
+```
 
 ## CANONICAL AUTHORITY
 
 | Concern | Authority |
 |---|---|
 | Buku alamat | `addresses` (Postgres), milik `user_id` |
-| Peran sebuah alamat | `addresses.tags text[]` — subset non-kosong dari `{'shipping','sender'}` |
-| Primary | `is_primary`, **satu per akun**, dijaga `idx_addresses_user_active_primary_unique` (migrasi 000017) |
-| Soft delete / visibility checkout | `is_available_for_checkout` |
-| Public origin line | `ResolvePublicOrigin` → `entity.BuildPublicOriginSummary` (derived, **bukan salinan**) |
+| Primary | `is_primary`, **satu per akun**, dijaga `idx_addresses_user_active_primary_unique` |
+| Soft delete / visibility | `is_available_for_checkout` |
+| Public origin line | `ResolvePublicOrigin` → `entity.BuildPublicOriginSummary` (derived, **bukan salinan**) — primary → oldest fallback |
 | Form alamat di mobile | `AddressFormDialog` (satu-satunya) |
-| Wire contract | `tags: string[]` / `tag_labels: string[]`; query `?tag=` |
+| Wire contract | tanpa `tags`/`tag_labels`/`?tag=`; label = `nickname` |
 
 ## FORBIDDEN / KILLED (jangan dihidupkan lagi)
 
-- Kolom/purpose tunggal `addresses.purpose` — satu alamat dipaksa satu peran.
-- **Tab Shipping / Sender** di Settings, dan `TabController` penyertainya.
-- **Primary per purpose** (klaim di komentar entity lama; DB tidak pernah mengizinkannya —
-  `UnsetAllPrimary` selalu global). Membaca primary per tag tetap valid, tetapi hanya
-  MENEMBUS ke satu primary akun, tidak pernah membuat primervelit kedua.
-- **`AddEditAddressDialog`** — form kedua dengan aturannya sendiri (ada/tidak autofill,
-  cek seller, validasi min-1 yang berbeda). Dihapus total beserta 3 file part-nya.
-- **`AddressEmptyState` / `AddressEmptyStateWidget` / `address_list_screen/*`** —
-  duplikat empty-state. Sekarang satu `EmptyState` + satu `ShippingAddressEmptyState`.
-- **`models/user_address.dart`** dan **`helpers/address_migration_helper.dart`** —
-  sisa era Firestore single-address, hanya dipakai satu sama lain.
-- Migrasi label lama (`_migrateLabelToPurpose`): `farm`/`warehouse` → sender.
-  Data production = 0, tidak ada alasan mempertahankan parser warisan.
-- `?purpose=` pada endpoint address. Sekarang `?tag=`.
+- Kolom `addresses.purpose`.
+- `addresses.tags text[]` + constraint/index-nya.
+- `AddressTag`, `TagShipping`, `TagSender`, `HasTag`, `NormalizeTags`,
+  `IsValidTag`, `TagStrings`, `TagsFrom`, `InvalidTagsError`.
+- DTO `tags`/`tag_labels`, query `?tag=`, filter by-tag repository/service.
+- `GetByUserIDFiltered`, `GetPrimaryByTag`.
+- Seller onboarding `sender_address` gate (`hasSenderAddress`).
+- `for_sale`/`order`/`auction` sender-tag/shipping-tag lookups.
+- `products.farm_address_id` + FK; `listings.farm_address_id`.
+- Mobile `AddressTag` + extensions, `hasTag`, `tagValues`, DTO `tags`.
+- `getAddressesByTag`, `watchAddressesByTag`, `watchAddresses` (polling 30s).
+- `senderAddressIdProvider`, `primaryShippingAddressProvider`,
+  `addressesStreamProvider`, duplicate `primaryAddressProvider`/`addressCountProvider`.
+- `AddressFormDialog.presetTags` dan tag selector.
+- `ShippingSetup.farmAddressId` (dead).
 
-## IMPLEMENTATION
+## MIGRATION
 
-**Migration**
-- `000119_address_tags_over_purpose.up.sql` — tambah `tags text[]` (di-seed dari `purpose`),
-  `CHECK (cardinality(tags) > 0)`, `CHECK (tags <@ ARRAY['shipping','sender'])`,
-  index `idx_addresses_tags`, **drop kolom `purpose`**. Tidak ada kolom kompatibilitas.
-- `000119_...down.sql` — rollback eksplisit: `purpose = tags[1]` (kehilangan peran ganda memang
-  konsekuensi rollback, bukan sesuatu yang dipertahankan).
+- `000001_canonical_schema.up.sql` — baseline sudah **tanpa** `purpose`,
+  `idx_addresses_purpose`, `addresses_purpose_check`, `products.farm_address_id`,
+  `listings.farm_address_id`.
+- `000119_address_tags_over_purpose.up.sql` — **DIHAPUS** (desain tag ditolak).
+- `000124_address_single_book_convergence.up.sql` — konvergensi idempotent untuk
+  DB lama: drop `tags`/constraint/index, `purpose`+residue, `farm_address_id`.
+- `000017_primary_address_invariant_hardening.up.sql` — invariant primary
+  (canonical, dipertahankan).
 
-**Backend**
-- `entity.Address.Tags []AddressTag`, `NormalizeTags`, `HasTag`, `TagStrings`, `TagsFrom`,
-  `InvalidTagsError` (menggantikan `InvalidPurposeError` / `AddressPurpose*`).
-- Repository: kolom `tags`, filter `$2 = ANY(tags)`, `GetPrimaryByUserIDFiltered` →
-  **`GetPrimaryByTag`**, `CountByUserID` = `COUNT(*)` (distinct) + per-tag via `unnest(tags)`.
-- Service: input `Tags []string`, validasi lewat `NormalizeTags`.
-- Handler: DTO `tags`/`tag_labels`, query `?tag=`, create **dan update** menerima `tags`
-  (validasi ulang + tolak daftar kosong).
-- Konsumen commerce dipindahkan: `for_sale_service`, `order_creation_service`,
-  `auction_service`, `seller_onboarding_service` — semua kini `HasTag` / `GetPrimaryByTag`.
+## BACKEND
 
-**Mobile**
-- `AddressPurpose` → **`AddressTag`**; `AddressEntity.purpose` → **`List<AddressTag> tags`**,
-  `hasTag()`, `tagValues`, `isAvailableForCheckout = hasTag(shipping)`.
-- DTO `tags` / `tag_labels` (`.g.dart` diregenerasi lewat `build_runner`).
-- Repository interface: `getAddressesByTag`, `watchAddressesByTag`,
-  `getPrimaryAddress({AddressTag? tag})`, `countAddresses({AddressTag? tag})`.
-- `AddressListScreen`: tanpa `TabController`/`TabBar`, satu `ListView`, kartu memuat
-  **chip tag peran**, `canDelete` dihitung per akun (min 1, max 10).
-- `AddressFormDialog`: pemilih tag multi (`ChoiceChip`) — **`lockedTags` DIBUANG**;
-  yang tersisa hanya `presetTags` (pra-pilih peran saat create).
-  - Pemilih tag hanya tampil saat akun punya **≥2 alamat**; di bawah itu form
-    menampilkan "Applies to shipping & sender" (alamat tunggal = segalanya)
-  - Checkout CTA → `presetTags = [shipping]`
-  - Seller wizard → `presetTags = [sender]`
-  - Simpan: count <2 → client mengirim `[shipping, sender]`, backend reconciler
-    memaksa lagi di server (satu aturan, dua lapis)
-- `ShippingAddressEmptyState.onAdd` → **langsung membuka form**, lalu reload daftar;
-  tombol `Kelola` tetap untuk mengelola.
+- `entity.Address` tanpa `Tags`; `NewAddress` tanpa `tags`.
+- `AddressService`: `CreateAddress`/`UpdateAddress` tanpa tags; `reconcile`
+  hanya menjaga primary (0→none, 1→primary, ≥2→tepat satu, promote oldest).
+  `enforceSingleAddressRule` hanya menetapkan primary untuk alamat pertama.
+- `GetPrimaryFiltered` = `GetPrimaryByUserID` (tanpa tag).
+- Repository: kolom tanpa `tags`; `GetByUserIDFiltered`/`GetPrimaryByTag`/`oldestActiveAddress` dihapus.
+- Handler DTO tanpa tags; `GET /addresses` & `GET /addresses/primary` tanpa `?tag=`.
+- `ResolvePublicOrigin`: primary → oldest (tanpa chain tag/farm).
+- Seller onboarding: butuh **primary address**, kode `primary_address`.
+- `for_sale`: `EnsureSellerOriginValid` (butuh primary), kode `SELLER_ORIGIN_NOT_CONFIGURED`.
+- Order origin snapshot: dari **primary address** penjual (`getSellerOriginSnapshot`).
+- Auction winner default address: `GetPrimaryByUserID`.
+- Product: `FarmAddressID` dihapus dari entity/repository/proyeksi.
 
-## CLEANUP (dihapus total)
+## MOBILE
 
-- `backend`: `AddressPurpose`, `InvalidPurposeError`, `GetPrimaryByUserIDFiltered`,
-  `purposeLabel`, kolom `purpose`.
-- `apps/mobile/lib`:
-  - `presentation/widgets/add_edit_address_dialog.dart` + folder `add_edit_address_dialog/`
-    (`address_dialog_header`, `address_dialog_actions`, `address_form_fields`)
-  - `presentation/widgets/address_empty_state_widget.dart`
-  - `helpers/address_migration_helper.dart`, `models/user_address.dart`
-  - export `add_edit_address_dialog.dart` di `profile_feature.dart`
-- Fixtures & test kontrak di 9 file test mobile dan 12 file test Go ikut dikonvergenkan.
+- `AddressEntity` tanpa tags; `nickname` = label bebas.
+- `AddressResponseApi`/`CreateAddressRequestApi`/`UpdateAddressRequestApi` tanpa tags.
+- `IAddressRepository`: `getAddressesByUserId`, `getPrimaryAddress`, `countAddresses` (tanpa tag/stream).
+- Satu path state kanonik: `AddressNotifier`/`addressProvider` + `addressesListProvider`.
+- **Settings**: `addressesFutureProvider(userId)` — one-shot read langsung,
+  tanpa polling 30s (loading instan).
+- Seller wizard: memakai **primary address akun** (bukan sender address),
+  error business-facing (tanpa raw `Result.error`).
+- Checkout & auction claim: `loadAddresses`/`getAddressesByUserId` (tanpa tag).
+- Form alamat: label bebas untuk semua alamat; tidak ada role selector.
+
+## CLEANUP
+
+- `backend`: `AddressTag`/`Tag*`/`Purpose`/`farm_address_id`, migrasi `000119`.
+- `apps/mobile/lib`: `sender_address_provider.dart`, `address_list_provider.dart`,
+  tag methods/DTO/provider, `presetTags`, `ShippingSetup.farmAddressId`.
+- Fixtures & test dikonvergenkan.
 
 ## POSITIVE PROOF
 
 ```
-backend : go vet ./...                       → hanya 1 error PRA-ADA di luar scope (lihat bawah)
-backend : go test ./internal/identity/address/...                    → ALL PASS
-backend : go test ./internal/commerce/{forsale,order,shared,seller,auction}/... → ALL PASS
-mobile  : dart analyze lib                    → 0 error, 0 warning (24 info pra-ada)
-mobile  : dart analyze test                   → 0 error
-mobile  : flutter test (profile + seller screens + 3 checkout + 2 auction)
-                                              → +169 ALL PASS
+backend : go build ./...                      → bersih
+backend : go vet ./...                         → bersih
+backend : go test ./internal/identity/address/... ./internal/commerce/...  → PASS
+mobile  : dart analyze lib                     → 0 error (info pre-existing)
+mobile  : dart analyze test                    → 0 error
+mobile  : flutter test (address + seller + checkout + auction + for_sale) → PASS
 ```
-
-Test perilaku baru:
-- `TestAddress_CarriesShippingAndSenderTagsTogether` — satu baris dua tag, hitungan
-  `Total=1` sementara dua bucket per-tag keduanya `1`.
-- `TestToAddressResponse_DualTaggedAddress` — wire membawa dua tag + dua label.
-- `TestGetPrimaryFiltered_UsesCanonicalPrimaryRegardlessOfTag` — primary tetap primervelit
-  akun walau dibaca lewat tag yang tidak dimilikinya.
-- `TestCreateAddress_EmptyTagList` — gin `required` loloskan slice kosong; handler yang menolak.
-- `TestListAddresses_DualTagFilterRejectedAsUnknown` — tag di luar vocabulary → 400.
 
 ## NEGATIVE PROOF / RESIDUE SEARCH
 
 ```
-grep -rn "purpose|Purpose"  backend/internal/identity/address  → hanya 3 baris komentar
-                                                                    FORBIDDEN DESIGN (disengaja)
-grep -rn '"purpose"'        backend/internal                   → 0
-grep -rn "AddressPurpose|forcedPurpose|initialPurpose|
-          getAddressesByPurpose|loadAddressesByPurpose|
-          AddEditAddressDialog"  apps/mobile/lib                → 0 aktif
-                                                       (1 baris komentar: "…is gone")
-grep -rn "purpose"          apps/mobile/lib/domains/user/profile
-                            + checkout                          → 0 (sisa: "display purposes")
+backend : grep -rn "AddressTag|TagSender|TagShipping|farm_address_id|GetPrimaryByTag|GetByUserIDFiltered" internal → 0 (kecuali komentar FORBIDDEN)
+mobile  : grep -rn "AddressTag|hasTag|tagValues|getAddressesByTag|watchAddresses|senderAddressIdProvider|primaryShippingAddressProvider|farmAddressId" lib → 0
 ```
 
 ## KNOWN LIMITATIONS
 
-- Migrasi `000119` sudah berjalan di DB dev `labuda` (terbukti: kolom `tags` terbaca,
-  repair 2 baris user dev → `{shipping,sender}` + primary sukses). Klik end-to-end
-  (checkout tampil, daftar seller, alamat ganda-tag) masih owner retest.
-- `countAddresses` mobile memakai `/addresses/count`; kontraknya tetap
-  `total` (distinct) + `shipping_count` + `sender_count` — per-tag boleh menjumlah > total
-  saat ada alamat ganda-tag. Ini benar, bukan bug.
-- **Baca (hukum fallback, semua count):** query `?tag=` yang miss → kembalikan
-  semua alamat aktif (`GetByUserIDFiltered` / `GetPrimaryByTag` di repo impl;
-  primary → primary tanpa tag → alamat tertua → nil). Tag = preferensi,
-  bukan gerbang — checkout/sender mustahil kosong selama akun punya alamat.
-- **Tulis (reconciler `AddressService`):** 0 alamat = bebas · 1 alamat = dipaksa
-  `{shipping, sender}` + `is_primary` · ≥2 = tag milik user, tepi satu primary
-  (promosi otomatis kalau hilang) + race-retry create serentak (23505).
-
-## UNRESOLVED OWNER DECISIONS
-
-Tidak ada. Empat keputusan sudah dijawab Owner di sesi ini:
-satu buku per akun · satu halaman tanpa tab · form seller pre-isi · empty-state + CTA.
+- `UPDATE /addresses/:id` tetap mewarisi tag pada DB lama lewat migration 000124
+  (drop kolom), jadi update tidak lagi menyentuh peran.
+- `ShippingSetup.farmAddressId` dihapus; shipping option tidak lagi menunjuk alamat.
 
 ## OUT OF SCOPE (tercatat, TIDAK dikerjakan)
 
-1. **P1 — test suite payment gagal.**
-   `subscription/application`: `TestProcessSuccessfulPaymentTx_SplitsPrincipalAndFeeFromSnapshot`
-   expects `PLATFORM_REVENUE=+107000` / `BANK_SETTLEMENT=-107000`, actual terbalik.
-   **Bukan** akibat perubahan address (diff pada file itu hanya 4 baris fixture alamat;
-   tidak ada file ledger/payment yang berubah di working tree). Milik domain payment.
-2. **P1 — `go vet ./...` gagal di satu paket.**
-   `discovery/search/delivery/http/search_commerce_seller_projection_test.go:25`
-   `[]string` vs `[]ProductMedia` — akibat perubahan tak ter-commit sesi lain pada
-   `search_projection_adapter.go`. Milik domain search/discovery.
-3. **P2 — promotion scope** (`tags` sudah siap menerima scope, pengerjaan terpisah).
-4. **P2 — naming `is_available_for_checkout`** sebenarnya flag soft-delete yang juga
-   berlaku untuk alamat sender. Sudah ditangani dengan memisahkan jalur baca
-   (`GetByUserIDForDisplay`), penggantian nama ditunda.
+1. Pre-existing test stale `negotiation_default_contract_test.dart` membaca
+   `edit_for_sale_screen.dart` yang sudah dihapus oleh sesi lain (uncommitted).
+2. Domain payment/ledger, search/discovery, promotion — tidak disentuh.
 
 ## NEXT SCOPE
 
-1. Jalankan migrasi `000119` + runtime proof nyata (bikin alamat 2 tag → checkout → seller).
-2. Promotion scope di atas `tags`.
-3. Domain payment (temuan #1 di atas) — buka dengan trigger sah, bukan karena kebetulan ketemu.
+1. Jalankan migrasi `000124` + runtime proof.
+2. Promotion scope (bila ada) — lewat entitas baru, bukan tag alamat.

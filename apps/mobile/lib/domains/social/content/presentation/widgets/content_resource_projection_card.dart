@@ -37,7 +37,7 @@ class ContentResourceProjectionCard extends StatelessWidget {
       title: resourceProjection.titleText,
       value: CommerceMarketplaceCardValue(
         value: value?.isNotEmpty == true ? value! : resourceProjection.typeLabel,
-        caption: resourceProjection.statusLabel ?? 'TOMBSTONE',
+        caption: _captionLabel(),
         compact: compact,
       ),
       badges: _buildBadges(context),
@@ -46,6 +46,17 @@ class ContentResourceProjectionCard extends StatelessWidget {
         compact ? AppMetrics.p12 : AppMetrics.p12,
       ),
     );
+  }
+
+  /// Lifecycle caption. Commerce payloads use the shared presentation mapping
+  /// (the same one the chat card uses); non-commerce payloads keep the raw
+  /// projected lifecycle; tombstone stays 'TOMBSTONE' or the raw status.
+  String _captionLabel() {
+    if (resourceProjection.isLive) {
+      final commerce = commerceLifecycleLabel(resourceProjection.payload);
+      if (commerce != null) return commerce;
+    }
+    return resourceProjection.statusLabel ?? 'TOMBSTONE';
   }
 
   /// Value: identity for profile/content, canonical money for commerce — the
@@ -111,6 +122,15 @@ class ContentResourceProjectionCard extends StatelessWidget {
     final nested = resourceProjection.nestedResourceLabel;
     if (nested != null) {
       badges.add(CommerceMarketplaceCardBadge(label: nested, compact: true));
+    }
+
+    // Product attribute (informational only): a for-sale listing that is
+    // negotiable, active and in stock shows "Nego". It is never actionable.
+    final payload = resourceProjection.payload;
+    if (payload is ForSaleLivePayload && payload.negotiationEnabled) {
+      badges.add(
+        const CommerceMarketplaceCardBadge(label: 'Nego', compact: true),
+      );
     }
 
     return badges;

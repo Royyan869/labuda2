@@ -17,19 +17,20 @@ import 'package:flutter_test/flutter_test.dart';
 
 String _read(String relativePath) => File(relativePath).readAsStringSync();
 
+const _notificationFiles = <String>[
+  'lib/domains/system/notification/services/notification_navigation_service.dart',
+  'lib/domains/system/notification/services/fcm_message_handler.dart',
+  'lib/domains/system/notification/services/fcm_action_mapper.dart',
+  'lib/domains/system/notification/services/local_notification_service.dart',
+  'lib/core/interfaces/i_notification_trigger.dart',
+];
+
 void main() {
   // =========================================================================
   // GROUP 1 — Source-level forbidden-pattern contracts
   // =========================================================================
   group('Notification source contracts', () {
-    final notificationFiles = <String>[
-      'lib/domains/system/notification/services/notification_navigation_service.dart',
-      'lib/domains/system/notification/services/fcm_message_handler.dart',
-      'lib/domains/system/notification/services/fcm_action_mapper.dart',
-      'lib/domains/system/notification/services/local_notification_service.dart',
-      'lib/core/utils/notification_navigation_handler.dart',
-      'lib/core/interfaces/i_notification_trigger.dart',
-    ];
+    const notificationFiles = _notificationFiles;
 
     test('mention notification type is content.mentioned (not mention)', () {
       final trigger = _read(
@@ -57,14 +58,6 @@ void main() {
           reason: 'Old mention string must not be a case in FCM mapper');
       expect(mapper.contains("case 'new_mention':"), isFalse,
           reason: 'new_mention alias must not exist');
-    });
-
-    test('no old mention type string in core navigation handler', () {
-      final handler = _read(
-        'lib/core/utils/notification_navigation_handler.dart',
-      );
-      expect(handler.contains("case 'mention':"), isFalse,
-          reason: 'Old mention string must not be a case in core handler');
     });
 
     test('no postId read in notification navigation', () {
@@ -126,44 +119,56 @@ void main() {
   // GROUP 2 — FCM / local / foreground / background entry-point routing
   // =========================================================================
   group('FCM and local notification entry points', () {
-    test('FCM message handler routes through NotificationNavigationHandler', () {
+    const canonicalCall =
+        'NotificationNavigationService.canonical()'
+        '.handleNotificationPayload';
+
+    test('FCM message handler routes through the canonical service', () {
       final fcm = _read(
         'lib/domains/system/notification/services/fcm_message_handler.dart',
       );
       expect(
-        fcm.contains('NotificationNavigationHandler.navigate'),
+        fcm.contains(canonicalCall),
         isTrue,
         reason:
-            'FCM message handler must route through NotificationNavigationHandler',
+            'FCM message handler must route through NotificationNavigationService',
       );
     });
 
-    test('FCM action mapper routes through NotificationNavigationHandler', () {
+    test('FCM action mapper routes through the canonical service', () {
       final actions = _read(
         'lib/domains/system/notification/services/fcm_action_mapper.dart',
       );
       expect(
-        actions.contains('NotificationNavigationHandler.navigate'),
+        actions.contains(canonicalCall),
         isTrue,
         reason:
-            'FCM action mapper must route through NotificationNavigationHandler',
+            'FCM action mapper must route through NotificationNavigationService',
       );
     });
 
-    test(
-      'local notification service routes through NotificationNavigationHandler',
-      () {
-        final local = _read(
-          'lib/domains/system/notification/services/local_notification_service.dart',
-        );
+    test('local notification service routes through the canonical service', () {
+      final local = _read(
+        'lib/domains/system/notification/services/local_notification_service.dart',
+      );
+      expect(
+        local.contains(canonicalCall),
+        isTrue,
+        reason:
+            'Local notification service must route through NotificationNavigationService',
+      );
+    });
+
+    test('no surface reaches for a second destination decision', () {
+      for (final path in _notificationFiles) {
+        final source = _read(path);
         expect(
-          local.contains('NotificationNavigationHandler.navigate'),
-          isTrue,
-          reason:
-              'Local notification service must route through NotificationNavigationHandler',
+          source.contains('NotificationNavigationHandler'),
+          isFalse,
+          reason: '$path must not reference the purged navigation handler',
         );
-      },
-    );
+      }
+    });
 
     test('notification list screen uses canonical navigation service', () {
       final listScreen = _read(
@@ -208,18 +213,5 @@ void main() {
           reason: '_navigateToMention must not read contentId');
     });
 
-    test(
-      'core handler case content.mentioned reads targetId/targetType',
-      () {
-        final handler = _read(
-          'lib/core/utils/notification_navigation_handler.dart',
-        );
-        // Must use targetId/targetType, NOT postId / requestId
-        expect(handler.contains("'targetId'"), isTrue);
-        expect(handler.contains("'targetType'"), isTrue);
-        expect(handler.contains("'postId'"), isFalse);
-        expect(handler.contains("'requestId'"), isFalse);
-      },
-    );
   });
 }

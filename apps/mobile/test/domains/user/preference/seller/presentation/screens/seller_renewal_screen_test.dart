@@ -22,6 +22,7 @@ import 'package:labuda/domains/user/preference/seller/domain/entities/seller_sub
 import 'package:labuda/domains/user/preference/seller/domain/repositories/seller_repository.dart';
 import 'package:labuda/domains/user/preference/seller/presentation/screens/seller_renewal_screen.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
+import 'package:labuda/shared/shared.dart';
 import 'package:mockito/mockito.dart';
 
 /// SCOPE 3 — canonical seller renewal contract.
@@ -61,6 +62,11 @@ class _FakeAuthRepository implements IAuthRepository {
     String? username,
     String? bio,
     String? location,
+    String? coverPhotoUrl,
+    String? instagramHandle,
+    String? facebookHandle,
+    String? tiktokHandle,
+    String? twitterHandle,
     DateTime? dateOfBirth,
   }) async {
     updateProfileCalls++;
@@ -129,16 +135,9 @@ class _FakeSellerRepository implements SellerRepository {
   }
 
   @override
-  Future<Result<SellerSubscription>> getSubscription(
-    String sellerId,
-  ) async {
+  Future<Result<SellerSubscription>> getSubscription(String sellerId) async {
     subscriptionCalls++;
     return Result.success(_subscription);
-  }
-
-  @override
-  Stream<SellerSubscription?> watchSubscription(String sellerId) {
-    throw UnimplementedError();
   }
 
   @override
@@ -151,16 +150,9 @@ class _FakeSellerRepositoryNoSubscription implements SellerRepository {
   int subscriptionCalls = 0;
 
   @override
-  Future<Result<SellerSubscription>> getSubscription(
-    String sellerId,
-  ) async {
+  Future<Result<SellerSubscription>> getSubscription(String sellerId) async {
     subscriptionCalls++;
     return Result<SellerSubscription>.error('Not Found');
-  }
-
-  @override
-  Stream<SellerSubscription?> watchSubscription(String sellerId) {
-    throw UnimplementedError();
   }
 
   @override
@@ -187,7 +179,9 @@ AuthUser _sellerUser({
     provider: AuthProvider.email,
     // Renewal only exists for users who ALREADY have a seller profile.
     hasSellerProfile: true,
-    sellerSubscriptionStatus: hasMarketAuthority ? 'active' : subscriptionStatus,
+    sellerSubscriptionStatus: hasMarketAuthority
+        ? 'active'
+        : subscriptionStatus,
     hasMarketAuthority: hasMarketAuthority,
     sellerTier: SellerTier.sellerElite,
     isIdVerified: false,
@@ -311,7 +305,10 @@ void main() {
     testWidgets(
       'reads subscription context only: no editable seller/store fields',
       (tester) async {
-        final user = _sellerUser(id: 'expired-seller', hasMarketAuthority: false);
+        final user = _sellerUser(
+          id: 'expired-seller',
+          hasMarketAuthority: false,
+        );
         final controller = _FakeAuthController(
           AuthState.authenticated(user, emailVerified: true),
         );
@@ -350,12 +347,58 @@ void main() {
     );
 
     testWidgets(
+      'canonical trigger forwards the selected method code to the picker',
+      (tester) async {
+        final user = _sellerUser(
+          id: 'expired-seller',
+          hasMarketAuthority: false,
+        );
+        final controller = _FakeAuthController(
+          AuthState.authenticated(user, emailVerified: true),
+        );
+        final authRepository = _FakeAuthRepository();
+        final sellerRemoteDatasource = _FakeSellerRemoteDatasource();
+        final sellerRepository = _FakeSellerRepository(
+          initialSubscription: _subscriptionSnapshot(
+            expiryDate: DateTime.utc(2026, 6, 30),
+            paymentId: 'payment-old',
+          ),
+        );
+
+        await tester.pumpWidget(
+          _wrap(
+            controller,
+            authRepository,
+            sellerRemoteDatasource,
+            sellerRepository,
+          ),
+        );
+        await _openRenewal(tester);
+
+        // The obsolete local renderer is replaced by the one canonical trigger.
+        expect(find.byType(PaymentMethodTrigger), findsOneWidget);
+
+        await _selectPaymentMethod(tester);
+        expect(find.text('BCA Virtual Account'), findsOneWidget);
+
+        // Re-opening the canonical picker forwards the selected code: the
+        // current row renders checked.
+        await tester.tap(find.byIcon(Icons.chevron_right));
+        await tester.pumpAndSettle();
+        expect(find.byIcon(Icons.check_circle), findsOneWidget);
+      },
+    );
+
+    testWidgets(
       'renewal payment never calls onboarding and never mutates the seller profile',
       (tester) async {
         final binding = TestWidgetsFlutterBinding.ensureInitialized();
         final urlLauncherCalls = _mockUrlLauncher(binding);
 
-        final user = _sellerUser(id: 'expired-seller', hasMarketAuthority: false);
+        final user = _sellerUser(
+          id: 'expired-seller',
+          hasMarketAuthority: false,
+        );
         final controller = _FakeAuthController(
           AuthState.authenticated(user, emailVerified: true),
         );
@@ -581,11 +624,16 @@ void main() {
 
         expect(find.text('Memproses pembayaran'), findsNothing);
         expect(
-          find.text('Aktivasi seller berhasil — Anda sudah bisa jual dan lelang'),
+          find.text(
+            'Aktivasi seller berhasil — Anda sudah bisa jual dan lelang',
+          ),
           findsOneWidget,
         );
         // The "perpanjangan" copy is semantically wrong for first activation.
-        expect(find.text('Perpanjangan seller berhasil diproses'), findsNothing);
+        expect(
+          find.text('Perpanjangan seller berhasil diproses'),
+          findsNothing,
+        );
 
         // Baseline was fetched exactly once (before the dialog); success never
         // required — and never received — an expiry-extended subscription.
@@ -598,7 +646,9 @@ void main() {
         // Polling stopped after success: further timer ticks change nothing.
         await tester.pump(const Duration(seconds: 3));
         expect(
-          find.text('Aktivasi seller berhasil — Anda sudah bisa jual dan lelang'),
+          find.text(
+            'Aktivasi seller berhasil — Anda sudah bisa jual dan lelang',
+          ),
           findsOneWidget,
         );
         expect(find.text('Memproses pembayaran'), findsNothing);
@@ -665,7 +715,9 @@ void main() {
         await tester.pump(const Duration(milliseconds: 600));
 
         expect(
-          find.text('Aktivasi seller berhasil — Anda sudah bisa jual dan lelang'),
+          find.text(
+            'Aktivasi seller berhasil — Anda sudah bisa jual dan lelang',
+          ),
           findsOneWidget,
         );
         expect(find.text('Memproses pembayaran'), findsNothing);
@@ -724,18 +776,21 @@ void main() {
       },
     );
 
-    test('no silent dead-end: null baseline completes success, never bare-returns', () {
-      final source = File(
-        'lib/domains/user/preference/seller/presentation/screens/seller_renewal_screen.dart',
-      ).readAsStringSync();
-      expect(
-        source.contains('if (baseline == null) return;'),
-        isFalse,
-        reason:
-            'the P1 dead-end must not be reintroduced: baseline null = first '
-            'activation = success signal, not a silent return',
-      );
-      expect(source.contains('Aktivasi seller berhasil'), isTrue);
-    });
+    test(
+      'no silent dead-end: null baseline completes success, never bare-returns',
+      () {
+        final source = File(
+          'lib/domains/user/preference/seller/presentation/screens/seller_renewal_screen.dart',
+        ).readAsStringSync();
+        expect(
+          source.contains('if (baseline == null) return;'),
+          isFalse,
+          reason:
+              'the P1 dead-end must not be reintroduced: baseline null = first '
+              'activation = success signal, not a silent return',
+        );
+        expect(source.contains('Aktivasi seller berhasil'), isTrue);
+      },
+    );
   });
 }

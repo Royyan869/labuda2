@@ -42,7 +42,10 @@ class OperationalActionQueueSection extends ConsumerWidget {
     final verificationState = ref.watch(sellerVerificationV2NotifierProvider);
     final shippingState = ref.watch(shippingNotifierProvider);
     final pendingAsync = ref.watch(
-      watchSellerOrdersProvider(sellerId: sellerId, status: OrderStatus.pending),
+      watchSellerOrdersProvider(
+        sellerId: sellerId,
+        status: OrderStatus.pending,
+      ),
     );
     final paidAsync = ref.watch(
       watchSellerOrdersProvider(sellerId: sellerId, status: OrderStatus.paid),
@@ -183,8 +186,7 @@ class OperationalActionQueueSection extends ConsumerWidget {
           children: [
             Text(
               'Operasional toko siap',
-              style: TextStyle(
-                fontSize: AppType.s16,
+              style: context.typeRoles.titleCompact.copyWith(
                 fontWeight: FontWeight.bold,
                 color: scheme.onSurface,
               ),
@@ -192,7 +194,9 @@ class OperationalActionQueueSection extends ConsumerWidget {
             const SizedBox(height: 4),
             Text(
               'Tidak ada tindakan yang menunggu saat ini.',
-              style: TextStyle(fontSize: AppType.s12, color: scheme.onSurfaceVariant),
+              style: context.typeRoles.labelMicro.copyWith(
+                color: scheme.onSurfaceVariant,
+              ),
             ),
           ],
         ),
@@ -212,8 +216,7 @@ class OperationalActionQueueSection extends ConsumerWidget {
         children: [
           Text(
             'Antrian Tindakan Operasional',
-            style: TextStyle(
-              fontSize: AppType.s16,
+            style: context.typeRoles.titleCompact.copyWith(
               fontWeight: FontWeight.bold,
               color: scheme.onSurface,
             ),
@@ -273,7 +276,11 @@ class _ActionQueueTile extends StatelessWidget {
                 color: item.color.withValues(alpha: 0.15),
                 shape: BoxShape.circle,
               ),
-              child: Icon(item.icon, size: AppIconSize.action, color: item.color),
+              child: Icon(
+                item.icon,
+                size: AppIconSize.action,
+                color: item.color,
+              ),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -282,8 +289,7 @@ class _ActionQueueTile extends StatelessWidget {
                 children: [
                   Text(
                     item.title,
-                    style: TextStyle(
-                      fontSize: AppType.s14,
+                    style: context.typeRoles.bodyDense.copyWith(
                       fontWeight: FontWeight.w600,
                       color: scheme.onSurface,
                     ),
@@ -292,8 +298,7 @@ class _ActionQueueTile extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       item.subtitle!,
-                      style: TextStyle(
-                        fontSize: AppType.s12,
+                      style: context.typeRoles.labelMicro.copyWith(
                         color: scheme.onSurfaceVariant,
                       ),
                     ),
@@ -301,7 +306,11 @@ class _ActionQueueTile extends StatelessWidget {
                 ],
               ),
             ),
-            Icon(Icons.chevron_right, size: AppIconSize.action, color: scheme.onSurfaceVariant),
+            Icon(
+              Icons.chevron_right,
+              size: AppIconSize.action,
+              color: scheme.onSurfaceVariant,
+            ),
           ],
         ),
       ),

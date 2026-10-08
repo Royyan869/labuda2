@@ -3,11 +3,18 @@ import 'dart:async';
 import 'package:flutter/widgets.dart';
 
 import 'package:labuda/core/src/interfaces/services/i_analytics_repository.dart';
+import 'screen_names.dart';
 
-/// Route observer that emits `screen_view` through the canonical Stack A sink.
+/// Route observer that emits canonical screen views through the single
+/// analytics sink.
 ///
-/// This stays in core observability so it can be mounted directly in the live
-/// GoRouter path without touching the legacy analytics stack.
+/// Screen identity is resolved by [AnalyticsScreen] from the route's canonical
+/// name — NEVER from a dynamic path segment. Resource identifiers (user,
+/// product, auction, order ids) never reach the analytics backend as a screen
+/// name.
+///
+/// This is the ONE screen-tracking authority. Do not add per-screen manual
+/// screen tracking alongside it.
 class ScreenViewRouteObserver extends RouteObserver<PageRoute<dynamic>> {
   final IAnalyticsRepository _analytics;
 
@@ -36,37 +43,11 @@ class ScreenViewRouteObserver extends RouteObserver<PageRoute<dynamic>> {
   }
 
   void _trackScreenView(Route<dynamic> route) {
-    final routeIdentifier = route.settings.name;
-    if (routeIdentifier == null || routeIdentifier.isEmpty) {
+    final screenName = AnalyticsScreen.resolve(route.settings.name);
+    if (screenName == AnalyticsScreen.unknown) {
       return;
     }
 
-    unawaited(
-      _analytics.logEvent(
-        'screen_view',
-        parameters: {
-          'screen_name': _screenName(routeIdentifier),
-          'screen_path': routeIdentifier,
-          'screen_class': route.runtimeType.toString(),
-        },
-      ),
-    );
-  }
-
-  String _screenName(String routeIdentifier) {
-    final uri = Uri.tryParse(routeIdentifier);
-    if (uri != null && uri.pathSegments.isNotEmpty) {
-      return uri.pathSegments.last;
-    }
-
-    final segments = routeIdentifier
-        .split('/')
-        .where((segment) => segment.isNotEmpty)
-        .toList();
-    if (segments.isNotEmpty) {
-      return segments.last;
-    }
-
-    return routeIdentifier;
+    unawaited(_analytics.logScreenView(screenName: screenName));
   }
 }

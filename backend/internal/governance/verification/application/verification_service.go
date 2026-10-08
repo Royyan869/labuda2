@@ -812,22 +812,38 @@ func (s *VerificationService) ListPendingVerificationsWithUsername(
 	return result, nil
 }
 
-// ListVerificationsByStatusWithUsername retrieves all verifications matching the
-// given status, joined with each seller's public username from user_profiles.
+// ListVerificationsByStatusWithUsername retrieves a page of verifications
+// matching the given status, joined with each seller's public username from
+// user_profiles. Ordered by created_at DESC.
 func (s *VerificationService) ListVerificationsByStatusWithUsername(
 	ctx context.Context,
 	status entity.Status,
+	limit, offset int,
 ) ([]repository.PendingVerificationRow, error) {
 	var result []repository.PendingVerificationRow
 	err := s.db.WithTx(ctx, func(tx db.Tx) error {
 		var err error
-		result, err = s.repo.ListByStatusWithUsername(ctx, tx, status)
+		result, err = s.repo.ListByStatusWithUsername(ctx, tx, status, limit, offset)
 		return err
 	})
 	if err != nil {
 		return nil, err
 	}
 	return result, nil
+}
+
+// CountVerificationsByStatus returns the truthful total for a status filter.
+func (s *VerificationService) CountVerificationsByStatus(
+	ctx context.Context,
+	status entity.Status,
+) (int, error) {
+	var total int
+	err := s.db.WithTx(ctx, func(tx db.Tx) error {
+		var err error
+		total, err = s.repo.CountByStatus(ctx, tx, status)
+		return err
+	})
+	return total, err
 }
 
 func (s *VerificationService) writeAuditTx(

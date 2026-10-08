@@ -313,6 +313,13 @@ func (s *UserProfileService) GetPublicProfile(ctx context.Context, targetUserID 
 		}
 	}
 
+	// Optional social media handles — publicly visible whenever present.
+	// Suppressed on degraded identities like every other public profile field.
+	var pubSocialMedia *dto.SocialMediaDTO
+	if lifecycle == "active" {
+		pubSocialMedia = socialMediaDTOFromMap(publicInfo.SocialMedia)
+	}
+
 	// Build response.
 	//
 	// PUBLIC BOUNDARY: KYC verification flags (is_id_verified,
@@ -345,6 +352,7 @@ func (s *UserProfileService) GetPublicProfile(ctx context.Context, targetUserID 
 		StoreImageURL:       pubStoreImageURL,
 		StoreImageUpdatedAt: pubStoreImageUpdatedAt,
 		PublicOriginLine:    pubOriginLine,
+		SocialMedia:         pubSocialMedia,
 	}
 
 	return resp, nil
@@ -531,11 +539,47 @@ func (s *UserProfileService) entityToProfileDTO(profile *userEntity.UserProfile)
 		FollowersCount: profile.FollowersCount,
 		FollowingCount: profile.FollowingCount,
 		IsVerified:     isVerified,
+		SocialMedia:    socialMediaDTOFromMap(profile.SocialMedia),
 	}
 
-	// TODO: Convert social_media and privacy JSON to DTOs
-
 	return dto
+}
+
+// socialMediaDTOFromMap converts the persisted user_profiles.social_media
+// jsonb map into the wire DTO. Returns nil when no handle is present so the
+// object is omitted (presence = visible).
+func socialMediaDTOFromMap(m map[string]interface{}) *dto.SocialMediaDTO {
+	if len(m) == 0 {
+		return nil
+	}
+	out := &dto.SocialMediaDTO{
+		InstagramHandle: mapStringValue(m, "instagram_handle"),
+		FacebookHandle:  mapStringValue(m, "facebook_handle"),
+		TwitterHandle:   mapStringValue(m, "twitter_handle"),
+		TiktokHandle:    mapStringValue(m, "tiktok_handle"),
+	}
+	if out.InstagramHandle == nil && out.FacebookHandle == nil &&
+		out.TwitterHandle == nil && out.TiktokHandle == nil {
+		return nil
+	}
+	return out
+}
+
+// mapStringValue returns a trimmed non-empty string from a JSON map, else nil.
+func mapStringValue(m map[string]interface{}, key string) *string {
+	v, ok := m[key]
+	if !ok {
+		return nil
+	}
+	s, ok := v.(string)
+	if !ok {
+		return nil
+	}
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return nil
+	}
+	return &s
 }
 
 func stringValue(s *string) string {

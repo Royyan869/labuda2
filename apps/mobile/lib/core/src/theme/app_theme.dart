@@ -19,6 +19,10 @@ class AppStatusColors extends ThemeExtension<AppStatusColors> {
     required this.warning,
     required this.error,
     required this.info,
+    required this.onSuccess,
+    required this.onWarning,
+    required this.onError,
+    required this.onInfo,
   });
 
   final Color success;
@@ -26,11 +30,22 @@ class AppStatusColors extends ThemeExtension<AppStatusColors> {
   final Color error;
   final Color info;
 
+  /// Contrast-safe ink for text/icons sitting ON the matching status fill.
+  /// Never substitute a blanket white.
+  final Color onSuccess;
+  final Color onWarning;
+  final Color onError;
+  final Color onInfo;
+
   static const AppStatusColors light = AppStatusColors(
     success: AppColors.statusSuccess,
     warning: AppColors.statusWarning,
     error: AppColors.statusError,
     info: AppColors.statusInfo,
+    onSuccess: AppColors.statusOnSuccess,
+    onWarning: AppColors.statusOnWarning,
+    onError: AppColors.statusOnError,
+    onInfo: AppColors.statusOnInfo,
   );
 
   static const AppStatusColors dark = AppStatusColors(
@@ -38,6 +53,10 @@ class AppStatusColors extends ThemeExtension<AppStatusColors> {
     warning: AppColors.darkStatusWarning,
     error: AppColors.darkStatusError,
     info: AppColors.darkStatusInfo,
+    onSuccess: AppColors.darkStatusOnSuccess,
+    onWarning: AppColors.darkStatusOnWarning,
+    onError: AppColors.darkStatusOnError,
+    onInfo: AppColors.darkStatusOnInfo,
   );
 
   @override
@@ -46,12 +65,20 @@ class AppStatusColors extends ThemeExtension<AppStatusColors> {
     Color? warning,
     Color? error,
     Color? info,
+    Color? onSuccess,
+    Color? onWarning,
+    Color? onError,
+    Color? onInfo,
   }) {
     return AppStatusColors(
       success: success ?? this.success,
       warning: warning ?? this.warning,
       error: error ?? this.error,
       info: info ?? this.info,
+      onSuccess: onSuccess ?? this.onSuccess,
+      onWarning: onWarning ?? this.onWarning,
+      onError: onError ?? this.onError,
+      onInfo: onInfo ?? this.onInfo,
     );
   }
 
@@ -63,6 +90,10 @@ class AppStatusColors extends ThemeExtension<AppStatusColors> {
       warning: Color.lerp(warning, other.warning, t)!,
       error: Color.lerp(error, other.error, t)!,
       info: Color.lerp(info, other.info, t)!,
+      onSuccess: Color.lerp(onSuccess, other.onSuccess, t)!,
+      onWarning: Color.lerp(onWarning, other.onWarning, t)!,
+      onError: Color.lerp(onError, other.onError, t)!,
+      onInfo: Color.lerp(onInfo, other.onInfo, t)!,
     );
   }
 }
@@ -115,40 +146,6 @@ class AppShape {
   );
 }
 
-/// Type size scale — the ONLY place a numeric font size may live.
-///
-/// FOUNDATION (owner decision 2026-10-02): FIVE steps. The old ladder had grown
-/// one token per pixel a screen happened to want — 8, 8.5, 9, 10, 11, 12, 13,
-/// 14, 15, 16, 18, 20, 22, 24, 28, 32, 36 — and the usage census showed that
-/// was drift, not design: four sizes carried 77% of the app, the tail appeared
-/// 1–4 times, and one token had gone to zero everywhere. The scale is now the
-/// industry-standard core (Tailwind/Material): caption 12, body 14, title 16,
-/// section 20, display 24.
-///
-/// MAPPING of the retired tokens (nearest step, ties rounded UP, clamped at the
-/// ends): 8 · 8.5 · 9 · 10 · 11 → s12; 13 → s14; 15 → s16; 18 → s20;
-/// 22 · 28 · 32 · 36 → s24. A ROLE beats a size: [AppTypeRoles] exposes these
-/// five steps, and `Theme.of(context).textTheme.*` (mapping documented on
-/// [AppTheme]) stays the generic authority.
-class AppType {
-  AppType._();
-
-  /// Caption, meta and badge text — the smallest step.
-  static const double s12 = 12;
-
-  /// Body and helper text — the default.
-  static const double s14 = 14;
-
-  /// Emphasis: item titles and body-large.
-  static const double s16 = 16;
-
-  /// Section header inside a screen.
-  static const double s20 = 20;
-
-  /// Display: hero numbers and prominent state titles.
-  static const double s24 = 24;
-}
-
 /// Icon size ladder — the ONLY place an icon size may live.
 ///
 /// FOUNDATION (owner decision 2026-10-02): FIVE steps, the range large apps
@@ -187,8 +184,9 @@ class AppIconSize {
 /// literals left; a call site may only read an extent from here, from a
 /// component-local named policy, or from its own content.
 ///
-/// MAPPING of the literals migrated onto this ladder (same rule as [AppType]:
-/// same-role drift folds to ONE step, ties rounded UP): button heights `52` →
+/// MAPPING of the literals migrated onto this ladder (same rule as the retired
+/// type ladder: same-role drift folds to ONE step, ties rounded UP): button
+/// heights `52` →
 /// [control]; in-card action `36` and header-select `32` → [controlCompact];
 /// label columns `110`/`120` → [termLabel]; CTA widths `240` → [actionWidth];
 /// the visibility dropdown's hand-fit `116` → [panel]. Sites that were
@@ -244,22 +242,20 @@ class AppContentSize {
 
 /// Type-role extension — the app's five type steps, named.
 ///
-/// WHY THESE EXIST. [AppType] names RAW SIZES: a widget that spells
-/// `fontSize: AppType.s14` states a size and delegates everything else to
-/// whatever `DefaultTextStyle` wraps it (inside a button that ambient is
-/// `labelLarge` w500, inside an app bar `titleLarge`), so the same 14 px can
-/// render at two weights depending on where it sits. A ROLE states the whole
+/// WHY THESE EXIST. The retired numeric ladder named RAW SIZES: a widget that
+/// spelled a raw `fontSize:` stated a size and delegated everything else to
+/// whatever `DefaultTextStyle` wrapped it (inside a button that ambient is
+/// `labelLarge` w500, inside an app bar `titleLarge`), so the same 14 px could
+/// render at two weights depending on where it sat. A ROLE states the whole
 /// style once, in the theme — forking the ladder is a deliberate act that
-/// belongs in the theme, never in a widget. Since the 2026-10-02 foundation
-/// pass the roles ARE the five ladder steps, so the migration's destination is
-/// a role, never a number.
+/// belongs in the theme, never in a widget. The roles ARE the five enshrined
+/// steps, so the destination is a role, never a number.
 ///
-/// METRICS come from this theme's own `bodyMedium` — see [fromBody]. Every role
-/// is the body family at another size, so a role never claims a weight the
+/// METRICS come from this theme's own `bodyMedium` — see [fromResolved]. Every
+/// role is the body family at another size, so a role never claims a weight the
 /// design did not ask for: a site that wants bold keeps `fontWeight:` at the
 /// call site. A site whose old, off-ladder size was folded onto a step moves by
-/// the rounding documented on [AppType]. The migration recipe and its proof
-/// obligation live in the plan.
+/// the foundation's rounding rule (nearest step, ties rounded up).
 ///
 /// THE FOUNDATION'S FIVE STEPS, as roles (owner decision 2026-10-02): 12, 14,
 /// 16, 20, 24 — one name per value, no off-ladder step legalised here. Four of
@@ -291,25 +287,39 @@ class AppTypeRoles extends ThemeExtension<AppTypeRoles> {
   /// 24 px — a prominent state title (empty state) or a display glyph.
   final TextStyle titleProminent;
 
-  /// Builds every role from ONE body style, so no metric is restated and the
-  /// only decision this class makes is WHICH ladder step a role means.
-  factory AppTypeRoles.fromBody(TextStyle body) => AppTypeRoles(
-    labelMicro: body.copyWith(fontSize: AppType.s12),
-    bodyDense: body.copyWith(fontSize: AppType.s14),
-    titleCompact: body.copyWith(fontSize: AppType.s16),
-    titleSection: body.copyWith(fontSize: AppType.s20),
-    titleProminent: body.copyWith(fontSize: AppType.s24),
-  );
+  /// The one app-specific type step: M3 2021 has no 20-px role, which is the
+  /// only reason this extension exists. Named once, here, and never re-spelled
+  /// — a widget that reads `titleSection` never states the number.
+  static const double sectionStep = 20;
 
-  /// Plain-`ThemeData()` default: the stock M3 2021 body geometry — the same
-  /// ladder the contract test pins. Derived from `englishLike` (the geometry
-  /// half of `Typography`, where sizes actually live) rather than `black`,
-  /// which in this Flutter version carries only colour/family. Same posture as
+  /// Builds every role from the THEME'S OWN resolved type geometry.
+  ///
+  /// Four of the five steps are M3 2021 roles — `bodySmall` (12), `bodyMedium`
+  /// (14), `bodyLarge` (16) and `headlineSmall` (24) — so each role's SIZE
+  /// comes from the theme's resolved [TextTheme], never from a numeric size
+  /// ladder. Every other metric (weight, height, letter spacing, family) comes
+  /// from `bodyMedium`, so a role is still one body style at another size and a
+  /// theme retune reaches every role.
+  factory AppTypeRoles.fromResolved(TextTheme text) {
+    final body = text.bodyMedium!;
+    return AppTypeRoles(
+      labelMicro: body.copyWith(fontSize: text.bodySmall!.fontSize),
+      bodyDense: body.copyWith(fontSize: text.bodyMedium!.fontSize),
+      titleCompact: body.copyWith(fontSize: text.bodyLarge!.fontSize),
+      titleSection: body.copyWith(fontSize: sectionStep),
+      titleProminent: body.copyWith(fontSize: text.headlineSmall!.fontSize),
+    );
+  }
+
+  /// Plain-`ThemeData()` default: the stock M3 2021 geometry — the same ladder
+  /// the contract test pins. Derived from `englishLike` (the geometry half of
+  /// `Typography`, where sizes actually live) rather than `black`, which in
+  /// this Flutter version carries only colour/family. Same posture as
   /// [AppStatusColors.light]: a widget-test fallback, never an in-app path
   /// (both app themes register this extension and that wiring is pinned by
   /// contract test).
   static AppTypeRoles get fallback =>
-      AppTypeRoles.fromBody(Typography.material2021().englishLike.bodyMedium!);
+      AppTypeRoles.fromResolved(Typography.material2021().englishLike);
 
   @override
   AppTypeRoles copyWith({
@@ -398,26 +408,33 @@ class AppMetrics {
   /// role, not a spacing step.
   static const double focusedBorderWidth = 1.5;
 
-  /// Inset that keeps scroll content clear of a fixed bottom bar. A LAYOUT
-  /// role, not a spacing step: derived from the ladder so it cannot drift.
-  static const double bottomBarClearance = p48 * 2;
+  /// Content clearance that keeps scrolled content clear of an overlaying
+  /// [FloatingActionButton]. A LAYOUT role — not a spacing step, and NOT a
+  /// system inset (the screen's `SafeArea` owns the live system inset).
+  /// Measured ABOVE that live inset: content ends at
+  /// `systemInset + fabClearance`, so the FAB clearance never shrinks as the
+  /// system inset grows. Derived from the ladder so it cannot drift.
+  static const double fabClearance = p48 * 2;
 }
 
 /// Elevation scale — the ONLY place elevation values live.
 ///
-/// ONE NAME PER VALUE: `none` is not also `flat`, `card` is not also `raised`.
-/// Two names for one number is the duplication this whole file exists to kill.
+/// ONE NAME PER VALUE: `none` is not also `flat`, `raised` is not also
+/// `overlay`. Two names for one number is the duplication this whole file
+/// exists to kill.
+///
+/// Cards are flat ([none]) by owner decision — there is no card step: the
+/// former `card` token (2) was purged with zero production consumers, so a
+/// depth need must justify `raised` (or above) at its own call site.
 class AppElevation {
   AppElevation._();
 
   /// Flat chrome: app bars and outlined surfaces that sit ON the surface.
+  /// Also the canonical default for ordinary cards and surfaces.
   static const double none = 0;
 
   /// Barely lifted (chips, subtle inline cards).
   static const double raised = 1;
-
-  /// The card step — also the `cardTheme` default.
-  static const double card = 2;
 
   /// Toasts.
   static const double snackBar = 6;
@@ -517,8 +534,9 @@ class AppTheme {
       statusBarColor: Colors.transparent,
       statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
       systemNavigationBarColor: scheme.surface,
-      systemNavigationBarIconBrightness:
-          isDark ? Brightness.light : Brightness.dark,
+      systemNavigationBarIconBrightness: isDark
+          ? Brightness.light
+          : Brightness.dark,
     );
   }
 
@@ -547,19 +565,103 @@ class AppTheme {
   static InputDecoration composerDecoration(
     ColorScheme scheme, {
     required String hintText,
-  }) =>
-      InputDecoration(
-        hintText: hintText,
-        hintStyle: TextStyle(color: scheme.onSurfaceVariant),
-        filled: true,
-        fillColor: scheme.surfaceContainerHigh,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppShape.r24),
-          borderSide: BorderSide.none,
-        ),
-        contentPadding: AppMetrics.inputPadding,
-        counterText: '',
-      );
+  }) => InputDecoration(
+    hintText: hintText,
+    hintStyle: TextStyle(color: scheme.onSurfaceVariant),
+    filled: true,
+    fillColor: scheme.surfaceContainerHigh,
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(AppShape.r24),
+      borderSide: BorderSide.none,
+    ),
+    contentPadding: AppMetrics.inputPadding,
+    counterText: '',
+  );
+
+  /// THE editable-search decoration — one factory for every ordinary flat
+  /// search field (owner decision 2026-10-05). Canonical search appearance:
+  /// filled `surfaceContainerHigh`, rounded [AppShape.containerRadius], NO
+  /// border, [AppMetrics.inputPadding]. This is a SEPARATE class from a form
+  /// field (which keeps its `outlineVariant` border) and from the composer
+  /// pill (r24) — a search field is neither. The map overlay, the tappable
+  /// home pill and the composer do NOT consume this factory.
+  static InputDecoration searchDecoration(
+    ColorScheme scheme, {
+    required String hintText,
+  }) => InputDecoration(
+    hintText: hintText,
+    hintStyle: TextStyle(color: scheme.onSurfaceVariant),
+    filled: true,
+    fillColor: scheme.surfaceContainerHigh,
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(AppShape.r12),
+      borderSide: BorderSide.none,
+    ),
+    contentPadding: AppMetrics.inputPadding,
+  );
+
+  /// THE form-field state authority (ordinary data-entry fields). Owner-locked:
+  /// fields are FILLED with `surfaceContainerHigh`; the geometry (r12 container
+  /// radius, outlineVariant/primary border colours, 1.5 focused stroke,
+  /// inputPadding) is the locked canonical set. Errors are owned here too: the
+  /// error and focused-error borders use the scheme `error` role, the disabled
+  /// border mutes to `onSurface @ 0.12`, and label/helper/error/icon styles are
+  /// stated ONCE so no call site has to. Text-state styles derive from the
+  /// resolved type ladder, so a retune of `textTheme` reaches every field.
+  static InputDecorationTheme _inputDecorationTheme(
+    ColorScheme scheme,
+    TextTheme text,
+  ) => InputDecorationTheme(
+    filled: true,
+    fillColor: scheme.surfaceContainerHigh,
+    border: OutlineInputBorder(
+      borderRadius: AppShape.containerRadius,
+      borderSide: BorderSide(
+        color: scheme.outlineVariant.withValues(alpha: 0.5),
+      ),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: AppShape.containerRadius,
+      borderSide: BorderSide(
+        color: scheme.outlineVariant.withValues(alpha: 0.5),
+      ),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: AppShape.containerRadius,
+      borderSide: BorderSide(
+        color: scheme.primary.withValues(alpha: 0.7),
+        width: AppMetrics.focusedBorderWidth,
+      ),
+    ),
+    errorBorder: OutlineInputBorder(
+      borderRadius: AppShape.containerRadius,
+      borderSide: BorderSide(color: scheme.error),
+    ),
+    focusedErrorBorder: OutlineInputBorder(
+      borderRadius: AppShape.containerRadius,
+      borderSide: BorderSide(
+        color: scheme.error,
+        width: AppMetrics.focusedBorderWidth,
+      ),
+    ),
+    disabledBorder: OutlineInputBorder(
+      borderRadius: AppShape.containerRadius,
+      borderSide: BorderSide(
+        color: scheme.onSurface.withValues(alpha: 0.12),
+      ),
+    ),
+    contentPadding: AppMetrics.inputPadding,
+    labelStyle: text.bodyLarge?.copyWith(color: scheme.onSurfaceVariant),
+    floatingLabelStyle: text.bodyLarge?.copyWith(color: scheme.primary),
+    hintStyle: text.bodyLarge?.copyWith(
+      color: scheme.onSurfaceVariant.withValues(alpha: 0.6),
+    ),
+    helperStyle: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+    errorStyle: text.bodySmall?.copyWith(color: scheme.error),
+    prefixIconColor: scheme.onSurfaceVariant,
+    suffixIconColor: scheme.onSurfaceVariant,
+    errorMaxLines: 2,
+  );
 
   /// THE one ThemeData builder. Both modes flow through here, so any component
   /// theme or scale defined below is automatically correct in light and dark.
@@ -599,36 +701,57 @@ class AppTheme {
         indicatorColor: scheme.primary,
       ),
 
-      // Dialog / bottom sheet / divider / list tile / snackbar follow the
-      // scheme roles — pinned here so the authority is explicit and locked by
-      // contract test.
+      // Dialog / bottom sheet / divider / list tile follow the scheme roles —
+      // pinned here so the authority is explicit and locked by contract test.
+      //
+      // There is intentionally NO `snackBarTheme`: the one canonical Snackbar
+      // authority (`AppSnackBar`) paints each toast from the status-colour
+      // foundation, so a global snackbar palette would be a competing
+      // authority with no consumers.
       dialogTheme: DialogThemeData(
         backgroundColor: scheme.surfaceContainerHigh,
       ),
+      // Bottom sheet — THE single surface/shape/elevation authority. Every
+      // modal sheet (canonical family or framework call) inherits the muted
+      // `surfaceContainerLow` surface, a top-r20 shape and a flat elevation;
+      // call sites must NOT paint a local surface, radius or shadow.
       bottomSheetTheme: BottomSheetThemeData(
         backgroundColor: scheme.surfaceContainerLow,
+        surfaceTintColor: Colors.transparent,
+        elevation: AppElevation.none,
+        modalElevation: AppElevation.none,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(AppShape.r20),
+          ),
+        ),
       ),
       dividerTheme: DividerThemeData(color: scheme.outlineVariant),
       listTileTheme: ListTileThemeData(iconColor: scheme.onSurfaceVariant),
-      snackBarTheme: SnackBarThemeData(
-        backgroundColor: scheme.inverseSurface,
-        actionTextColor: scheme.inversePrimary,
-      ),
 
-      // Card theme
+      // Card theme — Flutter fallback ONLY, never a semantic authority.
+      // Owner decision (card foundation): the canonical default for ordinary
+      // card/surface visuals is flat. Non-zero elevation is opt-in per
+      // semantic surface via [AppElevation], never inherited from here.
       cardTheme: CardThemeData(
         color: scheme.surface,
-        elevation: AppElevation.card,
+        elevation: AppElevation.none,
         shape: const RoundedRectangleBorder(
           borderRadius: AppShape.containerRadius,
         ),
       ),
 
-      // Elevated button theme
+      // Elevated button theme. Disabled treatment is OWNED HERE (owner
+      // decision 2026-10-05): the one disabled-action language is the neutral
+      // `surfaceContainerHighest` fill with `onSurfaceVariant` ink — never a
+      // faded brand colour. A call site that restates disabled colours forks
+      // that language.
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: scheme.primary,
           foregroundColor: scheme.onPrimary,
+          disabledBackgroundColor: scheme.surfaceContainerHighest,
+          disabledForegroundColor: scheme.onSurfaceVariant,
           shape: const RoundedRectangleBorder(
             borderRadius: AppShape.buttonRadius,
           ),
@@ -639,10 +762,12 @@ class AppTheme {
       // Outlined button — CANONICAL NEUTRAL secondary action (scope: button
       // authority): onSurface ink on an outlineVariant border. Call sites may
       // only express VARIANTS (e.g. destructive via context.statusColors),
-      // never re-state these defaults.
+      // never re-state these defaults. Outlined buttons stay transparent when
+      // disabled — only their ink mutes to the canonical disabled role.
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: scheme.onSurface,
+          disabledForegroundColor: scheme.onSurfaceVariant,
           side: BorderSide(color: scheme.outlineVariant),
           shape: const RoundedRectangleBorder(
             borderRadius: AppShape.buttonRadius,
@@ -651,10 +776,12 @@ class AppTheme {
         ),
       ),
 
-      // Text button — tertiary action, brand ink.
+      // Text button — tertiary action, brand ink. Disabled ink is the
+      // canonical muted role; the fill stays transparent by nature.
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           foregroundColor: scheme.primary,
+          disabledForegroundColor: scheme.onSurfaceVariant,
           shape: const RoundedRectangleBorder(
             borderRadius: AppShape.buttonRadius,
           ),
@@ -662,11 +789,14 @@ class AppTheme {
         ),
       ),
 
-      // Filled button — same canonical pair as the elevated theme.
+      // Filled button — same canonical pair as the elevated theme, including
+      // the one owned disabled treatment.
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           backgroundColor: scheme.primary,
           foregroundColor: scheme.onPrimary,
+          disabledBackgroundColor: scheme.surfaceContainerHighest,
+          disabledForegroundColor: scheme.onSurfaceVariant,
           shape: const RoundedRectangleBorder(
             borderRadius: AppShape.buttonRadius,
           ),
@@ -674,28 +804,77 @@ class AppTheme {
         ),
       ),
 
-      // Input decoration theme
-      inputDecorationTheme: InputDecorationTheme(
-        border: OutlineInputBorder(
-          borderRadius: AppShape.containerRadius,
-          borderSide: BorderSide(
-            color: scheme.outlineVariant.withValues(alpha: 0.5),
-          ),
+      // Icon-button theme — THE canonical disabled language for icon-only
+      // actions (owner decision 2026-10-05 / Icon Action Foundation): a
+      // disabled icon action mutes to the neutral `onSurfaceVariant`, never an
+      // arbitrary local opacity, a faded brand tone or a status colour. Enabled
+      // ink still comes from each site's explicit icon colour or the scheme
+      // default, so this authority only owns the disabled state.
+      iconButtonTheme: IconButtonThemeData(
+        style: ButtonStyle(
+          foregroundColor: WidgetStateProperty.resolveWith<Color?>((
+            Set<WidgetState> states,
+          ) {
+            if (states.contains(WidgetState.disabled)) {
+              return scheme.onSurfaceVariant;
+            }
+            return null;
+          }),
         ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: AppShape.containerRadius,
-          borderSide: BorderSide(
-            color: scheme.outlineVariant.withValues(alpha: 0.5),
-          ),
+      ),
+
+      // Selection-control authority (owner decision 2026-10-05): checkbox,
+      // radio and switch share ONE canonical Labuda treatment — brand
+      // `primary` for the selected/active state, `outline` for the unselected
+      // control and `onSurface @ 0.38` for the disabled state (the M3 disabled
+      // ink). Call sites must not restate these colours; a local
+      // `activeColor`/`activeTrackColor`/`activeThumbColor` that repeats a
+      // theme-owned value is a competing authority.
+      checkboxTheme: CheckboxThemeData(
+        fillColor: WidgetStateProperty.resolveWith<Color?>((states) {
+          if (states.contains(WidgetState.disabled)) {
+            return scheme.onSurface.withValues(alpha: 0.38);
+          }
+          if (states.contains(WidgetState.selected)) return scheme.primary;
+          return null;
+        }),
+        checkColor: WidgetStateProperty.all(scheme.onPrimary),
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(AppShape.r4)),
         ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: AppShape.containerRadius,
-          borderSide: BorderSide(
-            color: scheme.primary.withValues(alpha: 0.7),
-            width: AppMetrics.focusedBorderWidth,
-          ),
-        ),
-        contentPadding: AppMetrics.inputPadding,
+        side: BorderSide(color: scheme.outline),
+      ),
+      radioTheme: RadioThemeData(
+        fillColor: WidgetStateProperty.resolveWith<Color?>((states) {
+          if (states.contains(WidgetState.disabled)) {
+            return scheme.onSurface.withValues(alpha: 0.38);
+          }
+          if (states.contains(WidgetState.selected)) return scheme.primary;
+          return scheme.onSurfaceVariant;
+        }),
+      ),
+      switchTheme: SwitchThemeData(
+        thumbColor: WidgetStateProperty.resolveWith<Color?>((states) {
+          if (states.contains(WidgetState.disabled)) {
+            return scheme.onSurface.withValues(alpha: 0.38);
+          }
+          if (states.contains(WidgetState.selected)) return scheme.onPrimary;
+          return scheme.outline;
+        }),
+        trackColor: WidgetStateProperty.resolveWith<Color?>((states) {
+          if (states.contains(WidgetState.disabled)) {
+            return scheme.onSurface.withValues(alpha: 0.12);
+          }
+          if (states.contains(WidgetState.selected)) return scheme.primary;
+          return scheme.surfaceContainerHighest;
+        }),
+        trackOutlineColor: WidgetStateProperty.resolveWith<Color?>((states) {
+          if (states.contains(WidgetState.selected) ||
+              states.contains(WidgetState.disabled)) {
+            return Colors.transparent;
+          }
+          return scheme.outline;
+        }),
       ),
     );
 
@@ -713,9 +892,10 @@ class AppTheme {
       theme.typography.geometryThemeFor(ScriptCategory.englishLike),
     );
     return theme.copyWith(
+      inputDecorationTheme: _inputDecorationTheme(scheme, resolved.textTheme),
       extensions: <ThemeExtension<dynamic>>[
         status,
-        AppTypeRoles.fromBody(resolved.textTheme.bodyMedium!),
+        AppTypeRoles.fromResolved(resolved.textTheme),
       ],
     );
   }

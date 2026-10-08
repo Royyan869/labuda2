@@ -39,8 +39,9 @@ type auctionQuoteSender struct {
 	called bool
 }
 
-func (m *auctionQuoteSender) SendMessage(
+func (m *auctionQuoteSender) SendMessageInTx(
 	_ context.Context,
+	_ db.Tx,
 	_, _ uuid.UUID,
 	_ chatEntity.MessageType,
 	_ *string,
@@ -114,6 +115,10 @@ func (m *shippingQuoteRepoStub) GetLatestRevisionByChatAndSource(context.Context
 
 func (m *shippingQuoteRepoStub) GetByID(context.Context, db.Tx, uuid.UUID) (*shippingQuoteEntity.ShippingQuote, error) {
 	return nil, nil
+}
+
+func (m *shippingQuoteRepoStub) GetByIDs(context.Context, db.Tx, []uuid.UUID) (map[uuid.UUID]*shippingQuoteEntity.ShippingQuote, error) {
+	return map[uuid.UUID]*shippingQuoteEntity.ShippingQuote{}, nil
 }
 
 func (m *shippingQuoteRepoStub) GetByIDForUpdate(context.Context, db.Tx, uuid.UUID) (*shippingQuoteEntity.ShippingQuote, error) {
@@ -285,7 +290,6 @@ func TestCreateShippingQuote_AuctionInvalidStatusesRejected(t *testing.T) {
 	chatRoom := newAuctionChatRoom(sellerID, winnerID)
 
 	statuses := []auctionEntity.Status{
-		auctionEntity.StatusDraft,
 		auctionEntity.StatusScheduled,
 		auctionEntity.StatusActive,
 		auctionEntity.StatusEnded,

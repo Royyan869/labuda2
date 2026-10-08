@@ -10,7 +10,7 @@ package tests
 //   2. a multi-quantity FPS stays discoverable while quantity_available > 0
 //      and disappears at 0;
 //   3. the public seller-scoped browse (GetPublicBySellerID) returns only
-//      active + in-stock surfaces — never draft/sold/withdrawn;
+//      active + in-stock surfaces — never sold/withdrawn;
 //   4. default auction browse returns only public discovery states
 //      (scheduled/active) and explicit-status filters stay owner-safe at the
 //      handler boundary;
@@ -52,6 +52,19 @@ func seedStage6BUser(t *testing.T, ctx context.Context, tdb *testdb.TestDB) uuid
 			INSERT INTO users (id, firebase_uid, email, email_verified_at, account_status, created_at, updated_at)
 			VALUES ($1, $2, $3, NOW(), 'active', NOW(), NOW())
 		`, userID, "fb-"+userID.String(), userID.String()+"@stage6b.invalid")
+		return err
+	}))
+	// Active market authority: since the Oct 2026 read-side hide, browse
+	// queries exclude listings whose seller has no live subscription
+	// interval — so every stage-6b fixture seller holds one (a test that
+	// needs an expired seller flips it explicitly). payment_id is NOT NULL
+	// in the canonical schema (no FK) — a synthetic reference matches the
+	// sibling fixture pattern in role_checker_db_integration_test.go.
+	require.NoError(t, tdb.WithTx(ctx, func(tx db.Tx) error {
+		_, err := tx.Exec(ctx, `
+			INSERT INTO seller_subscriptions (id, user_id, status, started_at, expires_at, duration_days, amount_paid, currency, payment_id, created_at, updated_at)
+			VALUES ($1, $2, 'active', NOW() - INTERVAL '1 day', NOW() + INTERVAL '365 days', 365, 0, 'IDR', $3, NOW(), NOW())
+		`, uuid.New(), userID, uuid.New())
 		return err
 	}))
 	return userID
@@ -263,7 +276,7 @@ func TestStage6B_GetPublicBySellerID_OnlyActiveInStock(t *testing.T) {
 	prodD := seedStage6BProduct(t, ctx, tdb, seller)
 	prodE := seedStage6BProduct(t, ctx, tdb, seller)
 
-	saleDraft := seedStage6BFPS(t, ctx, tdb, prodA, seller, "draft", 1, false)
+	saleDraft := seedStage6BFPS(t, ctx, tdb, prodA, seller, "sold", 1, true)
 	saleActive := seedStage6BFPS(t, ctx, tdb, prodB, seller, "active", 2, true)
 	saleActiveZero := seedStage6BFPS(t, ctx, tdb, prodC, seller, "active", 0, true) // drift case
 	saleSold := seedStage6BFPS(t, ctx, tdb, prodD, seller, "sold", 0, true)
@@ -291,16 +304,12 @@ func TestStage6B_AuctionBrowse_DefaultOnlyPublicStates(t *testing.T) {
 
 	seller := seedStage6BUser(t, ctx, tdb)
 
-	draft := seedStage6BAuction(t, ctx, tdb, seller, "draft")
 	scheduled := seedStage6BAuction(t, ctx, tdb, seller, "scheduled")
 	active := seedStage6BAuction(t, ctx, tdb, seller, "active")
 	waiting := seedStage6BAuction(t, ctx, tdb, seller, "waiting_settlement")
 	ended := seedStage6BAuction(t, ctx, tdb, seller, "ended")
 	cancelled := seedStage6BAuction(t, ctx, tdb, seller, "cancelled")
-	// Settlement failure returns the auction to DRAFT (no expired_bnr state);
-	// a DRAFT surface is a non-public owner-only state and must not surface in
-	// anonymous browse.
-	draftAfterFailure := seedStage6BAuction(t, ctx, tdb, seller, "draft")
+	lapsed := seedStage6BAuction(t, ctx, tdb, seller, "lapsed")
 
 	repo := auctioninfra.NewAuctionRepository()
 
@@ -311,11 +320,11 @@ func TestStage6B_AuctionBrowse_DefaultOnlyPublicStates(t *testing.T) {
 		ids := auctionIDs(auctions)
 		require.Contains(t, ids, scheduled)
 		require.Contains(t, ids, active)
-		require.NotContains(t, ids, draft)
 		require.NotContains(t, ids, waiting)
 		require.NotContains(t, ids, ended)
 		require.NotContains(t, ids, cancelled)
-		require.NotContains(t, ids, draftAfterFailure)
+		// A lapsed auction never went live and stays out of anonymous browse.
+		require.NotContains(t, ids, lapsed)
 		return nil
 	}))
 
@@ -339,7 +348,7 @@ func TestStage6B_FPSBrowse_AnonymousSellerFilter_PublicOnly(t *testing.T) {
 	prodDraft := seedStage6BProduct(t, ctx, tdb, seller)
 	prodActive := seedStage6BProduct(t, ctx, tdb, seller)
 	prodSold := seedStage6BProduct(t, ctx, tdb, seller)
-	saleDraft := seedStage6BFPS(t, ctx, tdb, prodDraft, seller, "draft", 1, false)
+	saleDraft := seedStage6BFPS(t, ctx, tdb, prodDraft, seller, "sold", 1, true)
 	saleActive := seedStage6BFPS(t, ctx, tdb, prodActive, seller, "active", 2, true)
 	saleSold := seedStage6BFPS(t, ctx, tdb, prodSold, seller, "sold", 0, true)
 
@@ -347,6 +356,7 @@ func TestStage6B_FPSBrowse_AnonymousSellerFilter_PublicOnly(t *testing.T) {
 		fpsApp.NewForSaleService(),
 		db.NewFromPool(tdb.Pool()),
 		zap.NewNop(),
+		nil,
 		nil,
 		nil,
 	)
@@ -359,10 +369,10 @@ func TestStage6B_FPSBrowse_AnonymousSellerFilter_PublicOnly(t *testing.T) {
 	require.Equal(t, 200, w.Code)
 	forSaleIDs := parseFPSBrowseIDs(t, w.Body.String())
 	require.Contains(t, forSaleIDs, saleActive, "anonymous seller page must show active in-stock")
-	require.NotContains(t, forSaleIDs, saleDraft, "anonymous seller page must NOT expose drafts")
+	require.NotContains(t, forSaleIDs, saleDraft, "anonymous seller page must NOT expose non-active surfaces")
 	require.NotContains(t, forSaleIDs, saleSold, "anonymous seller page must NOT expose sold-out")
 
-	// Same caller as owner: full inventory (draft + active + sold).
+	// Same caller as owner: full inventory (active + sold).
 	w = httptest.NewRecorder()
 	c, _ = gin.CreateTestContext(w)
 	c.Request = httptest.NewRequest("GET", "/api/v1/for-sale?seller_id="+seller.String(), nil)
@@ -371,7 +381,7 @@ func TestStage6B_FPSBrowse_AnonymousSellerFilter_PublicOnly(t *testing.T) {
 	require.Equal(t, 200, w.Code)
 	forSaleIDs = parseFPSBrowseIDs(t, w.Body.String())
 	require.Contains(t, forSaleIDs, saleActive, "owner inventory must show active")
-	require.Contains(t, forSaleIDs, saleDraft, "owner inventory must show draft")
+	require.Contains(t, forSaleIDs, saleDraft, "owner inventory must show its own non-active surfaces")
 	require.Contains(t, forSaleIDs, saleSold, "owner inventory must show sold-out")
 }
 
@@ -381,7 +391,7 @@ func TestStage6B_AuctionBrowse_AnonymousRestricted_OwnerStatusScoped(t *testing.
 	ctx := context.Background()
 
 	seller := seedStage6BUser(t, ctx, tdb)
-	auctionDraft := seedStage6BAuction(t, ctx, tdb, seller, "draft")
+	auctionDraft := seedStage6BAuction(t, ctx, tdb, seller, "cancelled")
 	auctionActive := seedStage6BAuction(t, ctx, tdb, seller, "active")
 
 	handler := auctionhttp.NewAuctionHandler(
@@ -390,6 +400,7 @@ func TestStage6B_AuctionBrowse_AnonymousRestricted_OwnerStatusScoped(t *testing.
 		nil,
 		db.NewFromPool(tdb.Pool()),
 		zap.NewNop(),
+		nil,
 	)
 
 	// Anonymous default browse: public states only.
@@ -400,26 +411,53 @@ func TestStage6B_AuctionBrowse_AnonymousRestricted_OwnerStatusScoped(t *testing.
 	require.Equal(t, 200, w.Code)
 	ids := parseAuctionBrowseIDs(t, w.Body.String())
 	require.Contains(t, ids, auctionActive, "anonymous browse must show active auction")
-	require.NotContains(t, ids, auctionDraft, "anonymous browse must NOT show draft auction")
+	require.NotContains(t, ids, auctionDraft, "anonymous browse must NOT show non-public auction")
 
-	// Anonymous status=draft must be rejected as empty (non-public state).
+	// Anonymous status=cancelled must be rejected as empty (non-public state).
 	w = httptest.NewRecorder()
 	c, _ = gin.CreateTestContext(w)
-	c.Request = httptest.NewRequest("GET", "/api/v1/auctions?status=draft", nil)
+	c.Request = httptest.NewRequest("GET", "/api/v1/auctions?status=cancelled", nil)
 	handler.ListAuctions(c)
 	require.Equal(t, 200, w.Code)
 	ids = parseAuctionBrowseIDs(t, w.Body.String())
-	require.Empty(t, ids, "anonymous status=draft must return empty")
+	require.Empty(t, ids, "anonymous status=cancelled must return empty")
 
-	// Owner with seller filter + status=draft: own drafts visible.
+	// Owner with seller filter + status=cancelled: own history visible.
 	w = httptest.NewRecorder()
 	c, _ = gin.CreateTestContext(w)
-	c.Request = httptest.NewRequest("GET", "/api/v1/auctions?status=draft&seller_id="+seller.String(), nil)
+	c.Request = httptest.NewRequest("GET", "/api/v1/auctions?status=cancelled&seller_id="+seller.String(), nil)
 	c.Set("userID", seller)
 	handler.ListAuctions(c)
 	require.Equal(t, 200, w.Code)
 	ids = parseAuctionBrowseIDs(t, w.Body.String())
-	require.Contains(t, ids, auctionDraft, "owner status=draft must list own drafts")
+	require.Contains(t, ids, auctionDraft, "owner status=cancelled must list own history")
+
+	// NON-OWNER viewer with seller filter and NO status: public discovery
+	// default only (scheduled/active). NEGATIVE PROOF that owner inventory
+	// does not widen public browse.
+	otherViewer := seedStage6BUser(t, ctx, tdb)
+	w = httptest.NewRecorder()
+	c, _ = gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest("GET", "/api/v1/auctions?seller_id="+seller.String(), nil)
+	c.Set("userID", otherViewer)
+	handler.ListAuctions(c)
+	require.Equal(t, 200, w.Code)
+	ids = parseAuctionBrowseIDs(t, w.Body.String())
+	require.Contains(t, ids, auctionActive, "non-owner seller browse must show active auction")
+	require.NotContains(t, ids, auctionDraft, "non-owner seller browse must NOT expose non-public auctions")
+
+	// OWNER with seller filter and NO status: full owner inventory — the
+	// seller's own history must be reachable, mirroring the for_sale owner
+	// inventory asserted above. This is the seller management surface.
+	w = httptest.NewRecorder()
+	c, _ = gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest("GET", "/api/v1/auctions?seller_id="+seller.String(), nil)
+	c.Set("userID", seller)
+	handler.ListAuctions(c)
+	require.Equal(t, 200, w.Code)
+	ids = parseAuctionBrowseIDs(t, w.Body.String())
+	require.Contains(t, ids, auctionActive, "owner inventory must show active")
+	require.Contains(t, ids, auctionDraft, "owner inventory must show own non-public auctions")
 }
 
 func TestStage6B_ReuseQuantity_RejectsSecondForSale(t *testing.T) {
@@ -432,9 +470,8 @@ func TestStage6B_ReuseQuantity_RejectsSecondForSale(t *testing.T) {
 	repo := fpsinfra.NewForSaleRepository()
 
 	// First surface: qty=10, then 3 units reserved → 7 remaining.
-	saleA, err := fpsEntity.NewForSaleSurface(seller, money.New(100000), 10, false, fpsEntity.ForSaleVisibilityPublic)
+	saleA, err := fpsEntity.NewForSaleSurface(seller, money.New(100000), 10, false)
 	require.NoError(t, err)
-	require.NoError(t, saleA.Publish())
 	saleA.ProductID = product
 	require.NoError(t, tdb.WithTx(ctx, func(tx db.Tx) error { return repo.Create(ctx, tx, saleA) }))
 	require.NoError(t, tdb.WithTx(ctx, func(tx db.Tx) error {
@@ -449,9 +486,8 @@ func TestStage6B_ReuseQuantity_RejectsSecondForSale(t *testing.T) {
 	}))
 
 	// A second ForSale cannot replace the existing stock-owning surface.
-	saleB, err := fpsEntity.NewForSaleSurface(seller, money.New(150000), 1, false, fpsEntity.ForSaleVisibilityPublic)
+	saleB, err := fpsEntity.NewForSaleSurface(seller, money.New(150000), 1, false)
 	require.NoError(t, err)
-	require.NoError(t, saleB.Publish())
 	saleB.ProductID = product
 	require.Error(t, tdb.WithTx(ctx, func(tx db.Tx) error { return repo.Create(ctx, tx, saleB) }))
 

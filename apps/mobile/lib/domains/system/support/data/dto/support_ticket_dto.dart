@@ -158,8 +158,8 @@ class SupportTicketDto {
       userId: userId,
       userName: userName,
       userAvatar: userAvatar,
-      category: SupportCategory.fromWire(supportCategory) ??
-          SupportCategory.other,
+      category:
+          SupportCategory.fromWire(supportCategory) ?? SupportCategory.other,
       priority: SupportPriority.values.firstWhere(
         (e) => e.name == supportPriority,
         orElse: () => SupportPriority.medium,
@@ -360,7 +360,7 @@ class SupportEventDto {
     return SupportEvent(
       id: id,
       ticketId: ticketId,
-      eventType: _parseEventType(eventType),
+      eventType: SupportEvent.parseEventType(eventType),
       actorId: actorId,
       actorName: actorName,
       oldStatus: oldStatus,
@@ -369,34 +369,5 @@ class SupportEventDto {
       metadata: metadata,
       createdAt: createdAt,
     );
-  }
-
-  SupportEventType _parseEventType(String value) {
-    switch (value) {
-      case 'ticket_created':
-        return SupportEventType.ticketCreated;
-      case 'ticket_claimed':
-        return SupportEventType.ticketClaimed;
-      case 'ticket_waiting_user':
-        return SupportEventType.ticketWaitingUser;
-      case 'status_changed':
-        return SupportEventType.statusChanged;
-      case 'priority_changed':
-        return SupportEventType.priorityChanged;
-      case 'category_changed':
-        return SupportEventType.categoryChanged;
-      case 'ticket_resolved':
-        return SupportEventType.ticketResolved;
-      case 'ticket_closed':
-        return SupportEventType.ticketClosed;
-      case 'ticket_reopened':
-        return SupportEventType.ticketReopened;
-      case 'admin_assigned':
-        return SupportEventType.adminAssigned;
-      case 'admin_unassigned':
-        return SupportEventType.adminUnassigned;
-      default:
-        return SupportEventType.unknown;
-    }
   }
 }

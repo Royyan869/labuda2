@@ -21,6 +21,9 @@ import 'package:labuda/domains/commerce/transaction/order/presentation/providers
 import 'package:labuda/domains/commerce/transaction/shipping/domain/entities/shipping.dart';
 import 'package:labuda/domains/commerce/transaction/shipping/domain/repositories/shipping_repository.dart';
 import 'package:labuda/domains/commerce/transaction/shipping/presentation/providers/providers.dart';
+import 'package:labuda/domains/finance/transaction/payment/domain/entities/payment.dart';
+import 'package:labuda/domains/finance/transaction/payment/domain/repositories/payment_repository.dart';
+import 'package:labuda/domains/finance/transaction/payment/presentation/providers/payment_providers.dart';
 import 'package:labuda/domains/finance/wallet/coins/coins.dart';
 import 'package:labuda/domains/user/profile/domain/entities/address_entity.dart';
 import 'package:labuda/domains/user/profile/presentation/providers/notifiers/address_notifier.dart';
@@ -57,6 +60,35 @@ class _FakeShippingRepository implements ShippingRepository {
   dynamic noSuchMethod(Invocation invocation) => null;
 }
 
+/// Canonical pre-order payment pricing fake: one method, backend-computed fee.
+class _FakePaymentRepository implements PaymentRepository {
+  @override
+  Future<Result<PreOrderPaymentPricing>> getPreOrderPaymentPricing(
+    String pricingToken, {
+    bool useCoins = false,
+  }) async => Result.success(
+    PreOrderPaymentPricing(
+      pricingToken: pricingToken,
+      expiresAt: DateTime.now().add(const Duration(minutes: 10)),
+      escrowAmount: 113222,
+      coinsToUse: 0,
+      cashAmount: 113222,
+      currency: 'IDR',
+      methods: const [
+        PreOrderPaymentMethodOption(
+          methodCode: 'bank_transfer',
+          displayName: 'Transfer Bank',
+          buyerPaymentFeeAmount: 4000,
+          finalPayableAmount: 117222,
+        ),
+      ],
+    ),
+  );
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => null;
+}
+
 class _FakeCoinNotifier extends CoinNotifier {
   @override
   CoinState build() => const CoinState.initial();
@@ -78,10 +110,7 @@ class _FakeAddressNotifier extends AddressNotifier {
   );
 
   @override
-  Future<void> loadAddressesByTag(
-    String userId,
-    AddressTag tag,
-  ) async {}
+  Future<void> loadAddresses(String userId) async {}
 }
 
 AuthUser _buyer() => AuthUser(
@@ -98,7 +127,6 @@ AuthUser _buyer() => AuthUser(
 AddressEntity _shippingAddress() => AddressEntity(
   id: 'address-1',
   userId: 'buyer-1',
-  tags: const [AddressTag.shipping],
   recipientName: 'Buyer',
   phone: '08123456789',
   province: const Province(id: '31', name: 'DKI Jakarta'),
@@ -143,6 +171,7 @@ PreviewOrderResult _previewResult() => PreviewOrderResult(
   pricingToken: 'token-ship-A',
   sellerId: 'seller-1',
   shippingMode: 'standard',
+  expiresAt: DateTime.now().add(const Duration(minutes: 10)),
 );
 
 /// Pumps the checkout screen WITHOUT settling: the order preview stays
@@ -180,6 +209,7 @@ Future<void> _pumpCheckout(
         checkoutRepositoryProvider.overrideWithValue(
           _NoopCheckoutRepository(),
         ),
+        paymentRepositoryProvider.overrideWithValue(_FakePaymentRepository()),
       ],
       child: MaterialApp(
         theme: theme,

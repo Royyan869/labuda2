@@ -29,7 +29,7 @@ func TestUpdateAuctionLifecycle_NonEditableStatuses_ReturnConflict(t *testing.T)
 	for _, status := range cases {
 		t.Run(string(status), func(t *testing.T) {
 			// Simulate handler's else branch error
-			err := &entity.InvalidOperationError{Status: status, Reason: "can only update draft or scheduled auctions"}
+			err := &entity.InvalidOperationError{Status: status, Reason: "can only update scheduled auctions"}
 
 			// Verify typed error is correctly identified
 			var opErr *entity.InvalidOperationError
@@ -68,13 +68,13 @@ func TestUpdateAuctionLifecycle_NonEditableStatuses_ReturnConflict(t *testing.T)
 }
 
 func TestUpdateAuctionLifecycle_EditableStatuses_NotLifecycleError(t *testing.T) {
-	// Draft and scheduled are editable, so they should not be lifecycle errors
-	// Their errors (if any) would be timing validation, not lifecycle
-	for _, status := range []entity.Status{entity.StatusDraft, entity.StatusScheduled} {
-		err := &entity.InvalidOperationError{Status: status, Reason: "test"}
-		// This is still a lifecycle error type, but handler only returns it for non-editable
+	// Scheduled is the only editable state (create = publish), so it should
+	// not be a lifecycle error. Its errors (if any) would be timing
+	// validation, not lifecycle.
+	for _, status := range []entity.Status{entity.StatusScheduled} {
+		err := &entity.InvalidOperationError{Status: status, Reason: "test"} // This is still a lifecycle error type, but handler only returns it for non-editable
 		// So we just verify editable statuses themselves are not automatically rejected
-		// by the handler's else branch (they go to draft/scheduled path)
+		// by the handler's else branch (they go to the scheduled path)
 		_ = err
 		_ = status
 	}

@@ -76,11 +76,17 @@ class UserHeaderWidget extends ConsumerWidget {
                       ],
                     ],
 
-                    // TimeAgo
+                    // TimeAgo — secondary metadata: flex-bounded so the
+                    // header can never overflow, single-line with ellipsis
+                    // when horizontal space is insufficient.
                     if (showTimeAgo)
-                      TimeAgoWidget.compact(
-                        dateTime: createdAt,
-                        color: scheme.onSurfaceVariant,
+                      Flexible(
+                        child: TimeAgoWidget.compact(
+                          dateTime: createdAt,
+                          color: scheme.onSurfaceVariant,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                   ],
                 ),

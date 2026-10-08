@@ -298,8 +298,9 @@ func (r *SellerVerificationRepository) ListByStatusWithUsername(
 	ctx context.Context,
 	tx db.Tx,
 	status entity.Status,
+	limit, offset int,
 ) ([]PendingVerificationRow, error) {
-	rows, err := tx.Query(ctx, `
+	query := `
 		SELECT sv.id, sv.seller_id, sv.status, sv.submitted_at, sv.reviewed_at,
 		       sv.reviewed_by, sv.reason, sv.reviewed_bank_account_ids,
 		       sv.created_at, sv.updated_at,
@@ -309,7 +310,17 @@ func (r *SellerVerificationRepository) ListByStatusWithUsername(
 		LEFT JOIN seller_profiles sp ON sp.user_id = sv.seller_id
 		WHERE sv.status = $1
 		ORDER BY sv.created_at DESC
-	`, status)
+	`
+	args := []interface{}{status}
+	if limit > 0 {
+		query += fmt.Sprintf(" LIMIT $%d", len(args)+1)
+		args = append(args, limit)
+	}
+	if offset > 0 {
+		query += fmt.Sprintf(" OFFSET $%d", len(args)+1)
+		args = append(args, offset)
+	}
+	rows, err := tx.Query(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("verification: list by status with username failed: %w", err)
 	}
@@ -349,6 +360,20 @@ func (r *SellerVerificationRepository) ListByStatusWithUsername(
 		return nil, fmt.Errorf("verification: scan failed: %w", rows.Err())
 	}
 	return result, nil
+}
+
+// CountByStatus returns the truthful total number of verifications with the
+// given status (mirrors the predicate of ListByStatusWithUsername).
+func (r *SellerVerificationRepository) CountByStatus(
+	ctx context.Context,
+	tx db.Tx,
+	status entity.Status,
+) (int, error) {
+	var total int
+	if err := tx.QueryRow(ctx, `SELECT COUNT(*) FROM seller_verifications WHERE status = $1`, status).Scan(&total); err != nil {
+		return 0, fmt.Errorf("verification: count by status failed: %w", err)
+	}
+	return total, nil
 }
 
 func (r *SellerVerificationRepository) GetBySellerIDWithUsername(

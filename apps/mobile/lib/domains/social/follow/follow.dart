@@ -20,12 +20,10 @@ export 'data/follow_providers.dart';
 export 'presentation/providers/follow_actions_provider.dart';
 export 'presentation/providers/follow_status_provider.dart';
 export 'presentation/providers/follow_stats_provider.dart';
-export 'presentation/providers/follow_lists_provider.dart';
 export 'presentation/providers/follow_search_provider.dart';
 export 'presentation/providers/follow_stream_provider.dart';
 
 export 'presentation/widgets/follow_stats_widget.dart';
 export 'presentation/widgets/user_card.dart';
-export 'presentation/widgets/user_search_bar.dart';
 
 export 'presentation/screens/follow_list_screen.dart';

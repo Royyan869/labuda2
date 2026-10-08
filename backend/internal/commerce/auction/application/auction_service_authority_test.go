@@ -11,14 +11,12 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/labuda/backend/internal/commerce/auction/entity"
-	auctionRepo "github.com/labuda/backend/internal/commerce/auction/infrastructure/repository"
 	forsaleEntity "github.com/labuda/backend/internal/commerce/forsale/entity"
 	productEntity "github.com/labuda/backend/internal/commerce/product/entity"
 	"github.com/labuda/backend/internal/identity/auth"
 	"github.com/labuda/backend/pkg/db"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap"
 )
 
 // auctionUpdateSpyRow simulates a row produced by joinedAuctionColumns
@@ -30,8 +28,8 @@ type auctionUpdateSpyRow struct {
 }
 
 func (r auctionUpdateSpyRow) Scan(dest ...any) error {
-	if len(dest) != 34 {
-		return fmt.Errorf("expected 34 scan destinations, got %d", len(dest))
+	if len(dest) != 33 {
+		return fmt.Errorf("expected 33 scan destinations, got %d", len(dest))
 	}
 
 	auction := r.auction
@@ -78,10 +76,9 @@ func (r auctionUpdateSpyRow) Scan(dest ...any) error {
 		certs = []string{}
 	}
 	*dest[29].(*[]string) = certs
-	*dest[30].(**uuid.UUID) = product.FarmAddressID
-	*dest[31].(*string) = product.PreparationTime
-	*dest[32].(*time.Time) = product.CreatedAt
-	*dest[33].(*time.Time) = product.UpdatedAt
+	*dest[30].(*string) = product.PreparationTime
+	*dest[31].(*time.Time) = product.CreatedAt
+	*dest[32].(*time.Time) = product.UpdatedAt
 	return nil
 }
 
@@ -157,97 +154,16 @@ func newAuctionForUpdateAuthority(status entity.Status, sellerID uuid.UUID) *ent
 	}
 }
 
-func TestUpdateDraft_OwnerCanUpdateDraft_PersistsUpdatedRow(t *testing.T) {
-	sellerID := uuid.New()
-	auction := newAuctionForUpdateAuthority(entity.StatusDraft, sellerID)
-	tx := &auctionUpdateSpyTx{row: auctionUpdateSpyRow{auction: auction}}
-	svc := &AuctionService{
-		auctionRepo: &auctionRepo.AuctionRepository{},
-		ownership:   auth.NewOwnershipValidator(),
-		log:         zap.NewNop(),
-	}
-
-	err := svc.UpdateDraft(context.Background(), tx, UpdateDraftInput{
-		AuctionID:    auction.ID,
-		CallerID:     sellerID,
-		StartPrice:   1_100_000,
-		BidIncrement: 150_000,
-		BuyNowPrice:  nil,
-		StartAt:      auction.StartAt.Add(30 * time.Minute),
-		EndAt:        auction.EndAt.Add(30 * time.Minute),
-	})
-
-	require.NoError(t, err)
-	require.Len(t, tx.execSQL, 1)
-	assert.Contains(t, tx.execSQL[0], "UPDATE auctions")
-	// Auction content (title, description, preparation) must NEVER be written
-	// through the auctions table — Product is the sole canonical authority.
-	assert.NotContains(t, tx.execSQL[0], "title")
-	assert.NotContains(t, tx.execSQL[0], "description")
-	assert.NotContains(t, tx.execSQL[0], "preparation")
-	require.Len(t, tx.execArgs, 1)
-	// UPDATE args: id=$1, order_id=$2, start_price=$3, bid_increment=$4, buy_now_price=$5
-	assert.Equal(t, int64(1_100_000), tx.execArgs[0][2])
-	assert.Equal(t, int64(150_000), tx.execArgs[0][3])
-	assert.Nil(t, tx.execArgs[0][4])
-}
-
-func TestUpdateDraft_NonOwnerRejected_DoesNotPersist(t *testing.T) {
-	sellerID := uuid.New()
-	auction := newAuctionForUpdateAuthority(entity.StatusDraft, sellerID)
-	tx := &auctionUpdateSpyTx{row: auctionUpdateSpyRow{auction: auction}}
-	svc := &AuctionService{
-		auctionRepo: &auctionRepo.AuctionRepository{},
-		ownership:   auth.NewOwnershipValidator(),
-		log:         zap.NewNop(),
-	}
-
-	err := svc.UpdateDraft(context.Background(), tx, UpdateDraftInput{
-		AuctionID:    auction.ID,
-		CallerID:     uuid.New(),
-		StartPrice:   1_100_000,
-		BidIncrement: 150_000,
-		StartAt:      auction.StartAt,
-		EndAt:        auction.EndAt,
-	})
-
-	require.ErrorIs(t, err, auth.ErrSellerRequired)
-	assert.Empty(t, tx.execSQL)
-}
-
-func TestUpdateDraft_FailedStatusDoesNotPersistRow(t *testing.T) {
+// ValidateScheduleGates is the single market-entry gate for create and
+// relist — there is no draft state and no separate schedule step anymore.
+func TestValidateScheduleGates_ExpiredSellerIsDenied(t *testing.T) {
 	sellerID := uuid.New()
 	auction := newAuctionForUpdateAuthority(entity.StatusScheduled, sellerID)
-	tx := &auctionUpdateSpyTx{row: auctionUpdateSpyRow{auction: auction}}
-	svc := &AuctionService{
-		auctionRepo: &auctionRepo.AuctionRepository{},
-		ownership:   auth.NewOwnershipValidator(),
-		log:         zap.NewNop(),
-	}
-
-	err := svc.UpdateDraft(context.Background(), tx, UpdateDraftInput{
-		AuctionID:    auction.ID,
-		CallerID:     sellerID,
-		StartPrice:   1_100_000,
-		BidIncrement: 150_000,
-		StartAt:      auction.StartAt,
-		EndAt:        auction.EndAt,
-	})
-
-	require.Error(t, err)
-	var invalidOp *entity.InvalidOperationError
-	require.ErrorAs(t, err, &invalidOp)
-	assert.Empty(t, tx.execSQL)
-}
-
-func TestScheduleAuctionInternal_ExpiredSellerIsDenied(t *testing.T) {
-	sellerID := uuid.New()
-	auction := newAuctionForUpdateAuthority(entity.StatusDraft, sellerID)
 	svc := newAuctionServiceForCreateTiming()
 	svc.roleChecker = auctionRoleCheckerStub{hasCapability: false}
 
-	err := svc.scheduleAuctionInternal(context.Background(), nil, auction, sellerID)
+	err := svc.validateScheduleGates(context.Background(), nil, auction, sellerID)
 
 	require.ErrorIs(t, err, auth.ErrMarketAuthorityRequired)
-	assert.Equal(t, entity.StatusDraft, auction.Status)
+	assert.Equal(t, entity.StatusScheduled, auction.Status)
 }

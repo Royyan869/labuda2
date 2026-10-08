@@ -5,6 +5,12 @@ import 'package:labuda/domains/system/report/report.dart';
 import 'base_module.dart';
 
 /// Report Module - Report screen
+///
+/// `/report` is the ONE canonical report destination: the path carries the
+/// report target as query parameters (`?type=<targetType>&id=<targetId>` and
+/// an optional display-only `title`), so a report link is stable and
+/// shareable. Every report entry point in the app pushes this route instead of
+/// constructing the report form directly.
 class ReportModule extends BaseModule {
   @override
   String get moduleName => 'ReportModule';
@@ -17,7 +23,12 @@ class ReportModule extends BaseModule {
       builder: (context, state) {
         final targetType = state.uri.queryParameters['type'];
         final targetId = state.uri.queryParameters['id'];
-        return ReportScreen(targetType: targetType, targetId: targetId);
+        final targetTitle = state.uri.queryParameters['title'];
+        return ReportScreen(
+          targetType: targetType,
+          targetId: targetId,
+          targetTitle: targetTitle,
+        );
       },
     ),
   ];

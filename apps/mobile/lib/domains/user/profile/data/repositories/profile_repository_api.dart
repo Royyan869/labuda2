@@ -267,14 +267,11 @@ class ProfileRepositoryApi implements IProfileRepository {
       // Cover photo: persisted as the canonical storage key; empty string
       // clears the cover (backend converts to NULL).
       coverPhotoUrl: profile.coverPhotoUrl,
-      // Contact info
+      // Social media handles (presence = visible; no visibility toggle)
       instagramHandle: profile.contactInfo?.instagramHandle,
       facebookHandle: profile.contactInfo?.facebookHandle,
       twitterHandle: profile.contactInfo?.twitterHandle,
       tiktokHandle: profile.contactInfo?.tiktokHandle,
-      // Privacy settings
-      showPhoneNumber: profile.contactInfo?.isPhonePublic,
-      showEmail: profile.contactInfo?.isEmailPublic,
     );
   }
 }

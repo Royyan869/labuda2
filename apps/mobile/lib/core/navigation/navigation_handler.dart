@@ -1,30 +1,28 @@
-import 'package:flutter/material.dart';
-
 /// Navigation abstraction interface untuk modular navigation
 ///
-/// GUIDELINES compliance: Semua navigasi harus melalui interface ini,
-/// tidak boleh ada direct context.go() di UI layer
+/// CANONICAL NAVIGATION POLICY:
+/// - Widget/UI context: navigate directly through the canonical GoRouter
+///   context (`context.go`, `context.push`, `context.pushNamed`, `context.pop`).
+/// - Non-widget / global / service context (no BuildContext): use this
+///   [NavigationHandler] (backed by [AppRouter] over the global navigator key).
+///
+/// This interface forwards to the ONE GoRouter — it is not a second router and
+/// holds no route registry of its own.
 abstract class NavigationHandler {
   // Core Navigation
   void navigateToHome();
-  void navigateBack();
   void navigateToProfile();
 
   // Authentication Navigation
-  void navigateToLogin();
-  void navigateToSignIn(); // Alias for login
-  void navigateToRegister();
-  void navigateToSignUp(); // Alias for register
+  void navigateToSignIn();
+  void navigateToSignUp();
   void navigateToForgotPassword();
 
   // Onboarding Navigation
   void navigateToWelcome();
 
   // Profile & User Navigation
-  void navigateToEditProfile();
   void navigateToUserProfile(String userId);
-  void navigateToAddressPayment();
-  void navigateToSecurity();
 
   // Content Navigation
   void navigateToContentDetail(
@@ -53,43 +51,24 @@ abstract class NavigationHandler {
   // Settings Navigation
   void navigateToSettings();
   void navigateToNotificationSettings();
-  void navigateToPrivacySettings();
-  void navigateToBlockedUsers();
 
   // Verification Navigation
-  void navigateToKycVerification({String? userId});
-  void navigateToBusinessDocuments();
   void navigateToSellerVerification();
 
   // Commerce Navigation
   void navigateToAuction(String auctionId);
-  void navigateToCheckout();
   void
   navigateToSavedItems(); // Navigate to saved items (shortlist + auction watch) screen
   void navigateToOrders(); // Navigate to order list screen
   void navigateToOrderDetail(String orderId); // Navigate to specific order
-  void navigateToOrderHistory(); // Alias for navigateToOrders
-
-  // Payment Navigation
-  void navigateToPayment(
-    dynamic paymentRequest,
-  ); // Navigate to payment screen with payment request
 
   // Seller Navigation
   void navigateToSellerDashboard();
   void navigateToSellerEarnings();
-  void navigateToSellerForSales();
-  void navigateToSellerRefundList();
   void navigateToSellerUpgrade();
   void navigateToSellerRenewal();
   void navigateToExternalProductDetail(String productId);
 
   // Coin Navigation (loyalty points - NOT wallet/payment)
-  void navigateToCoinBalance();
   void navigateToCoinHistory();
-
-  // Modal Navigation
-  void showBottomSheet<T>(Widget Function(BuildContext) builder);
-  void showModalDialog<T>(Widget Function(BuildContext) builder);
-  void showSnackBar(String message, {bool isError = false});
 }

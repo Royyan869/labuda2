@@ -106,7 +106,7 @@ func TestUpdateSeller_RestrictedSeller_Blocked(t *testing.T) {
 	forSaleID := uuid.New()
 	sellerID := uuid.New()
 	productID := uuid.New()
-	repo, prodRepo := newUpdateSellerRepo(sellerID, forSaleID, productID, entity.ForSaleStatusDraft)
+	repo, prodRepo := newUpdateSellerRepo(sellerID, forSaleID, productID, entity.ForSaleStatusActive)
 	svc := &ForSaleService{
 		repo:            repo,
 		productRepo:     prodRepo,
@@ -123,13 +123,14 @@ func TestUpdateSeller_RestrictedSeller_Blocked(t *testing.T) {
 	assert.False(t, repo.updateCalled)
 }
 
-// TestUpdateSeller_UnrestrictedSeller_Allowed proves that an unrestricted seller can
-// update an existing for_sale via UpdateSeller.
-func TestUpdateSeller_UnrestrictedSeller_Allowed(t *testing.T) {
+// TestUpdateSeller_UnrestrictedSeller_RejectedAsLive proves that an
+// unrestricted seller still cannot edit a published for_sale (live
+// immutability — create = publish, no draft state exists).
+func TestUpdateSeller_UnrestrictedSeller_RejectedAsLive(t *testing.T) {
 	forSaleID := uuid.New()
 	sellerID := uuid.New()
 	productID := uuid.New()
-	repo, prodRepo := newUpdateSellerRepo(sellerID, forSaleID, productID, entity.ForSaleStatusDraft)
+	repo, prodRepo := newUpdateSellerRepo(sellerID, forSaleID, productID, entity.ForSaleStatusActive)
 	svc := &ForSaleService{
 		repo:            repo,
 		productRepo:     prodRepo,
@@ -141,8 +142,9 @@ func TestUpdateSeller_UnrestrictedSeller_Allowed(t *testing.T) {
 		SellerID:  sellerID,
 		Title:     &title,
 	})
-	require.NoError(t, err)
-	assert.True(t, repo.updateCalled)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, entity.ErrLiveImmutable)
+	assert.False(t, repo.updateCalled)
 }
 
 // TestUpdateSeller_OwnershipValidation_RemainsIntact proves ownership check.
@@ -151,7 +153,7 @@ func TestUpdateSeller_OwnershipValidation_RemainsIntact(t *testing.T) {
 	ownerID := uuid.New()
 	otherID := uuid.New()
 	productID := uuid.New()
-	repo, prodRepo := newUpdateSellerRepo(ownerID, forSaleID, productID, entity.ForSaleStatusDraft)
+	repo, prodRepo := newUpdateSellerRepo(ownerID, forSaleID, productID, entity.ForSaleStatusActive)
 	svc := &ForSaleService{
 		repo:            repo,
 		productRepo:     prodRepo,
@@ -172,7 +174,7 @@ func TestUpdateSeller_RestrictionUsesSameCanonicalAuthority(t *testing.T) {
 	forSaleID := uuid.New()
 	sellerID := uuid.New()
 	productID := uuid.New()
-	repo, prodRepo := newUpdateSellerRepo(sellerID, forSaleID, productID, entity.ForSaleStatusDraft)
+	repo, prodRepo := newUpdateSellerRepo(sellerID, forSaleID, productID, entity.ForSaleStatusActive)
 	svc := &ForSaleService{
 		repo:            repo,
 		productRepo:     prodRepo,
@@ -188,12 +190,14 @@ func TestUpdateSeller_RestrictionUsesSameCanonicalAuthority(t *testing.T) {
 	assert.ErrorIs(t, err, auth.ErrCommerceRestricted)
 }
 
-// TestUpdateSeller_NilRepo_FailOpen proves fail-open when repo not wired.
+// TestUpdateSeller_NilRepo_FailOpen proves the restriction check fails open
+// when the repo is not wired — the request still lands on the canonical
+// live-immutability rejection (never a silent success).
 func TestUpdateSeller_NilRepo_FailOpen(t *testing.T) {
 	forSaleID := uuid.New()
 	sellerID := uuid.New()
 	productID := uuid.New()
-	repo, prodRepo := newUpdateSellerRepo(sellerID, forSaleID, productID, entity.ForSaleStatusDraft)
+	repo, prodRepo := newUpdateSellerRepo(sellerID, forSaleID, productID, entity.ForSaleStatusActive)
 	svc := &ForSaleService{
 		repo:        repo,
 		productRepo: prodRepo,
@@ -204,6 +208,7 @@ func TestUpdateSeller_NilRepo_FailOpen(t *testing.T) {
 		SellerID:  sellerID,
 		Title:     &title,
 	})
-	require.NoError(t, err)
-	assert.True(t, repo.updateCalled)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, entity.ErrLiveImmutable)
+	assert.False(t, repo.updateCalled)
 }

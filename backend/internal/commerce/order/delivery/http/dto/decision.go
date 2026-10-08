@@ -334,6 +334,12 @@ type OrderDetailResponse struct {
 	// Source: payments table, prioritised settlement > capture > pending > others.
 	// Nil when no payment record exists (e.g. order still awaiting initial payment intent).
 	PaymentStatus *string `json:"payment_status,omitempty"`
+	// PaymentMethodCode is the EXACT payment method bound to this order at
+	// checkout (orders.payment_method_code). When set, the order-detail retry
+	// flow MUST pay with this method — the backend rejects any other. Nil for
+	// orders created without a checkout selection (auction-claim), which select
+	// a method at first payment.
+	PaymentMethodCode *string `json:"payment_method_code,omitempty"`
 
 	// Timestamps
 	CreatedAt int64 `json:"created_at"`
@@ -771,6 +777,7 @@ func OrderToDetailResponseWithIdentity(
 		BuyerNotes:                nil, // Field not yet implemented in entity
 		PaymentID:                 paymentID,
 		PaymentStatus:             paymentRepo.CanonicalWireStatusPtr(paymentStatus),
+		PaymentMethodCode:         order.PaymentMethodCode,
 		CreatedAt:                 order.CreatedAt.Unix(),
 		UpdatedAt:                 order.UpdatedAt.Unix(),
 		CompletedAt:               completedAt,

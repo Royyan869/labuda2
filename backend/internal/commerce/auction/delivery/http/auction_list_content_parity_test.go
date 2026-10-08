@@ -99,8 +99,8 @@ func TestAuctionListResponse_CarriesCanonicalProductContentBlock(t *testing.T) {
 		t.Fatalf("media[0].url = %q, want %q (single read authority)", media[0]["url"], mediaURLs[0])
 	}
 
-	if resp["farm_address_id"] == nil {
-		t.Fatalf("farm_address_id = nil, want the Product farm address pointer")
+	if _, ok := resp["farm_address_id"]; ok {
+		t.Fatalf("LIST payload must not carry farm_address_id: %#v", resp["farm_address_id"])
 	}
 
 	// viewer_capabilities is DETAIL-ONLY by contract (both channels).

@@ -20,11 +20,8 @@ type OperabilityCheckerImpl struct {
 	auctionRepo *auctionRepo.AuctionRepository
 }
 
-// NewOperabilityCheckerImpl creates a new real operability checker. promotionRepo param kept for compat but ignored (legacy purged).
-func NewOperabilityCheckerImpl(
-	dbConn *db.DB,
-	_ interface{},
-) *OperabilityCheckerImpl {
+// NewOperabilityCheckerImpl creates a new real operability checker.
+func NewOperabilityCheckerImpl(dbConn *db.DB) *OperabilityCheckerImpl {
 	return &OperabilityCheckerImpl{
 		db:          dbConn,
 		auctionRepo: auctionRepo.NewAuctionRepository(),
@@ -243,12 +240,8 @@ func (c *OperabilityCheckerImpl) validateForSaleOwnership(
 // checkAuctionOperability checks if an auction is still promotable.
 // Auction is promotable if:
 // - Status is "scheduled" or "active" (publicly visible states)
-// Non-promotable statuses: "draft", "ended", "cancelled"
-//
-// BUSINESS TRUTH: "draft" auctions are NOT promotable because:
-// - They are not public visible
-// - They are meant for editing, not exposure
-// - Promoting a draft auction would be misleading to users
+// Non-promotable statuses: "ended", "cancelled", "lapsed", "waiting_settlement"
+// (there is no draft state — create = publish).
 func (c *OperabilityCheckerImpl) checkAuctionOperability(
 	ctx context.Context,
 	q rowQuerier,
@@ -274,8 +267,6 @@ func (c *OperabilityCheckerImpl) checkAuctionOperability(
 
 	// Check if auction is still promotable
 	switch status {
-	case auctionEntity.StatusDraft:
-		return false, "auction_draft_not_promotable", nil
 	case auctionEntity.StatusEnded:
 		return false, "auction_ended", nil
 	case auctionEntity.StatusCancelled:
@@ -565,7 +556,6 @@ func (c *OperabilityCheckerImpl) validateAuctionOwnership(
 //	  auction_cancelled         — auction cancelled
 //	  auction_deleted           — auction deleted
 //	  auction_moderated         — auction moderated (auctions don't restore)
-//	  auction_draft_not_promotable — auction in draft
 //	  auction_unavailable       — catch-all
 //	  user_removed              — user deleted
 //	  user_account_inactive     — user suspended
@@ -579,38 +569,6 @@ func IsReversibleReason(reason string) bool {
 	default:
 		return false
 	}
-}
-
-// Legacy sweep for promotion_instances purged — canonical is promotion_contracts queue.
-// Stub to keep OperabilityRecommendationSource interface satisfied without legacy table access.
-func (c *OperabilityCheckerImpl) SweepInactivePromotions(ctx context.Context, limit int) ([]OperabilityRecommendation, error) {
-	return nil, nil
-}
-func (c *OperabilityCheckerImpl) SweepPausedPromotions(ctx context.Context, limit int) ([]OperabilityRecommendation, error) {
-	return nil, nil
-}
-
-type operabilityEvaluation struct {
-	operable   bool
-	reversible bool
-	reason     string
-}
-func (c *OperabilityCheckerImpl) evaluateCandidate(ctx context.Context, cand sweepCandidate) (operabilityEvaluation, error) {
-	operable, reason, err := c.CheckOperability(ctx, cand.TargetType, cand.TargetID)
-	if err != nil {
-		return operabilityEvaluation{}, err
-	}
-	if operable {
-		return operabilityEvaluation{operable: true, reason: reason}, nil
-	}
-	return operabilityEvaluation{operable: false, reversible: IsReversibleReason(reason), reason: reason}, nil
-}
-type sweepCandidate struct {
-	ID          uuid.UUID
-	OwnershipID uuid.UUID
-	UserID      uuid.UUID
-	TargetType  entity.TargetType
-	TargetID    *uuid.UUID
 }
 
 // mapReasonToStopReason maps an operability check reason to a canonical StopReason.

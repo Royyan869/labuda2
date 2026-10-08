@@ -145,6 +145,9 @@ con
 # Screenshots & images (optional - comment out if you want to include)
 *.PNG
 !apps/mobile/assets/images/app_logo.png
+# Canonical local payment-method brand assets (owner-locked, official Midtrans
+# logo repository; see apps/mobile/lib/shared/payment/payment_method_visuals.dart)
+!apps/mobile/assets/icons/payment/*.png
 *.jpeg
 *.jpg
 !assets/**/*.png

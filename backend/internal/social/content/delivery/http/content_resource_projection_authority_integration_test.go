@@ -188,7 +188,7 @@ func TestContentResourceProjectionAuthority_GetContentMatrix(t *testing.T) {
 	t.Run("fixed price sale live payload carries public lifecycle vocabulary only", func(t *testing.T) {
 		// CANONICAL: the projection wire only ever carries
 		// ForSaleStatus.PublicLifecycle() — {active, sold, unavailable}. The raw
-		// internal enum (draft/withdrawn) must never cross the content wire, and
+		// internal enum (withdrawn/…) must never cross the content wire, and
 		// a withdrawn-but-public listing stays LIVE exactly like chat shows it.
 		viewerID := seedVisibilityHTTPUser(t, ctx, appDB, "active")
 		sellerID := seedVisibilityHTTPUser(t, ctx, appDB, "active")
@@ -461,18 +461,19 @@ func createCanonicalContentWithOccurrence(
 	t.Helper()
 
 	var contentID uuid.UUID
-	require.NoError(t, tdb.WithTx(ctx, func(tx db.Tx) error {			content, err := handler.contentService.CreateContentWithResourceOccurrence(
-				ctx,
-				tx,
-				authorID,
-				caption,
-				contententity.VisibilityPublic,
-				nil,
-				nil,
-				occurrence,
-				nil,
-				nil,
-			)
+	require.NoError(t, tdb.WithTx(ctx, func(tx db.Tx) error {
+		content, err := handler.contentService.CreateContentWithResourceOccurrence(
+			ctx,
+			tx,
+			authorID,
+			caption,
+			contententity.VisibilityPublic,
+			nil,
+			nil,
+			occurrence,
+			nil,
+			nil,
+		)
 		if err != nil {
 			return err
 		}
@@ -744,7 +745,6 @@ func assertNoLegacyLeak(t *testing.T, data map[string]any, legacyTitle, legacyUR
 		t.Fatalf("response leaked legacy URL %q", legacyURL)
 	}
 }
-
 
 type viewerContext struct {
 	userID uuid.UUID

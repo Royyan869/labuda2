@@ -40,24 +40,6 @@ class _RecordingNavigationHandler extends Fake implements NavigationHandler {
 
 class _FakeAnalyticsRepository implements IAnalyticsRepository {
   @override
-  Future<Result<void>> flush() async => Result.error('unused');
-
-  @override
-  Future<Result<AnalyticsCircumventionStats>> getCircumventionStats({
-    required DateTime startDate,
-    required DateTime endDate,
-    String? userId,
-    String? violationType,
-  }) async => Result.error('unused');
-
-  @override
-  Future<Result<void>> logCircumventionAttempt(
-    String content,
-    String userId, {
-    Map<String, dynamic>? extra,
-  }) async => Result.error('unused');
-
-  @override
   Future<Result<void>> logEvent(
     String eventName, {
     Map<String, dynamic>? parameters,
@@ -65,24 +47,9 @@ class _FakeAnalyticsRepository implements IAnalyticsRepository {
   }) async => Result.error('unused');
 
   @override
-  Future<Result<void>> logUserAction(
-    String action,
-    String userId, {
-    Map<String, dynamic>? extra,
-  }) async => Result.error('unused');
-
-  @override
-  Future<Result<void>> setUserProperties(
-    Map<String, dynamic> properties,
-  ) async => Result.error('unused');
-
-  @override
-  Future<Result<void>> trackEngagement({
-    required String userId,
-    required String contentId,
-    required String contentType,
-    required String engagementType,
-    int? duration,
+  Future<Result<void>> logScreenView({
+    required String screenName,
+    String? screenClass,
   }) async => Result.error('unused');
 }
 
@@ -128,10 +95,7 @@ class _FakeAddressNotifier extends AddressNotifier {
   }
 
   @override
-  Future<void> loadAddressesByTag(
-    String userId,
-    AddressTag tag,
-  ) async {}
+  Future<void> loadAddresses(String userId) async {}
 }
 
 class _FakeChatList extends ChatList {
@@ -187,7 +151,6 @@ AddressEntity _shippingAddress() {
   return AddressEntity(
     id: 'address-1',
     userId: 'buyer-1',
-    tags: const [AddressTag.shipping],
     recipientName: 'Buyer',
     phone: '08123456789',
     province: const Province(id: 'province-1', name: 'Jawa Barat'),

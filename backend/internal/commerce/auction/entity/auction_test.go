@@ -15,13 +15,13 @@ import (
 
 // TestAuctionOrderID verifies OrderID field behavior.
 func TestAuctionOrderID(t *testing.T) {
-	t.Run("NewDraft has nil OrderID", func(t *testing.T) {
-		auction := createTestDraftAuction()
+	t.Run("NewScheduled has nil OrderID", func(t *testing.T) {
+		auction := createTestAuction()
 		assert.Nil(t, auction.OrderID, "New auction should have nil OrderID")
 	})
 
 	t.Run("Can set OrderID when settling", func(t *testing.T) {
-		auction := createTestDraftAuction()
+		auction := createTestAuction()
 		auction.Status = StatusActive
 
 		orderID := uuid.New()
@@ -36,7 +36,7 @@ func TestAuctionOrderID(t *testing.T) {
 // This is an entity-level test - the service layer enforces this.
 func TestDoubleSettlementPrevention(t *testing.T) {
 	t.Run("Auction with OrderID is marked as settled", func(t *testing.T) {
-		auction := createTestDraftAuction()
+		auction := createTestAuction()
 		auction.Status = StatusActive
 
 		// Initially not settled
@@ -56,8 +56,9 @@ func TestDoubleSettlementPrevention(t *testing.T) {
 // EXISTING TESTS
 // ============================================================================
 
-// TestNewDraft verifies that a new draft auction is created correctly.
-func TestNewDraft(t *testing.T) {
+// TestNewScheduled verifies that a new auction is created directly in its
+// initial market state (scheduled — create = publish, no draft stage).
+func TestNewScheduled(t *testing.T) {
 	sellerID := uuid.New()
 	productID := uuid.New()
 	startPrice := int64(10000)
@@ -66,7 +67,7 @@ func TestNewDraft(t *testing.T) {
 	startAt := time.Now().Add(1 * time.Hour)
 	endAt := time.Now().Add(25 * time.Hour)
 
-	auction := NewDraft(
+	auction := NewScheduled(
 		sellerID,
 		productID,
 		startPrice,
@@ -85,22 +86,15 @@ func TestNewDraft(t *testing.T) {
 	assert.Equal(t, endAt, auction.EndAt)
 	assert.Nil(t, auction.CurrentBid)
 	assert.Nil(t, auction.CurrentWinnerID)
-	assert.Equal(t, StatusDraft, auction.Status)
+	assert.Equal(t, StatusScheduled, auction.Status)
 	assert.False(t, auction.CreatedAt.IsZero())
 	assert.False(t, auction.UpdatedAt.IsZero())
 }
 
 // TestAuctionStateTransitions verifies valid state transitions.
 func TestAuctionStateTransitions(t *testing.T) {
-	t.Run("Draft to Scheduled", func(t *testing.T) {
-		auction := createTestDraftAuction()
-		err := auction.Schedule()
-		assert.NoError(t, err)
-		assert.Equal(t, StatusScheduled, auction.Status)
-	})
-
 	t.Run("Scheduled to Active", func(t *testing.T) {
-		auction := createTestDraftAuction()
+		auction := createTestAuction()
 		auction.Status = StatusScheduled
 		err := auction.Activate()
 		assert.NoError(t, err)
@@ -108,48 +102,29 @@ func TestAuctionStateTransitions(t *testing.T) {
 	})
 
 	t.Run("Active to Ended", func(t *testing.T) {
-		auction := createTestDraftAuction()
+		auction := createTestAuction()
 		auction.Status = StatusActive
 		err := auction.End()
 		assert.NoError(t, err)
 		assert.Equal(t, StatusEnded, auction.Status)
 	})
 
-	t.Run("Draft to Cancelled", func(t *testing.T) {
-		auction := createTestDraftAuction()
-		err := auction.Cancel()
-		assert.NoError(t, err)
-		assert.Equal(t, StatusCancelled, auction.Status)
-	})
-
 	t.Run("Scheduled to Cancelled", func(t *testing.T) {
-		auction := createTestDraftAuction()
+		auction := createTestAuction()
 		auction.Status = StatusScheduled
 		err := auction.Cancel()
 		assert.NoError(t, err)
 		assert.Equal(t, StatusCancelled, auction.Status)
-	})
-
-	t.Run("Scheduled back to Draft", func(t *testing.T) {
-		auction := createTestDraftAuction()
-		auction.Status = StatusScheduled
-		err := auction.UpdateDraft(10000, 1000, nil, auction.StartAt, auction.EndAt)
-		// Should fail - cannot revert to draft via UpdateDraft
-		assert.Error(t, err)
 	})
 }
 
 // TestInvalidStateTransitions verifies that invalid transitions fail.
 func TestInvalidStateTransitions(t *testing.T) {
 	t.Run("Ended cannot transition", func(t *testing.T) {
-		auction := createTestDraftAuction()
+		auction := createTestAuction()
 		auction.Status = StatusEnded
 
-		err := auction.Schedule()
-		assert.Error(t, err)
-		assert.IsType(t, &InvalidTransitionError{}, err)
-
-		err = auction.Activate()
+		err := auction.Activate()
 		assert.Error(t, err)
 
 		err = auction.End()
@@ -160,13 +135,10 @@ func TestInvalidStateTransitions(t *testing.T) {
 	})
 
 	t.Run("Cancelled cannot transition", func(t *testing.T) {
-		auction := createTestDraftAuction()
+		auction := createTestAuction()
 		auction.Status = StatusCancelled
 
-		err := auction.Schedule()
-		assert.Error(t, err)
-
-		err = auction.Activate()
+		err := auction.Activate()
 		assert.Error(t, err)
 
 		err = auction.End()
@@ -175,21 +147,13 @@ func TestInvalidStateTransitions(t *testing.T) {
 		err = auction.Cancel()
 		assert.Error(t, err)
 	})
-
-	t.Run("Active cannot go back to Scheduled", func(t *testing.T) {
-		auction := createTestDraftAuction()
-		auction.Status = StatusActive
-		auction.Status = StatusScheduled // Direct assignment to test validation
-		err := auction.Schedule()
-		assert.Error(t, err)
-	})
 }
 
 // TestPlaceBid verifies bid placement rules.
 func TestPlaceBid(t *testing.T) {
 	t.Run("Cannot bid on non-active auction", func(t *testing.T) {
-		auction := createTestDraftAuction()
-		auction.Status = StatusDraft
+		auction := createTestAuction()
+		auction.Status = StatusScheduled
 
 		bidderID := uuid.New()
 		err := auction.PlaceBid(bidderID, 15000, time.Now())
@@ -198,7 +162,7 @@ func TestPlaceBid(t *testing.T) {
 	})
 
 	t.Run("Cannot bid after end time", func(t *testing.T) {
-		auction := createTestDraftAuction()
+		auction := createTestAuction()
 		auction.Status = StatusActive
 		auction.EndAt = time.Now().Add(-1 * time.Hour) // Ended in the past
 
@@ -209,7 +173,7 @@ func TestPlaceBid(t *testing.T) {
 	})
 
 	t.Run("Cannot bid on own auction", func(t *testing.T) {
-		auction := createTestDraftAuction()
+		auction := createTestAuction()
 		auction.Status = StatusActive
 		auction.EndAt = time.Now().Add(1 * time.Hour)
 
@@ -219,7 +183,7 @@ func TestPlaceBid(t *testing.T) {
 	})
 
 	t.Run("Bid below minimum fails", func(t *testing.T) {
-		auction := createTestDraftAuction()
+		auction := createTestAuction()
 		auction.Status = StatusActive
 		auction.EndAt = time.Now().Add(1 * time.Hour)
 		auction.StartPrice = 10000
@@ -231,7 +195,7 @@ func TestPlaceBid(t *testing.T) {
 	})
 
 	t.Run("First bid at start price succeeds", func(t *testing.T) {
-		auction := createTestDraftAuction()
+		auction := createTestAuction()
 		auction.Status = StatusActive
 		auction.EndAt = time.Now().Add(1 * time.Hour)
 		auction.StartPrice = 10000
@@ -244,7 +208,7 @@ func TestPlaceBid(t *testing.T) {
 	})
 
 	t.Run("Subsequent bid must be minimum increment", func(t *testing.T) {
-		auction := createTestDraftAuction()
+		auction := createTestAuction()
 		auction.Status = StatusActive
 		auction.EndAt = time.Now().Add(1 * time.Hour)
 		auction.StartPrice = 10000
@@ -272,7 +236,7 @@ func TestPlaceBid(t *testing.T) {
 // TestMinimumBid verifies minimum bid calculation.
 func TestMinimumBid(t *testing.T) {
 	t.Run("No current bid: minimum is start price", func(t *testing.T) {
-		auction := createTestDraftAuction()
+		auction := createTestAuction()
 		auction.StartPrice = 10000
 		auction.CurrentBid = nil
 
@@ -281,7 +245,7 @@ func TestMinimumBid(t *testing.T) {
 	})
 
 	t.Run("With current bid: minimum is current + increment", func(t *testing.T) {
-		auction := createTestDraftAuction()
+		auction := createTestAuction()
 		auction.StartPrice = 10000
 		auction.BidIncrement = 1000
 		currentBid := int64(15000)
@@ -294,27 +258,21 @@ func TestMinimumBid(t *testing.T) {
 
 // TestCanCancel verifies cancellation rules.
 func TestCanCancel(t *testing.T) {
-	t.Run("Draft can be cancelled", func(t *testing.T) {
-		auction := createTestDraftAuction()
-		auction.Status = StatusDraft
-		assert.True(t, auction.CanCancel())
-	})
-
 	t.Run("Scheduled can be cancelled", func(t *testing.T) {
-		auction := createTestDraftAuction()
+		auction := createTestAuction()
 		auction.Status = StatusScheduled
 		assert.True(t, auction.CanCancel())
 	})
 
 	t.Run("Active without bids can be cancelled", func(t *testing.T) {
-		auction := createTestDraftAuction()
+		auction := createTestAuction()
 		auction.Status = StatusActive
 		auction.CurrentBid = nil
 		assert.True(t, auction.CanCancel())
 	})
 
 	t.Run("Active with bids cannot be cancelled", func(t *testing.T) {
-		auction := createTestDraftAuction()
+		auction := createTestAuction()
 		auction.Status = StatusActive
 		bid := int64(10000)
 		auction.CurrentBid = &bid
@@ -322,60 +280,22 @@ func TestCanCancel(t *testing.T) {
 	})
 
 	t.Run("Ended cannot be cancelled", func(t *testing.T) {
-		auction := createTestDraftAuction()
+		auction := createTestAuction()
 		auction.Status = StatusEnded
 		assert.False(t, auction.CanCancel())
 	})
 
 	t.Run("Cancelled cannot be cancelled again", func(t *testing.T) {
-		auction := createTestDraftAuction()
+		auction := createTestAuction()
 		auction.Status = StatusCancelled
 		assert.False(t, auction.CanCancel())
-	})
-}
-
-// TestUpdateDraft verifies draft update rules.
-func TestUpdateDraft(t *testing.T) {
-	t.Run("Can update draft auction", func(t *testing.T) {
-		auction := createTestDraftAuction()
-		newStartAt := time.Now().Add(2 * time.Hour)
-		newEndAt := time.Now().Add(26 * time.Hour)
-
-		err := auction.UpdateDraft(
-			20000,
-			2000,
-			nil,
-			newStartAt,
-			newEndAt,
-		)
-
-		assert.NoError(t, err)
-		assert.Equal(t, int64(20000), auction.StartPrice)
-		assert.Equal(t, int64(2000), auction.BidIncrement)
-		assert.Nil(t, auction.BuyNowPrice)
-	})
-
-	t.Run("Cannot update non-draft auction", func(t *testing.T) {
-		auction := createTestDraftAuction()
-		auction.Status = StatusScheduled
-
-		err := auction.UpdateDraft(
-			20000,
-			2000,
-			nil,
-			auction.StartAt,
-			auction.EndAt,
-		)
-
-		assert.Error(t, err)
-		assert.IsType(t, &InvalidOperationError{}, err)
 	})
 }
 
 // TestUpdateScheduled verifies scheduled update rules.
 func TestUpdateScheduled(t *testing.T) {
 	t.Run("Can update scheduled auction", func(t *testing.T) {
-		auction := createTestDraftAuction()
+		auction := createTestAuction()
 		auction.Status = StatusScheduled
 
 		newStartAt := time.Now().Add(2 * time.Hour)
@@ -394,8 +314,8 @@ func TestUpdateScheduled(t *testing.T) {
 	})
 
 	t.Run("Cannot update non-scheduled auction", func(t *testing.T) {
-		auction := createTestDraftAuction()
-		// Keep it as draft
+		auction := createTestAuction()
+		auction.Status = StatusActive // active is not editable
 
 		err := auction.UpdateScheduled(
 			auction.StartAt,
@@ -410,14 +330,14 @@ func TestUpdateScheduled(t *testing.T) {
 // TestHasWinner verifies winner detection.
 func TestHasWinner(t *testing.T) {
 	t.Run("No bids: no winner", func(t *testing.T) {
-		auction := createTestDraftAuction()
+		auction := createTestAuction()
 		assert.False(t, auction.HasWinner())
 		assert.Nil(t, auction.WinnerID())
 		assert.Nil(t, auction.WinningBid())
 	})
 
 	t.Run("With bid: has winner", func(t *testing.T) {
-		auction := createTestDraftAuction()
+		auction := createTestAuction()
 		bidderID := uuid.New()
 		bidAmount := int64(15000)
 		auction.CurrentBid = &bidAmount
@@ -429,15 +349,16 @@ func TestHasWinner(t *testing.T) {
 	})
 }
 
-// createTestDraftAuction creates a test draft auction.
-func createTestDraftAuction() *Auction {
+// createTestAuction creates a test auction in its initial market state
+// (scheduled — create = publish).
+func createTestAuction() *Auction {
 	sellerID := uuid.New()
 	listingID := uuid.New()
 	startAt := time.Now().Add(1 * time.Hour)
 	endAt := time.Now().Add(25 * time.Hour)
 	buyNowPrice := int64(50000)
 
-	return NewDraft(
+	return NewScheduled(
 		sellerID,
 		listingID,
 		10000,
@@ -447,6 +368,3 @@ func createTestDraftAuction() *Auction {
 		endAt,
 	)
 }
-
-
-

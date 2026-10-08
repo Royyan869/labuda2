@@ -1,8 +1,5 @@
 /// Domain state untuk Home feature
 /// Bebas dari implementation details
-///
-/// Catatan: TabSwitchState ada di application layer karena
-/// itu adalah state aplikasi untuk navigation, bukan domain entity
 class HomeState {
   final List<String> feedItemIds;
   final bool isLoading;

@@ -90,6 +90,11 @@ class NegotiationResponseDto {
   final String? orderId;
   final bool isExpired;
 
+  /// Canonical Commerce-provided actionability projection for the requesting
+  /// viewer (`viewer_can_act`). The conversation renders this verbatim and must
+  /// never reconstruct turn from proposal_sequence parity.
+  final bool viewerCanAct;
+
   NegotiationResponseDto({
     required this.id,
     required this.resourceType,
@@ -100,6 +105,7 @@ class NegotiationResponseDto {
     required this.proposalSequence,
     required this.createdAt,
     required this.updatedAt,
+    required this.viewerCanAct,
     this.forSaleId,
     this.chatRoomId,
     this.currentPrice,
@@ -138,6 +144,9 @@ class NegotiationResponseDto {
           : null,
       orderId: json['order_id'] as String?,
       isExpired: json['is_expired'] as bool? ?? false,
+      // Canonical Commerce projection — required on the wire (fail loudly if
+      // the backend ever stops emitting it, rather than silently guessing).
+      viewerCanAct: json['viewer_can_act'] as bool,
     );
   }
 }

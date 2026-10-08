@@ -14,26 +14,21 @@ import (
 
 func createAddressForGeo(t *testing.T, h *contractHarness, userID uuid.UUID, cityID, provinceID, cityName string) {
 	_, err := h.tdb.Pool().Exec(context.Background(), `
-		INSERT INTO addresses (id, user_id, purpose, nickname, recipient_name, phone, province_id, province_name, city_id, city_name, district_id, district_name, village_id, village_name, street_address, postal_code, is_primary, is_available_for_checkout)
-		VALUES ($1,$2,'shipping','Home','Test User','081234567890',$3,$4,$5,$6,'dist1','District','vill1','Village','Jl Test', '12345', true, true)
+		INSERT INTO addresses (id, user_id, nickname, recipient_name, phone, province_id, province_name, city_id, city_name, district_id, district_name, village_id, village_name, street_address, postal_code, is_primary, is_available_for_checkout)
+		VALUES ($1,$2,'Home','Test User','081234567890',$3,$4,$5,$6,'dist1','District','vill1','Village','Jl Test', '12345', true, true)
 		ON CONFLICT (id) DO NOTHING
 	`, uuid.New(), userID, provinceID, "Prov"+provinceID, cityID, cityName)
 	require.NoError(t, err)
 }
 
+// seedCanonicalGeographies stands on the canonical Geography Master seeded by
+// the test bootstrap. The retired per-test city fixture is gone — the master
+// is the single authority and already holds the full Indonesian hierarchy.
 func seedCanonicalGeographies(t *testing.T, h *contractHarness) {
-	_, err := h.tdb.Pool().Exec(context.Background(), `
-		INSERT INTO canonical_geographies (city_id, city_name, province_id, province_name) VALUES
-		    ('3204', 'Kabupaten Bandung', '32', 'Jawa Barat'),
-		    ('3171', 'Kota Jakarta Selatan', '31', 'DKI Jakarta'),
-		    ('3172', 'Kota Jakarta Timur', '31', 'DKI Jakarta'),
-		    ('3173', 'Kota Jakarta Pusat', '31', 'DKI Jakarta'),
-		    ('5103', 'Kabupaten Gianyar', '51', 'Bali'),
-		    ('3501', 'Kabupaten Pacitan', '35', 'Jawa Timur'),
-		    ('3502', 'Kabupaten Ponorogo', '35', 'Jawa Timur')
-		ON CONFLICT (city_id) DO NOTHING
-	`)
-	require.NoError(t, err)
+	t.Helper()
+	var n int
+	require.NoError(t, h.tdb.Pool().QueryRow(context.Background(), `SELECT COUNT(*) FROM canonical_geographies`).Scan(&n))
+	require.Greater(t, n, 0, "canonical Geography Master must be seeded by the test bootstrap")
 }
 
 func TestGeography_Nationwide_And_SingleCity(t *testing.T) {
@@ -43,7 +38,7 @@ func TestGeography_Nationwide_And_SingleCity(t *testing.T) {
 	seller := h.newSeller(t, 100_000)
 
 	// Nationwide: empty city_ids => 0 rows
-	cNationwide, err := h.svc.Create(context.Background(), application.CreatePromotionInput{SellerID: seller, Kind: entity.KindInternal, BudgetRupiah: 30_000, DurationDays: 3, CityIDs: []string{}})
+	cNationwide, err := h.svc.Create(context.Background(), application.CreatePromotionInput{SellerID: seller, Kind: entity.KindInternal, Targets: []application.PromotionTargetInput{{TargetType: "for_sale", TargetID: uuid.New()}}, BudgetRupiah: 30_000, DurationDays: 3, CityIDs: []string{}})
 	require.NoError(t, err)
 	var cnt int
 	require.NoError(t, h.tdb.Pool().QueryRow(context.Background(), `SELECT COUNT(*) FROM promotion_contract_geographies WHERE contract_id=$1`, cNationwide.ID).Scan(&cnt))
@@ -51,7 +46,7 @@ func TestGeography_Nationwide_And_SingleCity(t *testing.T) {
 
 	// Need new seller for second contract because slot occupied (1 internal per seller)
 	seller2 := h.newSeller(t, 100_000)
-	cSingle, err := h.svc.Create(context.Background(), application.CreatePromotionInput{SellerID: seller2, Kind: entity.KindInternal, BudgetRupiah: 30_000, DurationDays: 3, CityIDs: []string{"3171"}})
+	cSingle, err := h.svc.Create(context.Background(), application.CreatePromotionInput{SellerID: seller2, Kind: entity.KindInternal, Targets: []application.PromotionTargetInput{{TargetType: "for_sale", TargetID: uuid.New()}}, BudgetRupiah: 30_000, DurationDays: 3, CityIDs: []string{"3171"}})
 	require.NoError(t, err)
 	require.NoError(t, h.tdb.Pool().QueryRow(context.Background(), `SELECT COUNT(*) FROM promotion_contract_geographies WHERE contract_id=$1`, cSingle.ID).Scan(&cnt))
 	require.Equal(t, 1, cnt)
@@ -66,7 +61,7 @@ func TestGeography_DuplicateDedup(t *testing.T) {
 	h.seedConfig(t, 7500, 10_000)
 	seedCanonicalGeographies(t, h)
 	seller := h.newSeller(t, 100_000)
-	c, err := h.svc.Create(context.Background(), application.CreatePromotionInput{SellerID: seller, Kind: entity.KindInternal, BudgetRupiah: 30_000, DurationDays: 3, CityIDs: []string{"3171", "3171", "3171", "3204", "3204"}})
+	c, err := h.svc.Create(context.Background(), application.CreatePromotionInput{SellerID: seller, Kind: entity.KindInternal, Targets: []application.PromotionTargetInput{{TargetType: "for_sale", TargetID: uuid.New()}}, BudgetRupiah: 30_000, DurationDays: 3, CityIDs: []string{"3171", "3171", "3171", "3204", "3204"}})
 	require.NoError(t, err)
 	var cnt int
 	require.NoError(t, h.tdb.Pool().QueryRow(context.Background(), `SELECT COUNT(*) FROM promotion_contract_geographies WHERE contract_id=$1`, c.ID).Scan(&cnt))
@@ -78,7 +73,7 @@ func TestGeography_MultiCity(t *testing.T) {
 	h.seedConfig(t, 7500, 10_000)
 	seedCanonicalGeographies(t, h)
 	seller := h.newSeller(t, 100_000)
-	c, err := h.svc.Create(context.Background(), application.CreatePromotionInput{SellerID: seller, Kind: entity.KindInternal, BudgetRupiah: 30_000, DurationDays: 3, CityIDs: []string{"3204", "3171", "5103"}})
+	c, err := h.svc.Create(context.Background(), application.CreatePromotionInput{SellerID: seller, Kind: entity.KindInternal, Targets: []application.PromotionTargetInput{{TargetType: "for_sale", TargetID: uuid.New()}}, BudgetRupiah: 30_000, DurationDays: 3, CityIDs: []string{"3204", "3171", "5103"}})
 	require.NoError(t, err)
 	var cnt int
 	require.NoError(t, h.tdb.Pool().QueryRow(context.Background(), `SELECT COUNT(*) FROM promotion_contract_geographies WHERE contract_id=$1`, c.ID).Scan(&cnt))
@@ -101,7 +96,7 @@ func TestGeography_Atomicity_NoPartialOnFailure(t *testing.T) {
 	h.seedConfig(t, 7500, 10_000)
 	seedCanonicalGeographies(t, h)
 	seller := h.newSeller(t, 5_000) // insufficient balance
-	_, err := h.svc.Create(context.Background(), application.CreatePromotionInput{SellerID: seller, Kind: entity.KindInternal, BudgetRupiah: 30_000, DurationDays: 3, CityIDs: []string{"3171", "3204"}})
+	_, err := h.svc.Create(context.Background(), application.CreatePromotionInput{SellerID: seller, Kind: entity.KindInternal, Targets: []application.PromotionTargetInput{{TargetType: "for_sale", TargetID: uuid.New()}}, BudgetRupiah: 30_000, DurationDays: 3, CityIDs: []string{"3171", "3204"}})
 	require.Error(t, err)
 	// no contract
 	require.Equal(t, 0, h.countContracts(t, seller, entity.KindInternal))
@@ -117,7 +112,7 @@ func TestGeography_InvalidCity_Rejected(t *testing.T) {
 	seedCanonicalGeographies(t, h)
 	seller := h.newSeller(t, 100_000)
 	for _, invalid := range []string{"9999", "abc", "foobar", "123456789"} {
-		_, err := h.svc.Create(context.Background(), application.CreatePromotionInput{SellerID: seller, Kind: entity.KindInternal, BudgetRupiah: 30_000, DurationDays: 3, CityIDs: []string{invalid}})
+		_, err := h.svc.Create(context.Background(), application.CreatePromotionInput{SellerID: seller, Kind: entity.KindInternal, Targets: []application.PromotionTargetInput{{TargetType: "for_sale", TargetID: uuid.New()}}, BudgetRupiah: 30_000, DurationDays: 3, CityIDs: []string{invalid}})
 		require.Error(t, err, "invalid city %s should be rejected", invalid)
 		require.Contains(t, err.Error(), "not in canonical geography vocabulary")
 		// ensure no partial contract
@@ -136,13 +131,15 @@ func TestGeography_ValidCityAbsentFromAddresses_StillSucceeds(t *testing.T) {
 	var addrCnt int
 	require.NoError(t, h.tdb.Pool().QueryRow(context.Background(), `SELECT COUNT(*) FROM addresses WHERE city_id='5103'`).Scan(&addrCnt))
 	require.Equal(t, 0, addrCnt, "no address uses 5103 yet")
-	c, err := h.svc.Create(context.Background(), application.CreatePromotionInput{SellerID: seller, Kind: entity.KindInternal, BudgetRupiah: 30_000, DurationDays: 3, CityIDs: []string{"5103"}})
+	c, err := h.svc.Create(context.Background(), application.CreatePromotionInput{SellerID: seller, Kind: entity.KindInternal, Targets: []application.PromotionTargetInput{{TargetType: "for_sale", TargetID: uuid.New()}}, BudgetRupiah: 30_000, DurationDays: 3, CityIDs: []string{"5103"}})
 	require.NoError(t, err)
 	var cnt int
 	require.NoError(t, h.tdb.Pool().QueryRow(context.Background(), `SELECT COUNT(*) FROM promotion_contract_geographies WHERE contract_id=$1 AND city_id='5103'`, c.ID).Scan(&cnt))
 	require.Equal(t, 1, cnt)
 	var cityName, provinceID string
 	require.NoError(t, h.tdb.Pool().QueryRow(context.Background(), `SELECT city_name, province_id FROM promotion_contract_geographies WHERE contract_id=$1`, c.ID).Scan(&cityName, &provinceID))
-	require.Equal(t, "Kabupaten Gianyar", cityName)
+	// Authoritative master: 5103 = Kabupaten Badung (Bali). The retired 7-city
+	// fixture had mislabeled 5103 as Gianyar; the canonical dataset is correct.
+	require.Equal(t, "Kabupaten Badung", cityName)
 	require.Equal(t, "51", provinceID)
 }

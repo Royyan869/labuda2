@@ -19,8 +19,6 @@ import (
 )
 
 var (
-	// ErrNoActiveConfig is returned when no active subscription config exists.
-	ErrNoActiveConfig = errors.New("no active subscription configuration found")
 	// ErrMissingSettlementTimestamp is returned when a settled payment lacks PaidAt.
 	ErrMissingSettlementTimestamp = errors.New("settled payment is missing settlement timestamp")
 )
@@ -34,11 +32,6 @@ type OutboxRepository interface {
 		entityID uuid.UUID,
 		payload []byte,
 	) error
-}
-
-// ConfigRepository defines the interface for subscription config operations.
-type ConfigRepository interface {
-	GetActiveConfig(ctx context.Context, tx db.Tx) (*subscriptionEntity.SellerSubscriptionConfig, error)
 }
 
 // PaymentRepository defines the payment lookups required by the subscription
@@ -76,7 +69,6 @@ type SellerSubscriptionPaymentService struct {
 	onboardingService *SellerOnboardingService
 	financeService    *financeApp.FinanceService
 	outboxRepo        OutboxRepository
-	configRepo        ConfigRepository
 }
 
 // NewSellerSubscriptionPaymentService creates a new SellerSubscriptionPaymentService.
@@ -89,7 +81,6 @@ func NewSellerSubscriptionPaymentService(
 	onboardingService *SellerOnboardingService,
 	financeService *financeApp.FinanceService,
 	outboxRepo OutboxRepository,
-	configRepo ConfigRepository,
 ) *SellerSubscriptionPaymentService {
 	return &SellerSubscriptionPaymentService{
 		db:                transactor,
@@ -100,7 +91,6 @@ func NewSellerSubscriptionPaymentService(
 		onboardingService: onboardingService,
 		financeService:    financeService,
 		outboxRepo:        outboxRepo,
-		configRepo:        configRepo,
 	}
 }
 
@@ -208,18 +198,18 @@ func (s *SellerSubscriptionPaymentService) ProcessSuccessfulPaymentTx(
 	activationAt := *payment.PaidAt
 	now := time.Now()
 
-	// Step 6: Get active config for pricing snapshot (yearly fee only)
-	config, err := s.configRepo.GetActiveConfig(ctx, tx)
-	if err != nil {
-		return fmt.Errorf("get active config failed: %w", err)
+	// Step 6: Read the purchased entitlement length from the payment snapshot.
+	// OWNER DECISION: duration is snapshotted at initiation; a later config
+	// change must not alter an already-purchased subscription. Fail closed if
+	// the canonical snapshot is missing.
+	if payment.SubscriptionDurationDays == nil || *payment.SubscriptionDurationDays <= 0 {
+		return fmt.Errorf("subscription payment %s is missing the duration snapshot", paymentID)
 	}
-	if config == nil {
-		return ErrNoActiveConfig
-	}
+	durationDays := *payment.SubscriptionDurationDays
 
 	// Step 7: Compute the new entitlement interval from the current chain end.
 	var newStartedAt, newExpiresAt time.Time
-	duration := time.Duration(config.DurationDays) * 24 * time.Hour
+	duration := time.Duration(durationDays) * 24 * time.Hour
 
 	chainEnd, err := s.subRepo.GetLatestByUserIDForUpdate(ctx, tx, userID)
 	if err != nil {
@@ -258,7 +248,7 @@ func (s *SellerSubscriptionPaymentService) ProcessSuccessfulPaymentTx(
 		Status:       subscriptionEntity.StatusActive,
 		StartedAt:    newStartedAt,
 		ExpiresAt:    newExpiresAt,
-		DurationDays: config.DurationDays,
+		DurationDays: durationDays,
 		AmountPaid:   money.New(principal),
 		Currency:     "IDR",
 		PaymentID:    paymentID,

@@ -45,7 +45,10 @@ class NotificationItemWidget extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p12),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppMetrics.p16,
+            vertical: AppMetrics.p12,
+          ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -54,7 +57,8 @@ class NotificationItemWidget extends StatelessWidget {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: _mapColor(context, 
+                  color: _mapColor(
+                    context,
                     displayMetadata.color,
                     theme.colorScheme,
                   ).withValues(alpha: 0.15),
@@ -62,8 +66,12 @@ class NotificationItemWidget extends StatelessWidget {
                 ),
                 child: Icon(
                   _mapIcon(displayMetadata.icon),
-                  color: _mapColor(context, displayMetadata.color, theme.colorScheme),
-                  size: 24,
+                  color: _mapColor(
+                    context,
+                    displayMetadata.color,
+                    theme.colorScheme,
+                  ),
+                  size: AppIconSize.header,
                 ),
               ),
               const SizedBox(width: 12),
@@ -129,60 +137,94 @@ class NotificationItemWidget extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(width: 4),
-                        Text(
-                          notification.timeAgo,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            fontWeight: FontWeight.w500,
-                            color: theme.colorScheme.onSurface.withValues(
-                              alpha: 0.6,
+                        // Dynamic metadata receives the remaining width. It hugs
+                        // when short and truncates to one line when the row is
+                        // constrained, so a long relative timestamp can never
+                        // overflow. Flexible (not Expanded) keeps the clock icon
+                        // and the status badge intrinsic and ADJACENT — the
+                        // badge must stay visible and must not be pushed away.
+                        Flexible(
+                          child: Text(
+                            notification.timeAgo,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              fontWeight: FontWeight.w500,
+                              color: theme.colorScheme.onSurface.withValues(
+                                alpha: 0.6,
+                              ),
                             ),
                           ),
                         ),
                         if (notification.requiresAction) ...[
                           const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: AppMetrics.p8,
-                              vertical: AppMetrics.p4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: theme.colorScheme.error.withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(AppShape.r4),
-                              border: Border.all(
-                                color: theme.colorScheme.error.withValues(alpha: 0.3),
-                                width: 1,
+                          // Status badge: bounded visual, but its LABEL is
+                          // dynamic ("Perlu tindakan" is far longer than
+                          // "BARU"), so it is flex-constrained too and
+                          // truncates to one line as a last resort. It stays
+                          // adjacent to the timestamp and is never dropped.
+                          Flexible(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: AppMetrics.p8,
+                                vertical: AppMetrics.p4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.error.withValues(
+                                  alpha: 0.12,
+                                ),
+                                borderRadius: BorderRadius.circular(
+                                  AppShape.r4,
+                                ),
+                                border: Border.all(
+                                  color: theme.colorScheme.error.withValues(
+                                    alpha: 0.3,
+                                  ),
+                                  width: 1,
+                                ),
+                              ),
+                              child: Text(
+                                'Perlu tindakan',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: context.typeRoles.labelMicro.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  color: theme.colorScheme.error,
+                                  letterSpacing: 0.3,
+                                ),
                               ),
                             ),
-child: Text(
-                               'Perlu tindakan',
-                               style: TextStyle(
-                                 fontSize: AppType.s12,
-                                 fontWeight: FontWeight.w700,
-                                 color: theme.colorScheme.error,
-                                 letterSpacing: 0.3,
-                               ),
-                             ),
                           ),
                         ],
                         if (notification.isRecent &&
                             !notification.requiresAction) ...[
                           const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: AppMetrics.p8,
-                              vertical: AppMetrics.p4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: context.statusColors.warning.withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(AppShape.r4),
-                            ),
-                            child: Text(
-                              'BARU',
-                              style: TextStyle(
-                                fontSize: AppType.s12,
-                                fontWeight: FontWeight.w700,
-                                color: context.statusColors.warning,
-                                letterSpacing: 0.5,
+                          // Same rule as the action badge: dynamic label, so it
+                          // is flex-constrained and truncates to one line only
+                          // when the row is genuinely too narrow.
+                          Flexible(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: AppMetrics.p8,
+                                vertical: AppMetrics.p4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: context.statusColors.warning.withValues(
+                                  alpha: 0.12,
+                                ),
+                                borderRadius: BorderRadius.circular(
+                                  AppShape.r4,
+                                ),
+                              ),
+                              child: Text(
+                                'BARU',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: context.typeRoles.labelMicro.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  color: context.statusColors.warning,
+                                  letterSpacing: 0.5,
+                                ),
                               ),
                             ),
                           ),
@@ -246,7 +288,11 @@ child: Text(
   }
 
   /// Map domain color enum to Flutter Color
-  Color _mapColor(BuildContext context, NotificationDisplayColor color, ColorScheme scheme) {
+  Color _mapColor(
+    BuildContext context,
+    NotificationDisplayColor color,
+    ColorScheme scheme,
+  ) {
     switch (color) {
       case NotificationDisplayColor.green:
       case NotificationDisplayColor.teal:

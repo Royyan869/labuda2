@@ -94,27 +94,13 @@ class _AddressRepo implements IAddressRepository {
   }
 
   @override
-  Future<Result<AddressEntity?>> getPrimaryAddress(
-    String userId, {
-    AddressTag? tag,
-  }) async {
-    if (tag == AddressTag.sender) {
-      return _primarySenderResult;
-    }
-    return Result.success(null);
+  Future<Result<AddressEntity?>> getPrimaryAddress(String userId) async {
+    return _primarySenderResult;
   }
 
   @override
   Future<Result<List<AddressEntity>>> getAddressesByUserId(
     String userId,
-  ) async {
-    return Result.success(const []);
-  }
-
-  @override
-  Future<Result<List<AddressEntity>>> getAddressesByTag(
-    String userId,
-    AddressTag tag,
   ) async {
     return Result.success(const []);
   }
@@ -148,23 +134,7 @@ class _AddressRepo implements IAddressRepository {
   }
 
   @override
-  Stream<Result<List<AddressEntity>>> watchAddresses(String userId) {
-    return Stream.value(Result.success(const []));
-  }
-
-  @override
-  Stream<Result<List<AddressEntity>>> watchAddressesByTag(
-    String userId,
-    AddressTag tag,
-  ) {
-    return Stream.value(Result.success(const []));
-  }
-
-  @override
-  Future<Result<int>> countAddresses(
-    String userId, {
-    AddressTag? tag,
-  }) async {
+  Future<Result<int>> countAddresses(String userId) async {
     return Result.success(0);
   }
 
@@ -211,7 +181,6 @@ AddressEntity _completeSenderAddress() {
   return AddressEntity(
     id: 'addr-1',
     userId: 'seller-1',
-    tags: const [AddressTag.sender],
     recipientName: 'Farm Sentosa',
     phone: '08123456789',
     province: Province(id: '33', name: 'Jawa Tengah'),

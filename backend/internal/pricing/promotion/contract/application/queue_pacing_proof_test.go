@@ -53,10 +53,6 @@ func TestQueue_Proof_Q1_Q10(t *testing.T) {
 	seller := h.newSeller(t, 500_000)
 	otherSeller := h.newSeller(t, 500_000)
 
-	// Create internal contract
-	c, err := h.create(t, seller, entity.KindInternal, 100_000, 10)
-	require.NoError(t, err)
-
 	op := &queueOpMock{
 		operable: make(map[uuid.UUID]bool),
 		owners:   make(map[uuid.UUID]uuid.UUID),
@@ -71,15 +67,22 @@ func TestQueue_Proof_Q1_Q10(t *testing.T) {
 		return id
 	}
 
-	// Q1 add first target PASS
+	// Create internal contract WITH its initial queue (queue before payment):
+	// the first target is part of the promotion configuration.
 	t1 := newTarget(seller)
-	ct1, err := h.svc.AddTarget(context.Background(), application.AddTargetInput{SellerID: seller, ContractID: c.ID, TargetType: "for_sale", TargetID: t1})
+	c, err := h.createWithTargets(t, seller, entity.KindInternal, 100_000, 10,
+		[]application.PromotionTargetInput{{TargetType: "for_sale", TargetID: t1}})
 	require.NoError(t, err)
-	require.Equal(t, 0, ct1.Position)
+
+	// Q1: the configured target is the initial queue entry at position 0.
+	initial, err := h.svc.ListTargets(context.Background(), seller, c.ID)
+	require.NoError(t, err)
+	require.Len(t, initial, 1)
+	require.Equal(t, 0, initial[0].Position)
+	require.Equal(t, t1, initial[0].TargetID)
 
 	// Q2 add until 10 PASS
-	var ids []uuid.UUID
-	ids = append(ids, t1)
+	ids := []uuid.UUID{t1}
 	for i := 1; i < 10; i++ {
 		tid := newTarget(seller)
 		ct, err := h.svc.AddTarget(context.Background(), application.AddTargetInput{SellerID: seller, ContractID: c.ID, TargetType: "for_sale", TargetID: tid})
@@ -96,11 +99,8 @@ func TestQueue_Proof_Q1_Q10(t *testing.T) {
 	_, err = h.svc.AddTarget(context.Background(), application.AddTargetInput{SellerID: seller, ContractID: c.ID, TargetType: "for_sale", TargetID: t11})
 	require.ErrorIs(t, err, application.ErrQueueFull)
 
-	// Q4 duplicate → rejected
-	_, err = h.svc.AddTarget(context.Background(), application.AddTargetInput{SellerID: seller, ContractID: c.ID, TargetType: "for_sale", TargetID: t1})
-	require.ErrorIs(t, err, application.ErrQueueDuplicate)
-
-	// Q5 remove middle → compact
+	// Q5 remove middle → compact (frees a slot first so the duplicate proof
+	// below exercises duplicate detection rather than the full-queue guard).
 	middle := ids[5]
 	require.NoError(t, h.svc.RemoveTarget(context.Background(), application.RemoveTargetInput{SellerID: seller, ContractID: c.ID, TargetID: middle}))
 	list, err = h.svc.ListTargets(context.Background(), seller, c.ID)
@@ -109,6 +109,10 @@ func TestQueue_Proof_Q1_Q10(t *testing.T) {
 	for i, item := range list {
 		require.Equal(t, i, item.Position, "positions canonical no gap")
 	}
+
+	// Q4 duplicate (of the initial configured target) → rejected
+	_, err = h.svc.AddTarget(context.Background(), application.AddTargetInput{SellerID: seller, ContractID: c.ID, TargetType: "for_sale", TargetID: t1})
+	require.ErrorIs(t, err, application.ErrQueueDuplicate)
 
 	// Q6 seller cannot add target owned by other seller
 	otherTarget := newTarget(otherSeller)
@@ -150,6 +154,96 @@ func TestQueue_Proof_Q1_Q10(t *testing.T) {
 	got, err := h.svc.Get(context.Background(), seller, c.ID)
 	require.NoError(t, err)
 	require.Equal(t, int64(100_000), got.BudgetRupiah)
+}
+
+// ============================================================================
+// SCOPE 2 — QUEUE BEFORE PAYMENT (creation boundary + funding gate)
+// ============================================================================
+
+// A: a promotion configuration without a queue is rejected before funding/pay.
+func TestCreateQueue_RequiresAtLeastOneTarget(t *testing.T) {
+	h := newContractHarness(t)
+	h.seedConfig(t, 7500, 10_000)
+	seller := h.newSeller(t, 500_000)
+
+	// Create with empty queue → rejected (no contract, no money movement).
+	_, err := h.createWithTargets(t, seller, entity.KindInternal, 100_000, 10, nil)
+	require.ErrorIs(t, err, application.ErrQueueEmpty)
+	require.Equal(t, 0, h.countContracts(t, seller, entity.KindInternal))
+	require.Equal(t, int64(500_000), h.promoteBalance(t, seller))
+
+	// Pre-payment funding preview with empty queue → rejected.
+	_, err = h.svc.PreviewFunding(context.Background(), application.CreatePromotionInput{
+		SellerID: seller, Kind: entity.KindInternal, BudgetRupiah: 100_000, DurationDays: 10,
+	})
+	require.ErrorIs(t, err, application.ErrQueueEmpty)
+}
+
+// C/G/F: multiple targets preserve insertion order; max 10; duplicates rejected.
+func TestCreateQueue_MaxAndDuplicate(t *testing.T) {
+	h := newContractHarness(t)
+	h.seedConfig(t, 7500, 10_000)
+	seller := h.newSeller(t, 2_000_000)
+	h.svc.SetTargetOperability(&queueOpMock{})
+
+	mk := func() application.PromotionTargetInput {
+		return application.PromotionTargetInput{TargetType: "for_sale", TargetID: uuid.New()}
+	}
+
+	// 11 targets → ErrQueueFull, rejected before any money movement.
+	eleven := make([]application.PromotionTargetInput, 0, 11)
+	for i := 0; i < 11; i++ {
+		eleven = append(eleven, mk())
+	}
+	_, err := h.createWithTargets(t, seller, entity.KindInternal, 100_000, 10, eleven)
+	require.ErrorIs(t, err, application.ErrQueueFull)
+	require.Equal(t, 0, h.countContracts(t, seller, entity.KindInternal))
+	require.Equal(t, int64(2_000_000), h.promoteBalance(t, seller))
+
+	// Duplicate target → ErrQueueDuplicate.
+	dup := mk()
+	_, err = h.createWithTargets(t, seller, entity.KindInternal, 100_000, 10,
+		[]application.PromotionTargetInput{dup, dup})
+	require.ErrorIs(t, err, application.ErrQueueDuplicate)
+	require.Equal(t, 0, h.countContracts(t, seller, entity.KindInternal))
+	require.Equal(t, int64(2_000_000), h.promoteBalance(t, seller))
+
+	// 10 targets accepted, insertion order preserved.
+	ten := make([]application.PromotionTargetInput, 0, 10)
+	for i := 0; i < 10; i++ {
+		ten = append(ten, mk())
+	}
+	c, err := h.createWithTargets(t, seller, entity.KindInternal, 100_000, 10, ten)
+	require.NoError(t, err)
+	list, err := h.svc.ListTargets(context.Background(), seller, c.ID)
+	require.NoError(t, err)
+	require.Len(t, list, 10)
+	for i, item := range list {
+		require.Equal(t, i, item.Position)
+		require.Equal(t, ten[i].TargetID, item.TargetID)
+	}
+}
+
+// D: a mixed For Sale + Auction queue is valid (homogeneity is not imposed).
+func TestCreateQueue_MixedForSaleAndAuction(t *testing.T) {
+	h := newContractHarness(t)
+	h.seedConfig(t, 7500, 10_000)
+	seller := h.newSeller(t, 500_000)
+	h.svc.SetTargetOperability(&queueOpMock{})
+
+	c, err := h.createWithTargets(t, seller, entity.KindInternal, 100_000, 10,
+		[]application.PromotionTargetInput{
+			{TargetType: "for_sale", TargetID: uuid.New()},
+			{TargetType: "auction", TargetID: uuid.New()},
+			{TargetType: "for_sale", TargetID: uuid.New()},
+		})
+	require.NoError(t, err)
+	list, err := h.svc.ListTargets(context.Background(), seller, c.ID)
+	require.NoError(t, err)
+	require.Len(t, list, 3)
+	require.Equal(t, "for_sale", string(list[0].TargetType))
+	require.Equal(t, "auction", string(list[1].TargetType))
+	require.Equal(t, "for_sale", string(list[2].TargetType))
 }
 
 // Pacing unit proof without DB — verifies envelope logic via helper

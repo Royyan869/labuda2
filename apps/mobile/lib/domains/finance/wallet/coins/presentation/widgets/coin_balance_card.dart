@@ -3,6 +3,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:labuda/core/core.dart';
+import 'package:labuda/shared/widgets/app_dialog.dart';
 import 'package:labuda/domains/finance/wallet/coins/domain/entities/coin_balance.dart';
 import 'package:labuda/shared/domain/entities/resource_projection.dart';
 
@@ -30,59 +31,45 @@ class CoinBalanceCard extends StatefulWidget {
 class _CoinBalanceCardState extends State<CoinBalanceCard> {
   bool _isBalanceVisible = true;
 
-  void _showCoinInfo() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Tentang LABUDA Coins'),
-        content: const SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'LABUDA Coins adalah poin loyalitas yang memberikan Anda potongan harga saat checkout.',
-                style: TextStyle(
-                  fontSize: AppType.s14,
-                  height: 1.5,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              SizedBox(height: 16),
-              Text(
-                'Cara Dapatkan Coins:\n'
-                '• Refund dari pembatalan pesanan\n'
-                '• Bonus pendaftaran pengguna baru\n'
-                '• Promo dan kampanye khusus\n'
-                '• Reward referral dan ulasan',
-                style: TextStyle(fontSize: AppType.s14, height: 1.6),
-              ),
-              SizedBox(height: 12),
-              Text(
-                'Penting:\n'
-                '• Coins adalah poin loyalitas, BUKAN uang\n'
-                '• Coins hanya untuk potongan harga (max 20%)\n'
-                '• Coins tidak dapat ditarik atau ditukar uang\n'
-                '• Coins tidak dapat ditransfer ke pengguna lain\n'
-                '• Maksimal 1.000.000 coins\n'
-                '• Coins tidak pernah kadaluarsa',
-                style: TextStyle(
-                  fontSize: AppType.s12,
-                  height: 1.5,
-                  fontStyle: FontStyle.italic,
-                  color: AppColors.coinPrimary,
-                ),
-              ),
-            ],
+  /// Content for the canonical Page Info surface. The surface itself is
+  /// [AppDialog.info]; this widget owns no dialog authority.
+  Widget _buildCoinInfoContent(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          'LABUDA Coins adalah poin loyalitas yang memberikan Anda potongan harga saat checkout.',
+          style: context.typeRoles.bodyDense.copyWith(
+            height: 1.5,
+            fontWeight: FontWeight.w600,
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Mengerti'),
+        const SizedBox(height: 16),
+        Text(
+          'Cara Dapatkan Coins:\n'
+          '• Refund dari pembatalan pesanan\n'
+          '• Bonus pendaftaran pengguna baru\n'
+          '• Promo dan kampanye khusus\n'
+          '• Reward referral dan ulasan',
+          style: context.typeRoles.bodyDense.copyWith(height: 1.6),
+        ),
+        const SizedBox(height: 12),
+        Text(
+          'Penting:\n'
+          '• Coins adalah poin loyalitas, BUKAN uang\n'
+          '• Coins hanya untuk potongan harga (max 20%)\n'
+          '• Coins tidak dapat ditarik atau ditukar uang\n'
+          '• Coins tidak dapat ditransfer ke pengguna lain\n'
+          '• Maksimal 1.000.000 coins\n'
+          '• Coins tidak pernah kadaluarsa',
+          style: context.typeRoles.labelMicro.copyWith(
+            height: 1.5,
+            fontStyle: FontStyle.italic,
+            color: AppColors.coinPrimary,
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -119,8 +106,7 @@ class _CoinBalanceCardState extends State<CoinBalanceCard> {
                   const SizedBox(width: 6),
                   Text(
                     'Coins',
-                    style: TextStyle(
-                      fontSize: AppType.s14,
+                    style: context.typeRoles.bodyDense.copyWith(
                       color: colorScheme.onPrimary,
                       fontWeight: FontWeight.w500,
                     ),
@@ -133,7 +119,12 @@ class _CoinBalanceCardState extends State<CoinBalanceCard> {
                   color: colorScheme.onPrimary,
                   size: AppIconSize.action,
                 ),
-                onPressed: _showCoinInfo,
+                onPressed: () => AppDialog.info(
+                  context: context,
+                  title: 'Tentang LABUDA Coins',
+                  content: _buildCoinInfoContent(context),
+                  closeLabel: 'Mengerti',
+                ),
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
                 tooltip: 'Info tentang Coins',
@@ -155,8 +146,7 @@ class _CoinBalanceCardState extends State<CoinBalanceCard> {
                       _isBalanceVisible
                           ? '${formatGroupedAmount(widget.balance.balance)} Coins'
                           : '******** Coins',
-                      style: TextStyle(
-                        fontSize: AppType.s24,
+                      style: context.typeRoles.titleProminent.copyWith(
                         fontWeight: FontWeight.bold,
                         color: colorScheme.onPrimary,
                       ),
@@ -166,8 +156,7 @@ class _CoinBalanceCardState extends State<CoinBalanceCard> {
                       _isBalanceVisible
                           ? '~Potongan Rp ${formatGroupedAmount(widget.balance.balance * 10)}'
                           : '~Potongan Rp ********',
-                      style: TextStyle(
-                        fontSize: AppType.s14,
+                      style: context.typeRoles.bodyDense.copyWith(
                         color: colorScheme.onPrimary.withValues(alpha: 0.9),
                       ),
                     ),
@@ -179,6 +168,9 @@ class _CoinBalanceCardState extends State<CoinBalanceCard> {
                   _isBalanceVisible ? Icons.visibility_off : Icons.visibility,
                   color: colorScheme.onPrimary,
                   size: AppIconSize.action,
+                  semanticLabel: _isBalanceVisible
+                      ? 'Sembunyikan saldo'
+                      : 'Tampilkan saldo',
                 ),
                 onPressed: () =>
                     setState(() => _isBalanceVisible = !_isBalanceVisible),
@@ -212,8 +204,7 @@ class _CoinBalanceCardState extends State<CoinBalanceCard> {
                       isAtMaxBalance
                           ? 'Maksimal coins tercapai (1.000.000)'
                           : 'Mendekati batas maksimal coins',
-                      style: TextStyle(
-                        fontSize: AppType.s12,
+                      style: context.typeRoles.labelMicro.copyWith(
                         color: colorScheme.onPrimary,
                         fontWeight: FontWeight.w500,
                       ),
@@ -232,9 +223,9 @@ class _CoinBalanceCardState extends State<CoinBalanceCard> {
               child: OutlinedButton.icon(
                 onPressed: widget.onViewHistory,
                 icon: const Icon(Icons.history, size: AppIconSize.inlineGlyph),
-                label: const Text(
+                label: Text(
                   'Lihat Riwayat',
-                  style: TextStyle(fontSize: AppType.s14),
+                  style: Theme.of(context).textTheme.labelLarge,
                 ),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: colorScheme.onPrimary,

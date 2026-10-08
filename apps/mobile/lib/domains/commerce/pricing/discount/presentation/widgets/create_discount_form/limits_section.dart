@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:labuda/shared/utils/money_input_formatter.dart';
 import 'package:labuda/shared/widgets/app_text_field.dart';
 import 'package:labuda/core/src/theme/app_theme.dart';
 
@@ -40,7 +41,10 @@ class _LimitsSectionState extends State<LimitsSection> {
       text: widget.totalUsageLimit?.toString() ?? '',
     );
     _minPurchaseController = TextEditingController(
-      text: widget.minPurchase > 0 ? widget.minPurchase.toStringAsFixed(0) : '',
+      // Minimum purchase is money: seed in the canonical grouped form.
+      text: widget.minPurchase > 0
+          ? MoneyInputFormatter.display(widget.minPurchase.round())
+          : '',
     );
   }
 
@@ -64,8 +68,7 @@ class _LimitsSectionState extends State<LimitsSection> {
         children: [
           Text(
             'Limits & Status',
-            style: TextStyle(
-              fontSize: AppType.s16,
+            style: context.typeRoles.titleSection.copyWith(
               fontWeight: FontWeight.bold,
               color: Theme.of(context).colorScheme.onSurface,
             ),
@@ -79,17 +82,19 @@ class _LimitsSectionState extends State<LimitsSection> {
             hintText: 'Example: 100000',
             prefixIcon: Icons.shopping_cart,
             keyboardType: TextInputType.number,
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            inputFormatters: const [MoneyInputFormatter()],
             onChanged: (value) {
-              final numValue = value.isEmpty ? 0.0 : (double.tryParse(value) ?? 0.0);
+              // Punctuation-free business value: grouped display in, plain
+              // number out (no double detour through the separators).
+              final numValue =
+                  (MoneyInputFormatter.parseAmount(value) ?? 0).toDouble();
               widget.onMinPurchaseChanged(numValue);
             },
           ),
           const SizedBox(height: 8),
           Text(
             'Pembeli harus membeli minimal sejumlah ini untuk menggunakan kode diskon.',
-            style: TextStyle(
-              fontSize: AppType.s12,
+            style: context.typeRoles.bodyDense.copyWith(
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
@@ -111,8 +116,7 @@ class _LimitsSectionState extends State<LimitsSection> {
           const SizedBox(height: 8),
           Text(
             'Limit total usage of this code by all buyers. Leave empty for unlimited.',
-            style: TextStyle(
-              fontSize: AppType.s12,
+            style: context.typeRoles.bodyDense.copyWith(
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
@@ -133,8 +137,7 @@ class _LimitsSectionState extends State<LimitsSection> {
                     children: [
                       Text(
                         'Active Status',
-                        style: TextStyle(
-                          fontSize: AppType.s14,
+                        style: context.typeRoles.bodyDense.copyWith(
                           fontWeight: FontWeight.w500,
                           color: Theme.of(context).colorScheme.onSurface,
                         ),
@@ -144,23 +147,18 @@ class _LimitsSectionState extends State<LimitsSection> {
                         widget.isActive
                             ? 'Discount can be used by buyers'
                             : 'Discount is inactive and cannot be used',
-                        style: TextStyle(
-                          fontSize: AppType.s12,
+                        style: context.typeRoles.bodyDense.copyWith(
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),
                     ],
                   ),
                 ),
+                // Selection colour/state comes from `switchTheme` (AppTheme) —
+                // the one selection-control authority.
                 Switch(
                   value: widget.isActive,
                   onChanged: widget.onIsActiveChanged,
-                  activeThumbColor: Theme.of(context).colorScheme.onPrimary,
-                  activeTrackColor: Theme.of(context).colorScheme.primary,
-                  inactiveThumbColor: Theme.of(context).colorScheme.outline,
-                  inactiveTrackColor: Theme.of(
-                    context,
-                  ).colorScheme.surfaceContainerHighest,
                 ),
               ],
             ),

@@ -73,9 +73,8 @@ class _MediaViewerWidgetState extends State<MediaViewerWidget> {
         scrolledUnderElevation: 0,
         title: Text(
           widget.title ?? '${_currentIndex + 1} / ${widget.media.length}',
-          style: TextStyle(
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
             color: scheme.onPrimary,
-            fontSize: AppType.s16,
             fontWeight: FontWeight.w500,
           ),
         ),

@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:labuda/core/src/theme/app_theme.dart';
+import 'package:labuda/shared/widgets/app_snackbar.dart';
 
 /// Custom Camera Screen
 /// Supports both photo and video capture with toggle
@@ -68,12 +69,7 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
       _cameras = await availableCameras();
       if (_cameras == null || _cameras!.isEmpty) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('No cameras available'),
-              duration: Duration(seconds: 4),
-            ),
-          );
+          AppSnackBar.showError(context, 'Tidak ada kamera yang tersedia');
         }
         return;
       }
@@ -90,12 +86,7 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Gagal membuka kamera. Coba lagi.'),
-            duration: const Duration(seconds: 4),
-          ),
-        );
+        AppSnackBar.showError(context, 'Gagal membuka kamera. Coba lagi.');
       }
     }
   }
@@ -125,12 +116,7 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Gagal mengambil foto. Coba lagi.'),
-            duration: const Duration(seconds: 4),
-          ),
-        );
+        AppSnackBar.showError(context, 'Gagal mengambil foto. Coba lagi.');
       }
     }
   }
@@ -143,12 +129,7 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
       setState(() => _isRecording = true);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Gagal memulai rekaman. Coba lagi.'),
-            duration: const Duration(seconds: 4),
-          ),
-        );
+        AppSnackBar.showError(context, 'Gagal memulai rekaman. Coba lagi.');
       }
     }
   }
@@ -165,12 +146,7 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
       });
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Gagal menghentikan rekaman. Coba lagi.'),
-            duration: const Duration(seconds: 4),
-          ),
-        );
+        AppSnackBar.showError(context, 'Gagal menghentikan rekaman. Coba lagi.');
       }
     }
   }
@@ -263,7 +239,8 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
                       Icons.close,
                       color: colorScheme.onPrimary,
                       size: AppIconSize.emphasis,
-                    ),
+                     semanticLabel: 'Tutup',
+                     ),
                   ),
 
                   // Mode Toggle
@@ -289,7 +266,8 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
                       Icons.flip_camera_ios,
                       color: colorScheme.onPrimary,
                       size: AppIconSize.emphasis,
-                    ),
+                     semanticLabel: 'Balik kamera',
+                     ),
                   ),
                 ],
               ),
@@ -411,10 +389,9 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
         ),
         child: Text(
           label,
-          style: TextStyle(
+          style: context.typeRoles.bodyDense.copyWith(
             color: colorScheme.onPrimary,
             fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-            fontSize: AppType.s14,
           ),
         ),
       ),
@@ -474,7 +451,8 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
                       Icons.close,
                       color: colorScheme.onPrimary,
                       size: AppIconSize.emphasis,
-                    ),
+                     semanticLabel: 'Tutup',
+                     ),
                   ),
                 ],
               ),
@@ -513,9 +491,8 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
                       icon: Icon(Icons.refresh, color: colorScheme.onPrimary),
                       label: Text(
                         'Retake',
-                        style: TextStyle(
+                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
                           color: colorScheme.onPrimary,
-                          fontSize: AppType.s16,
                         ),
                       ),
                       style: OutlinedButton.styleFrom(
@@ -535,9 +512,8 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
                       icon: Icon(Icons.check, color: colorScheme.onPrimary),
                       label: Text(
                         'Use',
-                        style: TextStyle(
+                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
                           color: colorScheme.onPrimary,
-                          fontSize: AppType.s16,
                         ),
                       ),
                       style: ElevatedButton.styleFrom(

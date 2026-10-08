@@ -68,8 +68,7 @@ class MediaGridUploader extends StatelessWidget {
                 ),
                 Text(
                   '(Minimal 1 media)',
-                  style: TextStyle(
-                    fontSize: AppType.s12,
+                  style: context.typeRoles.labelMicro.copyWith(
                     color: scheme.onSurfaceVariant,
                   ),
                 ),
@@ -94,58 +93,63 @@ class MediaGridUploader extends StatelessWidget {
         if (index < mediaUrls.length) {
           final url = mediaUrls[index];
           final isVideo = MediaUploadOrchestrator.isVideoUrl(url);
-           return SizedBox(
-             key: ValueKey('media-$url-$index'),
-             height: AppContentSize.thumbnail,
-             child: Stack(
-             fit: StackFit.expand,
-             children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(AppShape.r8),
-                child: isVideo
-                    ? Container(
-                        color: scheme.scrim,
-                        child: Icon(
-                          Icons.videocam,
-                          color: scheme.onPrimary,
-                          size: AppIconSize.emphasis,
+          return SizedBox(
+            key: ValueKey('media-$url-$index'),
+            height: AppContentSize.thumbnail,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(AppShape.r8),
+                  child: isVideo
+                      ? Container(
+                          color: scheme.scrim,
+                          child: Icon(
+                            Icons.videocam,
+                            color: scheme.onPrimary,
+                            size: AppIconSize.emphasis,
+                          ),
+                        )
+                      : AppImage(
+                          imageUrl: url,
+                          fit: BoxFit.cover,
+                          errorWidget: const Icon(Icons.broken_image),
                         ),
-                      )
-                    : AppImage(imageUrl: url, fit: BoxFit.cover, errorWidget: const Icon(Icons.broken_image)),
-              ),
-              Positioned(
-                top: 4,
-                right: 4,
-                child: GestureDetector(
-                  onTap: () => onMediaRemoved(index),
-                  child: Container(
-                    padding: const EdgeInsets.all(AppMetrics.p4),
-                    decoration: BoxDecoration(
-                      color: scheme.scrim.withValues(alpha: 0.54),
-                      shape: BoxShape.circle,
+                ),
+                Positioned(
+                  top: 4,
+                  right: 4,
+                  child: GestureDetector(
+                    onTap: () => onMediaRemoved(index),
+                    child: Container(
+                      padding: const EdgeInsets.all(AppMetrics.p4),
+                      decoration: BoxDecoration(
+                        color: scheme.scrim.withValues(alpha: 0.54),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.close,
+                        size: AppIconSize.inlineGlyph,
+                        color: scheme.onPrimary,
+                        semanticLabel: 'Hapus media',
+                      ),
                     ),
+                  ),
+                ),
+                if (isVideo)
+                  Center(
                     child: Icon(
-                      Icons.close,
-                      size: AppIconSize.inlineGlyph,
-                      color: scheme.onPrimary,
+                      Icons.play_circle_fill,
+                      size: AppIconSize.emphasis,
+                      color: scheme.onPrimary.withValues(alpha: 0.7),
                     ),
                   ),
-                ),
-              ),
-              if (isVideo)
-                Center(
-                  child: Icon(
-                    Icons.play_circle_fill,
-                    size: AppIconSize.emphasis,
-                    color: scheme.onPrimary.withValues(alpha: 0.7),
-                  ),
-                ),
-             ],
-           ),
-           );
-         }
-          return const SizedBox.shrink(key: ValueKey('media-add-disabled'));
-        },
-      );
+              ],
+            ),
+          );
+        }
+        return const SizedBox.shrink(key: ValueKey('media-add-disabled'));
+      },
+    );
   }
 }

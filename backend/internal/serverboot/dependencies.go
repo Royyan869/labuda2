@@ -110,6 +110,8 @@ import (
 	platformconfigApp "github.com/labuda/backend/internal/platform/config/application"
 	platformconfigHTTP "github.com/labuda/backend/internal/platform/config/delivery/http"
 	platformconfigRepo "github.com/labuda/backend/internal/platform/config/infrastructure/repository"
+	geographyPlatform "github.com/labuda/backend/internal/platform/geography"
+	geographyHTTP "github.com/labuda/backend/internal/platform/geography/delivery/http"
 	idempotencyRepoPkg "github.com/labuda/backend/internal/platform/idempotency/repository"
 	"github.com/labuda/backend/internal/platform/logger"
 	"github.com/labuda/backend/internal/platform/mediaresolve"
@@ -204,6 +206,9 @@ import (
 
 	// Product domain - wired into AuctionService for inline product creation
 	productRepoImpl "github.com/labuda/backend/internal/commerce/product/infrastructure/repository"
+
+	// Canonical Product View authority (per-product detail-open events).
+	productViewRepoImpl "github.com/labuda/backend/internal/commerce/productview/infrastructure/repository"
 )
 
 // Dependencies holds all application dependencies
@@ -224,7 +229,9 @@ type Dependencies struct {
 	// C6.1: seller self-service bank account management.
 	BankAccountHandler *bankaccountHTTP.BankAccountHandler
 	// Address CRUD endpoints (buyer shipping + seller sender)
-	AddressHandler                *addressHTTP.AddressHandler
+	AddressHandler *addressHTTP.AddressHandler
+	// Canonical Geography read API — the ONE geographic reference surface.
+	GeographyHandler              *geographyHTTP.Handler
 	OrderHandler                  *orderHTTP.OrderHandler
 	AuctionHandler                *auctionHTTP.AuctionHandler
 	AdminAuctionHandler           *auctionHTTP.AdminAuctionHandler // PASS_5B: admin emergency auction cancel/override
@@ -337,7 +344,6 @@ type Dependencies struct {
 	MediaReadinessWorker             Worker // MEDIA READINESS - flips processing video rows to ready/failed via poster probe
 	EscrowIntegrityWorker            Worker // ESCROW RECONCILIATION - shadow-rollout periodic escrow vs order check
 	TotalMoneyInvariantWorker        Worker // TOTAL MONEY INVARIANT - shadow-rollout periodic ledger sum check
-	SellerMetricsWorker              Worker // SELLER MEASUREMENT - daily seller_monthly_metrics snapshot (measurement only)
 	SellerReputationRecomputeWorker  Worker // REPUTATION AUTHORITY - nightly rolling 90-day recompute of seller tier + reputation state
 	PresenceSweeper                  Worker // PRESENCE SLICE-2: expiry sweeper ClaimDueUsers→SweepUser→PublishChanged
 	PresenceSubscriber               Worker // PRESENCE SLICE-2: cross-instance fan-out via Redis Pub/Sub
@@ -871,6 +877,9 @@ func InitServices(
 	// buyer balance capped by the token's 20%-of-PD ceiling, and persist it on
 	// pricing_tokens.coins_used. Payment derives K from that snapshot only.
 	orderHandler.SetCoinsBalanceReader(coinsRepository)
+	// CANONICAL PRE-ORDER PAYMENT METHOD BINDING (Phase 2): resolve the buyer's
+	// selected method at order creation and bind the agreed fee onto the order.
+	orderHandler.SetPaymentMethodRepo(paymentMethodRepository)
 
 	// Create admin order handler - read-only admin order management
 	adminOrderHandler := orderHTTP.NewAdminOrderHandler(
@@ -900,7 +909,9 @@ func InitServices(
 		log.Logger,
 	)
 	auctionService.SetProductRepo(productRepoImpl.NewProductRepository())
-	auctionHandler := auctionHTTP.NewAuctionHandler(auctionService, productRepoImpl.NewProductRepository(), pricingTokenService, db.Pgx(), log.Logger)
+	// CANONICAL PRODUCT VIEW authority (shared by For Sale and Auction detail).
+	productViewRepo := productViewRepoImpl.NewProductViewRepository()
+	auctionHandler := auctionHTTP.NewAuctionHandler(auctionService, productRepoImpl.NewProductRepository(), pricingTokenService, db.Pgx(), log.Logger, productViewRepo)
 	// Same canonical K authority as POST /orders for the auction claim path.
 	auctionHandler.SetCoinsBalanceReader(coinsRepository)
 	// PASS_5B: admin emergency auction cancel/override (governance authority,
@@ -947,6 +958,8 @@ func InitServices(
 		orderRepository,
 		// DEAL BINDING: detail wire resolves the viewer's settleable deal.
 		negotiationInfraRepo.NewNegotiationRepository(),
+		// CANONICAL PRODUCT VIEW authority (shared with Auction detail).
+		productViewRepo,
 	)
 
 	// ===== SOCIAL REPOSITORY =====
@@ -1154,12 +1167,15 @@ func InitServices(
 		onboardingService, // ← SINGLE SOURCE OF TRUTH for validation
 		financeApp.NewFinanceService(),
 		outboxRepo.NewOutboxRepository(db.Pgx()),
-		sellerSubscriptionRepo,
 	)
 
 	// Inject subscription payment service into payment webhook service
 	// This enables STRICT MODE: no subscription payment without complete onboarding
 	paymentWebhookService.SetSubscriptionPaymentService(subscriptionPaymentService)
+
+	// ONE canonical Snap creation authority, shared by the order/billing handler
+	// and the seller subscription handler.
+	snapService := paymentApp.NewSnapService(midtransClient, cfg.App.FrontendURL)
 
 	// Initialize seller handler
 	sellerHandler := sellerHTTP.NewSellerHandler(
@@ -1170,9 +1186,8 @@ func InitServices(
 		sellerRepoImpl.NewSellerRepository(),
 		onboardingService, // ← SINGLE SOURCE OF TRUTH for validation
 		paymentRepo,
-		midtransClient,
+		snapService,
 		sellerSubscriptionRepo,
-		cfg.App.FrontendURL,
 	)
 
 	// Wire the canonical configured seller withdrawal fee into the seller
@@ -1601,7 +1616,7 @@ func InitServices(
 	// 1. Operability checker (validates forSale/auction/external state) —
 	//    canonical target/seller authority, shared by queue management,
 	//    selection and delivery qualification.
-	operabilityChecker := promotionApp.NewOperabilityCheckerImpl(db.Pgx(), nil)
+	operabilityChecker := promotionApp.NewOperabilityCheckerImpl(db.Pgx())
 
 	// 2. Canonical contract-based delivery selection: active contracts inside
 	//    their planned window with positive allocation balance and a resolved
@@ -1652,7 +1667,7 @@ func InitServices(
 	)
 
 	// External product service (promotion contracts handle lifecycle; this service only for external product CRUD/review)
-	promotionService := promotionApp.NewPromotionService(operabilityChecker)
+	promotionService := promotionApp.NewPromotionService()
 	promotionService.SetRepo(promotionInfraRepo.NewPromotionRepository())
 
 	// Legacy promotion safety/expiration workers purged — duration billing forbidden (§28).
@@ -1775,7 +1790,7 @@ func InitServices(
 	// 7b. Auction Settlement Worker - canonical deadline enforcement.
 	// Detects waiting_settlement auctions past end_at + 24h with shipping
 	// unresolved; records the canonical commerce violation + restriction and
-	// returns the auction to DRAFT. Default ON.
+	// auto-reschedules the auction (scheduled, start=now). Default ON.
 	commercegovRepository := commercegovRepo.NewRepository()
 
 	// COMMERCE RESTRICTION ENFORCEMENT: Wire canonical restriction repository
@@ -1884,10 +1899,16 @@ func InitServices(
 		_ = subscriptionReconciliationWorker
 	}
 
+	// CANONICAL BILLING SERVICE: one instance shared by the promotion handler
+	// and the payment discovery worker so a lost billing webhook is recoverable
+	// through the same billing settlement authority.
+	billingService := billingApp.NewBillingService(roleChecker, accountStatusChecker)
+
 	// REC-5: Payment Discovery Worker — scans stale pending payments and queries
 	// gateway truth for missing webhook signals. Routes to canonical domain
 	// finalization (CanonicalFinalizationService for orders,
-	// SellerSubscriptionPaymentService for subscriptions).
+	// SellerSubscriptionPaymentService for subscriptions,
+	// BillingService for billing/promote balance).
 	// Default ON: missing webhooks are invisible without this scanner.
 	// Disable: DISABLE_PAYMENT_DISCOVERY_WORKER=true
 	// Gateway inquiry eligibility: 10 minutes after created_at.
@@ -1903,6 +1924,9 @@ func InitServices(
 	// discovery worker can create refund intents for gateway-success
 	// payments whose orders are in terminal states.
 	paymentDiscoveryWorker.SetRec6RefundCreator(refundService)
+	// CANONICAL BILLING RECOVERY: a lost billing/promotion webhook is settled
+	// through the same billing authority rather than silently falling through.
+	paymentDiscoveryWorker.SetBillingPaymentProcessor(billingService)
 	if workerEnabled("PAYMENT_DISCOVERY_WORKER", true, log.Logger) {
 		workerStartups = append(workerStartups, func() {
 			paymentDiscoveryWorker.Start()
@@ -1967,32 +1991,9 @@ func InitServices(
 		_ = withdrawalMonitoringWorker
 	}
 
-	// 9. SellerMonthlyMetricsWorker — generates monthly seller performance snapshots.
-	// Default ON: writes only seller_monthly_metrics table (measurement only).
-	// Safe: idempotent per (seller_id, year, month) UNIQUE constraint + existence check.
-	// No tier/profile/subscription/ledger mutation. 1 seller = 1 transaction.
-	// Disable: DISABLE_SELLER_METRICS_WORKER=true
-	sellerMetricsWorker := worker.NewSellerMonthlyMetricsWorker(
-		db,
-		sellerRepository,
-		orderRepository,
-		log.Logger,
-	)
-	if workerEnabled("SELLER_METRICS_WORKER", true, log.Logger) {
-		workerStartups = append(workerStartups, func() {
-			sellerMetricsWorker.Start()
-			log.Info("SellerMonthlyMetricsWorker started (fulfillment measurement)",
-				zap.Duration("interval", worker.DefaultSellerMetricsInterval),
-			)
-		})
-	} else {
-		_ = sellerMetricsWorker
-	}
-
 	// 10. SellerReputationRecomputeWorker — CANONICAL REPUTATION AUTHORITY.
 	// Queries rolling 90-day window from base tables; writes seller_reputation_state.
 	// Late refunds/rating invalidations/dispute resolutions self-correct on next cycle.
-	// Never reads seller_monthly_metrics (analytics-only; separation enforced).
 	// Default ON. Disable: DISABLE_SELLER_REPUTATION_RECOMPUTE_WORKER=true
 	sellerReputationRecomputeWorker := worker.NewSellerReputationRecomputeWorker(
 		db,
@@ -2275,10 +2276,23 @@ func InitServices(
 	bankAccountService.SetVerificationOutbox(verificationService, outboxRepository)
 	bankAccountHandler := bankaccountHTTP.NewBankAccountHandler(bankAccountService, db.Pgx(), log.Logger)
 
+	// ===== CANONICAL GEOGRAPHY MASTER =====
+	// ONE master (canonical_geographies) + ONE read API. Address and Shipping
+	// writes are validated against it so no consumer can define geographic
+	// truth of its own.
+	geographyRepo := geographyPlatform.NewRepository(db.Pgx().Pool())
+	geographyService := geographyPlatform.NewService(geographyRepo, db.Pgx().Pool())
+	geographyValidator := geographyPlatform.NewValidator()
+	geographyHandler := geographyHTTP.NewHandler(geographyService, log.Logger)
+
 	// Address handler — buyer shipping + seller sender CRUD.
 	addressService := addressApp.NewAddressService()
 	addressService.SetLogger(log.Logger)
+	addressService.SetGeographyValidator(geographyValidator)
 	addressHandler := addressHTTP.NewAddressHandler(addressService, roleChecker, db.Pgx(), log.Logger)
+
+	// Shipping coverage writes select canonical geographic entities only.
+	sellerShippingService.SetGeographyValidator(geographyValidator)
 
 	// Initialize withdraw service
 	withdrawService := financeApp.NewWithdrawService(
@@ -2653,6 +2667,16 @@ func InitServices(
 	// HARD FIX: Wire up shipping quote service to order service for quote reactivation
 	// This must be done after both services are created to avoid circular dependency
 	orderService.SetShippingQuoteService(shippingQuoteService)
+	// The SAME Shipping Quote service is the ONE authority for checkout
+	// validation + USED transition; order creation delegates to it.
+	orderService.SetShippingQuoteCheckoutAuthority(shippingQuoteService)
+
+	// Conversation shipping-quote projection wiring: the chat message read path
+	// projects a viewer-scoped actionability envelope onto shipping-quote
+	// messages by delegating to the Shipping commerce authority. Chat never
+	// computes quote lifecycle itself. Wired here because shippingQuoteService
+	// is constructed after chatHandler.
+	chatHandler.SetShippingQuoteProjectionResolver(newShippingQuoteProjectionResolver(shippingQuoteService))
 
 	// ===== RATING MODULE =====
 	// Initialize rating service and handlers for buyer→seller order ratings
@@ -2702,7 +2726,6 @@ func InitServices(
 	}
 
 	// Promotion handler — canonical external-product surface only (legacy package/ownership/instance purged, canonical is promotion_contracts)
-	billingService := billingApp.NewBillingService(roleChecker, accountStatusChecker)
 	promotionHandler := promotionHTTP.NewPromotionHandler(promotionService, db.Pgx(), log.Logger, adminAuditLogger)
 
 	// =============================================================================
@@ -2724,7 +2747,7 @@ func InitServices(
 	)
 	// Queue operability wiring: canonical For Sale / Auction authority delegation.
 	{
-		opChecker := promotionApp.NewOperabilityCheckerImpl(db.Pgx(), nil)
+		opChecker := promotionApp.NewOperabilityCheckerImpl(db.Pgx())
 		adapter := &canonicalPromotionOperabilityAdapterForContract{checker: opChecker}
 		canonicalContractService.SetTargetOperability(adapter)
 	}
@@ -2862,8 +2885,8 @@ func InitServices(
 	orderService.SetCoinsService(coinsService)
 
 	// Canonical commerce violation/restriction repository for auction
-	// settlement-failure rollback (order expiry/cancel returns the auction to
-	// DRAFT + records buyer_bnr violation).
+	// settlement-failure rollback (order expiry/cancel auto-reschedules the
+	// auction + records buyer_bnr violation).
 	orderService.SetCommerceViolationRepo(commercegovRepository)
 
 	// COMMERCE RESTRICTION ENFORCEMENT: Wire the canonical commerce restriction
@@ -2872,12 +2895,12 @@ func InitServices(
 	orderService.SetCommerceGovRepository(commercegovRepository)
 
 	// COMMERCE RESTRICTION ENFORCEMENT: Wire into auction service for seller
-	// restriction at auction creation/schedule/activation and bidder restriction
+	// restriction at auction creation/activation and bidder restriction
 	// at bid/claim boundaries.
 	auctionService.SetCommerceGovRepository(commercegovRepository)
 
 	// CROSS-LIFECYCLE QUOTE ISOLATION: Wire shipping quote invalidation into
-	// auction service so return-to-draft on settlement failure atomically
+	// auction service so the auto-reschedule on settlement failure atomically
 	// invalidates all ACTIVE quotes for the product, preventing stale quotes
 	// from being usable in the next settlement lifecycle.
 	auctionService.SetShippingQuoteInvalidator(shippingQuoteService)
@@ -3244,11 +3267,10 @@ func InitServices(
 			orderRepo:              orderRepository, // PAYMENT BOUNDARY HARDENING: Order as source of truth
 			paymentMethodRepo:      paymentMethodRepository,
 			pricingTokenService:    pricingTokenService,
-			midtransClient:         midtransClient,
+			coinBalanceReader:      coinsRepository, // same canonical K authority as POST /orders
+			snapService:            snapService,
 			paymentDiscoverySyncer: paymentDiscoveryWorker,
 			log:                    log,
-			isProduction:           isProduction,
-			frontendURL:            cfg.App.FrontendURL,
 		},
 		CoinHandler:              &CoreCoinHandler{coinsService: coinsService},
 		UserHandler:              &CoreUserHandler{db: db, roleChecker: roleChecker, log: log},
@@ -3258,6 +3280,7 @@ func InitServices(
 		WithdrawalHandlerUnified: withdrawalHandlerUnified,
 		BankAccountHandler:       bankAccountHandler,
 		AddressHandler:           addressHandler,
+		GeographyHandler:         geographyHandler,
 		OrderHandler:             orderHandler,
 		AuctionHandler:           auctionHandler,
 		AdminAuctionHandler:      adminAuctionHandler,
@@ -3361,7 +3384,6 @@ func InitServices(
 		MediaReadinessWorker:             mediaReadinessWorker,             // VIDEO READINESS: processing → ready/failed sweeper
 		EscrowIntegrityWorker:            escrowIntegrityWorker,            // ESCROW RECONCILIATION (shadow default)
 		TotalMoneyInvariantWorker:        totalMoneyInvariantWorker,        // TOTAL MONEY INVARIANT (shadow default)
-		SellerMetricsWorker:              sellerMetricsWorker,              // SELLER MEASUREMENT - daily fulfillment snapshot
 		SellerReputationRecomputeWorker:  sellerReputationRecomputeWorker,  // REPUTATION AUTHORITY - nightly 90-day rolling recompute
 		PresenceSweeper:                  presenceSweeper,                  // PRESENCE SLICE-2: expiry sweeper
 		PresenceSubscriber:               presenceSubscriber,               // PRESENCE SLICE-2: cross-instance fan-out
@@ -3412,11 +3434,6 @@ func (n *noopWorker) IsRunning() bool { return false }
 // =============================================================================
 
 // CorePaymentHandler handles payment requests
-type MidtransGateway interface {
-	CreateSnapTransaction(req *midtrans.SnapRequest) (*midtrans.SnapResponse, error)
-	IsProduction() bool
-}
-
 type CorePaymentHandler struct {
 	db                  *database.DB
 	paymentRepo         *repository.PaymentRepository
@@ -3427,26 +3444,42 @@ type CorePaymentHandler struct {
 	pricingTokenService interface {
 		GetSnapshot(ctx context.Context, tx db.Tx, token uuid.UUID) (*pricingtokenentity.PricingToken, error)
 	}
-	coinsRepo interface {
+	// coinBalanceReader is the canonical coins-domain balance surface used by
+	// the PRE-ORDER pricing disclosure to resolve the same coin redemption (K)
+	// the order layer will persist. It is the SAME authority POST /orders uses
+	// (coinsapp.ResolveOrderRedemption), so the pre-order final total and the
+	// order-time K can never be computed by two different formulas. Optional:
+	// when unset, use_coins=true fails closed.
+	coinBalanceReader paymentCoinsBalanceReader
+	coinsRepo         interface {
 		CreateReservation(ctx context.Context, tx db.Tx, reservation *coinsEntity.CoinReservation) error
 		GetReservationByPaymentID(ctx context.Context, tx db.Tx, paymentID uuid.UUID) (*coinsEntity.CoinReservation, error)
 		ReleaseReservation(ctx context.Context, tx db.Tx, paymentID uuid.UUID) (*coinsEntity.CoinReservation, error)
 	}
-	midtransClient MidtransGateway
+	// snapService is the ONE canonical Midtrans Snap creation authority shared
+	// by every incoming payment flow (order, billing, subscription).
+	snapService *paymentApp.SnapService
 	// paymentDiscoverySyncer reuses the REC-5 discovery pipeline for the
 	// on-demand status check (POST /payments/:id/sync). One canonical
 	// inquiry→settle→finalize authority; the scan loop and this endpoint
 	// cannot diverge.
 	paymentDiscoverySyncer PaymentDiscoverySyncer
 	log                    *logger.Logger
-	isProduction           bool
-	frontendURL            string // for Snap finish callback (cfg.App.FrontendURL)
 }
 
 // PaymentDiscoverySyncer abstracts the on-demand single-payment discovery
 // capability of PaymentDiscoveryWorker. Implemented by *worker.PaymentDiscoveryWorker.
 type PaymentDiscoverySyncer interface {
 	SyncPaymentByID(ctx context.Context, paymentID uuid.UUID) (midtrans.ProviderState, bool, error)
+}
+
+// paymentCoinsBalanceReader is the minimal coins-domain surface the pre-order
+// pricing disclosure needs to resolve the canonical coin redemption (K)
+// without duplicating the order-time K authority. Implemented by
+// *coinsRepo.CoinsRepositoryImpl (GetActiveBalance); nil → use_coins=true fails
+// closed.
+type paymentCoinsBalanceReader interface {
+	GetActiveBalance(ctx context.Context, tx db.Tx, userID uuid.UUID) (int64, error)
 }
 
 // CreatePaymentRequest holds the request payload for creating a payment
@@ -3676,6 +3709,27 @@ func (h *CorePaymentHandler) CreatePayment(c *gin.Context) {
 		response.InternalServerError(c, "Failed to calculate payment fee")
 		return
 	}
+
+	// =============================================================================
+	// PRE-ORDER PAYMENT METHOD BINDING (Phase 2 follow-up)
+	// =============================================================================
+	// The order carries the EXACT method the buyer selected before "Buat Pesanan"
+	// (orders.payment_method_code). A payment requesting a DIFFERENT method is
+	// rejected by IDENTITY — not merely by fee — so two methods with the same fee
+	// (including two zero-fee methods) can never be substituted. An order with no
+	// bound method (auction-claim) binds the requested method at first payment.
+	if order.PaymentMethodCode != nil && *order.PaymentMethodCode != "" {
+		if req.PaymentMethodCode != *order.PaymentMethodCode {
+			h.log.Warn("Payment rejected: method differs from the order's bound method",
+				zap.String("order_id", req.OrderID.String()),
+				zap.String("bound_method", *order.PaymentMethodCode),
+				zap.String("requested_method", req.PaymentMethodCode),
+			)
+			response.Conflict(c, "Payment method does not match the method selected at checkout")
+			return
+		}
+	}
+
 	grossMoney := cashAmount.Add(buyerPaymentFee)
 	if grossMoney.Int64() <= 0 {
 		response.BadRequest(c, "Gross amount must be positive")
@@ -3769,7 +3823,7 @@ func (h *CorePaymentHandler) CreatePayment(c *gin.Context) {
 			}
 		}
 
-		if err := h.orderRepo.UpdatePaymentSelectionTx(ctx, tx, req.OrderID, buyerPaymentFee, grossMoney); err != nil {
+		if err := h.orderRepo.UpdatePaymentSelectionTx(ctx, tx, req.OrderID, buyerPaymentFee, grossMoney, method.Code); err != nil {
 			return fmt.Errorf("update order payment selection: %w", err)
 		}
 
@@ -3907,12 +3961,61 @@ func (h *CorePaymentHandler) CreatePayment(c *gin.Context) {
 	})
 }
 
+// canonicalPaymentMethodOption is one enabled payment method with the
+// backend-computed buyer fee and the resulting final payable amount for a
+// given cash base. It is the SINGLE shape both the PRE-ORDER disclosure
+// (ListPreOrderPaymentMethods) and the order-scoped disclosure
+// (ListPaymentMethods) build from, so the fee formula can never diverge between
+// the two lifecycle stages.
+type canonicalPaymentMethodOption struct {
+	MethodCode            string
+	DisplayName           string
+	BuyerPaymentFeeAmount int64
+	FinalPayableAmount    int64
+}
+
+// buildCanonicalPaymentMethodOptions computes, per enabled method, the canonical
+// buyer fee F = paymentmethodentity.CalculateFee(cash, method) and the resulting
+// final payable cash + F. Methods whose fee formula is invalid are skipped (the
+// callback receives the code and cause) rather than failing the whole list,
+// matching the canonical subscription/promotion disclosures.
+//
+// AUTHORITY: the fee is ALWAYS paymentmethodentity.CalculateFee and the base is
+// ALWAYS the caller-supplied cash amount — never a client value.
+func buildCanonicalPaymentMethodOptions(
+	cash money.Money,
+	methods []paymentmethodentity.Method,
+	onInvalid func(code string, err error),
+) []canonicalPaymentMethodOption {
+	options := make([]canonicalPaymentMethodOption, 0, len(methods))
+	for _, m := range methods {
+		fee, err := paymentmethodentity.CalculateFee(cash, m)
+		if err != nil {
+			if onInvalid != nil {
+				onInvalid(m.Code, err)
+			}
+			continue
+		}
+		options = append(options, canonicalPaymentMethodOption{
+			MethodCode:            m.Code,
+			DisplayName:           m.DisplayName,
+			BuyerPaymentFeeAmount: fee.Int64(),
+			FinalPayableAmount:    cash.Add(fee).Int64(),
+		})
+	}
+	return options
+}
+
 // ListPaymentMethods returns the enabled canonical payment methods, each with
 // the buyer payment fee and resulting total calculated for the given order's
 // canonical buyer base (total_before_coins_amount = (P−D)+S; the payment fee
 // is computed on the cash portion after coin deduction). Mobile/admin
 // use this to render a method picker BEFORE calling CreatePayment — they
 // never calculate the fee themselves (PASS_18V).
+//
+// LIFECYCLE: this is the POST-ORDER disclosure — it is keyed by order_id
+// because the order's coin redemption (K) is already fixed on its pricing-token
+// snapshot. The PRE-ORDER equivalent is ListPreOrderPaymentMethods.
 func (h *CorePaymentHandler) ListPaymentMethods(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -3983,21 +4086,19 @@ func (h *CorePaymentHandler) ListPaymentMethods(c *gin.Context) {
 	coinsToUse := int(pricingToken.CoinsUsed)
 	cashAmount := baseAmount.Sub(money.New(int64(coinsToUse)))
 
-	out := make([]gin.H, 0, len(methods))
-	for _, m := range methods {
-		fee, err := paymentmethodentity.CalculateFee(cashAmount, m)
-		if err != nil {
-			h.log.Warn("Skipping payment method with invalid fee formula",
-				zap.String("method_code", m.Code), zap.Error(err))
-			continue
-		}
+	options := buildCanonicalPaymentMethodOptions(cashAmount, methods, func(code string, err error) {
+		h.log.Warn("Skipping payment method with invalid fee formula",
+			zap.String("method_code", code), zap.Error(err))
+	})
+	out := make([]gin.H, 0, len(options))
+	for _, o := range options {
 		out = append(out, gin.H{
-			"method_code":              m.Code,
-			"display_name":             m.DisplayName,
+			"method_code":              o.MethodCode,
+			"display_name":             o.DisplayName,
 			"coins_to_use":             coinsToUse,
 			"cash_amount":              cashAmount.Int64(),
-			"buyer_payment_fee_amount": fee.Int64(),
-			"total_payable_amount":     cashAmount.Add(fee).Int64(),
+			"buyer_payment_fee_amount": o.BuyerPaymentFeeAmount,
+			"total_payable_amount":     o.FinalPayableAmount,
 		})
 	}
 
@@ -4006,6 +4107,159 @@ func (h *CorePaymentHandler) ListPaymentMethods(c *gin.Context) {
 		"base_amount":  baseAmount.Int64(),
 		"coins_to_use": coinsToUse,
 		"methods":      out,
+	})
+}
+
+// ListPreOrderPaymentMethods handles
+// GET /api/v1/payments/pre-order-methods?pricing_token=<uuid>[&use_coins=true].
+//
+// CANONICAL PRE-ORDER PRICING CONTRACT (Phase 1): discloses the enabled payment
+// methods with the backend-computed buyer fee and the FINAL payable amount for
+// a valid, unconsumed, unexpired pricing token — BEFORE any durable order is
+// created. This is what lets the buyer see the final total and choose a method
+// before "Buat Pesanan".
+//
+// READ-ONLY: no order row is created, no payment row is created, no Midtrans
+// call is made, and the pricing token is NOT consumed. The token remains
+// single-use and is consumed only by POST /orders.
+//
+// AUTHORITY:
+//   - base = pricing_tokens.escrow_amount ((P−D)+S), the immutable snapshot.
+//   - K = coinsapp.ResolveOrderRedemption(balance, max_coins_allowed, use_coins)
+//     — the SAME formula POST /orders persists, never a client value.
+//   - F = paymentmethodentity.CalculateFee(cash, method) — the SAME formula
+//     POST /payments charges, so the disclosed final equals the charged final.
+//   - final_payable_amount = (escrow − K) + F.
+//
+// SEMANTIC BOUNDARY: this surface emits `final_payable_amount` (after the
+// payment fee). It deliberately does NOT emit `total_payable_amount`, which is
+// the pre-fee preview amount on POST /pricing/preview — the two must never be
+// confused.
+//
+// Rejections: missing/invalid token → 400, unknown token → 404, another
+// buyer's token → 403, already consumed → 409, expired → 410.
+func (h *CorePaymentHandler) ListPreOrderPaymentMethods(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	userIDVal, exists := c.Get("userID")
+	if !exists {
+		response.Unauthorized(c, "User not authenticated")
+		return
+	}
+	userID, ok := userIDVal.(uuid.UUID)
+	if !ok {
+		response.InternalServerError(c, "Invalid user ID in context")
+		return
+	}
+
+	tokenParam := c.Query("pricing_token")
+	tokenID, err := uuid.Parse(tokenParam)
+	if err != nil {
+		response.BadRequest(c, "pricing_token query parameter is required and must be a valid UUID")
+		return
+	}
+	useCoins, err := strconv.ParseBool(c.DefaultQuery("use_coins", "false"))
+	if err != nil {
+		response.BadRequest(c, "use_coins must be a boolean")
+		return
+	}
+
+	// Load the immutable pricing snapshot WITHOUT consuming it.
+	var token *pricingtokenentity.PricingToken
+	err = h.db.WithTx(ctx, func(tx db.Tx) error {
+		var loadErr error
+		token, loadErr = h.pricingTokenService.GetSnapshot(ctx, tx, tokenID)
+		return loadErr
+	})
+	if err != nil {
+		if errors.Is(err, pricingtokenentity.ErrTokenNotFound) {
+			response.NotFound(c, "Pricing token not found")
+			return
+		}
+		h.log.Error("Failed to load pricing token for pre-order methods",
+			zap.String("pricing_token", tokenID.String()), zap.Error(err))
+		response.InternalServerError(c, "Failed to load pricing token")
+		return
+	}
+	if token.UserID != userID {
+		response.Forbidden(c, "You can only view pricing for your own checkout")
+		return
+	}
+	if token.IsUsed {
+		response.Conflict(c, "Pricing token has already been used")
+		return
+	}
+	if token.IsExpired() {
+		response.Gone(c, "Pricing token has expired")
+		return
+	}
+
+	// Canonical base and coin redemption (K). K is resolved with the SAME
+	// authority POST /orders uses; this is a read-only projection, not a
+	// competing decision.
+	baseAmount := token.EscrowAmount
+	coinsToUse := int64(0)
+	if useCoins {
+		if h.coinBalanceReader == nil {
+			response.InternalServerError(c, "Coin balance reader not configured")
+			return
+		}
+		var balance int64
+		err = h.db.WithTx(ctx, func(tx db.Tx) error {
+			var balErr error
+			balance, balErr = h.coinBalanceReader.GetActiveBalance(ctx, tx, userID)
+			return balErr
+		})
+		if err != nil {
+			h.log.Error("Failed to resolve coin balance for pre-order methods",
+				zap.String("user_id", userID.String()), zap.Error(err))
+			response.InternalServerError(c, "Failed to resolve coin balance")
+			return
+		}
+		coinsToUse = coinsApp.ResolveOrderRedemption(balance, token.MaxCoinsAllowed, true)
+	}
+	if coinsToUse < 0 {
+		coinsToUse = 0
+	}
+	if coinsToUse > baseAmount.Int64() {
+		coinsToUse = baseAmount.Int64()
+	}
+	cashAmount := baseAmount.Sub(money.New(coinsToUse))
+
+	var methods []paymentmethodentity.Method
+	err = h.db.WithTx(ctx, func(tx db.Tx) error {
+		var listErr error
+		methods, listErr = h.paymentMethodRepo.ListEnabled(ctx, tx)
+		return listErr
+	})
+	if err != nil {
+		h.log.Error("Failed to list payment methods for pre-order pricing", zap.Error(err))
+		response.InternalServerError(c, "Failed to load payment methods")
+		return
+	}
+
+	options := buildCanonicalPaymentMethodOptions(cashAmount, methods, func(code string, err error) {
+		h.log.Warn("Skipping payment method with invalid fee formula",
+			zap.String("method_code", code), zap.Error(err))
+	})
+	out := make([]gin.H, 0, len(options))
+	for _, o := range options {
+		out = append(out, gin.H{
+			"method_code":              o.MethodCode,
+			"display_name":             o.DisplayName,
+			"buyer_payment_fee_amount": o.BuyerPaymentFeeAmount,
+			"final_payable_amount":     o.FinalPayableAmount,
+		})
+	}
+
+	response.Success(c, gin.H{
+		"pricing_token": token.Token,
+		"expires_at":    token.ExpiresAt,
+		"escrow_amount": baseAmount.Int64(),
+		"coins_to_use":  coinsToUse,
+		"cash_amount":   cashAmount.Int64(),
+		"currency":      "IDR",
+		"methods":       out,
 	})
 }
 
@@ -4059,14 +4313,27 @@ func (h *CorePaymentHandler) InitiateBillingPayment(
 			return fmt.Errorf("billing is not pending")
 		}
 
-		existing, existingErr := h.paymentRepo.GetPaymentByReference(
-			ctx, tx, repository.ReferenceTypeBilling, billingID,
+		existing, existingErr := h.paymentRepo.FindPendingBillingPayment(
+			ctx, tx, billingID,
 		)
-		if existingErr == nil && existing != nil &&
-			existing.Status == repository.PaymentStatusPending &&
-			existing.ExpiredAt.After(time.Now()) {
-			payment = existing
-			return nil
+		if existingErr != nil {
+			return existingErr
+		}
+		if existing != nil {
+			// CANONICAL PAYMENT-METHOD IDENTITY: a pending billing payment may be
+			// reused ONLY when it was created for the requested method. A method
+			// switch must never silently return a session of a different method.
+			if existing.PaymentMethodCode != nil && *existing.PaymentMethodCode == method.Code {
+				payment = existing
+				return nil
+			}
+			// Method changed: terminalize the superseded pending attempt (mirroring
+			// the canonical seller-subscription lifecycle) and create a fresh
+			// canonical payment for the requested method below. The billing row is
+			// locked FOR UPDATE above, so concurrent initiations serialize here.
+			if err := h.paymentRepo.MarkAsFailed(ctx, tx, existing.ID, repository.PaymentStatusCancel); err != nil {
+				return fmt.Errorf("supersede stale pending billing payment: %w", err)
+			}
 		}
 
 		billingPrincipal := billing.GrossAmount
@@ -4118,7 +4385,10 @@ func (h *CorePaymentHandler) InitiateBillingPayment(
 		payment.ExpiredAt.After(time.Now()) {
 		paymentURL = *payment.PaymentURL
 	} else {
-		paymentURL, err = h.createMidtransTransaction(ctx, payment, nil, nil, nil)
+		// CANONICAL CHANNEL RESTRICTION: the selected method's MidtransChannels
+		// restrict the Snap page exactly as the order path does. Billing must
+		// never expose a broader channel set than the method the buyer chose.
+		paymentURL, err = h.createMidtransTransaction(ctx, payment, nil, nil, method.MidtransChannels)
 		if err != nil {
 			return nil, fmt.Errorf("create midtrans transaction: %w", err)
 		}
@@ -4221,11 +4491,8 @@ func (h *CorePaymentHandler) createMidtransTransaction(
 	paymentAttempt *repository.PaymentAttempt,
 	enabledPayments []string,
 ) (string, error) {
-	if h.midtransClient == nil {
-		return "", fmt.Errorf("midtrans client not configured")
-	}
-	if h.midtransClient.IsProduction() {
-		return "", fmt.Errorf("midtrans production mode is forbidden in this build")
+	if h.snapService == nil {
+		return "", fmt.Errorf("snap service not configured")
 	}
 
 	orderNumber := ""
@@ -4233,28 +4500,19 @@ func (h *CorePaymentHandler) createMidtransTransaction(
 		orderNumber = *order.OrderNumber
 	}
 
-	snapReq, err := buildSnapRequest(SnapBuilderInput{
+	paymentURL, err := h.snapService.CreateSession(paymentApp.SnapSessionInput{
 		MidtransOrderID: payment.MidtransOrderID,
 		GrossAmount:     payment.GrossAmount.Int64(),
 		ExpiredAt:       payment.ExpiredAt,
 		OrderNumber:     orderNumber,
-		// Buyer left empty intentionally for STEP B — buyer enrichment is a separate
-		// follow-up that requires injecting a user repository into the handler.
-		Buyer:           SnapBuyerInfo{},
-		FrontendURL:     h.frontendURL,
+		// Buyer left empty intentionally for STEP B — buyer enrichment is a
+		// separate follow-up requiring a user repository.
+		Buyer:           paymentApp.SnapBuyerInfo{},
 		Now:             time.Now(),
 		EnabledPayments: enabledPayments,
 	})
 	if err != nil {
-		return "", fmt.Errorf("build snap request: %w", err)
-	}
-
-	resp, err := h.midtransClient.CreateSnapTransaction(snapReq)
-	if err != nil {
 		return "", fmt.Errorf("midtrans snap call: %w", err)
-	}
-	if resp == nil || resp.RedirectURL == "" {
-		return "", fmt.Errorf("midtrans snap returned empty redirect_url")
 	}
 
 	// Mark gateway_reached only after a confirmed real provider response.
@@ -4273,10 +4531,9 @@ func (h *CorePaymentHandler) createMidtransTransaction(
 	h.log.Info("Midtrans Snap transaction created",
 		zap.String("payment_id", payment.ID.String()),
 		zap.String("midtrans_order_id", payment.MidtransOrderID),
-		zap.String("snap_token", resp.Token),
 	)
 
-	return resp.RedirectURL, nil
+	return paymentURL, nil
 }
 
 func (h *CorePaymentHandler) updatePaymentURL(ctx context.Context, tx db.Tx, paymentID uuid.UUID, paymentURL string) error {

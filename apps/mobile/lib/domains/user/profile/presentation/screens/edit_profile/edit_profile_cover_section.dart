@@ -33,8 +33,7 @@ class EditProfileCoverSection extends StatelessWidget {
       children: [
         Text(
           'Cover Photo',
-          style: TextStyle(
-            fontSize: AppType.s14,
+          style: context.typeRoles.bodyDense.copyWith(
             fontWeight: FontWeight.w600,
             color: scheme.onSurfaceVariant,
           ),
@@ -94,7 +93,9 @@ class EditProfileCoverSection extends StatelessWidget {
               onPressed: onRemoveCover,
               icon: const Icon(Icons.delete_outline, size: AppIconSize.action),
               label: const Text('Remove Cover'),
-              style: TextButton.styleFrom(foregroundColor: context.statusColors.error),
+              style: TextButton.styleFrom(
+                foregroundColor: context.statusColors.error,
+              ),
             ),
           ),
       ],

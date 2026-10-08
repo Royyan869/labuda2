@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/core/core.dart' as core;
+import 'package:labuda/shared/widgets/app_dialog.dart';
 import 'package:labuda/shared/widgets/app_snackbar.dart';
-import 'package:labuda/shared/shared.dart' show authenticatedUserProvider;
+import 'package:labuda/shared/shared.dart'
+    show authenticatedUserProvider, BottomActionBar, BottomBarAction;
 import 'package:labuda/domains/commerce/pricing/discount/domain/entities/discount_entity.dart';
 import 'package:labuda/domains/commerce/pricing/discount/domain/use_cases/create_discount_use_case.dart';
 import 'package:labuda/domains/commerce/pricing/discount/presentation/providers/discount_provider.dart';
@@ -87,31 +89,11 @@ class _CreateDiscountScreenState extends ConsumerState<CreateDiscountScreen> {
   }
 
   bool _validateForm() {
-    if (!_formKey.currentState!.validate()) {
-      return false;
-    }
-
-    if (_code.trim().length < 3) {
-      AppSnackBar.showWarning(context, 'Discount code minimum 3 characters');
-      return false;
-    }
-
-    if (_value <= 0) {
-      AppSnackBar.showWarning(context, 'Discount value must be greater than 0');
-      return false;
-    }
-
-    if (_type == DiscountType.percentage && _value > 100) {
-      AppSnackBar.showWarning(context, 'Discount percentage maximum 100%');
-      return false;
-    }
-
-    if (_validUntil.isBefore(DateTime.now())) {
-      AppSnackBar.showWarning(context, 'Expiry date must be in the future');
-      return false;
-    }
-
-    return true;
+    // Field-level validation is INLINE: BasicInfoSection validates the code
+    // (required, min 3), DiscountTypeSection validates the value (required,
+    // >0, percentage <=100), and ValiditySection's date picker cannot choose a
+    // past date. `validate()` paints those errors, so no Snackbar is needed.
+    return _formKey.currentState!.validate();
   }
 
   Future<void> _submit() async {
@@ -119,7 +101,7 @@ class _CreateDiscountScreenState extends ConsumerState<CreateDiscountScreen> {
 
     final currentUser = ref.read(authenticatedUserProvider);
     if (currentUser == null) {
-      AppSnackBar.showError(context, 'User not found');
+      AppSnackBar.showError(context, 'Pengguna tidak ditemukan');
       return;
     }
 
@@ -174,32 +156,19 @@ class _CreateDiscountScreenState extends ConsumerState<CreateDiscountScreen> {
   }
 
   void _showDiscardDialog() {
-    showDialog(
+    AppDialog.confirm(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Discard Changes?'),
-        content: const Text(
+      title: 'Discard Changes?',
+      message:
           'Anda memiliki perubahan yang belum disimpan. '
           'Yakin ingin keluar?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              Navigator.of(context).pop();
-            },
-            child: Text(
-              'Discard',
-              style: TextStyle(color: context.statusColors.error),
-            ),
-          ),
-        ],
-      ),
-    );
+      confirmLabel: 'Discard',
+      cancelLabel: 'Cancel',
+      intent: AppDialogIntent.destructive,
+    ).then((discard) {
+      if (!discard || !mounted) return;
+      Navigator.of(context).pop();
+    });
   }
 
   @override
@@ -219,7 +188,7 @@ class _CreateDiscountScreenState extends ConsumerState<CreateDiscountScreen> {
         appBar: AppBar(
           title: Text(_isEditMode ? 'Edit Diskon' : 'Buat Diskon Baru'),
           leading: IconButton(
-            icon: const Icon(Icons.close),
+            icon: const Icon(Icons.close, semanticLabel: 'Tutup'),
             onPressed: () {
               if (_hasUnsavedChanges) {
                 _showDiscardDialog();
@@ -323,44 +292,15 @@ class _CreateDiscountScreenState extends ConsumerState<CreateDiscountScreen> {
                     });
                   },
                 ),
-
-                const SizedBox(height: 80), // Space for bottom button
               ],
             ),
           ),
         ),
-        bottomNavigationBar: Container(
-          padding: const EdgeInsets.all(core.AppMetrics.p12),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface,
-            boxShadow: [
-              BoxShadow(
-                color: Theme.of(
-                  context,
-                ).colorScheme.scrim.withValues(alpha: 0.05),
-                blurRadius: 10,
-                offset: const Offset(0, -2),
-              ),
-            ],
-          ),
-          child: SafeArea(
-            child: ElevatedButton(
-              onPressed: _isLoading ? null : _submit,
-              child: _isLoading
-                  ? SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation(
-                          Theme.of(context).colorScheme.onPrimary,
-                        ),
-                      ),
-                    )
-                  : Text(
-                      _isEditMode ? 'Save Changes' : 'Create Discount',
-                    ),
-            ),
+        bottomNavigationBar: BottomActionBar(
+          primary: BottomBarAction(
+            label: _isEditMode ? 'Save Changes' : 'Create Discount',
+            onPressed: _isLoading ? null : _submit,
+            isLoading: _isLoading,
           ),
         ),
       ),

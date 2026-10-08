@@ -20,7 +20,7 @@ func NewAddressRepository() *AddressRepositoryImpl {
 }
 
 // addressColumns is the canonical column list for SELECT queries.
-const addressColumns = `id, user_id, tags, nickname,
+const addressColumns = `id, user_id, nickname,
 	recipient_name, phone,
 	province_id, province_name,
 	city_id, city_name,
@@ -39,7 +39,7 @@ func (r *AddressRepositoryImpl) Create(
 ) error {
 	_, err := tx.Exec(ctx, `
 		INSERT INTO addresses (
-			id, user_id, tags, nickname,
+			id, user_id, nickname,
 			recipient_name, phone,
 			province_id, province_name,
 			city_id, city_name,
@@ -50,11 +50,10 @@ func (r *AddressRepositoryImpl) Create(
 			is_primary, is_available_for_checkout,
 			created_at, updated_at
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
 	`,
 		address.ID,
 		address.UserID,
-		address.TagStrings(),
 		address.Nickname,
 		address.RecipientName,
 		address.Phone,
@@ -91,8 +90,6 @@ func (r *AddressRepositoryImpl) GetByID(
 	id uuid.UUID,
 ) (*addressEntity.Address, error) {
 	var address addressEntity.Address
-	var tags []string
-
 	err := tx.QueryRow(ctx, `
 		SELECT `+addressColumns+`
 		FROM addresses
@@ -100,7 +97,6 @@ func (r *AddressRepositoryImpl) GetByID(
 	`, id).Scan(
 		&address.ID,
 		&address.UserID,
-		&tags,
 		&address.Nickname,
 		&address.RecipientName,
 		&address.Phone,
@@ -130,7 +126,6 @@ func (r *AddressRepositoryImpl) GetByID(
 		return nil, fmt.Errorf("get address failed: %w", err)
 	}
 
-	address.Tags = addressEntity.TagsFrom(tags)
 
 	return &address, nil
 }
@@ -142,8 +137,6 @@ func (r *AddressRepositoryImpl) GetForUpdate(
 	id uuid.UUID,
 ) (*addressEntity.Address, error) {
 	var address addressEntity.Address
-	var tags []string
-
 	err := tx.QueryRow(ctx, `
 		SELECT `+addressColumns+`
 		FROM addresses
@@ -152,7 +145,6 @@ func (r *AddressRepositoryImpl) GetForUpdate(
 	`, id).Scan(
 		&address.ID,
 		&address.UserID,
-		&tags,
 		&address.Nickname,
 		&address.RecipientName,
 		&address.Phone,
@@ -182,7 +174,6 @@ func (r *AddressRepositoryImpl) GetForUpdate(
 		return nil, fmt.Errorf("get address for update failed: %w", err)
 	}
 
-	address.Tags = addressEntity.TagsFrom(tags)
 
 	return &address, nil
 }
@@ -195,30 +186,28 @@ func (r *AddressRepositoryImpl) Update(
 ) error {
 	_, err := tx.Exec(ctx, `
 		UPDATE addresses
-		SET tags = $2,
-		    nickname = $3,
-		    recipient_name = $4,
-		    phone = $5,
-		    province_id = $6,
-		    province_name = $7,
-		    city_id = $8,
-		    city_name = $9,
-		    district_id = $10,
-		    district_name = $11,
-		    village_id = $12,
-		    village_name = $13,
-		    street_address = $14,
-		    postal_code = $15,
-		    latitude = $16,
-		    longitude = $17,
-		    notes = $18,
-		    is_primary = $19,
-		    is_available_for_checkout = $20,
-		    updated_at = $21
+		SET nickname = $2,
+		    recipient_name = $3,
+		    phone = $4,
+		    province_id = $5,
+		    province_name = $6,
+		    city_id = $7,
+		    city_name = $8,
+		    district_id = $9,
+		    district_name = $10,
+		    village_id = $11,
+		    village_name = $12,
+		    street_address = $13,
+		    postal_code = $14,
+		    latitude = $15,
+		    longitude = $16,
+		    notes = $17,
+		    is_primary = $18,
+		    is_available_for_checkout = $19,
+		    updated_at = $20
 		WHERE id = $1
 	`,
 		address.ID,
-		address.TagStrings(),
 		address.Nickname,
 		address.RecipientName,
 		address.Phone,
@@ -311,46 +300,6 @@ func (r *AddressRepositoryImpl) GetByUserIDForDisplay(
 	return r.scanRows(rows)
 }
 
-// GetByUserIDFiltered retrieves addresses for a user carrying the given tag.
-//
-// TAG FALLBACK (the read law): a tag narrows PREFERENCE, never capability.
-// When no active address carries the tag, the filter is dropped and every
-// active address comes back instead — a purpose can never fail while the
-// account owns an address. Zero addresses stays empty; that is the only
-// empty case this read can produce.
-func (r *AddressRepositoryImpl) GetByUserIDFiltered(
-	ctx context.Context,
-	tx db.Tx,
-	userID uuid.UUID,
-	tag string,
-) ([]*addressEntity.Address, error) {
-	if tag == "" {
-		return r.GetByUserID(ctx, tx, userID)
-	}
-
-	rows, err := tx.Query(ctx, `
-		SELECT `+addressColumns+`
-		FROM addresses
-		WHERE user_id = $1 AND $2 = ANY(tags) AND is_available_for_checkout = true
-		ORDER BY is_primary DESC, created_at DESC
-	`, userID, tag)
-
-	if err != nil {
-		return nil, fmt.Errorf("get addresses by user filtered failed: %w", err)
-	}
-	addresses, scanErr := r.scanRows(rows)
-	rows.Close()
-	if scanErr != nil {
-		return nil, scanErr
-	}
-	if len(addresses) > 0 {
-		return addresses, nil
-	}
-
-	// Tag miss: fall back to every active address.
-	return r.GetByUserID(ctx, tx, userID)
-}
-
 // GetPrimaryByUserID retrieves the primary address for a user.
 func (r *AddressRepositoryImpl) GetPrimaryByUserID(
 	ctx context.Context,
@@ -358,8 +307,6 @@ func (r *AddressRepositoryImpl) GetPrimaryByUserID(
 	userID uuid.UUID,
 ) (*addressEntity.Address, error) {
 	var address addressEntity.Address
-	var tags []string
-
 	err := tx.QueryRow(ctx, `
 		SELECT `+addressColumns+`
 		FROM addresses
@@ -368,7 +315,6 @@ func (r *AddressRepositoryImpl) GetPrimaryByUserID(
 	`, userID).Scan(
 		&address.ID,
 		&address.UserID,
-		&tags,
 		&address.Nickname,
 		&address.RecipientName,
 		&address.Phone,
@@ -398,110 +344,7 @@ func (r *AddressRepositoryImpl) GetPrimaryByUserID(
 		return nil, fmt.Errorf("get primary address failed: %w", err)
 	}
 
-	address.Tags = addressEntity.TagsFrom(tags)
-
 	return &address, nil
-}
-
-// GetPrimaryByTag retrieves the account's primary address, restricted to
-// addresses carrying the given tag. The primary flag itself stays a single
-// account-wide resource (idx_addresses_user_active_primary_unique); this read
-// only narrows WHICH primary you see.
-//
-// TAG FALLBACK (the read law, same as GetByUserIDFiltered): on a tag miss the
-// answer degrades primary -> oldest active address -> nil. The primary is the
-// account's default address, so it answers for a tag it does not carry; nil
-// means the account owns no active address at all.
-func (r *AddressRepositoryImpl) GetPrimaryByTag(
-	ctx context.Context,
-	tx db.Tx,
-	userID uuid.UUID,
-	tag string,
-) (*addressEntity.Address, error) {
-	if tag == "" {
-		return r.GetPrimaryByUserID(ctx, tx, userID)
-	}
-
-	var address addressEntity.Address
-	var tags []string
-
-	err := tx.QueryRow(ctx, `
-		SELECT `+addressColumns+`
-		FROM addresses
-		WHERE user_id = $1 AND is_primary = true AND $2 = ANY(tags) AND is_available_for_checkout = true
-		LIMIT 1
-	`, userID, tag).Scan(
-		&address.ID,
-		&address.UserID,
-		&tags,
-		&address.Nickname,
-		&address.RecipientName,
-		&address.Phone,
-		&address.ProvinceID,
-		&address.ProvinceName,
-		&address.CityID,
-		&address.CityName,
-		&address.DistrictID,
-		&address.DistrictName,
-		&address.VillageID,
-		&address.VillageName,
-		&address.StreetAddress,
-		&address.PostalCode,
-		&address.Latitude,
-		&address.Longitude,
-		&address.Notes,
-		&address.IsPrimary,
-		&address.IsAvailableForCheckout,
-		&address.CreatedAt,
-		&address.UpdatedAt,
-	)
-
-	if err != nil {
-		if err == pgx.ErrNoRows {
-			// Tag miss: the primary answers for the tag it does not carry…
-			primary, fallbackErr := r.GetPrimaryByUserID(ctx, tx, userID)
-			if fallbackErr != nil || primary != nil {
-				return primary, fallbackErr
-			}
-			// …and the oldest active address answers when no primary is
-			// flagged yet (pre-reconciler data).
-			return r.oldestActiveAddress(ctx, tx, userID)
-		}
-		return nil, fmt.Errorf("get primary address filtered failed: %w", err)
-	}
-
-	address.Tags = addressEntity.TagsFrom(tags)
-
-	return &address, nil
-}
-
-// oldestActiveAddress returns the account's oldest active address — the same
-// tie-breaker the primary invariant uses for promotion — or nil when the
-// account owns no active address.
-func (r *AddressRepositoryImpl) oldestActiveAddress(
-	ctx context.Context,
-	tx db.Tx,
-	userID uuid.UUID,
-) (*addressEntity.Address, error) {
-	rows, err := tx.Query(ctx, `
-		SELECT `+addressColumns+`
-		FROM addresses
-		WHERE user_id = $1 AND is_available_for_checkout = true
-		ORDER BY created_at ASC
-		LIMIT 1
-	`, userID)
-	if err != nil {
-		return nil, fmt.Errorf("get oldest active address failed: %w", err)
-	}
-	addresses, scanErr := r.scanRows(rows)
-	rows.Close()
-	if scanErr != nil {
-		return nil, scanErr
-	}
-	if len(addresses) == 0 {
-		return nil, nil
-	}
-	return addresses[0], nil
 }
 
 // SetPrimary sets an address as primary and unsets all other primary addresses.
@@ -564,8 +407,6 @@ func (r *AddressRepositoryImpl) CountByUserID(
 	tx db.Tx,
 	userID uuid.UUID,
 ) (*addressRepo.AddressCount, error) {
-	// Total counts distinct addresses; per-tag counts come from unnesting so a
-	// dual-tagged address contributes to both buckets.
 	var total int64
 	if err := tx.QueryRow(ctx, `
 		SELECT COUNT(*)
@@ -575,37 +416,7 @@ func (r *AddressRepositoryImpl) CountByUserID(
 		return nil, fmt.Errorf("count addresses by user failed: %w", err)
 	}
 
-	rows, err := tx.Query(ctx, `
-		SELECT tag, COUNT(*)
-		FROM addresses, unnest(tags) AS tag
-		WHERE user_id = $1 AND is_available_for_checkout = true
-		GROUP BY tag
-	`, userID)
-	if err != nil {
-		return nil, fmt.Errorf("count addresses by user failed: %w", err)
-	}
-	defer rows.Close()
-
-	result := &addressRepo.AddressCount{Total: total}
-	for rows.Next() {
-		var tag string
-		var count int64
-		if err := rows.Scan(&tag, &count); err != nil {
-			return nil, fmt.Errorf("scan address count failed: %w", err)
-		}
-		switch tag {
-		case "shipping":
-			result.ShippingCount = count
-		case "sender":
-			result.SenderCount = count
-		}
-	}
-
-	if rows.Err() != nil {
-		return nil, fmt.Errorf("iterate address counts failed: %w", rows.Err())
-	}
-
-	return result, nil
+	return &addressRepo.AddressCount{Total: total}, nil
 }
 
 // scanRows is a helper to scan addresses from rows.
@@ -614,12 +425,10 @@ func (r *AddressRepositoryImpl) scanRows(rows pgx.Rows) ([]*addressEntity.Addres
 
 	for rows.Next() {
 		var address addressEntity.Address
-		var tags []string
 
 		err := rows.Scan(
 			&address.ID,
 			&address.UserID,
-			&tags,
 			&address.Nickname,
 			&address.RecipientName,
 			&address.Phone,
@@ -645,7 +454,6 @@ func (r *AddressRepositoryImpl) scanRows(rows pgx.Rows) ([]*addressEntity.Addres
 			return nil, fmt.Errorf("scan address failed: %w", err)
 		}
 
-		address.Tags = addressEntity.TagsFrom(tags)
 		addresses = append(addresses, &address)
 	}
 

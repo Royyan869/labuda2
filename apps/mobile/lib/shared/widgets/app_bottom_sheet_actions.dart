@@ -15,6 +15,10 @@ class BottomSheetAction<T> {
   final BottomSheetActionStyle style;
   final String? badge;
 
+  /// Marks a single-choice action as the current value (check + accent title).
+  /// Only meaningful for action menus that double as a selection.
+  final bool selected;
+
   const BottomSheetAction({
     required this.title,
     this.subtitle,
@@ -23,6 +27,7 @@ class BottomSheetAction<T> {
     this.onPressed,
     this.style = BottomSheetActionStyle.normal,
     this.badge,
+    this.selected = false,
   });
 }
 
@@ -44,7 +49,12 @@ class AppBottomSheetActions {
       context: context,
       title: title,
       isDismissible: isDismissible,
-      padding: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p0, AppMetrics.p16, AppMetrics.p16),
+      padding: const EdgeInsets.fromLTRB(
+        AppMetrics.p16,
+        AppMetrics.p0,
+        AppMetrics.p16,
+        AppMetrics.p16,
+      ),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -54,9 +64,8 @@ class AppBottomSheetActions {
               padding: const EdgeInsets.only(bottom: AppMetrics.p24),
               child: Text(
                 subtitle,
-                style: TextStyle(
-                  fontSize: AppType.s14,
-color: scheme.onSurfaceVariant,
+                style: context.typeRoles.bodyDense.copyWith(
+                  color: scheme.onSurfaceVariant,
                   height: 1.4,
                 ),
                 textAlign: TextAlign.center,
@@ -110,7 +119,10 @@ color: scheme.onSurfaceVariant,
         borderRadius: BorderRadius.circular(AppShape.r12),
         child: Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p16),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppMetrics.p16,
+            vertical: AppMetrics.p16,
+          ),
           child: Row(
             children: [
               // Icon
@@ -119,8 +131,9 @@ color: scheme.onSurfaceVariant,
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: (action.iconColor ?? scheme.primary)
-                        .withValues(alpha: 0.1),
+                    color: (action.iconColor ?? scheme.primary).withValues(
+                      alpha: 0.1,
+                    ),
                     borderRadius: BorderRadius.circular(AppShape.r10),
                   ),
                   child: Icon(
@@ -139,19 +152,21 @@ color: scheme.onSurfaceVariant,
                   children: [
                     Text(
                       action.title,
-                      style: TextStyle(
-                        fontSize: AppType.s16,
-                        fontWeight: FontWeight.w500,
-                        color: _getTextColor(action.style, scheme),
+                      style: context.typeRoles.titleCompact.copyWith(
+                        fontWeight: action.selected
+                            ? FontWeight.w600
+                            : FontWeight.w500,
+                        color: action.selected
+                            ? scheme.primary
+                            : _getTextColor(action.style, scheme),
                       ),
                     ),
                     if (action.subtitle != null) ...[
                       const SizedBox(height: 2),
                       Text(
                         action.subtitle!,
-                        style: TextStyle(
-                          fontSize: AppType.s14,
-color: scheme.onSurfaceVariant,
+                        style: context.typeRoles.bodyDense.copyWith(
+                          color: scheme.onSurfaceVariant,
                         ),
                       ),
                     ],
@@ -172,22 +187,28 @@ color: scheme.onSurfaceVariant,
                   ),
                   child: Text(
                     action.badge!,
-style: TextStyle(
-                       color: scheme.onPrimary,
-                       fontSize: AppType.s12,
-                       fontWeight: FontWeight.w600,
-                     ),
+                    style: context.typeRoles.labelMicro.copyWith(
+                      color: scheme.onPrimary,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ],
 
-              // Arrow
+              // Selection check or navigation arrow
               const SizedBox(width: 8),
-              Icon(
-                Icons.chevron_right,
-                color: scheme.onSurfaceVariant,
-                size: AppIconSize.action,
-              ),
+              if (action.selected)
+                Icon(
+                  Icons.check_circle,
+                  color: scheme.secondary,
+                  size: AppIconSize.header,
+                )
+              else
+                Icon(
+                  Icons.chevron_right,
+                  color: scheme.onSurfaceVariant,
+                  size: AppIconSize.action,
+                ),
             ],
           ),
         ),

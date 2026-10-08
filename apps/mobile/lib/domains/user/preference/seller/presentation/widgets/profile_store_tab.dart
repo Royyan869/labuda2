@@ -88,14 +88,14 @@ class _ForSaleTab extends ConsumerWidget {
                 onTap: () => _navigateToForSaleDetail(ref, forSale.forSaleId),
               );
             },
-            emptyBuilder: (context) => const EmptyState(
+            emptyBuilder: (context) => EmptyState(
               icon: Icons.storefront_outlined,
-              title: 'Belum ada for sale',
-              subtitle: 'Seller ini belum memiliki for sale aktif',
+              title: context.l10n.emptyForSaleTitle,
+              subtitle: context.l10n.emptySellerForSaleMessage,
             ),
-            errorBuilder: (context, error, stackTrace) => EmptyState.error(
-              title: 'Data belum bisa dimuat.',
-              subtitle: 'Periksa koneksi kamu lalu coba lagi.',
+            // CANONICAL page-level error (PageErrorState): safe localized
+            // copy only, the raw [error] never reaches the screen.
+            errorBuilder: (context, error, stackTrace) => PageErrorState(
               onRetry: () => ref.invalidate(sellerForSalesProvider(params)),
             ),
           ),
@@ -152,14 +152,14 @@ class _AuctionTab extends ConsumerWidget {
                 onTap: () => _navigateToAuctionDetail(ref, auction.id),
               );
             },
-            emptyBuilder: (context) => const EmptyState(
+            emptyBuilder: (context) => EmptyState(
               icon: Icons.gavel_outlined,
-              title: 'Belum ada lelang',
-              subtitle: 'Seller ini belum memiliki lelang aktif',
+              title: context.l10n.emptyAuctionTitle,
+              subtitle: context.l10n.emptySellerAuctionMessage,
             ),
-            errorBuilder: (context, error, stackTrace) => EmptyState.error(
-              title: 'Data belum bisa dimuat.',
-              subtitle: 'Periksa koneksi kamu lalu coba lagi.',
+            // CANONICAL page-level error (PageErrorState): safe localized
+            // copy only, the raw [error] never reaches the screen.
+            errorBuilder: (context, error, stackTrace) => PageErrorState(
               onRetry: () => ref.invalidate(sellerAuctionsProvider(userId)),
             ),
           ),

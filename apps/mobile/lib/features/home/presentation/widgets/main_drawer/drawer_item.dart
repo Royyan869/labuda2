@@ -38,11 +38,10 @@ class MainDrawerItem extends StatelessWidget {
       ),
       title: Text(
         title,
-        style: TextStyle(
+        style: context.typeRoles.titleCompact.copyWith(
           color: isDestructive
               ? scheme.error
               : scheme.onSurface,
-          fontSize: AppType.s16,
           fontWeight: FontWeight.w500,
         ),
       ),
@@ -56,9 +55,8 @@ class MainDrawerItem extends StatelessWidget {
               constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
               child: Text(
                 badge! > 99 ? '99+' : badge.toString(),
-                style: TextStyle(
+                style: context.typeRoles.labelMicro.copyWith(
                   color: scheme.onError,
-                  fontSize: AppType.s12,
                   fontWeight: FontWeight.bold,
                 ),
                 textAlign: TextAlign.center,

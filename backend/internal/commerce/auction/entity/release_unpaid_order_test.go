@@ -12,7 +12,7 @@ import (
 // a bound order is cancelled/expired before payment succeeded.
 
 func TestReleaseUnpaidOrder_ClearsMatchingBinding(t *testing.T) {
-	auction := createTestDraftAuction()
+	auction := createTestAuction()
 	auction.Status = StatusActive
 	orderID := uuid.New()
 	auction.OrderID = &orderID
@@ -26,9 +26,10 @@ func TestReleaseUnpaidOrder_ClearsMatchingBinding(t *testing.T) {
 }
 
 func TestReleaseUnpaidOrder_StatusStaysEnded(t *testing.T) {
-	// Ended is a deliberate terminal state (see transitionAllowed) — release
-	// must not attempt to reopen the auction for further bids/buy-now.
-	auction := createTestDraftAuction()
+	// ReleaseUnpaidOrder never reopens the auction: it only clears the order
+	// binding. Republishing an ended auction is exclusively the seller's
+	// relist path (Relist), never an order-lifecycle side effect.
+	auction := createTestAuction()
 	auction.Status = StatusActive
 	orderID := uuid.New()
 	auction.OrderID = &orderID
@@ -40,7 +41,7 @@ func TestReleaseUnpaidOrder_StatusStaysEnded(t *testing.T) {
 }
 
 func TestReleaseUnpaidOrder_MismatchedOrderRejected(t *testing.T) {
-	auction := createTestDraftAuction()
+	auction := createTestAuction()
 	auction.Status = StatusActive
 	boundOrderID := uuid.New()
 	auction.OrderID = &boundOrderID
@@ -55,7 +56,7 @@ func TestReleaseUnpaidOrder_MismatchedOrderRejected(t *testing.T) {
 }
 
 func TestReleaseUnpaidOrder_AlreadyReleased_IdempotentNoOp(t *testing.T) {
-	auction := createTestDraftAuction()
+	auction := createTestAuction()
 	auction.Status = StatusActive
 	orderID := uuid.New()
 	auction.OrderID = &orderID

@@ -52,6 +52,24 @@ class AppColors {
   static const Color darkStatusError = primaryRed;
   static const Color darkStatusInfo = primaryBlue;
 
+  // Status FOREGROUND roles — the ink that sits ON a status fill (snackbar,
+  // status badge). A status background is NOT a universal `onPrimary` surface:
+  // white-on-status fails WCAG AA for normal text (light warning 3.2:1,
+  // success 3.8:1, info 4.1:1). Each pair below is measured >=4.5:1 against its
+  // matching `status*` background, so consumers MUST read the on-role instead
+  // of hardcoding white. Consumed ONLY through `AppStatusColors`.
+  static const Color statusOnSuccess = neutralGray900; // on #059669 → 4.7:1
+  static const Color statusOnWarning = neutralGray900; // on #D97706 → 5.6:1
+  static const Color statusOnError = neutralWhite; // on #DC2626 → 4.8:1
+  static const Color statusOnInfo = neutralBlack; // on #0284C7 → 5.1:1
+
+  // Dark-mode foregrounds: the dark status fills are bright tones, so dark ink
+  // is the contrast-safe choice (all >=4.5:1).
+  static const Color darkStatusOnSuccess = neutralGray900; // on primaryGreen → 7.0:1
+  static const Color darkStatusOnWarning = neutralGray900; // on primaryYellow → 8.0:1
+  static const Color darkStatusOnError = neutralGray900; // on primaryRed → 4.8:1
+  static const Color darkStatusOnInfo = neutralGray900; // on primaryBlue → 4.8:1
+
   // Social media specific colors
   static const Color koiOrange = Color(0xFFFF6B35);
   static const Color koiGold = Color(0xFFFFD700);

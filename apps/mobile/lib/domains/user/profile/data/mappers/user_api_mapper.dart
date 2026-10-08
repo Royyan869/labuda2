@@ -70,7 +70,7 @@ class UserApiMapper {
       location:
           _normalizeLocation(response.location) ??
           _normalizeLocation(profile?.location),
-      coverPhotoUrl: profile?.coverPhotoUrl,
+      coverPhotoUrl: response.coverPhotoUrl ?? profile?.coverPhotoUrl,
       publicOriginLine: response.publicOriginLine,
       joinedAt: response.createdAt,
       lastActiveAt: profile?.lastActiveAt,
@@ -96,16 +96,6 @@ class UserApiMapper {
     String? facebookHandle,
     String? twitterHandle,
     String? tiktokHandle,
-    String? youtubeHandle,
-    String? websiteUrl,
-    String? visibility,
-    bool? showPhoneNumber,
-    bool? showEmail,
-    bool? showLocation,
-    String? allowMessagesFrom,
-    bool? allowTagging,
-    bool? showActivityStatus,
-    bool? showTransactionCount,
   }) {
     return UpdateProfileApiRequest(
       bio: bio,
@@ -118,16 +108,6 @@ class UserApiMapper {
       facebookHandle: facebookHandle,
       twitterHandle: twitterHandle,
       tiktokHandle: tiktokHandle,
-      youtubeHandle: youtubeHandle,
-      websiteUrl: websiteUrl,
-      visibility: visibility,
-      showPhoneNumber: showPhoneNumber,
-      showEmail: showEmail,
-      showLocation: showLocation,
-      allowMessagesFrom: allowMessagesFrom,
-      allowTagging: allowTagging,
-      showActivityStatus: showActivityStatus,
-      showTransactionCount: showTransactionCount,
     );
   }
 
@@ -212,22 +192,25 @@ class UserApiMapper {
   static ContactInfo? _mapContactInfo(UserApiResponse response) {
     final profile = response.profile;
     final socialMedia = profile?.socialMedia;
-    final privacy = profile?.privacy;
 
-    if (socialMedia == null && privacy == null) return null;
+    final maskedPhone = response.phoneNumber != null
+        ? _maskPhone(response.phoneNumber!)
+        : null;
+    final maskedEmail = response.email.isNotEmpty
+        ? _maskEmail(response.email)
+        : null;
+
+    if (socialMedia == null && maskedPhone == null && maskedEmail == null) {
+      return null;
+    }
 
     return ContactInfo(
-      maskedPhone: response.phoneNumber != null
-          ? _maskPhone(response.phoneNumber!)
-          : null,
-      maskedEmail: _maskEmail(response.email),
-      isPhonePublic: privacy?.showPhoneNumber ?? false,
-      isEmailPublic: privacy?.showEmail ?? false,
+      maskedPhone: maskedPhone,
+      maskedEmail: maskedEmail,
       instagramHandle: socialMedia?.instagramHandle,
       facebookHandle: socialMedia?.facebookHandle,
       tiktokHandle: socialMedia?.tiktokHandle,
       twitterHandle: socialMedia?.twitterHandle,
-      isSocialMediaPublic: true,
     );
   }
 

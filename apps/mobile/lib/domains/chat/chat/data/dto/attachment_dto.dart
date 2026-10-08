@@ -124,16 +124,6 @@ class ShareReferenceAttachmentDto extends AttachmentDto {
     return 'unknown';
   }
 
-  /// Create from domain ShareReference
-  factory ShareReferenceAttachmentDto.fromShareReference(ShareReference ref) {
-    return ShareReferenceAttachmentDto(
-      targetType: ref.targetType,
-      targetId: ref.targetId,
-      preview: SharePreviewDto.fromObjectPreview(ref.preview),
-      wireTargetType: ref.wireTargetType,
-    );
-  }
-
   @override
   List<Object?> get props => [targetType, targetId, wireTargetType, preview];
 }
@@ -172,18 +162,6 @@ class SharePreviewDto extends Equatable {
       isSold: json['isSold'] as bool? ?? false,
       isClosed: json['isClosed'] as bool? ?? false,
       isDeleted: json['isDeleted'] as bool? ?? false,
-    );
-  }
-
-  /// Create from domain ObjectPreview
-  factory SharePreviewDto.fromObjectPreview(obj.ObjectPreview preview) {
-    return SharePreviewDto(
-      title: preview.title,
-      imageUrl: preview.imageUrl,
-      isAvailable: preview.isAvailable,
-      isSold: preview.isSold,
-      isClosed: preview.isClosed,
-      isDeleted: preview.isDeleted,
     );
   }
 

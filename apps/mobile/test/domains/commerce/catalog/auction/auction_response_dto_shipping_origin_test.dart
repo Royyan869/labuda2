@@ -1,34 +1,20 @@
-// Auction detail wire — buyer-facing ORIGIN contract + Product address
-// POSITIVE CONTRACT.
+// Auction detail wire — buyer-facing ORIGIN contract.
 //
 // Backend authority (GET /api/v1/auctions → auctionToResponseWithSeller and
 // GET /api/v1/auctions/:id → auctionToDetailResponseWithSeller): the canonical
 // auction payload carries the shared Product content block
-// (shared.ProductContentWireKeys = title, description, media, media_urls,
-// variety, size_cm, age_months, gender, breeder, bloodline, certificates,
-// farm_address_id, preparation_time) plus seller scalars /
-// viewer_capabilities. The DETAIL payload additionally carries
-// `public_origin_line` — the buyer-facing origin summary of the listing's
-// sender address ("City, Province").
+// (shared.ProductContentWireKeys) plus seller scalars / viewer_capabilities.
+// The DETAIL payload additionally carries `public_origin_line` — the
+// buyer-facing origin summary of the account's primary address
+// ("City, Province").
 //
-// CANONICAL TRUTH (Product = single content authority):
-//   - `farm_address_id` IS Product content. The backend accepts it on create
-//     (CreateAuctionRequest.farm_address_id) and emits it on every read
-//     payload, exactly like for_sale. The Auction read model therefore maps
-//     it — an always-null slot would be a lie about the payload it received.
+// CANONICAL TRUTH:
+//   - There is no product-level origin address. Every product's origin is the
+//     seller account's primary address, resolved by the backend at read time.
 //   - `public_origin_line` is the ONE origin transport, and it is DETAIL-ONLY:
-//     it is resolved by the backend from Product.FarmAddressID (seller primary
-//     sender address as fallback) and is already redacted to city + province.
-//     A rendered FULL address string (`origin`) and `shipping_options` are
-//     still NOT emitted — street, district, recipient and phone never cross
-//     the public boundary, and shipping for an auction is resolved at CLAIM
-//     time (checkDeliveryAvailability → /auctions/:id/claim with address_id +
-//     shipping_option_id).
-//
-// These tests pin that: absence stays absent (hidden, never fabricated), the
-// address ID maps honestly (for_sale parity), the origin summary maps, and
-// even an illegal payload that smuggles `origin` / `shipping_options` is
-// ignored (no model, no exception).
+//     backend-redacted to city + province. A rendered full address string
+//     (`origin`) and `shipping_options` are NOT emitted; shipping for an
+//     auction is resolved at CLAIM time.
 import 'package:flutter_test/flutter_test.dart';
 import 'package:labuda/domains/commerce/catalog/auction/data/dto/auction_dto.dart';
 import 'package:labuda/domains/commerce/catalog/auction/data/mappers/auction_mapper.dart';
@@ -72,22 +58,6 @@ void main() {
     expect(entity.koiDetails.variety, 'Showa');
     expect(entity.koiDetails.sizeInCm, 28.0);
     expect(entity.preparationTime, isNotNull);
-
-    // Absence stays absent: a payload without farm_address_id yields a null
-    // slot — no default, no fabrication.
-    expect(entity.farmAddressId, isNull);
-  });
-
-  test('canonical farm_address_id maps into the read model (for_sale parity)', () {
-    final payload = _canonicalDetailJson()
-      ..['farm_address_id'] = 'address-1';
-
-    final dto = AuctionDto.fromJson(payload);
-    final entity = AuctionMapper.toEntity(dto);
-
-    // Product address is canonical content on BOTH sale channels; the read
-    // model records what the wire actually said.
-    expect(entity.farmAddressId, 'address-1');
   });
 
   test(
@@ -97,6 +67,7 @@ void main() {
       // auction backend never emits these.
       final payload = _canonicalDetailJson()
         ..['origin'] = 'Kecamatan, Kota, Provinsi'
+        ..['farm_address_id'] = 'address-1'
         ..['shipping_options'] = <Map<String, dynamic>>[
           <String, dynamic>{
             'id': 'ship-1',
@@ -109,9 +80,7 @@ void main() {
       final entity = AuctionMapper.toEntity(dto);
 
       // Parsed without exception, and the read model does NOT adopt any
-      // rendered origin/shipping surface from the illegal keys. A full street
-      // address string is not an acceptable origin transport.
-      expect(entity.farmAddressId, isNull);
+      // rendered origin/shipping surface from the illegal keys.
       expect(entity.publicOriginLine, isNull);
     },
   );

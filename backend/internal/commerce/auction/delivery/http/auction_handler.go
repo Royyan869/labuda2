@@ -15,17 +15,20 @@ import (
 	auctionApp "github.com/labuda/backend/internal/commerce/auction/application"
 	"github.com/labuda/backend/internal/commerce/auction/entity"
 	forSaleEntity "github.com/labuda/backend/internal/commerce/forsale/entity"
+	mediarequest "github.com/labuda/backend/internal/commerce/media/request"
 	orderApp "github.com/labuda/backend/internal/commerce/order/application"
 	orderEntity "github.com/labuda/backend/internal/commerce/order/entity"
 	productEntity "github.com/labuda/backend/internal/commerce/product/entity"
 	productRepo "github.com/labuda/backend/internal/commerce/product/repository"
-	mediarequest "github.com/labuda/backend/internal/commerce/media/request"
+	productviewEntity "github.com/labuda/backend/internal/commerce/productview/entity"
+	productviewRepo "github.com/labuda/backend/internal/commerce/productview/repository"
 	commerceshared "github.com/labuda/backend/internal/commerce/shared"
 	shippingApp "github.com/labuda/backend/internal/commerce/shipping/application"
 	"github.com/labuda/backend/internal/governance/viewercontext"
 	addressEntity "github.com/labuda/backend/internal/identity/address/entity"
 	"github.com/labuda/backend/internal/identity/auth"
 	coinsapp "github.com/labuda/backend/internal/incentive/coins/application"
+	"github.com/labuda/backend/internal/middleware"
 	"github.com/labuda/backend/internal/pkg/blockcheck"
 	"github.com/labuda/backend/internal/pkg/publiccard"
 	"github.com/labuda/backend/internal/pkg/sellerdisplay"
@@ -42,8 +45,11 @@ type AuctionHandler struct {
 	productRepo         productRepo.ProductRepository
 	pricingTokenService *pricingtokenapp.PricingTokenService
 	coinBalanceReader   CoinsBalanceReader
-	db                  *db.DB
-	log                 *zap.Logger
+	// CANONICAL PRODUCT VIEW: records one Product View when this detail page
+	// is successfully opened by an entitled viewer. Nil = recording disabled.
+	productViews productviewRepo.ProductViewRepository
+	db           *db.DB
+	log          *zap.Logger
 }
 
 // CoinsBalanceReader is the minimal coins-domain surface AuctionHandler needs
@@ -61,6 +67,7 @@ func NewAuctionHandler(
 	pricingTokenService *pricingtokenapp.PricingTokenService,
 	database *db.DB,
 	log *zap.Logger,
+	productViews productviewRepo.ProductViewRepository,
 ) *AuctionHandler {
 	if log == nil {
 		log = zap.NewNop()
@@ -71,6 +78,54 @@ func NewAuctionHandler(
 		pricingTokenService: pricingTokenService,
 		db:                  database,
 		log:                 log,
+		productViews:        productViews,
+	}
+}
+
+// recordProductView records exactly one canonical Product View for a
+// successfully opened auction detail page.
+//
+// Canonical exclusions (never counted):
+//   - seller opening their own auction,
+//   - admin/moderator opening a product.
+//
+// Anonymous (uuid.Nil) and ordinary authenticated viewers are counted.
+// Recording is best-effort and runs in its own transaction AFTER the detail
+// read: a recording failure is logged and never changes the detail response.
+func (h *AuctionHandler) recordProductView(
+	ctx context.Context,
+	c *gin.Context,
+	productID, sellerID, viewerID uuid.UUID,
+) {
+	if h.productViews == nil || productID == uuid.Nil {
+		return
+	}
+	// Admin/moderator exclusion (canonical administrative authority).
+	if actor := middleware.GetActorFromContext(c); actor != nil && actor.IsAdmin() {
+		return
+	}
+
+	var viewer *uuid.UUID
+	if viewerID != uuid.Nil {
+		// Seller self-view exclusion.
+		if viewerID == sellerID {
+			return
+		}
+		v := viewerID
+		viewer = &v
+	}
+
+	event := &productviewEntity.ProductViewEvent{
+		ProductID:    productID,
+		ViewerUserID: viewer,
+	}
+	if err := h.db.WithTx(ctx, func(tx db.Tx) error {
+		return h.productViews.Record(ctx, tx, event)
+	}); err != nil {
+		h.log.Warn("record product view failed",
+			zap.String("product_id", productID.String()),
+			zap.Error(err),
+		)
 	}
 }
 
@@ -111,19 +166,18 @@ type CreateAuctionRequest struct {
 	// Product is minted inline from the item fields below.
 	ProductID *string `json:"product_id"`
 	// Product fields (inline — created atomically with the auction unless reused)
-	Title            string   `json:"title" binding:"required,min=1,max=200"`
-	Description      string   `json:"description" binding:"required,max=5000"`
-	MediaURLs        []string `json:"media_urls"`
+	Title            string                      `json:"title" binding:"required,min=1,max=200"`
+	Description      string                      `json:"description" binding:"required,max=5000"`
+	MediaURLs        []string                    `json:"media_urls"`
 	Media            []mediarequest.MediaRequest `json:"media,omitempty"`
-	Variety          string   `json:"variety"`
-	SizeCM           *int     `json:"size_cm"`
-	AgeMonths        *int     `json:"age_months"`
-	Gender           *string  `json:"gender"`
-	Breeder          *string  `json:"breeder"`
-	Bloodline        *string  `json:"bloodline"`
-	Certificates     []string `json:"certificates"`
-	FarmAddressID    *string  `json:"farm_address_id"`
-	ShippingSetupIDs []string `json:"shipping_option_ids" binding:"required,min=1"`
+	Variety          string                      `json:"variety"`
+	SizeCM           *int                        `json:"size_cm"`
+	AgeMonths        *int                        `json:"age_months"`
+	Gender           *string                     `json:"gender"`
+	Breeder          *string                     `json:"breeder"`
+	Bloodline        *string                     `json:"bloodline"`
+	Certificates     []string                    `json:"certificates"`
+	ShippingSetupIDs []string                    `json:"shipping_option_ids" binding:"required,min=1"`
 	// Auction-specific fields
 	StartPrice   int64  `json:"start_price" binding:"required,min=0"`
 	BidIncrement int64  `json:"bid_increment" binding:"required,min=1"`
@@ -141,7 +195,8 @@ type CreateAuctionRequest struct {
 
 // CreateAuction handles POST /api/v1/auctions
 //
-// Creates a new draft auction.
+// Creates a new auction. CREATE = PUBLISH: there is no draft stage — the
+// response carries status=active or status=scheduled.
 //
 // The request must NOT contain a legacy for_sale_id/forSaleId (auction is
 // never sourced from a ForSale). An optional product_id (Product identity
@@ -160,7 +215,7 @@ type CreateAuctionRequest struct {
 // - duration_hours: How long the auction runs; backend enforces 24-168h (1-7 days)
 //
 // Response: Created auction. status=active for start_mode=now,
-// status=scheduled for start_mode=scheduled — never draft.
+// status=scheduled for start_mode=scheduled — never anything else.
 func (h *AuctionHandler) CreateAuction(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -219,17 +274,7 @@ func (h *AuctionHandler) CreateAuction(c *gin.Context) {
 	}
 	duration := time.Duration(req.DurationHours) * time.Hour
 
-	// Parse optional farm_address_id
-	var farmAddressID *uuid.UUID
 	shippingSetupIDs := make([]uuid.UUID, 0, len(req.ShippingSetupIDs))
-	if req.FarmAddressID != nil {
-		fid, err := uuid.Parse(*req.FarmAddressID)
-		if err != nil {
-			response.BadRequest(c, "Invalid farm_address_id format")
-			return
-		}
-		farmAddressID = &fid
-	}
 	for _, rawID := range req.ShippingSetupIDs {
 		optionID, err := uuid.Parse(rawID)
 		if err != nil {
@@ -271,7 +316,7 @@ func (h *AuctionHandler) CreateAuction(c *gin.Context) {
 			}
 		}
 
-		auction, err = h.auctionService.CreateDraft(ctx, tx, auctionApp.CreateDraftInput{
+		auction, err = h.auctionService.Create(ctx, tx, auctionApp.CreateAuctionInput{
 			SellerID: sellerID,
 			// Product identity reuse (optional)
 			ProductID: productID,
@@ -286,7 +331,6 @@ func (h *AuctionHandler) CreateAuction(c *gin.Context) {
 			Breeder:          req.Breeder,
 			Bloodline:        req.Bloodline,
 			Certificates:     req.Certificates,
-			FarmAddressID:    farmAddressID,
 			ShippingSetupIDs: shippingSetupIDs,
 			// Auction-specific fields
 			StartPrice:   req.StartPrice,
@@ -308,6 +352,10 @@ func (h *AuctionHandler) CreateAuction(c *gin.Context) {
 			zap.Error(err),
 		)
 		if errors.Is(err, shippingApp.ErrInvalidSellableCreateShippingSelection) {
+			response.BadRequest(c, err.Error())
+			return
+		}
+		if errors.Is(err, auctionApp.ErrBuyNowBelowFloor) {
 			response.BadRequest(c, err.Error())
 			return
 		}
@@ -361,34 +409,32 @@ func isAuctionTimingValidationError(err error) bool {
 
 // UpdateAuctionRequest holds the request body for updating an auction.
 //
-// Canonical update contract:
+// Canonical update contract (scheduled is the only editable state):
 //
-//	Draft:     title, description, media_urls, variety, size_cm, age_months, gender, breeder, bloodline, certificates, preparation_time/note, start_price, bid_increment, buy_now_price, start_at, end_at
 //	Scheduled: title, description, start_at, end_at only
 type UpdateAuctionRequest struct {
-	Title           *string   `json:"title" binding:"omitempty,min=1,max=200"`
-	Description     *string   `json:"description" binding:"omitempty,max=5000"`
-	MediaURLs       *[]string `json:"media_urls"`
+	Title           *string                      `json:"title" binding:"omitempty,min=1,max=200"`
+	Description     *string                      `json:"description" binding:"omitempty,max=5000"`
+	MediaURLs       *[]string                    `json:"media_urls"`
 	Media           *[]mediarequest.MediaRequest `json:"media,omitempty"`
-	Variety         *string   `json:"variety"`
-	SizeCM          *int      `json:"size_cm"`
-	AgeMonths       *int      `json:"age_months"`
-	Gender          *string   `json:"gender"`
-	Breeder         *string   `json:"breeder"`
-	Bloodline       *string   `json:"bloodline"`
-	Certificates    *[]string `json:"certificates"`
-	PreparationTime *string   `json:"preparation_time" binding:"omitempty,oneof=1_3_days 4_7_days 8_15_days"`
-	StartPrice      *int64    `json:"start_price" binding:"omitempty,min=0"`
-	BidIncrement    *int64    `json:"bid_increment" binding:"omitempty,min=1"`
-	BuyNowPrice     *int64    `json:"buy_now_price" binding:"omitempty,min=0"`
-	StartAt         *string   `json:"start_at" binding:"omitempty"` // RFC3339
-	EndAt           *string   `json:"end_at" binding:"omitempty"`   // RFC3339
+	Variety         *string                      `json:"variety"`
+	SizeCM          *int                         `json:"size_cm"`
+	AgeMonths       *int                         `json:"age_months"`
+	Gender          *string                      `json:"gender"`
+	Breeder         *string                      `json:"breeder"`
+	Bloodline       *string                      `json:"bloodline"`
+	Certificates    *[]string                    `json:"certificates"`
+	PreparationTime *string                      `json:"preparation_time" binding:"omitempty,oneof=1_3_days 4_7_days 8_15_days"`
+	StartPrice      *int64                       `json:"start_price" binding:"omitempty,min=0"`
+	BidIncrement    *int64                       `json:"bid_increment" binding:"omitempty,min=1"`
+	BuyNowPrice     *int64                       `json:"buy_now_price" binding:"omitempty,min=0"`
+	StartAt         *string                      `json:"start_at" binding:"omitempty"` // RFC3339
+	EndAt           *string                      `json:"end_at" binding:"omitempty"`   // RFC3339
 }
 
 // UpdateAuction handles PATCH /api/v1/auctions/:id
 //
 // Updates an auction. Allowed fields depend on auction status:
-// - Draft: All fields except product_id
 // - Scheduled: title, description, start_at, end_at only
 // - Active: No updates allowed
 // - Ended/Cancelled: Terminal, no updates
@@ -447,76 +493,10 @@ func (h *AuctionHandler) UpdateAuction(c *gin.Context) {
 			return err
 		}
 
-		// Execute update based on status
-		if auction.Status == entity.StatusDraft {
-			startPrice := auction.StartPrice
-			bidIncrement := auction.BidIncrement
-			buyNowPrice := auction.BuyNowPrice
-			startAt := auction.StartAt
-			endAt := auction.EndAt
-
-			if req.StartPrice != nil {
-				startPrice = *req.StartPrice
-			}
-			if req.BidIncrement != nil {
-				bidIncrement = *req.BidIncrement
-			}
-			if req.BuyNowPrice != nil {
-				buyNowPrice = req.BuyNowPrice
-			}
-			if req.StartAt != nil {
-				startAt, err = time.Parse(time.RFC3339, *req.StartAt)
-				if err != nil {
-					return err
-				}
-			}
-			if req.EndAt != nil {
-				endAt, err = time.Parse(time.RFC3339, *req.EndAt)
-				if err != nil {
-					return err
-				}
-			}
-
-			var typed []mediarequest.MediaRequest
-			if req.Media != nil {
-				typed = *req.Media
-			}
-			var legacy []string
-			if req.MediaURLs != nil {
-				legacy = *req.MediaURLs
-			}
-			media, verr := mediarequest.ResolveProductMedia(typed, legacy)
-			if verr != nil {
-				return &entity.InvalidOperationError{Status: auction.Status, Reason: verr.Code + ": " + verr.Message}
-			}
-			var mediaPtr *[]productEntity.ProductMedia
-			if req.MediaURLs != nil || req.Media != nil {
-				mediaPtr = &media
-			}
-
-			return h.auctionService.UpdateDraft(ctx, tx, auctionApp.UpdateDraftInput{
-				AuctionID:       auctionID,
-				CallerID:        callerID,
-				Title:           req.Title,
-				Description:     req.Description,
-				Media:           mediaPtr,
-				Variety:         req.Variety,
-				SizeCM:          req.SizeCM,
-				AgeMonths:       req.AgeMonths,
-				Gender:          req.Gender,
-				Breeder:         req.Breeder,
-				Bloodline:       req.Bloodline,
-				Certificates:    req.Certificates,
-				PreparationTime: req.PreparationTime,
-				StartPrice:      startPrice,
-				BidIncrement:    bidIncrement,
-				BuyNowPrice:     buyNowPrice,
-				StartAt:         startAt,
-				EndAt:           endAt,
-			})
-
-		} else if auction.Status == entity.StatusScheduled {
-			// Scheduled: only title/description/start_at/end_at allowed — reject draft-only fields explicitly
+		// Execute update based on status. There is no draft state (create =
+		// publish): scheduled is the initial state and the only editable one.
+		if auction.Status == entity.StatusScheduled {
+			// Scheduled: only title/description/start_at/end_at allowed — reject pricing and media fields explicitly
 			if req.MediaURLs != nil || req.Media != nil || req.Variety != nil || req.SizeCM != nil || req.AgeMonths != nil || req.Gender != nil || req.Breeder != nil || req.Bloodline != nil || req.Certificates != nil || req.PreparationTime != nil {
 				return &entity.InvalidOperationError{Status: auction.Status, Reason: "media/variety/size/age/gender/breeder/bloodline/certificates/preparation not editable in scheduled status"}
 			}
@@ -549,9 +529,9 @@ func (h *AuctionHandler) UpdateAuction(c *gin.Context) {
 			})
 
 		} else {
-			// Active, Ended, Cancelled, WaitingSettlement: cannot update.
+			// Active, Ended, Cancelled, WaitingSettlement, Lapsed: cannot update.
 			// Covers waiting_settlement as well — settlement lifecycle is immutable via edit.
-			return &entity.InvalidOperationError{Status: auction.Status, Reason: "can only update draft or scheduled auctions"}
+			return &entity.InvalidOperationError{Status: auction.Status, Reason: "can only update scheduled auctions"}
 		}
 	})
 
@@ -594,60 +574,14 @@ func (h *AuctionHandler) UpdateAuction(c *gin.Context) {
 	response.Success(c, auctionToResponse(updatedAuction, updatedAuction.Product, callerID))
 }
 
-// ScheduleAuction handles POST /api/v1/auctions/:id/schedule
-//
-// Transitions an auction from draft to scheduled.
-func (h *AuctionHandler) ScheduleAuction(c *gin.Context) {
-	ctx := c.Request.Context()
-
-	auctionID, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		response.BadRequest(c, "Invalid auction ID")
-		return
-	}
-
-	userIDVal, exists := c.Get("userID")
-	if !exists {
-		response.Unauthorized(c, "User not authenticated")
-		return
-	}
-	callerID, ok := userIDVal.(uuid.UUID)
-	if !ok {
-		response.InternalServerError(c, "Invalid user ID in context")
-		return
-	}
-
-	err = h.db.WithTx(ctx, func(tx db.Tx) error {
-		return h.auctionService.Schedule(ctx, tx, auctionApp.ScheduleInput{
-			AuctionID: auctionID,
-			CallerID:  callerID,
-		})
-	})
-
-	if err != nil {
-		h.log.Error("Failed to schedule auction",
-			zap.String("auction_id", auctionID.String()),
-			zap.Error(err),
-		)
-		if err == auth.ErrMarketAuthorityRequired {
-			response.MarketAuthorityRequired(c, "Active seller subscription required to schedule auctions")
-			return
-		}
-		if err == auth.ErrSellerRequired {
-			response.Forbidden(c, "Only the auction owner can schedule this auction")
-			return
-		}
-		response.InternalServerError(c, "Failed to schedule auction")
-		return
-	}
-
-	response.SuccessWithMessage(c, "Auction scheduled", nil)
-}
+// ScheduleAuction was removed with the draft state (create = publish):
+// an auction is scheduled by Create, and ended/lapsed reach scheduled only
+// through Relist (republish).
 
 // CancelAuction handles POST /api/v1/auctions/:id/cancel
 //
 // Cancels an auction.
-// - Draft/Scheduled: Always allowed
+// - Scheduled: Always allowed
 // - Active: Only if no bids
 func (h *AuctionHandler) CancelAuction(c *gin.Context) {
 	ctx := c.Request.Context()
@@ -686,6 +620,180 @@ func (h *AuctionHandler) CancelAuction(c *gin.Context) {
 	}
 
 	response.SuccessWithMessage(c, "Auction cancelled", nil)
+}
+
+// RelistAuctionRequest holds the request body for REPUBLISHING a finished
+// auction (POST /api/v1/auctions/:id/relist).
+//
+// Create-like by owner decision: relist IS the create form run again
+// (autofilled, duration re-chosen), so the body mirrors CreateAuctionRequest's
+// run-shaping fields. Two create fields are deliberately ABSENT — and their
+// absence is part of the contract, never silently ignored:
+//   - product_id: the auction's Product identity is already bound; a relist
+//     never re-homes the auction to another product.
+//   - shipping_option_ids: creation-only; shipping coverage is re-validated
+//     by the schedule gate, not re-selected on relist.
+type RelistAuctionRequest struct {
+	// Product fields — patched onto the bound Product (omitted optionals keep
+	// their current values; media is never wiped by an omitted payload).
+	Title        string                      `json:"title" binding:"required,min=1,max=200"`
+	Description  string                      `json:"description" binding:"required,max=5000"`
+	MediaURLs    []string                    `json:"media_urls"`
+	Media        []mediarequest.MediaRequest `json:"media,omitempty"`
+	Variety      string                      `json:"variety"`
+	SizeCM       *int                        `json:"size_cm"`
+	AgeMonths    *int                        `json:"age_months"`
+	Gender       *string                     `json:"gender"`
+	Breeder      *string                     `json:"breeder"`
+	Bloodline    *string                     `json:"bloodline"`
+	Certificates []string                    `json:"certificates"`
+	// Auction-specific fields
+	StartPrice   int64  `json:"start_price" binding:"required,min=0"`
+	BidIncrement int64  `json:"bid_increment" binding:"required,min=1"`
+	BuyNowPrice  *int64 `json:"buy_now_price" binding:"omitempty,min=0"`
+	// Timing — exact create-form behavior; duration is the ONE field the seller
+	// re-chooses on relist (backend enforces the 1-7 day bound).
+	StartMode        string  `json:"start_mode" binding:"required,oneof=now scheduled"`
+	ScheduledStartAt *string `json:"scheduled_start_at" binding:"omitempty"` // RFC3339; required when start_mode=scheduled
+	DurationHours    int     `json:"duration_hours" binding:"required,min=1"`
+	// Shipping readiness
+	PreparationTime *string `json:"preparation_time" binding:"omitempty,oneof=1_3_days 4_7_days 8_15_days"`
+}
+
+// RelistAuction handles POST /api/v1/auctions/:id/relist
+//
+// REPUBLISH: re-runs the create form's effect on a finished auction. Gate:
+// ended with no bid/winner/order, OR lapsed (never went live). The auction
+// becomes scheduled (start_mode=scheduled) or active (start_mode=now) with the
+// payload's fresh timing/pricing — there is no draft detour.
+func (h *AuctionHandler) RelistAuction(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	auctionID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		response.BadRequest(c, "Invalid auction ID")
+		return
+	}
+
+	userIDVal, exists := c.Get("userID")
+	if !exists {
+		response.Unauthorized(c, "User not authenticated")
+		return
+	}
+	callerID, ok := userIDVal.(uuid.UUID)
+	if !ok {
+		response.InternalServerError(c, "Invalid user ID in context")
+		return
+	}
+
+	var req RelistAuctionRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, err.Error())
+		return
+	}
+
+	var startMode entity.StartMode
+	switch req.StartMode {
+	case "now":
+		startMode = entity.StartModeNow
+	case "scheduled":
+		startMode = entity.StartModeScheduled
+	}
+
+	var scheduledStartAt *time.Time
+	if req.ScheduledStartAt != nil {
+		t, err := time.Parse(time.RFC3339, *req.ScheduledStartAt)
+		if err != nil {
+			response.BadRequest(c, "Invalid scheduled_start_at format, use RFC3339")
+			return
+		}
+		scheduledStartAt = &t
+	}
+
+	// Resolve write-side media before the transaction: typed XOR legacy.
+	media, verr := mediarequest.ResolveProductMedia(req.Media, req.MediaURLs)
+	if verr != nil {
+		response.Error(c, 400, verr.Code, verr.Message)
+		return
+	}
+
+	// Optional product content: patch only what the form actually sent.
+	var variety *string
+	if req.Variety != "" {
+		variety = &req.Variety
+	}
+	var certificates *[]string
+	if len(req.Certificates) > 0 {
+		certificates = &req.Certificates
+	}
+	var mediaSlots *[]productEntity.ProductMedia
+	if len(media) > 0 {
+		mediaSlots = &media
+	}
+
+	err = h.db.WithTx(ctx, func(tx db.Tx) error {
+		_, err := h.auctionService.Relist(ctx, tx, auctionApp.RelistInput{
+			AuctionID: auctionID,
+			CallerID:  callerID,
+			// Timing
+			StartMode:        startMode,
+			ScheduledStartAt: scheduledStartAt,
+			Duration:         time.Duration(req.DurationHours) * time.Hour,
+			// Pricing
+			StartPrice:   req.StartPrice,
+			BidIncrement: req.BidIncrement,
+			BuyNowPrice:  req.BuyNowPrice,
+			// Product content
+			Title:           &req.Title,
+			Description:     &req.Description,
+			Media:           mediaSlots,
+			Variety:         variety,
+			SizeCM:          req.SizeCM,
+			AgeMonths:       req.AgeMonths,
+			Gender:          req.Gender,
+			Breeder:         req.Breeder,
+			Bloodline:       req.Bloodline,
+			Certificates:    certificates,
+			PreparationTime: req.PreparationTime,
+		})
+		return err
+	})
+
+	if err != nil {
+		var invalidTransition *entity.InvalidTransitionError
+		if errors.Is(err, entity.ErrAuctionNotRelistable) || errors.As(err, &invalidTransition) {
+			response.BadRequest(c, err.Error())
+			return
+		}
+		if isAuctionTimingValidationError(err) {
+			response.BadRequest(c, err.Error())
+			return
+		}
+		if errors.Is(err, auctionApp.ErrBuyNowBelowFloor) {
+			response.BadRequest(c, err.Error())
+			return
+		}
+		if errors.Is(err, shippingApp.ErrShippingNotConfigured) {
+			response.Error(c, 400, "SHIPPING_NOT_CONFIGURED", err.Error())
+			return
+		}
+		if err == auth.ErrMarketAuthorityRequired {
+			response.MarketAuthorityRequired(c, "Active seller subscription required to republish an auction")
+			return
+		}
+		if err == auth.ErrSellerRequired {
+			response.Forbidden(c, "Only the auction owner can relist this auction")
+			return
+		}
+		h.log.Error("Failed to relist auction",
+			zap.String("auction_id", auctionID.String()),
+			zap.Error(err),
+		)
+		response.InternalServerError(c, "Failed to republish auction")
+		return
+	}
+
+	response.SuccessWithMessage(c, "Auction republished", nil)
 }
 
 // PlaceBidRequest holds the request body for placing a bid.
@@ -760,10 +868,13 @@ func (h *AuctionHandler) PlaceBid(c *gin.Context) {
 // BuyNowRequest holds the request body for buy now.
 // ClaimAuctionRequest holds the request body for the canonical claim endpoint.
 type ClaimAuctionRequest struct {
-	AddressID       uuid.UUID `json:"address_id" binding:"required"`
-	ShippingSetupID uuid.UUID `json:"shipping_option_id" binding:"required"`
-	DiscountCode    *string   `json:"discount_code"`
-	UseCoins        *bool     `json:"use_coins,omitempty"` // Optional: buyer coin-use intent; backend decides actual amount
+	AddressID uuid.UUID `json:"address_id" binding:"required"`
+	// Exactly one shipping source: a normal option OR a manual shipping quote.
+	ShippingSetupID uuid.UUID  `json:"shipping_option_id,omitempty"`
+	ShippingQuoteID *uuid.UUID `json:"shipping_quote_id,omitempty"`
+	ChatID          *uuid.UUID `json:"chat_id,omitempty"` // Required when shipping_quote_id is set (conversation scope)
+	DiscountCode    *string    `json:"discount_code"`
+	UseCoins        *bool      `json:"use_coins,omitempty"` // Optional: buyer coin-use intent; backend decides actual amount
 }
 
 // ClaimAuction handles POST /api/v1/auctions/:id/claim
@@ -777,7 +888,7 @@ type ClaimAuctionRequest struct {
 //  3. Generate + validate the pricing token, create the order, bind
 //     auction.OrderID = order.ID.
 //  4. The auction STAYS in waiting_settlement — it only transitions to ended
-//     when payment succeeds. On payment expiry the auction returns to DRAFT
+//     when payment succeeds. On payment expiry the auction AUTO-RESCHEDULES
 //     (settlement failure) rather than remaining terminal-ended.
 //
 // Request body:
@@ -811,6 +922,15 @@ func (h *AuctionHandler) ClaimAuction(c *gin.Context) {
 		return
 	}
 
+	// Exactly one shipping source: a normal option OR a conversation-scoped
+	// manual shipping quote.
+	hasClaimSetup := req.ShippingSetupID != uuid.Nil
+	hasClaimQuote := req.ShippingQuoteID != nil && *req.ShippingQuoteID != uuid.Nil
+	if hasClaimSetup == hasClaimQuote {
+		response.BadRequest(c, "exactly one of shipping_option_id or shipping_quote_id must be provided")
+		return
+	}
+
 	var orderID uuid.UUID
 	err = h.db.WithTx(ctx, func(tx db.Tx) error {
 		// Step 1: Validate winner, deadline, not-settled, not-resolved.
@@ -838,6 +958,8 @@ func (h *AuctionHandler) ClaimAuction(c *gin.Context) {
 			AuctionID:       auctionID,
 			AddressID:       req.AddressID,
 			ShippingSetupID: req.ShippingSetupID,
+			ShippingQuoteID: req.ShippingQuoteID,
+			ChatID:          req.ChatID,
 			DiscountCode:    req.DiscountCode,
 		})
 		if err != nil {
@@ -898,8 +1020,8 @@ func (h *AuctionHandler) ClaimAuction(c *gin.Context) {
 
 		// Step 7: Bind the order and persist shipping resolution + OrderID.
 		// The auction STAYS in waiting_settlement until payment succeeds
-		// (payment success settles it to ended; payment expiry returns it to
-		// draft with the order binding released).
+		// (payment success settles it to ended; payment expiry auto-reschedules
+		// it with the order binding released).
 		auction.OrderID = &order.ID
 		if err := h.auctionService.PersistAuctionUpdate(ctx, tx, auction); err != nil {
 			return fmt.Errorf("auction persist failed: %w", err)
@@ -978,6 +1100,7 @@ func buildClaimPricingSnapshot(token *pricingtokenentity.PricingToken) *orderApp
 		AddressSnapshot:       addressSnapshot,
 		ShippingSource:        shippingSource,
 		ShippingQuoteID:       token.ShippingQuoteID,
+		ChatID:                token.ChatID, // Conversation that produced the quote (nil for non-chat checkouts)
 		AuctionID:             token.AuctionID,
 		NegotiationID:         token.NegotiationID,
 		TokenID:               token.Token,
@@ -987,7 +1110,7 @@ func buildClaimPricingSnapshot(token *pricingtokenentity.PricingToken) *orderApp
 
 // ListAuctionsRequest holds query parameters for forSale auctions.
 type ListAuctionsRequest struct {
-	Status   string `form:"status" binding:"omitempty,oneof=draft scheduled active ended cancelled"`
+	Status   string `form:"status" binding:"omitempty,oneof=scheduled active ended cancelled"`
 	SellerID string `form:"seller_id" binding:"omitempty"`
 	Limit    int    `form:"limit" binding:"omitempty,min=1,max=50"`
 	Cursor   string `form:"cursor" binding:"omitempty"` // RFC3339 timestamp
@@ -997,7 +1120,7 @@ type ListAuctionsRequest struct {
 //
 // Lists auctions with filtering and cursor-based pagination.
 // Query parameters:
-// - status: Filter by status (draft, scheduled, active, ended, cancelled)
+// - status: Filter by status (scheduled, active, ended, cancelled)
 // - seller_id: Filter by seller ID
 // - limit: Results per page (default 20, max 50)
 // - cursor: RFC3339 timestamp for pagination
@@ -1036,7 +1159,7 @@ func (h *AuctionHandler) ListAuctions(c *gin.Context) {
 	}
 
 	// Parse status if provided.
-	// Non-public statuses (draft, cancelled, ended, ...) are owner-history
+	// Non-public statuses (cancelled, ended, lapsed, ...) are owner-history
 	// surfaces: an anonymous or non-owner caller must never query them.
 	if req.Status != "" {
 		status := entity.Status(req.Status)
@@ -1048,6 +1171,17 @@ func (h *AuctionHandler) ListAuctions(c *gin.Context) {
 			}
 		}
 		filter.Status = &status
+	}
+
+	// OWNER INVENTORY: a seller reading their OWN list always sees their
+	// own rows — the read-side market-authority hide (listings invisible to
+	// viewers) must never hide an owner from their own inventory. With no
+	// explicit status this additionally means EVERY status — waiting_settlement,
+	// ended, cancelled and lapsed included: the
+	// seller's management surface. Anonymous and non-owner browse keeps the
+	// repository default (public discovery).
+	if filter.SellerID != nil && viewerID != uuid.Nil && *filter.SellerID == viewerID {
+		filter.OwnerInventory = true
 	}
 
 	// Parse cursor if provided
@@ -1207,16 +1341,12 @@ func (h *AuctionHandler) GetAuction(c *gin.Context) {
 		return
 	}
 
-	// Scope 3 — draft is a private workspace state: 404 non-owners at the
-	// read boundary (parity with the for_sale private-visibility guard). The
-	// owner proceeds to the full detail projection with raw `seller_status`.
-	if auction.Status == entity.StatusDraft && auction.SellerID != viewerID {
-		response.NotFound(c, "Auction not found")
-		return
-	}
-
 	// Canonical detail projection — full Product content from auction.Product.
-	response.Success(c, h.auctionDetailResponse(auction, sellerInfo, publicOriginLine, viewerID))
+	resp := h.auctionDetailResponse(auction, sellerInfo, publicOriginLine, viewerID)
+	// CANONICAL PRODUCT VIEW: the detail page resolved successfully for an
+	// entitled viewer. Record exactly one view (identity = Product).
+	h.recordProductView(ctx, c, auction.ProductID, auction.SellerID, viewerID)
+	response.Success(c, resp)
 }
 
 // ListBidsRequest holds query parameters for forSale bids.
@@ -1406,8 +1536,8 @@ func auctionToResponse(a *entity.Auction, product *productEntity.Product, ownerI
 // regardless of sale channel).
 //
 // Scope 3 — status boundary: `status` carries the coarsened public phase
-// vocabulary ({scheduled, active, waiting_settlement, ended, cancelled};
-// draft is never emitted). The exact internal state crosses the wire ONLY
+// vocabulary ({scheduled, active, waiting_settlement, ended, cancelled});
+// non-public internal states are never emitted. The exact internal state crosses the wire ONLY
 // via `seller_status`, and only when viewerID is the owning seller — for
 // every other viewer it is null. Anonymous callers pass nil.
 func auctionToResponseWithSeller(
@@ -1491,7 +1621,6 @@ func auctionToResponseWithSeller(
 		resp["breeder"] = product.Breeder
 		resp["bloodline"] = product.Bloodline
 		resp["certificates"] = product.Certificates
-		resp["farm_address_id"] = product.FarmAddressID
 		resp["preparation_time"] = product.PreparationTime
 	}
 	return resp

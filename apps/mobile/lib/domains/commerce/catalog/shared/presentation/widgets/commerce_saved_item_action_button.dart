@@ -91,7 +91,7 @@ class _CommerceSavedItemActionButtonState
 
     final authState = ref.read(authControllerProvider);
     if (authState is! AuthStateAuthenticated) {
-      AppSnackBar.showError(context, 'Silakan masuk untuk menyimpan item');
+      ref.read(navigationHandlerProvider).navigateToSignIn();
       return;
     }
 

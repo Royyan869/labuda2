@@ -228,3 +228,56 @@ class PaymentMethodOption {
     required this.totalPayableAmount,
   });
 }
+
+/// A payment method option for a PRE-ORDER pricing token, as returned by
+/// `GET /payments/pre-order-methods`. `finalPayableAmount` is the post-fee
+/// amount the buyer will pay for this method — computed by the backend, never
+/// by the client.
+class PreOrderPaymentMethodOption {
+  final String methodCode;
+  final String displayName;
+  final int buyerPaymentFeeAmount;
+  final int finalPayableAmount;
+
+  const PreOrderPaymentMethodOption({
+    required this.methodCode,
+    required this.displayName,
+    required this.buyerPaymentFeeAmount,
+    required this.finalPayableAmount,
+  });
+}
+
+/// Canonical pre-order payment pricing for one pricing token: the immutable
+/// escrow base, the resolved coin redemption, the cash base, and every enabled
+/// method with its backend-computed fee and FINAL payable amount.
+///
+/// This is the single source the checkout reads to display the final total and
+/// to know which method the buyer selected. The client performs no arithmetic.
+class PreOrderPaymentPricing {
+  final String pricingToken;
+  final DateTime? expiresAt;
+  final int escrowAmount;
+  final int coinsToUse;
+  final int cashAmount;
+  final String currency;
+  final List<PreOrderPaymentMethodOption> methods;
+
+  const PreOrderPaymentPricing({
+    required this.pricingToken,
+    required this.expiresAt,
+    required this.escrowAmount,
+    required this.coinsToUse,
+    required this.cashAmount,
+    required this.currency,
+    required this.methods,
+  });
+
+  /// The selected method option, or null when none is selected/available.
+  PreOrderPaymentMethodOption? optionFor(String? methodCode) {
+    if (methodCode == null) return null;
+    for (final m in methods) {
+      if (m.methodCode == methodCode) return m;
+    }
+    return null;
+  }
+}

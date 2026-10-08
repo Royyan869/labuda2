@@ -30,12 +30,12 @@ import 'package:labuda/domains/commerce/catalog/auction/presentation/widgets/det
 import 'package:labuda/domains/commerce/catalog/auction/presentation/widgets/detail/auction_seller_settlement_monitor.dart';
 import 'package:labuda/domains/commerce/catalog/auction/presentation/widgets/detail/auction_claim_shipping_modal.dart';
 import 'package:labuda/domains/chat/chat/presentation/utils/commerce_chat_navigation.dart';
+import 'package:labuda/domains/chat/chat/presentation/models/pending_commerce_attachment.dart';
 import 'package:labuda/domains/social/share/share.dart';
 import 'package:labuda/shared/shared.dart';
 import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_detail_states.dart';
 import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_saved_item_action_button.dart';
 import 'package:labuda/domains/system/report/domain/entities/entities.dart';
-import 'package:labuda/domains/system/report/presentation/dialogs/report_submission_dialog.dart';
 
 /// Auction Detail Screen
 ///
@@ -239,7 +239,12 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
               SliverToBoxAdapter(child: _AuctionDetailTitle(auction: auction)),
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p0, AppMetrics.p16, AppMetrics.p16),
+                  padding: const EdgeInsets.fromLTRB(
+                    AppMetrics.p16,
+                    AppMetrics.p0,
+                    AppMetrics.p16,
+                    AppMetrics.p16,
+                  ),
                   child: AuctionCountdownTimer(
                     auction: auction,
                     currentUserId: currentUserId.isNotEmpty
@@ -260,7 +265,12 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
               if (currentUserId.isNotEmpty)
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p0, AppMetrics.p16, AppMetrics.p16),
+                    padding: const EdgeInsets.fromLTRB(
+                      AppMetrics.p16,
+                      AppMetrics.p0,
+                      AppMetrics.p16,
+                      AppMetrics.p16,
+                    ),
                     child: AuctionSellerSettlementMonitor(
                       auction: auction,
                       currentUserId: currentUserId,
@@ -271,7 +281,12 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
               if (currentUserId.isNotEmpty)
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p0, AppMetrics.p16, AppMetrics.p16),
+                    padding: const EdgeInsets.fromLTRB(
+                      AppMetrics.p16,
+                      AppMetrics.p0,
+                      AppMetrics.p16,
+                      AppMetrics.p16,
+                    ),
                     child: AuctionBidPositionIndicator(
                       auction: auction,
                       userBids: liveBids
@@ -289,7 +304,12 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
               SliverToBoxAdapter(child: AuctionBidHistory(bids: liveBids)),
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p0, AppMetrics.p16, AppMetrics.p48),
+                  padding: const EdgeInsets.fromLTRB(
+                    AppMetrics.p16,
+                    AppMetrics.p0,
+                    AppMetrics.p16,
+                    AppMetrics.p48,
+                  ),
                   child: AuctionRecommendationsSection(
                     currentAuction: auction,
                     ownerOtherAuctions: ownerOtherAuctionsAsync,
@@ -329,17 +349,18 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
     final authState = ref.read(authControllerProvider);
     if (authState is! AuthStateAuthenticated) {
       if (mounted) {
-        AppSnackBar.showError(context, 'Silakan masuk untuk melaporkan lelang');
+        ref.read(navigationHandlerProvider).navigateToSignIn();
       }
       return;
     }
 
     if (!mounted) return;
-    await ReportSubmissionDialog.show(
-      context,
-      targetId: auction.id,
-      targetType: ReportTargetType.auction,
-      targetTitle: auction.title,
+    await context.push<bool>(
+      RoutePaths.reportLocation(
+        targetType: ReportTargetType.auction.name,
+        targetId: auction.id,
+        targetTitle: auction.title,
+      ),
     );
   }
 
@@ -372,21 +393,21 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
 
   Future<void> _handleChat(Auction auction) async {
     // Canonical commerce chat flow: opens/creates the buyer-seller room,
-    // carries the auction as a pending product reference (server-backed
-    // objectReference on send), and handles the guest auth boundary
-    // internally (guest → canonical sign-in route).
+    // carries the auction as the canonical pending product attachment (sent
+    // only through the composer send icon as a resourceOccurrence), and
+    // handles the guest auth boundary internally (guest → canonical sign-in
+    // route).
     await openCommerceChat(
       context: context,
       ref: ref,
-      reference: ShareReference.auction(
+      attachment: PendingCommerceAttachment.auction(
         auctionId: auction.id,
         title: auction.title,
         imageUrl: auction.media.isNotEmpty
             ? (auction.media.first.thumbnailUrl ??
                   auction.media.first.originalUrl)
             : null,
-        isAvailable: auction.status == AuctionStatus.active,
-        isClosed: auction.hasEnded,
+        price: auction.currentBid.round(),
       ),
       sellerId: auction.sellerId,
     );
@@ -408,7 +429,7 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
     if (!isEmailVerified) {
       AppSnackBar.showWarning(
         context,
-        'Please verify your email to place bids or buy items.',
+        'Verifikasi email Anda untuk menawar atau membeli.',
       );
       return;
     }
@@ -434,10 +455,7 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
 
     if (currentUser == null) {
       if (!mounted) return;
-      AppSnackBar.showError(
-        this.context,
-        'You must be logged in to place a bid',
-      );
+      ref.read(navigationHandlerProvider).navigateToSignIn();
       return;
     }
 
@@ -505,7 +523,7 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
           if (until != null) {
             final date = DateTime.tryParse(until);
             final formatted = date != null
-                ? '${date.day}/${date.month}/${date.year}'
+                ? AppFormatters.formatShortDate(date)
                 : until;
             message =
                 'Anda sementara tidak dapat mengikuti lelang karena '
@@ -516,18 +534,11 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
                 'pelanggaran BNR.';
           }
         }
-        await showDialog<void>(
+        await AppDialog.info(
           context: this.context,
-          builder: (dialogContext) => AlertDialog(
-            title: const Text('Akses Lelang Dibatasi'),
-            content: Text(message),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(dialogContext).pop(),
-                child: const Text('Mengerti'),
-              ),
-            ],
-          ),
+          title: 'Akses Lelang Dibatasi',
+          message: message,
+          closeLabel: 'Mengerti',
         );
         return;
       }
@@ -545,10 +556,7 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
 
     if (currentUser == null) {
       if (!mounted) return;
-      AppSnackBar.showError(
-        this.context,
-        'Anda harus login untuk menggunakan Buy Now',
-      );
+      ref.read(navigationHandlerProvider).navigateToSignIn();
       return;
     }
 
@@ -565,7 +573,7 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
 
     if (currentUser.id == auction.sellerId) {
       if (!mounted) return;
-      AppSnackBar.showError(this.context, 'You cannot buy your own auction');
+      AppSnackBar.showError(this.context, 'Anda tidak dapat membeli lelang Anda sendiri');
       return;
     }
 
@@ -574,9 +582,9 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
     if (auction.status != AuctionStatus.active) {
       if (!mounted) return;
       if (auction.status == AuctionStatus.ended) {
-        AppSnackBar.showError(this.context, 'This auction has ended');
+        AppSnackBar.showError(this.context, 'Lelang sudah berakhir');
       } else {
-        AppSnackBar.showError(this.context, 'This auction is not active');
+        AppSnackBar.showError(this.context, 'Lelang tidak aktif');
       }
       return;
     }
@@ -644,7 +652,7 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
 
     if (currentUser == null) {
       if (!mounted) return;
-      AppSnackBar.showError(this.context, 'You must be logged in to proceed');
+      ref.read(navigationHandlerProvider).navigateToSignIn();
       return;
     }
 
@@ -653,7 +661,7 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
       if (!mounted) return;
       AppSnackBar.showError(
         this.context,
-        'You are not the winner of this auction',
+        'Anda bukan pemenang lelang ini',
       );
       return;
     }
@@ -663,7 +671,7 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
       if (!mounted) return;
       AppSnackBar.showError(
         this.context,
-        'Unable to proceed with checkout. This auction is not linked to a product.',
+        'Tidak dapat melanjutkan checkout. Lelang ini tidak terhubung ke produk.',
       );
       return;
     }
@@ -682,11 +690,10 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
     }
 
     // STEP 2: Claim succeeded - navigate to payment result
-    // The order has been created by the claim API
-    // Navigate directly to payment result with the order_id
-    Navigator.of(
-      this.context,
-    ).pushReplacementNamed('/payment-result/$claimResult');
+    // The order has been created by the claim API, so the winner goes
+    // directly to the canonical payment-result destination. The auction
+    // detail page is replaced (not stacked) so back never returns to it.
+    context.pushReplacement(RoutePaths.paymentResultPath(claimResult));
   }
 
   /// Show claim dialog and execute claim API call
@@ -703,7 +710,9 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
       onClaim:
           ({
             required addressId,
-            required shippingSetupId,
+            String? shippingSetupId,
+            String? shippingQuoteId,
+            String? chatId,
             String? discountCode,
             bool useCoins = false,
           }) async {
@@ -713,6 +722,8 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
               auctionId: auction.id,
               addressId: addressId,
               shippingSetupId: shippingSetupId,
+              shippingQuoteId: shippingQuoteId,
+              chatId: chatId,
               discountCode: discountCode,
               useCoins: useCoins,
             );
@@ -755,7 +766,12 @@ class _AuctionDetailTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p16, AppMetrics.p16, AppMetrics.p16),
+      padding: const EdgeInsets.fromLTRB(
+        AppMetrics.p16,
+        AppMetrics.p16,
+        AppMetrics.p16,
+        AppMetrics.p16,
+      ),
       child: Text(
         auction.title,
         style: Theme.of(context).textTheme.headlineSmall,
@@ -778,7 +794,12 @@ class _SettlementWarningBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      margin: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p0, AppMetrics.p16, AppMetrics.p0),
+      margin: const EdgeInsets.fromLTRB(
+        AppMetrics.p16,
+        AppMetrics.p0,
+        AppMetrics.p16,
+        AppMetrics.p0,
+      ),
       padding: const EdgeInsets.all(AppMetrics.p12),
       decoration: BoxDecoration(
         color: context.statusColors.warning.withValues(alpha: 0.12),
@@ -810,8 +831,7 @@ class _SettlementWarningBanner extends StatelessWidget {
               children: [
                 Text(
                   '⚠️ Selesaikan dalam 24 jam',
-                  style: TextStyle(
-                    fontSize: AppType.s14,
+                  style: context.typeRoles.bodyDense.copyWith(
                     fontWeight: FontWeight.w600,
                     color: scheme.onSurface,
                   ),
@@ -819,8 +839,7 @@ class _SettlementWarningBanner extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   'Jika tidak, Anda dapat dikenai pembatasan akun',
-                  style: TextStyle(
-                    fontSize: AppType.s12,
+                  style: context.typeRoles.labelMicro.copyWith(
                     color: scheme.onSurfaceVariant,
                   ),
                 ),

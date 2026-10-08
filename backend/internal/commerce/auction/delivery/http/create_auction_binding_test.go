@@ -2,7 +2,7 @@
 //
 // PASS_18D found mobile never sent shipping_option_ids, so every mobile
 // create-auction request 400'd against this binding before ever reaching
-// AuctionService.CreateDraft. These tests exercise the binding rule in
+// AuctionService.Create. These tests exercise the binding rule in
 // isolation — auction is still a physical fish that must ship, so
 // shipping_option_ids stays required (min=1), independent of any client.
 //

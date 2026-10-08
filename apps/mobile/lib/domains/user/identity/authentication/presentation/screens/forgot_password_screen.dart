@@ -3,13 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/user/identity/authentication/presentation/shared/shared.dart';
 import 'package:labuda/shared/helpers/canonical_email_validator.dart';
+import 'package:labuda/shared/widgets/app_text_field.dart';
 
 /// Forgot Password Screen - State-Driven Refactor
 ///
 /// Features:
 /// - Uses AuthFormController for state management (no local booleans)
 /// - Uses AuthStateView for conditional rendering (no if/else blocks)
-/// - Uses shared widgets (AuthTextField, AuthButton, AuthHeader)
+/// - Uses shared widgets (AppTextField, AuthButton, AuthHeader)
 /// - Clean async state handling with controller
 ///
 /// ## State Flow
@@ -180,8 +181,8 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen>
       key: _formKey,
       child: Column(
         children: [
-          // Email field - uses shared widget
-          AuthTextField.email(
+          // Email field - canonical generic producer
+          AppTextField.email(
             controller: _emailController,
             validator: (value) =>
                 CanonicalEmailValidator.validationMessage(value),

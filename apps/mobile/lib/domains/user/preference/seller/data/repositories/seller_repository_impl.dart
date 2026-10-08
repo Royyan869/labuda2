@@ -7,13 +7,13 @@ library;
 import 'package:labuda/core/common/result.dart';
 import 'package:labuda/shared/domain/entities/resource_projection.dart';
 
-import '../../domain/entities/seller_dashboard.dart';
-import '../../domain/entities/seller_analytics.dart';
+import '../../domain/entities/seller_analytics_read.dart';
+import '../../domain/entities/seller_performance.dart';
 import '../../domain/entities/seller_earnings.dart';
-import '../../domain/entities/seller_activity.dart';
 import '../../domain/entities/seller_subscription.dart';
 import '../../domain/entities/withdrawal.dart';
 import '../../domain/repositories/seller_repository.dart';
+import '../dto/seller_analytics_dto.dart';
 import '../dto/withdraw_dto.dart';
 import '../mappers/seller_mapper.dart';
 import '../mappers/withdraw_mapper.dart';
@@ -21,7 +21,6 @@ import '../remote/seller_remote_datasource.dart';
 
 /// Seller Repository Implementation
 ///
-/// CONTEST DOMAIN REMOVED: Contest dependencies removed as Contest domain has been sunset
 class SellerRepositoryImpl implements SellerRepository {
   final SellerRemoteDatasource _remoteDatasource;
 
@@ -29,67 +28,28 @@ class SellerRepositoryImpl implements SellerRepository {
     : _remoteDatasource = remoteDatasource;
 
   // ============================================
-  // DASHBOARD STATS
-  // ============================================
-
-  @override
-  Future<Result<SellerDashboardStats>> getDashboardStats(
-    String sellerId,
-  ) async {
-    try {
-      final dto = await _remoteDatasource.getDashboardStats(sellerId);
-      return Result.success(DashboardStatsMapper.toEntity(dto));
-    } catch (e) {
-      return Result.error('Failed to get dashboard stats: $e');
-    }
-  }
-
-  // ============================================
   // ANALYTICS
   // ============================================
 
   @override
-  Future<Result<SellerAnalytics>> getAnalytics({
-    required String sellerId,
-    required AnalyticsPeriod period,
-    required DateTime startDate,
-    required DateTime endDate,
-  }) async {
+  Future<Result<SellerAnalytics>> getAnalytics(String sellerId) async {
     try {
-      final apiModel = await _remoteDatasource.getAnalytics();
-
-      // Convert API model to entity
-      final salesDataJson = await _remoteDatasource.getSalesTrendData(
-        sellerId: sellerId,
-        days: endDate.difference(startDate).inDays,
-      );
-
+      final json = await _remoteDatasource.getAnalytics();
+      final dto = SellerAnalyticsDto.fromJson(json);
       return Result.success(
-        SellerAnalyticsMapper.toEntity(
-          sellerId: sellerId,
-          period: period,
-          currentPeriodData: {
-            'sales': apiModel.totalSales,
-            'orders': apiModel.totalOrders,
-          },
-          previousPeriodData: {
-            'sales': 0.0, // TODO: implement previous period calculation
-            'orders': 0, // TODO: implement previous period calculation
-          },
-          salesDataJson: salesDataJson,
-          periodStart: startDate,
-          periodEnd: endDate,
-        ),
+        SellerAnalytics(summary: dto.summary, products: dto.products),
       );
     } catch (e) {
       return Result.error('Failed to get analytics: $e');
     }
   }
 
+  // ============================================
+  // PERFORMANCE
+  // ============================================
+
   @override
-  Future<Result<SellerPerformance>> getPerformance(
-    String sellerId,
-  ) async {
+  Future<Result<SellerPerformance>> getPerformance(String sellerId) async {
     try {
       final perfJson = await _remoteDatasource.getPerformance(sellerId);
       return Result.success(
@@ -97,27 +57,6 @@ class SellerRepositoryImpl implements SellerRepository {
       );
     } catch (e) {
       return Result.error('Failed to get performance: $e');
-    }
-  }
-
-  @override
-  Future<Result<List<SalesDataPoint>>> getSalesTrendData({
-    required String sellerId,
-    int days = 30,
-  }) async {
-    try {
-      final salesJson = await _remoteDatasource.getSalesTrendData(
-        sellerId: sellerId,
-        days: days,
-      );
-
-      final dataPoints = salesJson
-          .map((json) => SalesDataPointMapper.toEntity(json))
-          .toList();
-
-      return Result.success(dataPoints);
-    } catch (e) {
-      return Result.error('Failed to get sales trend: $e');
     }
   }
 
@@ -206,54 +145,11 @@ class SellerRepositoryImpl implements SellerRepository {
   }
 
   // ============================================
-  // ACTIVITY
-  // ============================================
-
-  @override
-  Future<Result<List<RecentActivityItem>>> getRecentActivity(
-    String sellerId, {
-    int limit = 10,
-  }) async {
-    try {
-      final dtos = await _remoteDatasource.getRecentActivity(
-        sellerId,
-        limit: limit,
-      );
-      return Result.success(
-        dtos.map(ActivityItemMapper.toEntity).toList(),
-      );
-    } catch (e) {
-      return Result.error('Failed to get recent activity: $e');
-    }
-  }
-
-  @override
-  Future<Result<List<RecentActivityItem>>> getActivityHistory(
-    ActivityHistoryParams params, {
-    int limit = 100,
-  }) async {
-    try {
-      final dtos = await _remoteDatasource.getActivityHistory(
-        params.sellerId,
-        filterType: params.filterType,
-        limit: limit,
-      );
-      return Result.success(
-        dtos.map(ActivityItemMapper.toEntity).toList(),
-      );
-    } catch (e) {
-      return Result.error('Failed to get activity history: $e');
-    }
-  }
-
-  // ============================================
   // SUBSCRIPTION
   // ============================================
 
   @override
-  Future<Result<SellerSubscription>> getSubscription(
-    String sellerId,
-  ) async {
+  Future<Result<SellerSubscription>> getSubscription(String sellerId) async {
     try {
       final json = await _remoteDatasource.getSubscription(sellerId);
 
@@ -298,50 +194,6 @@ class SellerRepositoryImpl implements SellerRepository {
     } catch (e) {
       return Result.error('Failed to get subscription: $e');
     }
-  }
-
-  @override
-  Stream<SellerSubscription?> watchSubscription(String sellerId) {
-    // SOURCE OF TRUTH: PostgreSQL (Backend API /users/{id}/subscription)
-    // Uses polling via datasource - NO Firestore fallback
-    return _remoteDatasource.watchSubscription(sellerId).map((data) {
-      // Handle error from datasource
-      if (data.containsKey('error') && data['error'] == true) {
-        return SellerSubscription.empty();
-      }
-
-      return SellerSubscription(
-        isActive:
-            data['is_active'] as bool? ?? data['isActive'] as bool? ?? false,
-        yearlyFee:
-            (data['yearly_fee'] as num?)?.toDouble() ??
-            (data['yearlyFee'] as num?)?.toDouble() ??
-            0.0,
-        startDate: data['start_date'] != null
-            ? DateTime.parse(data['start_date'] as String)
-            : data['startDate'] != null
-            ? DateTime.parse(data['startDate'] as String)
-            : DateTime.now(),
-        expiryDate: data['expiry_date'] != null
-            ? DateTime.parse(data['expiry_date'] as String)
-            : data['expiryDate'] != null
-            ? DateTime.parse(data['expiryDate'] as String)
-            : DateTime.now(),
-        status: _parseSubscriptionStatus(data['status'] as String?),
-        paymentId:
-            data['payment_id'] as String? ?? data['paymentId'] as String? ?? '',
-        createdAt: data['created_at'] != null
-            ? DateTime.parse(data['created_at'] as String)
-            : data['createdAt'] != null
-            ? DateTime.parse(data['createdAt'] as String)
-            : DateTime.now(),
-        lastRenewalDate: data['last_renewal_date'] != null
-            ? DateTime.parse(data['last_renewal_date'] as String)
-            : data['lastRenewalDate'] != null
-            ? DateTime.parse(data['lastRenewalDate'] as String)
-            : null,
-      );
-    });
   }
 
   SubscriptionStatus _parseSubscriptionStatus(String? status) {

@@ -42,8 +42,8 @@ func (r *captureAuctionProductCreator) Update(_ context.Context, _ db.Tx, _ *pro
 
 // newAuctionServiceForFarmAddressTests builds a fully-wired AuctionService
 // whose Product creation is captured, so tests can verify that the canonical
-// Product minted by CreateDraft carries the FarmAddressID passed through the
-// CreateDraftInput (Product owns farm/address information; Auction never
+// Product minted by Create carries the FarmAddressID passed through the
+// CreateAuctionInput (Product owns farm/address information; Auction never
 // resolves it itself).
 func newAuctionServiceForFarmAddressTests(productRepo *captureAuctionProductCreator) *AuctionService {
 	optID := uuid.New()
@@ -67,36 +67,34 @@ func newAuctionServiceForFarmAddressTests(productRepo *captureAuctionProductCrea
 	}
 }
 
-// TestCreateDraft_PassesFarmAddressIDToCanonicalProduct verifies that the
-// FarmAddressID supplied on CreateDraftInput lands on the minted Product —
-// Product is the single authority for farm/address information.
-func TestCreateDraft_PassesFarmAddressIDToCanonicalProduct(t *testing.T) {
+// TestCreate_MintsCanonicalProduct verifies the minted Product carries the
+// auction content. There is no product-level origin address: every product's
+// origin is the seller account's primary address, resolved at read time.
+func TestCreate_MintsCanonicalProduct(t *testing.T) {
 	sellerID := uuid.New()
-	farmAddressID := uuid.New()
 	productRepo := &captureAuctionProductCreator{}
 	svc := newAuctionServiceForFarmAddressTests(productRepo)
 
-	auction, err := svc.CreateDraft(context.Background(), fakeTx{}, CreateDraftInput{
-		SellerID:          sellerID,
-		Title:             "Test Auction",
-		Description:       "Canonical farm address",
-		StartPrice:        10000,
-		BidIncrement:      1000,
-		BuyNowPrice:       ptrInt64(12000),
-		StartMode:         entity.StartModeNow,
-		Duration:          24 * time.Hour,
+	auction, err := svc.Create(context.Background(), fakeTx{}, CreateAuctionInput{
+		SellerID:         sellerID,
+		Title:            "Test Auction",
+		Description:      "Canonical product",
+		StartPrice:       10000,
+		BidIncrement:     1000,
+		BuyNowPrice:      ptrInt64(12000),
+		StartMode:        entity.StartModeNow,
+		Duration:         24 * time.Hour,
 		Media:            []productEntity.ProductMedia{{URL: "https://example.com/1.jpg"}},
-		Variety:           "Kohaku",
-		SizeCM:            intPtr(50),
-		FarmAddressID:     &farmAddressID,
+		Variety:          "Kohaku",
+		SizeCM:           intPtr(50),
 		ShippingSetupIDs: nil,
 	})
 
 	require.NoError(t, err)
 	require.NotNil(t, auction)
 	require.NotNil(t, productRepo.product)
-	require.NotNil(t, productRepo.product.FarmAddressID)
-	require.Equal(t, farmAddressID, *productRepo.product.FarmAddressID)
+	require.Equal(t, "Test Auction", productRepo.product.Title)
+	require.Equal(t, productEntity.SellingSurfaceAuction, productRepo.product.SellingSurface)
 }
 
 func intPtr(v int) *int { return &v }

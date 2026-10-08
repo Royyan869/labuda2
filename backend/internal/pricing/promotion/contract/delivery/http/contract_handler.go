@@ -13,6 +13,7 @@ package http
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -57,14 +58,38 @@ func NewContractHandler(service *contractApp.PromotionContractService, analytics
 // REQUEST DTOs
 // ============================================================================
 
+// PromotionTargetRequest is one product queue entry supplied as part of the
+// promotion configuration. The queue is a prerequisite of funding/payment.
+type PromotionTargetRequest struct {
+	TargetType string `json:"target_type" binding:"required"`
+	TargetID   string `json:"target_id" binding:"required"`
+}
+
+// parsePromotionTargets maps and parses the request target list into the
+// canonical domain input. target_id must be a UUID; the domain service owns
+// every queue rule (kind match, ownership, operability, duplicate, max 10).
+func parsePromotionTargets(in []PromotionTargetRequest) ([]contractApp.PromotionTargetInput, error) {
+	out := make([]contractApp.PromotionTargetInput, 0, len(in))
+	for _, t := range in {
+		id, err := uuid.Parse(t.TargetID)
+		if err != nil {
+			return nil, fmt.Errorf("invalid target_id %q", t.TargetID)
+		}
+		out = append(out, contractApp.PromotionTargetInput{TargetType: t.TargetType, TargetID: id})
+	}
+	return out, nil
+}
+
 // CreateContractRequest captures the canonical seller inputs. planned_start /
 // planned_finish are deliberately NOT accepted — both derive server-side from
-// duration_days (canonical Phase 2 authority).
+// duration_days (canonical Phase 2 authority). targets is the product queue and
+// MUST contain at least one entry (queue before payment).
 type CreateContractRequest struct {
-	Kind         string   `json:"kind" binding:"required,oneof=internal external"`
-	BudgetRupiah int64    `json:"budget_rupiah" binding:"required,min=1"`
-	DurationDays int64    `json:"duration_days" binding:"required,min=1"`
-	CityIDs      []string `json:"city_ids"`
+	Kind         string                   `json:"kind" binding:"required,oneof=internal external"`
+	BudgetRupiah int64                    `json:"budget_rupiah" binding:"required,min=1"`
+	DurationDays int64                    `json:"duration_days" binding:"required,min=1"`
+	CityIDs      []string                 `json:"city_ids"`
+	Targets      []PromotionTargetRequest `json:"targets" binding:"required,min=1"`
 }
 
 // ============================================================================
@@ -159,6 +184,11 @@ func (h *ContractHandler) CreateContract(c *gin.Context) {
 		response.BadRequest(c, "Invalid request: "+err.Error())
 		return
 	}
+	targets, err := parsePromotionTargets(req.Targets)
+	if err != nil {
+		response.BadRequest(c, "Invalid request: "+err.Error())
+		return
+	}
 
 	created, err := h.service.Create(c.Request.Context(), contractApp.CreatePromotionInput{
 		SellerID:     callerID,
@@ -166,6 +196,7 @@ func (h *ContractHandler) CreateContract(c *gin.Context) {
 		BudgetRupiah: req.BudgetRupiah,
 		DurationDays: req.DurationDays,
 		CityIDs:      req.CityIDs,
+		Targets:      targets,
 	})
 	if err != nil {
 		h.writeError(c, "create promotion contract", err)
@@ -187,10 +218,11 @@ func (h *ContractHandler) CreateContract(c *gin.Context) {
 // The seller supplies the same inputs they would for creation; the system
 // returns the funding sufficiency projection without creating anything.
 type PreviewFundingRequest struct {
-	Kind         string   `json:"kind" binding:"required,oneof=internal external"`
-	BudgetRupiah int64    `json:"budget_rupiah" binding:"required,min=1"`
-	DurationDays int64    `json:"duration_days" binding:"required,min=1"`
-	CityIDs      []string `json:"city_ids"`
+	Kind         string                   `json:"kind" binding:"required,oneof=internal external"`
+	BudgetRupiah int64                    `json:"budget_rupiah" binding:"required,min=1"`
+	DurationDays int64                    `json:"duration_days" binding:"required,min=1"`
+	CityIDs      []string                 `json:"city_ids"`
+	Targets      []PromotionTargetRequest `json:"targets" binding:"required,min=1"`
 }
 
 // PreviewFunding handles POST /api/v1/promotions/contracts/preview-funding.
@@ -213,6 +245,11 @@ func (h *ContractHandler) PreviewFunding(c *gin.Context) {
 		response.BadRequest(c, "Invalid request: "+err.Error())
 		return
 	}
+	targets, err := parsePromotionTargets(req.Targets)
+	if err != nil {
+		response.BadRequest(c, "Invalid request: "+err.Error())
+		return
+	}
 
 	preview, err := h.service.PreviewFunding(c.Request.Context(), contractApp.CreatePromotionInput{
 		SellerID:     callerID,
@@ -220,6 +257,7 @@ func (h *ContractHandler) PreviewFunding(c *gin.Context) {
 		BudgetRupiah: req.BudgetRupiah,
 		DurationDays: req.DurationDays,
 		CityIDs:      req.CityIDs,
+		Targets:      targets,
 	})
 	if err != nil {
 		h.writeError(c, "preview promotion funding", err)
@@ -516,6 +554,8 @@ func (h *ContractHandler) writeError(c *gin.Context, op string, err error) {
 		response.Error(c, http.StatusBadRequest, "INVALID_PROMOTION_KIND", "Promotion kind must be internal or external")
 	case errors.Is(err, contractApp.ErrPromotionBudgetInvalid):
 		response.Error(c, http.StatusBadRequest, "INVALID_PROMOTION_BUDGET", "Promotion budget must be a positive Rupiah integer")
+	case errors.Is(err, contractApp.ErrQueueEmpty):
+		response.Error(c, http.StatusBadRequest, "PROMOTION_QUEUE_REQUIRED", "A promotion must have at least one target before funding")
 	case errors.Is(err, contractApp.ErrQueueFull):
 		response.Error(c, http.StatusConflict, "QUEUE_FULL", "Promotion target queue is full (max 10)")
 	case errors.Is(err, contractApp.ErrQueueDuplicate):

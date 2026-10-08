@@ -55,8 +55,7 @@ class _NextStepsSection extends StatelessWidget {
               const SizedBox(width: 12),
               Text(
                 'Apa Selanjutnya?',
-                style: TextStyle(
-                  fontSize: core.AppType.s16,
+                style: context.typeRoles.titleSection.copyWith(
                   fontWeight: FontWeight.bold,
                   color: colorScheme.onSurface,
                 ),
@@ -117,7 +116,11 @@ class _NextStepItem extends StatelessWidget {
             color: colorScheme.secondary.withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
-          child: Icon(icon, size: AppIconSize.inlineGlyph, color: colorScheme.secondary),
+          child: Icon(
+            icon,
+            size: AppIconSize.inlineGlyph,
+            color: colorScheme.secondary,
+          ),
         ),
         const SizedBox(width: 12),
         Expanded(
@@ -126,8 +129,7 @@ class _NextStepItem extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: TextStyle(
-                  fontSize: core.AppType.s14,
+                style: context.typeRoles.titleCompact.copyWith(
                   fontWeight: FontWeight.w600,
                   color: colorScheme.onSurface,
                 ),
@@ -135,8 +137,7 @@ class _NextStepItem extends StatelessWidget {
               const SizedBox(height: 2),
               Text(
                 description,
-                style: TextStyle(
-                  fontSize: core.AppType.s12,
+                style: context.typeRoles.bodyDense.copyWith(
                   color: colorScheme.onSurfaceVariant,
                   height: 1.4,
                 ),

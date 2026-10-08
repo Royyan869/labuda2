@@ -26,11 +26,7 @@ class OrderRepositoryImpl implements OrderRepository {
 
   Result<T> _mapError<T>(Object e) {
     if (e is OrderApiException) {
-      return Result.error(
-        e.message,
-        code: e.code,
-        details: e.details,
-      );
+      return Result.error(e.message, code: e.code, details: e.details);
     }
     return Result.error(e.toString());
   }
@@ -54,6 +50,9 @@ class OrderRepositoryImpl implements OrderRepository {
           'shipping_option_id': params.shippingSetupId,
         if (params.shippingQuoteId != null)
           'shipping_quote_id': params.shippingQuoteId,
+        // Conversation scope for a manual shipping quote. Required by the
+        // backend whenever shipping_quote_id is present.
+        if (params.chatId != null) 'chat_id': params.chatId,
         if (params.negotiationId != null)
           'negotiation_id': params.negotiationId,
         if (params.discountCode != null) 'discount_code': params.discountCode,
@@ -103,9 +102,7 @@ class OrderRepositoryImpl implements OrderRepository {
   }
 
   @override
-  Future<Result<List<Order>>> getBuyerOrders(
-    GetOrdersParams params,
-  ) async {
+  Future<Result<List<Order>>> getBuyerOrders(GetOrdersParams params) async {
     try {
       final queryParams = OrderFilterParams(
         status: params.status,
@@ -120,9 +117,7 @@ class OrderRepositoryImpl implements OrderRepository {
   }
 
   @override
-  Future<Result<List<Order>>> getSellerOrders(
-    GetOrdersParams params,
-  ) async {
+  Future<Result<List<Order>>> getSellerOrders(GetOrdersParams params) async {
     try {
       final queryParams = OrderFilterParams(
         status: params.status,
@@ -134,44 +129,6 @@ class OrderRepositoryImpl implements OrderRepository {
     } catch (e) {
       return _mapError(e);
     }
-  }
-
-  @override
-  Future<Result<OrderPageResult>> getBuyerOrdersPage(
-    GetOrdersParams params,
-  ) async {
-    final result = await getBuyerOrders(params);
-    if (result.isError || result.data == null) {
-      return Result.error(
-        result.error ?? 'Failed to load buyer orders',
-      );
-    }
-    return Result.success(
-      OrderPageResult(
-        orders: result.data!,
-        page: params.page ?? 0,
-        pageSize: params.pageSize ?? params.limit ?? 20,
-      ),
-    );
-  }
-
-  @override
-  Future<Result<OrderPageResult>> getSellerOrdersPage(
-    GetOrdersParams params,
-  ) async {
-    final result = await getSellerOrders(params);
-    if (result.isError || result.data == null) {
-      return Result.error(
-        result.error ?? 'Failed to load seller orders',
-      );
-    }
-    return Result.success(
-      OrderPageResult(
-        orders: result.data!,
-        page: params.page ?? 0,
-        pageSize: params.pageSize ?? params.limit ?? 20,
-      ),
-    );
   }
 
   // ========================================
@@ -192,9 +149,7 @@ class OrderRepositoryImpl implements OrderRepository {
   }
 
   @override
-  Future<Result<Order>> markAsShipped(
-    MarkAsShippedParams params,
-  ) async {
+  Future<Result<Order>> markAsShipped(MarkAsShippedParams params) async {
     try {
       await _datasource.shipOrder(params.orderId, params);
       return await getOrderById(params.orderId);

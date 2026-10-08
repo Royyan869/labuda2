@@ -9,11 +9,23 @@ import { api } from './client'
  * GET /api/v1/admin/seller-verifications/pending?status=<status>
  * When status is omitted, defaults to pending_review (backward compat).
  */
-export async function listPendingVerifications(status?: string) {
-  const params = status ? `?status=${encodeURIComponent(status)}` : ''
+export async function listPendingVerifications(
+  status?: string,
+  page?: number,
+  pageSize?: number,
+) {
+  const query = new URLSearchParams()
+  if (status) query.append('status', status)
+  if (page) query.append('page', String(page))
+  if (pageSize) query.append('page_size', String(pageSize))
+  const qs = query.toString()
   const resp = await api.get<{
-    data: { items: import('@/types').SellerVerificationListItem[]; count: number }
-  }>(`/api/v1/admin/seller-verifications/pending${params}`)
+    data: {
+      items: import('@/types').SellerVerificationListItem[]
+      count: number
+      total_pages: number
+    }
+  }>(`/api/v1/admin/seller-verifications/pending${qs ? `?${qs}` : ''}`)
   return resp.data
 }
 
