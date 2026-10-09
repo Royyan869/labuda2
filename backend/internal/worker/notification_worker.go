@@ -11,6 +11,7 @@ import (
 	"github.com/labuda/backend/internal/interaction/notification/policy"
 	platformevent "github.com/labuda/backend/internal/platform/event"
 	"github.com/labuda/backend/internal/platform/events"
+	dbpkg "github.com/labuda/backend/pkg/db"
 	"go.uber.org/zap"
 )
 
@@ -69,9 +70,11 @@ type NotificationEventHandler struct {
 	accountStatusChecker AccountStatusChecker
 	policyFilter         *policy.AccountStatusFilter
 	policyBlock          *policy.BlockPolicy
-	policyMute           *policy.MutePolicy // Optional: mute enforcement gate for chat notifications
-	deliveryLogger       DeliveryLogger     // Optional: for audit trail
-	capabilityLister     CapabilityLister   // Optional: for capability-based fanout
+	policyMute           *policy.MutePolicy        // Optional: mute enforcement gate for chat notifications
+	deliveryLogger       DeliveryLogger            // Optional: for audit trail
+	capabilityLister     CapabilityLister          // Optional: for capability-based fanout
+	realtimeOutbox       RealtimeOutboxInserter    // Optional: notification.created outbox emitter (TASK_5)
+	unreadCounter        NotificationUnreadCounter // Optional: canonical unread count for the created-event payload
 	log                  *zap.Logger
 }
 
@@ -92,6 +95,21 @@ type CapabilityLister interface {
 // entity) tuple.
 type NotificationInserter interface {
 	Insert(ctx context.Context, tx interface{}, notification *notificationentity.Notification) (uuid.UUID, bool, error)
+}
+
+// RealtimeOutboxInserter inserts a durable outbox event inside the caller's
+// transaction. Satisfied by the platform outbox repository. Used to emit the
+// realtime-owned notification.created event atomically with the notification
+// INSERT (TASK_5) — never called outside a transaction, never after commit.
+type RealtimeOutboxInserter interface {
+	InsertTx(ctx context.Context, tx dbpkg.Tx, eventType string, payload any, idempotencyKey string) error
+}
+
+// NotificationUnreadCounter computes the canonical unread count for a
+// recipient inside the caller's transaction. Satisfied by the notification
+// repository's CountUnread — the SAME authority as GET /notifications/unread-count.
+type NotificationUnreadCounter interface {
+	CountUnread(ctx context.Context, tx interface{}, recipientID uuid.UUID) (int, error)
 }
 
 // NewNotificationEventHandler creates a new NotificationEventHandler.
@@ -155,6 +173,21 @@ func (h *NotificationEventHandler) SetCapabilityLister(lister CapabilityLister) 
 // Scope: chat_message notification type only. REST and WebSocket are unaffected.
 func (h *NotificationEventHandler) SetMutePolicy(p *policy.MutePolicy) {
 	h.policyMute = p
+}
+
+// SetRealtimeOutboxInserter wires the durable outbox emitter used to produce
+// the user-targeted notification.created realtime event in the SAME
+// transaction as the notification INSERT (TASK_5). Optional: when nil, no
+// realtime event is emitted (chat-only test harnesses).
+func (h *NotificationEventHandler) SetRealtimeOutboxInserter(o RealtimeOutboxInserter) {
+	h.realtimeOutbox = o
+}
+
+// SetUnreadCounter wires the canonical unread-count authority used to fill
+// the notification.created payload. Optional: when nil the event is still
+// emitted but without an unread_count field.
+func (h *NotificationEventHandler) SetUnreadCounter(c NotificationUnreadCounter) {
+	h.unreadCounter = c
 }
 
 func (h *NotificationEventHandler) Handle(ctx context.Context, event platformevent.OutboxEvent) (retErr error) {

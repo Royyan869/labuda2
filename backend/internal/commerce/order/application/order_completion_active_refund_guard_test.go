@@ -65,12 +65,11 @@ func (s *stubRefundReleaseGuard) HasRefundBlockingRelease(
 // the guard alone decides.
 func newCompletableOrder() *entity.Order {
 	order := &entity.Order{
-		ID:           uuid.New(),
-		BuyerID:      uuid.New(),
-		SellerID:     uuid.New(),
-		Status:       entity.StatusShipped,
-		EscrowStatus: entity.EscrowStatusHolding,
-		HasDispute:   false,
+		ID:         uuid.New(),
+		BuyerID:    uuid.New(),
+		SellerID:   uuid.New(),
+		Status:     entity.StatusShipped,
+		HasDispute: false,
 	}
 	closedAt := time.Now().Add(-time.Minute) // refund window already closed
 	order.AutoReleaseAt = &closedAt
@@ -163,11 +162,10 @@ func TestComplete_PassesOrderRefundWindowToGuard(t *testing.T) {
 
 	// Window OPEN: still shipped and before the auto-release deadline.
 	open := &entity.Order{
-		ID:           uuid.New(),
-		BuyerID:      uuid.New(),
-		SellerID:     uuid.New(),
-		Status:       entity.StatusShipped,
-		EscrowStatus: entity.EscrowStatusHolding,
+		ID:       uuid.New(),
+		BuyerID:  uuid.New(),
+		SellerID: uuid.New(),
+		Status:   entity.StatusShipped,
 	}
 	autoRelease := time.Now().Add(time.Hour)
 	open.AutoReleaseAt = &autoRelease

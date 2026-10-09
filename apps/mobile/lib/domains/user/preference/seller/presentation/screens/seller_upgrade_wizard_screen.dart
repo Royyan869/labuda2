@@ -14,6 +14,7 @@ import 'package:labuda/domains/finance/transaction/payment/presentation/widgets/
 import 'package:labuda/domains/user/preference/seller/data/dto/seller_dto.dart';
 import 'package:labuda/domains/user/preference/seller/data/seller_providers.dart'
     show sellerRemoteDatasourceProvider, storePhotoUploadServiceProvider;
+import 'package:labuda/domains/user/preference/seller/domain/entities/seller_state.dart';
 import 'package:labuda/domains/user/preference/seller/presentation/widgets/wizard/seller_wizard_helpers.dart';
 import 'package:labuda/domains/user/preference/seller/presentation/widgets/wizard/seller_wizard_navigation_buttons.dart';
 import 'package:labuda/domains/user/preference/seller/presentation/widgets/wizard/seller_wizard_preview_widget.dart';
@@ -632,6 +633,10 @@ class _SellerUpgradeWizardScreenState
     final authState = ref.watch(authControllerProvider);
     final authenticatedUser = ref.watch(authenticatedUserProvider);
     final wizardMode = _wizardModeFrom(authState, authenticatedUser);
+    // Canonical seller lifecycle (RF-02): identity (hasSellerProfile) alone
+    // must NOT imply the seller ever paid. Expiry / renewal copy is owned by
+    // sellerSubscriptionStatus via SellerState — pendingActivation vs expired.
+    final sellerState = SellerState.fromAuthUser(authenticatedUser);
     final isEmailVerified = authState is AuthStateAuthenticated
         ? authState.user.isEmailVerified
         : false;
@@ -792,7 +797,11 @@ class _SellerUpgradeWizardScreenState
                   _SellerUpgradeWizardMode.unhydrated =>
                     'Seller account is loading',
                   _SellerUpgradeWizardMode.existingSeller =>
-                    'Sudah Menjadi Seller',
+                    sellerState.isExpired
+                    ? 'Sudah Menjadi Seller'
+                    : sellerState.isPendingActivation
+                    ? 'Seller Terdaftar'
+                    : 'Sudah Menjadi Seller',
                   _SellerUpgradeWizardMode.registration => 'Seller upgrade',
                 },
                 message: switch (wizardMode) {
@@ -803,16 +812,30 @@ class _SellerUpgradeWizardScreenState
                   _SellerUpgradeWizardMode.unhydrated =>
                     'Waiting for the current authenticated principal to hydrate before seller actions are enabled.',
                   _SellerUpgradeWizardMode.existingSeller =>
-                    'Wizard ini hanya untuk registrasi seller baru. Perpanjangan langganan adalah lifecycle pembayaran terpisah di layar Perpanjang Seller.',
+                    sellerState.isExpired
+                    ? 'Wizard ini hanya untuk registrasi seller baru. Perpanjangan langganan adalah lifecycle pembayaran terpisah di layar Perpanjang Seller.'
+                    : sellerState.isPendingActivation
+                    ? 'Wizard ini hanya untuk registrasi seller baru. Aktivasi langganan adalah lifecycle pembayaran terpisah di layar Aktifkan Seller.'
+                    : 'Wizard ini hanya untuk registrasi seller baru. Akun Anda sudah menjadi seller aktif.',
                   _SellerUpgradeWizardMode.registration =>
                     'Seller content is available only after the current account is operational.',
                 },
+                // Existing sellers cannot re-register. The payment-only
+                // lifecycle hand-off uses canonical SellerState copy:
+                // pendingActivation → Aktifkan; expired → Perpanjang.
+                // Active sellers get no renewal CTA.
                 actionLabel:
                     wizardMode == _SellerUpgradeWizardMode.existingSeller
+                    ? sellerState.isExpired
                     ? 'Buka Perpanjang Seller'
+                    : sellerState.isPendingActivation
+                    ? 'Buka Aktifkan Seller'
+                    : null
                     : null,
                 onAction: wizardMode == _SellerUpgradeWizardMode.existingSeller
+                    ? (sellerState.isExpired || sellerState.isPendingActivation)
                     ? () => context.push(RoutePaths.sellerRenewal)
+                    : null
                     : null,
               ),
       ),
@@ -1899,26 +1922,17 @@ class _SellerUpgradeWizardScreenState
           Navigator.of(context).pop(true);
           return;
         }
-        final recheck = await showDialog<bool>(
+        // F9(a) convergence: pure recheck yes/no decision consumes the
+        // canonical AppDialog.confirm grammar (same order and meaning).
+        final recheck = await AppDialog.confirm(
           context: context,
-          builder: (dialogCtx) => AlertDialog(
-            title: const Text('Pembayaran masih diproses'),
-            content: const Text(
+          title: 'Pembayaran masih diproses',
+          message:
               'Pembayaran Anda belum terkonfirmasi. Cek ulang statusnya sekarang?',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(dialogCtx).pop(false),
-                child: const Text('Nanti saja'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.of(dialogCtx).pop(true),
-                child: const Text('Cek status'),
-              ),
-            ],
-          ),
+          confirmLabel: 'Cek status',
+          cancelLabel: 'Nanti saja',
         );
-        if (recheck != true) return;
+        if (!recheck) return;
         // "Cek status" must CHECK, not reopen the polling dialog.
         continue;
       }

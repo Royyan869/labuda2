@@ -52,6 +52,7 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
   /// Owner default: FOR SALE TANPA NEGO — nego hanya aktif bila seller
   /// mengaktifkannya sendiri saat membuat listing.
   bool _isNegotiable = false;
+  bool _hasStock = false;
   double? _price;
   int _quantity = 1;
   final List<String> _mediaUrls = [];
@@ -157,7 +158,7 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
         title: _titleController.text.trim(),
         description: _descriptionController.text.trim(),
         price: _price!,
-        quantity: _quantity,
+        quantity: _hasStock ? _quantity : 1,
         negotiationEnabled: _isNegotiable,
         mediaUrls: List<String>.of(_mediaUrls),
         variety: _variety,
@@ -264,7 +265,10 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
         return CommerceDetailStates.loading(title: 'Buat ForSale Baru');
 
       case AuthStateRequiresProfileCompletion():
-        return const CompleteProfileScreen();
+        // The app router owns the single profile-completion route and redirects
+        // this state there. Keep this protected surface inert during the
+        // redirect instead of constructing a second completion screen here.
+        return CommerceDetailStates.loading(title: 'Buat ForSale Baru');
 
       case AuthStateAccountRestricted():
         return const AccountRestrictedScreen();
@@ -363,10 +367,17 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
                 onChanged: (value) => setState(() => _isNegotiable = value),
               ),
               const SizedBox(height: 16),
-              _StockField(
-                initialValue: _quantity,
-                onChanged: (value) => setState(() => _quantity = value),
+              _StockToggle(
+                value: _hasStock,
+                onChanged: (value) => setState(() => _hasStock = value),
               ),
+              if (_hasStock) ...[
+                const SizedBox(height: 16),
+                _StockField(
+                  initialValue: _quantity,
+                  onChanged: (value) => setState(() => _quantity = value),
+                ),
+              ],
 
               const SizedBox(height: 24),
 
@@ -492,13 +503,18 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
   ///
   /// Reaching this means the principal lacks market authority — no usable
   /// session, no seller profile, or no active seller subscription.
+  ///
+  /// Canonical expiry axis (RF-02): only an ENDED subscription may say
+  /// "Perpanjang". Status 'none' / never-paid is activation, not renewal.
   String _createForSaleAccessMessage(AuthState authState) {
     return switch (authState) {
       AuthStateAuthenticated(:final user) when user.hasSellerProfile != true =>
         'Buat seller profile dulu untuk membuat forSale.',
       AuthStateAuthenticated(:final user)
           when user.hasMarketAuthority != true =>
-        'Langganan seller belum aktif atau sudah berakhir. Perpanjang dulu untuk membuat forSale.',
+        user.isSellerSubscriptionExpired
+            ? 'Langganan seller sudah berakhir. Perpanjang dulu untuk membuat forSale.'
+            : 'Langganan seller belum aktif. Aktifkan dulu untuk membuat forSale.',
       _ => 'Sesi autentikasi belum siap untuk membuat forSale.',
     };
   }
@@ -590,11 +606,22 @@ class _NegotiableToggle extends StatelessWidget {
   }
 }
 
-/// Stock/quantity field.
-///
-/// Defaults to 1 (unique item — most koi forSales are one-of-a-kind).
-/// Sellers with multiple units of the same product increase this to enable
-/// stock-based sale; buyers can then purchase up to the available amount.
+class _StockToggle extends StatelessWidget {
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  const _StockToggle({required this.value, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return SwitchListTile(
+      title: const Text('Produk punya stock'),
+      value: value,
+      onChanged: onChanged,
+    );
+  }
+}
+
 class _StockField extends StatefulWidget {
   final int initialValue;
   final void Function(int) onChanged;
@@ -738,9 +765,7 @@ class _KoiDetailsForm extends StatelessWidget {
         // Variety dropdown (show all varieties)
         DropdownButtonFormField<String>(
           initialValue: variety,
-          decoration: const InputDecoration(
-            labelText: 'Varietas *',
-          ),
+          decoration: const InputDecoration(labelText: 'Varietas *'),
           items: _koiVarieties.map((v) {
             return DropdownMenuItem(value: v, child: Text(v));
           }).toList(),
@@ -790,9 +815,7 @@ class _KoiDetailsForm extends StatelessWidget {
         // Gender dropdown
         DropdownButtonFormField<String>(
           initialValue: gender,
-          decoration: const InputDecoration(
-            labelText: 'Jenis Kelamin',
-          ),
+          decoration: const InputDecoration(labelText: 'Jenis Kelamin'),
           items: _koiGenders.map((g) {
             return DropdownMenuItem(
               value: g['value'],

@@ -73,9 +73,6 @@ func (m *mockRepoForExpiry) FetchActiveExpiredBatchIDs(context.Context, db.Tx, t
 func (m *mockRepoForExpiry) GetActiveByUserID(context.Context, db.Tx, uuid.UUID) (*entity.SellerSubscription, error) {
 	return nil, nil
 }
-func (m *mockRepoForExpiry) ExistsActiveByUserID(context.Context, db.Tx, uuid.UUID) (bool, error) {
-	return false, nil
-}
 func (m *mockRepoForExpiry) GetActiveConfig(context.Context, db.Tx) (*entity.SellerSubscriptionConfig, error) {
 	return nil, nil
 }

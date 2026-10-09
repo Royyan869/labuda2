@@ -137,156 +137,16 @@ extension OrderStatusExtension on OrderStatus {
 }
 
 // =============================================================================
-// ESCROW STATUS - FINANCIAL STATE
 // =============================================================================
-//
-// STATUS AUTHORITY: Backend Go enum is SINGLE SOURCE OF TRUTH
-// Backend source: backend/internal/commerce/order/entity/escrow_status.go
-//
-// CRITICAL: This is a READ-ONLY projection of Wallet.Escrow.Status.
-// MUST match wallet/entity/escrow.go exactly.
-//
-// Valid states (mirrored from Wallet):
-// - "holding": Funds held in escrow awaiting completion
-// - "released": Funds released to seller
-// - "refunded": Funds refunded to buyer
-//
-// STATES REMOVED (no longer derivable from Wallet):
-// - "none": Use Order.Status = "pending_payment" instead
-// - "frozen": Use Order.HasDispute = true instead
-// - "partially_refunded": Use Order.Status + separate tracking
-// - "partially_released": Use Order.Status + separate tracking
-//
-// RULE: EscrowStatus can ONLY be set by deriving from Wallet.Escrow.Status.
-// NEVER set independently based on business logic.
-//
-// ═══════════════════════════════════════════════════════════════════════════════
-// BACKEND ALIGNMENT:
-// ═══════════════════════════════════════════════════════════════════════════════
-// This enum MUST match the backend Go enum exactly:
-// backend/internal/commerce/order/entity/escrow_status.go
-//
-// Backend Values (ONLY 3 STATES):
-// - "holding" → EscrowStatus.holding
-// - "released" → EscrowStatus.released
-// - "refunded" → EscrowStatus.refunded
-//
-// NO OTHER STATES EXIST IN BACKEND.
-// ═══════════════════════════════════════════════════════════════════════════════
-
-/// Escrow Status (Financial State)
-///
-/// Backend authority - statuses match backend Go enums exactly.
-/// DO NOT add or remove statuses without backend alignment.
-///
-/// Backend source: backend/internal/commerce/order/entity/escrow_status.go
-/// Escrow lifecycle: holding → released OR holding → refunded
-enum EscrowStatus {
-  /// Funds are held in escrow awaiting completion
-  /// This is the ACTIVE escrow state during normal order flow
-  holding, // Backend: EscrowStatusHolding
-  /// Funds have been released to seller (terminal state)
-  released, // Backend: EscrowStatusReleased
-  /// Funds have been refunded to buyer (terminal state)
-  refunded, // Backend: EscrowStatusRefunded
-}
-
-/// Extension for EscrowStatus parsing
-extension EscrowStatusExtension on EscrowStatus {
-  String get value {
-    switch (this) {
-      case EscrowStatus.holding:
-        return 'holding';
-      case EscrowStatus.released:
-        return 'released';
-      case EscrowStatus.refunded:
-        return 'refunded';
-    }
-  }
-
-  static EscrowStatus? parse(String? value) {
-    if (value == null) return null;
-    switch (value.toLowerCase()) {
-      case 'holding':
-        return EscrowStatus.holding;
-      case 'released':
-        return EscrowStatus.released;
-      case 'refunded':
-        return EscrowStatus.refunded;
-      default:
-        // Unknown value - log warning and return null
-        // Caller should handle null appropriately
-        return null;
-    }
-  }
-
-  /// Check if escrow is active (holding funds)
-  bool get isActive {
-    return this == EscrowStatus.holding;
-  }
-
-  /// Check if escrow is in terminal state (no further changes possible)
-  bool get isTerminal {
-    return this == EscrowStatus.released || this == EscrowStatus.refunded;
-  }
-
-  /// Check if funds are currently held (not released/refunded)
-  bool get isHolding {
-    return this == EscrowStatus.holding;
-  }
-}
-
+// ESCROW STATUS — PURGED
 // =============================================================================
-// ESCROW STATUS NULL-SAFE HELPERS
+// The order-level escrow status projection was removed from the backend
+// (orders.escrow_status dropped; escrows table is the sole authority) and
+// from this client. Order UI decisions come exclusively from the backend
+// Decision contract (primary_action / secondary_actions). If an escrow
+// badge is ever needed, it must be fed by a dedicated live escrow read —
+// never by a persisted order projection.
 // =============================================================================
-//
-// Helper extensions for handling nullable EscrowStatus in UI.
-// Used when backend sends unknown values (should never happen in production).
-// =============================================================================
-
-/// Extension for nullable EscrowStatus (null-safe UI helpers)
-extension EscrowStatusNullable on EscrowStatus? {
-  /// Get display label for escrow status (null-safe)
-  String get displayLabel {
-    if (this == null) return 'Status Escrow Tidak Diketahui';
-    switch (this!) {
-      case EscrowStatus.holding:
-        return 'Dana Ditahan';
-      case EscrowStatus.released:
-        return 'Dana Dilepas ke Penjual';
-      case EscrowStatus.refunded:
-        return 'Dana Dikembalikan ke Pembeli';
-    }
-  }
-
-  /// Check if escrow is active (null-safe)
-  bool get isActive {
-    return this?.isActive ?? false;
-  }
-
-  /// Check if escrow is in terminal state (null-safe)
-  bool get isTerminal {
-    return this?.isTerminal ?? false;
-  }
-
-  /// Check if funds are held (null-safe)
-  bool get isHolding {
-    return this?.isHolding ?? false;
-  }
-
-  /// Get emoji for escrow status (null-safe)
-  String get emoji {
-    if (this == null) return '❓';
-    switch (this!) {
-      case EscrowStatus.holding:
-        return '🔒';
-      case EscrowStatus.released:
-        return '💰';
-      case EscrowStatus.refunded:
-        return '↩️';
-    }
-  }
-}
 
 // =============================================================================
 // REMOVED: OrderIssue enum and OrderIssueExtension

@@ -279,7 +279,7 @@ func (w *OrderOverdueCancelWorker) processOverdueOrders() {
 //
 // Query conditions (in repository):
 // - status = 'paid'
-// - escrow_status = 'holding'
+// - a holding escrow row exists (canonical escrow authority)
 // - ready_to_ship_by IS NOT NULL
 // - ready_to_ship_by + grace_period < NOW()
 func (w *OrderOverdueCancelWorker) findOverdueOrders(

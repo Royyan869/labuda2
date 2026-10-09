@@ -42,12 +42,27 @@ class _SellerAuctionsScreenState extends ConsumerState<SellerAuctionsScreen>
       initialIndex: initial < 0 ? 0 : initial,
       vsync: this,
     );
+    _tabController.addListener(_handleTabChange);
   }
 
   @override
   void dispose() {
+    _tabController.removeListener(_handleTabChange);
     _tabController.dispose();
     super.dispose();
+  }
+
+  /// Single synchronization authority for the tab bar and the pager filter.
+  ///
+  /// A tap (the [TabBar] animates the controller) and a horizontal swipe (the
+  /// [TabBarView] page change) both land here, so the selected page can never
+  /// disagree with `SellerAuctionsPager.activeFilter`. [setFilter] already
+  /// no-ops on an identical filter, so the callback stays idempotent across
+  /// the many notification ticks a single selection emits.
+  void _handleTabChange() {
+    ref
+        .read(sellerAuctionsPagerProvider.notifier)
+        .setFilter(kSellerAuctionFilters[_tabController.index]);
   }
 
   /// Two distinct empty meanings, one canonical renderer:
@@ -64,10 +79,10 @@ class _SellerAuctionsScreenState extends ConsumerState<SellerAuctionsScreen>
         title: l10n.emptySearchTitle,
         subtitle: l10n.emptySearchMessage,
         actionLabel: l10n.resetFilterAction,
-        onAction: () {
-          ref.read(sellerAuctionsPagerProvider.notifier).setFilter(null);
-          setState(() => _tabController.index = 0);
-        },
+        // Single synchronization path: moving the controller to the "Semua"
+        // page (index 0) drives [_handleTabChange], which resets the pager
+        // filter to null. No second filter mutation here.
+        onAction: () => _tabController.index = 0,
       );
     }
 
@@ -92,7 +107,6 @@ class _SellerAuctionsScreenState extends ConsumerState<SellerAuctionsScreen>
     }
 
     final currentUser = authState.user;
-    final visibleAuctions = pagerState.visibleAuctions;
     final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
@@ -112,106 +126,29 @@ class _SellerAuctionsScreenState extends ConsumerState<SellerAuctionsScreen>
             for (final filter in kSellerAuctionFilters)
               Tab(text: sellerAuctionFilterLabel(filter)),
           ],
-          onTap: (index) => pager.setFilter(kSellerAuctionFilters[index]),
         ),
       ),
       // SAFE-AREA-31: the body content owns the bottom system inset —
       // this is a STANDALONE pushed route (auction_module MaterialPage),
       // so no shell bar owns it. FAB positioning stays the Scaffold
       // endFloat authority, measured outside this SafeArea.
+      //
+      // One page per canonical filter, each bound to the SAME [_tabController]
+      // as the [TabBar] above so tap and horizontal swipe select the same page
+      // and the displayed content always matches the pager's `activeFilter`.
       body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: pager.refresh,
-          child: CustomScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            slivers: [
-              // LOADING FOUNDATION (owner-locked):
-              // - No auctions yet → first-load states only: LoadingIndicator,
-              //   PageErrorState, or EmptyState.
-              // - Auctions present → they stay visible during refresh; the
-              //   update indicator and refresh failure render inline, never as
-              //   full-page loading/error.
-              if (pagerState.isInitialLoading && visibleAuctions.isEmpty)
-                const SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: Center(child: LoadingIndicator()),
-                )
-              else if (pagerState.initialError != null &&
-                  pagerState.auctions.isEmpty)
-                SliverFillRemaining(
-                  hasScrollBody: false,
-                  // CANONICAL page-level load error (PageErrorState): safe
-                  // localized copy only — the raw pager initialError never
-                  // reaches the screen. Retry re-executes the canonical
-                  // initial load through the single retry authority.
-                  child: PageErrorState(onRetry: pager.retryInitial),
-                )
-              else if (visibleAuctions.isEmpty)
-                SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: _buildEmptyState(),
-                )
-              else ...[
-                if (pagerState.isRefreshing)
-                  const SliverToBoxAdapter(
-                    child: LinearProgressIndicator(minHeight: 2),
-                  ),
-                if (pagerState.refreshError != null)
-                  SliverToBoxAdapter(child: _buildRefreshErrorBanner(pager)),
-                SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(
-                    AppMetrics.p16,
-                    AppMetrics.p8,
-                    AppMetrics.p16,
-                    AppMetrics.p16,
-                  ),
-                  sliver: SliverList(
-                    delegate: SliverChildBuilderDelegate((context, index) {
-                      final auction = visibleAuctions[index];
-                      // Rhythm lives in SellerManagementRow (bottom p12): the
-                      // list adds no separators of its own.
-                      return _SellerAuctionCard(
-                        auction: auction,
-                        currentUserId: currentUser.id,
-                        onOpenDetail: () =>
-                            context.push(RoutePaths.auctionDetail(auction.id)),
-                        onEdit:
-                            auction.status == AuctionStatus.scheduled &&
-                                auction.sellerId == currentUser.id
-                            ? () =>
-                                  unawaited(_openEdit(context, pager, auction))
-                            : null,
-                        // Relist preview gate: ended with no winner. The
-                        // backend re-checks bid/winner/order and may refuse.
-                        onRelist:
-                            auction.isRelistable &&
-                                auction.sellerId == currentUser.id
-                            ? () => unawaited(
-                                _relistAuction(context, ref, pager, auction),
-                              )
-                            : null,
-                        onCancel:
-                            (auction.status == AuctionStatus.scheduled ||
-                                    auction.status == AuctionStatus.active) &&
-                                auction.sellerId == currentUser.id
-                            ? () => unawaited(
-                                _cancelAuction(
-                                  context,
-                                  ref,
-                                  pager,
-                                  auction,
-                                  currentUser.id,
-                                ),
-                              )
-                            : null,
-                      );
-                    }, childCount: visibleAuctions.length),
-                  ),
-                ),
-              ],
-              SliverToBoxAdapter(child: _buildFooter(pagerState, pager)),
-            ],
-          ),
+        child: TabBarView(
+          controller: _tabController,
+          children: [
+            for (final filter in kSellerAuctionFilters)
+              _buildAuctionView(
+                context,
+                filter,
+                pagerState,
+                currentUser.id,
+                pager,
+              ),
+          ],
         ),
       ),
       // Canonical page-level create entry (mirrors the For Sale management
@@ -226,6 +163,114 @@ class _SellerAuctionsScreenState extends ConsumerState<SellerAuctionsScreen>
         backgroundColor: scheme.primary,
         icon: Icon(Icons.add, color: scheme.onPrimary),
         label: Text('Buat Lelang', style: TextStyle(color: scheme.onPrimary)),
+      ),
+    );
+  }
+
+  /// One [TabBarView] page, parameterized by its canonical [filter].
+  ///
+  /// The page owns the exact same loading/error/empty/refresh handling as the
+  /// former single scroll view; the only change is that the displayed
+  /// collection is filtered by this page's status instead of the pager's live
+  /// `activeFilter`. Data loading stays owned by the pager — [pager]'s
+  /// `refresh`/`retryInitial`/`loadMore` and the fetch key are untouched, so
+  /// switching tabs never triggers a per-tab refetch.
+  Widget _buildAuctionView(
+    BuildContext context,
+    AuctionStatus? filter,
+    SellerAuctionsPagerState pagerState,
+    String currentUserId,
+    SellerAuctionsPagerController pager,
+  ) {
+    final pageAuctions = pagerState.auctionsFor(filter);
+
+    return RefreshIndicator(
+      onRefresh: pager.refresh,
+      child: CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          // LOADING FOUNDATION (owner-locked):
+          // - No auctions yet → first-load states only: LoadingIndicator,
+          //   PageErrorState, or EmptyState.
+          // - Auctions present → they stay visible during refresh; the
+          //   update indicator and refresh failure render inline, never as
+          //   full-page loading/error.
+          if (pagerState.isInitialLoading && pageAuctions.isEmpty)
+            const SliverFillRemaining(
+              hasScrollBody: false,
+              child: Center(child: LoadingIndicator()),
+            )
+          else if (pagerState.initialError != null &&
+              pagerState.auctions.isEmpty)
+            SliverFillRemaining(
+              hasScrollBody: false,
+              // CANONICAL page-level load error (PageErrorState): safe
+              // localized copy only — the raw pager initialError never
+              // reaches the screen. Retry re-executes the canonical
+              // initial load through the single retry authority.
+              child: PageErrorState(onRetry: pager.retryInitial),
+            )
+          else if (pageAuctions.isEmpty)
+            SliverFillRemaining(hasScrollBody: false, child: _buildEmptyState())
+          else ...[
+            if (pagerState.isRefreshing)
+              const SliverToBoxAdapter(
+                child: LinearProgressIndicator(minHeight: 2),
+              ),
+            if (pagerState.refreshError != null)
+              SliverToBoxAdapter(child: _buildRefreshErrorBanner(pager)),
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(
+                AppMetrics.p16,
+                AppMetrics.p8,
+                AppMetrics.p16,
+                AppMetrics.p16,
+              ),
+              sliver: SliverList(
+                delegate: SliverChildBuilderDelegate((context, index) {
+                  final auction = pageAuctions[index];
+                  // Rhythm lives in SellerManagementRow (bottom p12): the
+                  // list adds no separators of its own.
+                  return _SellerAuctionCard(
+                    auction: auction,
+                    currentUserId: currentUserId,
+                    onOpenDetail: () =>
+                        context.push(RoutePaths.auctionDetail(auction.id)),
+                    onEdit:
+                        auction.status == AuctionStatus.scheduled &&
+                            auction.sellerId == currentUserId
+                        ? () => unawaited(_openEdit(context, pager, auction))
+                        : null,
+                    // Relist preview gate: ended with no winner. The
+                    // backend re-checks bid/winner/order and may refuse.
+                    onRelist:
+                        auction.isRelistable &&
+                            auction.sellerId == currentUserId
+                        ? () => unawaited(
+                            _relistAuction(context, ref, pager, auction),
+                          )
+                        : null,
+                    onCancel:
+                        (auction.status == AuctionStatus.scheduled ||
+                                auction.status == AuctionStatus.active) &&
+                            auction.sellerId == currentUserId
+                        ? () => unawaited(
+                            _cancelAuction(
+                              context,
+                              ref,
+                              pager,
+                              auction,
+                              currentUserId,
+                            ),
+                          )
+                        : null,
+                  );
+                }, childCount: pageAuctions.length),
+              ),
+            ),
+          ],
+          SliverToBoxAdapter(child: _buildFooter(pagerState, pager)),
+        ],
       ),
     );
   }

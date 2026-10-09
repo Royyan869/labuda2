@@ -99,14 +99,17 @@ func (s *MonitoringService) checkLedgerImbalance(ctx context.Context) CheckResul
 }
 
 // checkEscrowStuck finds orders that are shipped but past auto_release_at
-// Query: orders with status='shipped', auto_release_at < NOW(), escrow_status='holding'
+// with a holding escrow row (canonical escrow authority).
 func (s *MonitoringService) checkEscrowStuck(ctx context.Context) CheckResult {
 	const query = `
-		SELECT id, buyer_id, seller_id, auto_release_at
-		FROM orders
-		WHERE status = 'shipped'
-		  AND auto_release_at < NOW()
-		  AND escrow_status = 'holding'
+		SELECT o.id, o.buyer_id, o.seller_id, o.auto_release_at
+		FROM orders o
+		WHERE o.status = 'shipped'
+		  AND o.auto_release_at < NOW()
+		  AND EXISTS (
+		      SELECT 1 FROM escrows e
+		      WHERE e.order_id = o.id AND e.status = 'holding'
+		  )
 		LIMIT 100;
 	`
 
@@ -381,10 +384,13 @@ func (s *MonitoringService) GetSystemHealth(ctx context.Context) (SystemHealthSt
 	// 2. Escrow Stuck Count
 	const escrowQuery = `
 		SELECT COUNT(*)
-		FROM orders
-		WHERE status = 'shipped'
-		  AND auto_release_at < NOW()
-		  AND escrow_status = 'holding';
+		FROM orders o
+		WHERE o.status = 'shipped'
+		  AND o.auto_release_at < NOW()
+		  AND EXISTS (
+		      SELECT 1 FROM escrows e
+		      WHERE e.order_id = o.id AND e.status = 'holding'
+		  );
 	`
 	err = s.db.QueryRow(ctx, escrowQuery).Scan(&status.EscrowStuckCount)
 	if err != nil {

@@ -146,9 +146,13 @@ func TestGetOrder_PaymentNowContract(t *testing.T) {
 	if !strings.Contains(src, "ActionPay") {
 		t.Fatal("decision contract must include ActionPay for pending buyer orders")
 	}
-	if !strings.Contains(src, "selectPayActionLabelKey(paymentStatus, paymentExpiredAt)") {
+	if !strings.Contains(src, "selectPayActionLabelKey(paymentStatus)") {
 		t.Fatal("pending-buyer pay action must select its label_key via selectPayActionLabelKey, " +
 			"not a single hardcoded label — CTA wording must vary by payment state")
+	}
+	if !strings.Contains(src, "time.Now().Before(order.PaymentExpiresAt)") {
+		t.Fatal("pending-buyer pay exposure must be gated on the canonical payment window " +
+			"(now < order.PaymentExpiresAt) — the same predicate CreatePayment enforces")
 	}
 	if !strings.Contains(src, `"/api/v1/payments"`) {
 		t.Fatal("pay action must use POST /api/v1/payments as the canonical endpoint")

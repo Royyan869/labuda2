@@ -275,19 +275,6 @@ class _ScriptedCoinRepository implements CoinRepository {
   }
 
   @override
-  Stream<Result<CoinBalance>> watchCoinBalance(String userId) {
-    return const Stream.empty();
-  }
-
-  @override
-  Stream<Result<List<CoinTransaction>>> watchTransactions({
-    required String userId,
-    int limit = 50,
-  }) {
-    return const Stream.empty();
-  }
-
-  @override
   Future<Result<bool>> hasEnoughCoins({
     required String userId,
     required int requiredAmount,

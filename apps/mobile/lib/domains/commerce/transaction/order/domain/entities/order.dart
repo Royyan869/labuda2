@@ -461,12 +461,6 @@ class Order extends Equatable {
   final String? notes;
   final String? cancelReason;
 
-  // 🔒 ESCROW STATUS - Financial state of the order
-  // Backend authority: backend/internal/commerce/order/entity/escrow_status.go
-  // Matches backend Go enum exactly - do not modify without backend alignment
-  // Nullable: null = unknown value from backend (should never happen in production)
-  final EscrowStatus? escrowStatus;
-
   // Shipping Readiness Snapshot - frozen at order creation time
   // This preserves the buyer's expectation at purchase time, even if seller
   // later changes the forSale/auction preparation time
@@ -561,9 +555,6 @@ class Order extends Equatable {
     required this.pricing,
     this.notes,
     this.cancelReason,
-    // 🔒 ESCROW STATUS - Financial state from backend
-    // Nullable: null = unknown value (error state)
-    this.escrowStatus,
     this.preparationTimeSnapshot = PreparationTime.days1_3,
     this.readyToShipBy,
     this.overdueTier,
@@ -633,7 +624,6 @@ class Order extends Equatable {
     pricing,
     notes,
     cancelReason,
-    escrowStatus, // 🔒 ESCROW STATUS - added to props
     preparationTimeSnapshot,
     readyToShipBy,
     overdueTier,
@@ -728,7 +718,6 @@ class Order extends Equatable {
     OrderSource? source,
     String? sourceId,
     DecisionContract? decision,
-    EscrowStatus? escrowStatus,
     // Stage 3 identity fields
     String? sellerUsername,
     String? sellerFarmName,
@@ -793,7 +782,6 @@ class Order extends Equatable {
       source: source ?? this.source,
       sourceId: sourceId ?? this.sourceId,
       decision: decision ?? this.decision,
-      escrowStatus: escrowStatus ?? this.escrowStatus,
       // Stage 3 identity fields
       sellerUsername: sellerUsername ?? this.sellerUsername,
       sellerFarmName: sellerFarmName ?? this.sellerFarmName,

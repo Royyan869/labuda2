@@ -34,13 +34,13 @@ const (
 //
 // LAYER 1 - Database Query (repository):
 // - has_dispute = false (excludes disputed orders at DB level)
-// - escrow_status = 'holding' (only releasable escrows)
+// - a holding escrow row exists (canonical escrow authority)
 // - status IN ('shipped', 'delivered') (timer starts at shipped)
 //
-// LAYER 2 - Entity Guards (order.Complete):
+// LAYER 2 - Entity Guards (order.ValidateComplete):
 // - Returns error if Status not in ("shipped", "delivered")
 // - Returns error if HasDispute = true (DisputeActiveError)
-// - Returns error if EscrowStatus != "holding" (InvalidEscrowStatusError)
+// - The escrow release inside Complete validates the canonical escrow row
 //
 // LAYER 3 - Service Idempotency (OrderCompletionService.Complete):
 // - Returns success if already completed (no-op on re-execution)
@@ -306,7 +306,7 @@ func (w *OrderAutoCompleteWorker) processAutoCompleteOrders() {
 //
 // Query conditions (in repository):
 // - status IN ('shipped', 'delivered')
-// - escrow_status = 'holding'
+// - a holding escrow row exists (canonical escrow authority)
 // - has_dispute = false (CRITICAL SAFETY - prevents race with dispute creation)
 // - auto_release_at <= NOW()
 func (w *OrderAutoCompleteWorker) findOrdersForAutoComplete(
@@ -352,7 +352,6 @@ func (w *OrderAutoCompleteWorker) processOrder(ctx context.Context, orderID uuid
 				zap.String("worker_id", w.workerID),
 				zap.String("order_id", orderID.String()),
 				zap.String("auto_release_at", autoReleaseAt),
-				zap.String("escrow_status", string(order.EscrowStatus)),
 				zap.String("order_status", string(order.Status)),
 				zap.Bool("has_dispute", order.HasDispute),
 			)
@@ -360,7 +359,8 @@ func (w *OrderAutoCompleteWorker) processOrder(ctx context.Context, orderID uuid
 
 		// OrderService.Complete includes all safety guards:
 		// - LAYER 1: Query already excluded has_dispute = true orders
-		// - LAYER 2: order.Complete() checks HasDispute and EscrowStatus
+		// - LAYER 2: order.ValidateComplete() checks HasDispute; the escrow
+		//   release inside Complete validates the canonical escrow row
 		// - LAYER 3: Service returns success if already completed (idempotent)
 		//
 		// System caller ID bypasses ownership check for auto-completion

@@ -73,7 +73,8 @@ class SellerEarnings extends Equatable {
   final double totalRevenue;
 
   /// Pending revenue (from backend pending_balance)
-  /// SOURCE: Sum(total_before_coins_amount) WHERE status IN ('shipped', 'delivered') AND escrow_status = 'holding'
+  /// SOURCE: Sum(total_before_coins_amount) WHERE status IN ('shipped', 'delivered')
+  ///   AND a holding escrow row exists (canonical escrows table)
   /// TRUTH: Gross buyer base PD+S (includes platform commission)
   /// NOTE: This is NOT the seller's net - commission will be deducted upon release
   final double pendingRevenue;

@@ -98,6 +98,7 @@ import (
 	paymentApp "github.com/labuda/backend/internal/integration/payment/application"
 	paymentHTTP "github.com/labuda/backend/internal/integration/payment/delivery/http"
 	"github.com/labuda/backend/internal/integration/payment/infrastructure/repository"
+	notificationpkg "github.com/labuda/backend/internal/interaction/notification"
 	notificationHTTP "github.com/labuda/backend/internal/interaction/notification/delivery/http"
 	notificationRepoImpl "github.com/labuda/backend/internal/interaction/notification/infrastructure/repository"
 	notificationPolicy "github.com/labuda/backend/internal/interaction/notification/policy"
@@ -426,8 +427,14 @@ func workerEnabled(name string, defaultOn bool, log *zap.Logger) bool {
 // dangerousDormantWorkers enumerates every worker that MUST NOT be enabled
 // without prerequisite engineering work.  The map value is a human-readable
 // prerequisite description emitted in the fatal log line.
+//
+// PAYMENT_EXPIRY_WORKER was REMOVED from this registry (owner-locked): it is
+// a normal lifecycle mechanism, default-ON. Its scope is unpaid pending
+// payments only (SQL gate `status='pending' AND expired_at < NOW()`), so it
+// never settles payments, never touches escrow, and never moves money — the
+// "gateway-funded refund" rationale that once gated it applies only to PAID
+// orders, which this worker can never select.
 var dangerousDormantWorkers = map[string]string{
-	"PAYMENT_EXPIRY_WORKER":  "gateway-funded refund path — activate with DISABLE_PAYMENT_EXPIRY_WORKER=false",
 	"USER_BAN_EVENT_HANDLER": "mass-refund/dispute triggers on all active orders of banned user — operator must explicitly acknowledge scope",
 }
 
@@ -903,7 +910,6 @@ func InitServices(
 		productShippingRepo,
 		outboxRepository,
 		configService,
-		orderService,
 		roleChecker,
 		addressRepository,
 		log.Logger,
@@ -912,14 +918,12 @@ func InitServices(
 	// CANONICAL PRODUCT VIEW authority (shared by For Sale and Auction detail).
 	productViewRepo := productViewRepoImpl.NewProductViewRepository()
 	auctionHandler := auctionHTTP.NewAuctionHandler(auctionService, productRepoImpl.NewProductRepository(), pricingTokenService, db.Pgx(), log.Logger, productViewRepo)
-	// Same canonical K authority as POST /orders for the auction claim path.
-	auctionHandler.SetCoinsBalanceReader(coinsRepository)
 	// PASS_5B: admin emergency auction cancel/override (governance authority,
 	// not seller authority). Reuses the same auctionService and adminAuditLogger
 	// singleton as every other admin money/trust-adjacent handler.
 	adminAuctionHandler := auctionHTTP.NewAdminAuctionHandler(auctionService, db.Pgx(), adminAuditLogger, log.Logger)
 
-	// ===== SAVED ITEM MODULE (Unified Shortlist + Auction Watch) =====
+	// ===== SAVED ITEM MODULE (for_sale + auction) =====
 	savedItemService := savedItemApp.NewSavedItemService(accountStatusChecker)
 	savedItemRepo := savedItemRepoImpl.NewSavedItemRepository(db.Pgx())
 	savedItemService.SetSavedItemRepository(savedItemRepo)
@@ -1022,6 +1026,25 @@ func InitServices(
 
 	chatOrderOwnershipReader := &chatOrderOwnershipAdapter{orderRepo: orderRepository}
 	chatService := chatApp.NewServiceWithDefaults(db.Pgx(), outboxRepository, chatRateLimiter, realtimeMetrics, accountStatusChecker, chatOrderOwnershipReader, log.Logger)
+	// TASK_4.2 — THE single canonical notification.updated emission point.
+	// Every committed notification-state mutation (HTTP mark-read /
+	// mark-all / delete, and the chat-room-read notification sync) emits
+	// through this one helper inside the mutation transaction. Realtime is
+	// a delivery signal only; CountUnread stays the badge authority.
+	notifMutationEmitter := &notificationpkg.MutationRealtimeEmitter{
+		Outbox:  outboxRepository,
+		Counter: notificationRepoImpl.NewNotificationRepository(),
+	}
+	// TASK 3 — CHAT READ COMPLETES CHAT NOTIFICATIONS (one transaction):
+	// POST /chat/rooms/:id/read marks this room's chat_message notifications
+	// read in the same tx as the chat read-state upsert, so the mobile client
+	// needs a single mutation (no second /notifications/read-by-entity call).
+	// TASK_4.2: if that sync flips notification state, it also emits
+	// notification.updated through the canonical emitter.
+	chatService.SetChatNotificationReadSyncer(&notificationpkg.ChatRoomReadSyncer{
+		Repo:            notificationRepoImpl.NewNotificationRepository(),
+		MutationEmitter: notifMutationEmitter,
+	})
 	// N6: the deleted POST /chat/rooms/:room_id/order endpoint was the only
 	// consumer of orderService/pricingTokenService in the chat handler.
 	chatHandler := chatHTTP.NewHandler(
@@ -1250,13 +1273,18 @@ func InitServices(
 
 	// 1. Payment Expiry Worker
 	//
-	// Detects expired pending payments and expires associated orders.
-	// Uses the fully-wired orderService for gateway-funded refund on Expire().
+	// LIFECYCLE MECHANISM (owner-locked): every unpaid order that passes its
+	// payment window MUST automatically become expired — whether or not a
+	// payment row was ever started. Default ON like OrderPaymentTimeoutWorker;
+	// the two workers cover complementary populations (this one: orders WITH
+	// a payment row; the timeout worker: orphan orders WITHOUT one) and never
+	// overlap (its SQL excludes rows this worker owns).
 	//
-	// DANGEROUS DORMANT: operator must ACK to enable — ensures awareness
-	// that expiry triggers gateway refunds for PAID orders with escrow.
-	// GUARD: requires ACK_DANGEROUS_PAYMENT_EXPIRY_WORKER=true in addition
-	// to DISABLE_PAYMENT_EXPIRY_WORKER=false.
+	// SCOPE BOUNDARY: only pending (unpaid) payments past expired_at. It
+	// cannot select settled/capture payments, never touches escrow, never
+	// writes the ledger, and never initiates a gateway refund — Expire() on
+	// an unpaid order is a pure status flip (no escrow row exists).
+	// Emergency off-switch: DISABLE_PAYMENT_EXPIRY_WORKER=true.
 	paymentExpiryWorker := worker.NewPaymentExpiryWorker(
 		db,
 		orderService,
@@ -1266,8 +1294,7 @@ func InitServices(
 			BatchSize:    100,
 		},
 	)
-	if workerEnabled("PAYMENT_EXPIRY_WORKER", false, log.Logger) {
-		dangerousDormantGuard("PAYMENT_EXPIRY_WORKER", log.Logger)
+	if workerEnabled("PAYMENT_EXPIRY_WORKER", true, log.Logger) {
 		workerStartups = append(workerStartups, func() {
 			paymentExpiryWorker.Start()
 			log.Info("PaymentExpiryWorker started",
@@ -1276,8 +1303,8 @@ func InitServices(
 			)
 		})
 	} else {
-		log.Warn("PaymentExpiryWorker disabled — expired pending payments will not be auto-expired; gateway refunds for PAID orders with escrow will not be triggered",
-			zap.String("enable", "DISABLE_PAYMENT_EXPIRY_WORKER=false + ACK_DANGEROUS_PAYMENT_EXPIRY_WORKER=true"),
+		log.Warn("PaymentExpiryWorker disabled by operator — orders with payment rows will remain pending_payment after their payment window expires",
+			zap.String("emergency_off_switch", "DISABLE_PAYMENT_EXPIRY_WORKER=true"),
 		)
 		_ = paymentExpiryWorker
 	}
@@ -1319,7 +1346,7 @@ func InitServices(
 	// SAFETY GUARDS (enforced in OrderService.Complete):
 	// - status IN ('shipped', 'delivered') (timer starts at shipped)
 	// - Only processes orders with has_dispute = false
-	// - Only processes orders with escrow_status = "holding"
+	// - Only processes paid orders with a holding escrow row (canonical authority)
 	orderAutoCompleteWorker := worker.NewOrderAutoCompleteWorker(
 		db,
 		orderService,
@@ -1456,7 +1483,14 @@ func InitServices(
 	// Z6: DeliveryLogger now wired (interface-mismatch debt resolved).
 	_, notifEventHandler := outboxWorker.SetupNotificationHandlers(db.Pgx(), notifBlockChecker, pushSender, accountStatusChecker, chatMutePolicy)
 	notifEventHandler.SetDeliveryLogger(deliveryLogger)
-	log.Info("FULL notification event handlers registered (NOTIFICATION-ACTIVATION-1, Z6 delivery logger active)")
+	// TASK_5 — NOTIFICATION REALTIME DELIVERY: a committed notification INSERT
+	// emits a user-targeted notification.created outbox event in the SAME
+	// transaction (dedup no-ops emit nothing). The realtime worker owns
+	// delivery over the existing WebSocket hub; the unread_count payload is
+	// measured by the same CountUnread authority as GET /notifications/unread-count.
+	notifEventHandler.SetRealtimeOutboxInserter(outboxRepository)
+	notifEventHandler.SetUnreadCounter(notificationRepoImpl.NewNotificationRepository())
+	log.Info("FULL notification event handlers registered (NOTIFICATION-ACTIVATION-1, Z6 delivery logger active, TASK_5 notification realtime active)")
 
 	// ─────────────────────────────────────────────────────────────────────────
 	// Z6 PUSH RELIABILITY WORKERS
@@ -1564,6 +1598,9 @@ func InitServices(
 
 	// 4.2. Create notification HTTP handlers
 	notificationHandler := notificationHTTP.NewNotificationHandlerWithDefaults(db.Pgx(), log.Logger)
+	// TASK_4.2: mutation handlers emit notification.updated through the SAME
+	// canonical emitter the chat-room-read sync uses.
+	notificationHandler.SetMutationRealtimeEmitter(notifMutationEmitter)
 	fcmTokenHandler := notificationHTTP.NewFCMTokenHandler(db.Pgx(), log.Logger)
 
 	// =============================================================================
@@ -2896,7 +2933,7 @@ func InitServices(
 
 	// COMMERCE RESTRICTION ENFORCEMENT: Wire into auction service for seller
 	// restriction at auction creation/activation and bidder restriction
-	// at bid/claim boundaries.
+	// at bid and bid-win checkout boundaries.
 	auctionService.SetCommerceGovRepository(commercegovRepository)
 
 	// CROSS-LIFECYCLE QUOTE ISOLATION: Wire shipping quote invalidation into
@@ -3062,7 +3099,6 @@ func InitServices(
 	// worker.CriticalWorkerStatuses(), consumed by /health/ready.
 	escrowIntegrityCfg := worker.ParseEscrowIntegrityConfig()
 	escrowIntegrityChecker := escrowApp.NewEscrowIntegrityChecker(
-		escrowService,
 		alertService,
 		db.Pgx(),
 		log.Logger,
@@ -3717,7 +3753,7 @@ func (h *CorePaymentHandler) CreatePayment(c *gin.Context) {
 	// (orders.payment_method_code). A payment requesting a DIFFERENT method is
 	// rejected by IDENTITY — not merely by fee — so two methods with the same fee
 	// (including two zero-fee methods) can never be substituted. An order with no
-	// bound method (auction-claim) binds the requested method at first payment.
+	// bound method (auction bid-win) binds the requested method at first payment.
 	if order.PaymentMethodCode != nil && *order.PaymentMethodCode != "" {
 		if req.PaymentMethodCode != *order.PaymentMethodCode {
 			h.log.Warn("Payment rejected: method differs from the order's bound method",

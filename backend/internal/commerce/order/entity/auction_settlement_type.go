@@ -1,4 +1,4 @@
-package entity
+﻿package entity
 
 // AuctionSettlementType represents how an auction order was settled.
 //
@@ -8,7 +8,7 @@ package entity
 //
 // Coins are Labuda platform usage rights, not money. Both settlement types
 // go through the same backend pricing authority (20% cap, commission safety,
-// balance check) so coins are permitted on bid-win claims.
+// balance check) so coins are permitted on bid-win checkouts.
 type AuctionSettlementType string
 
 const (
@@ -16,7 +16,7 @@ const (
 	// Treated as fixed-price checkout - promo discounts and coins are ALLOWED.
 	AuctionSettlementBuyNow AuctionSettlementType = "buy_now"
 
-	// AuctionSettlementBidWin indicates the auction was settled via winning bid/claim.
+	// AuctionSettlementBidWin indicates the auction was settled via the winner completing checkout.
 	// Treated as competitive final price - promo discounts and coins are ALLOWED.
 	AuctionSettlementBidWin AuctionSettlementType = "bid_win"
 )

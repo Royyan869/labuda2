@@ -237,7 +237,7 @@ func (s *Service) CreateTicket(ctx context.Context, req *CreateTicketRequest) (*
 
 		// Step 5: Freeze escrow if linked_order_id provided
 		// IMPORTANT: This freezes escrow WITHOUT creating a dispute
-		// - Only freezes if escrow_status == "holding"
+		// - Escrow context is read from the canonical escrow row (LEFT JOIN)
 		// - Idempotent: if already frozen, skips silently
 		// - Does NOT set HasDispute = true
 		// - Does NOT change order status to dispute_open
@@ -347,12 +347,15 @@ func (s *Service) GetTicketEnriched(ctx context.Context, ticketID uuid.UUID) (*T
 	// If ticket has a linked order, fetch order and dispute information
 	if ticket.LinkedOrderID != nil {
 		err := s.db.WithTx(ctx, func(tx db.Tx) error {
-			// Query order information
+			// Query order information; escrow status is a READ-TIME view of the
+			// canonical escrow row (empty when the order has no escrow).
 			var orderStatus, orderEscrowStatus string
 			var hasDispute bool
 			orderErr := tx.QueryRow(ctx, `
-				SELECT status, escrow_status, has_dispute
-				FROM orders WHERE id = $1
+				SELECT o.status, COALESCE(e.status, '')::text, o.has_dispute
+				FROM orders o
+				LEFT JOIN escrows e ON e.order_id = o.id
+				WHERE o.id = $1
 			`, *ticket.LinkedOrderID).Scan(&orderStatus, &orderEscrowStatus, &hasDispute)
 
 			if orderErr == nil {

@@ -70,11 +70,6 @@ type SellerSubscriptionRepository interface {
 	// Returns IDs only, without locking. Locking happens per-entity in transaction.
 	FetchActiveExpiredBatchIDs(ctx context.Context, tx db.Tx, now time.Time, limit int) ([]uuid.UUID, error)
 
-	// ExistsActiveByUserID checks if a user has an active subscription.
-	// Returns true if at least one active subscription exists, false otherwise.
-	// Used by deactivation logic to prevent seller deactivation if another active subscription exists.
-	ExistsActiveByUserID(ctx context.Context, tx db.Tx, userID uuid.UUID) (bool, error)
-
 	// GetActiveConfig retrieves the currently enabled subscription configuration.
 	// Returns nil if no enabled config exists.
 	GetActiveConfig(ctx context.Context, tx db.Tx) (*subscriptionEntity.SellerSubscriptionConfig, error)

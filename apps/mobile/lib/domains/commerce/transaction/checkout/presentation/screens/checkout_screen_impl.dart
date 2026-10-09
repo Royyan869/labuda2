@@ -18,17 +18,18 @@
 ///
 /// **IMPORTANT:** Pricing is sourced from backend preview API, NOT from forSale.price
 ///
-/// **CHAT COMMERCE SUPPORT:**
+/// **ONE PURCHASE FUNNEL:**
 /// - Direct forSale purchase: provide sale surface ID + productId
 /// - Negotiation purchase: provide sale surface ID + productId + negotiationId
-/// - Auction purchase: provide sale surface ID + productId + auctionId (winner or buy now)
+/// - Auction BUY-NOW: provide sale surface ID + productId + auctionId (auction active)
+/// - Auction BID-WIN: provide sale surface ID + productId + auctionId + bidWin
 ///
-/// **AUCTION WINNER FLOW (AW1/AW2):**
-/// - When auctionId is present, winner gets special treatment:
-///   - Green banner: "Selamat! Anda Memenangkan Lelang Ã°Å¸Å½â€°"
-///   - Button text: "Amankan Kemenangan" instead of "Buat Pesanan"
-///   - Messages framed as "claiming victory" not "making purchase"
-///   - Error messages use winner-specific language
+/// **AUCTION BID-WIN (winner checkout):**
+/// - Green winner banner + "Amankan Kemenangan" CTA
+/// - NO payment-method selection here (Owner canonical): the order is created
+///   without a method; the winner picks one at Order Detail's PaymentMethodPicker
+///   and the first POST /payments binds it. The checkout shows the escrow base
+///   honestly and never fakes a fee-inclusive final total.
 ///
 /// **TOKEN EXPIRY:**
 /// - Pricing tokens have limited lifetime (typically 10 minutes)
@@ -36,7 +37,7 @@
 /// - User can manually refresh pricing when needed
 ///
 /// **DISCOUNT HONESTY:**
-/// - Promo discounts ONLY apply to direct forSale purchase (not negotiation, auction)
+/// - Promo discounts apply to forSale and auction (buy-now + bid-win); negotiation excluded
 /// - Discount codes are validated by backend, frontend only displays result
 /// - Applied discount shows clear description and amount from backend
 /// - No fake pricing or misleading savings - all numbers come from backend preview
@@ -57,6 +58,8 @@ import 'package:labuda/domains/commerce/pricing/discount/domain/entities/discoun
 import 'package:labuda/domains/commerce/pricing/discount/presentation/widgets/discount_input_field.dart';
 import 'package:labuda/domains/chat/chat/presentation/utils/commerce_chat_navigation.dart';
 import 'package:labuda/domains/chat/chat/presentation/models/pending_commerce_attachment.dart';
+import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction.dart';
+import 'package:labuda/domains/commerce/catalog/auction/presentation/providers/auction_providers.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/domain/entities/for_sale.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/presentation/providers/for_sale_providers.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
@@ -66,24 +69,22 @@ import 'package:labuda/shared/domain/entities/resource_projection.dart';
 import 'package:labuda/shared/shared.dart';
 import 'package:labuda/domains/finance/transaction/payment/presentation/presentation.dart'
     show
+        PaymentMethodOption,
+        PaymentMethodPickerSheet,
         paymentRepositoryProvider,
         PreOrderPaymentMethodOption,
         PreOrderPaymentPricing;
 import 'package:labuda/domains/user/profile/domain/entities/address_entity.dart';
-import 'package:labuda/domains/user/profile/presentation/providers/address_providers.dart';
-import 'package:labuda/domains/user/profile/presentation/providers/notifiers/address_notifier.dart';
-import 'package:labuda/domains/user/profile/presentation/widgets/address_form_dialog.dart';
+import 'package:labuda/domains/user/profile/presentation/widgets/address_selection_summary.dart';
 import 'package:labuda/domains/commerce/transaction/shipping/domain/entities/shipping.dart';
 import 'package:labuda/domains/commerce/transaction/shipping/presentation/providers/providers.dart'
     show shippingRepositoryProvider;
 
 part '../widgets/checkout_order_summary_section.dart';
-part '../widgets/checkout_address_section.dart';
 part '../widgets/checkout_notes_section.dart';
 part '../widgets/checkout_action_bar.dart';
 part '../widgets/checkout_coin_section.dart';
 part '../widgets/checkout_discount_section.dart';
-part '../widgets/checkout_payment_method_section.dart';
 part '../widgets/checkout_warning_banners.dart';
 part '../widgets/checkout_shipping_section.dart';
 part 'checkout_screen_logic.dart';
@@ -95,6 +96,40 @@ part 'checkout_screen_logic.dart';
 /// Chat entry supplies a draft.
 const kCheckoutUncoveredShippingDraft =
     'Halo, apakah bisa dibantu ongkir untuk produk ini ke alamat saya?';
+
+class _CheckoutQuantitySelector extends StatelessWidget {
+  final int quantity;
+  final int maximum;
+  final VoidCallback onMinus;
+  final VoidCallback onPlus;
+
+  const _CheckoutQuantitySelector({
+    required this.quantity,
+    required this.maximum,
+    required this.onMinus,
+    required this.onPlus,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        IconButton(
+          onPressed: quantity > 1 ? onMinus : null,
+          icon: const Icon(Icons.remove),
+          tooltip: 'Kurangi jumlah',
+        ),
+        Text('$quantity'),
+        IconButton(
+          onPressed: quantity < maximum ? onPlus : null,
+          icon: const Icon(Icons.add),
+          tooltip: 'Tambah jumlah',
+        ),
+      ],
+    );
+  }
+}
 
 /// Checkout Screen
 ///
@@ -111,8 +146,13 @@ class CheckoutScreen extends ConsumerStatefulWidget {
   /// Chat commerce context
   final String? negotiationId;
 
-  /// Auction checkout context - for winning bid or buy now
+  /// Auction checkout context - buy-now or bid-win
   final String? auctionId;
+
+  /// True when this is an auction BID-WIN checkout (the winner completing the
+  /// settlement window). Bid-win orders are created WITHOUT a payment method
+  /// — the winner chooses one at Order Detail and the first payment binds it.
+  final bool bidWin;
 
   /// **SHIPPING QUOTE FIX:** Shipping quote ID from seller's manual quote
   /// When provided, the checkout will use the seller's quoted shipping price
@@ -129,6 +169,7 @@ class CheckoutScreen extends ConsumerStatefulWidget {
     required this.forSaleId,
     this.negotiationId,
     this.auctionId,
+    this.bidWin = false,
     this.shippingQuoteId,
     this.chatId,
   });
@@ -156,10 +197,17 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
 
   // Stock warning state - tracks if user has been warned about limited stock
   bool _hasShownStockWarning = false;
+  int _selectedQuantity = 1;
+  ForSale? _forSale;
 
-  // Auction winner context - used to display winner-specific messaging
-  bool get _isAuctionWinner =>
+  // Auction context - any auction-sourced checkout (buy-now or bid-win).
+  bool get _isAuctionContext =>
       widget.auctionId != null && widget.auctionId!.isNotEmpty;
+
+  // Auction BID-WIN context - the winner completing the settlement window.
+  // Winner messaging + unbound-order creation apply here only; buy-now is a
+  // regular purchase of an active auction.
+  bool get _isBidWin => _isAuctionContext && widget.bidWin;
 
   // Negotiation checkout context - used to display negotiation-specific messaging
   bool get _isNegotiationCheckout =>
@@ -204,7 +252,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   //
   // One selection authority for the whole screen: the pre-order pricing (with
   // every method's backend-computed fee + FINAL payable) and the selected
-  // method code. The picker/list is only a consumer/editor of this state.
+  // method code. The canonical trigger/picker are only consumers/editors of
+  // this state.
   PreOrderPaymentPricing? _preOrderPricing;
   String? _selectedPaymentMethodCode;
   bool _isLoadingPaymentMethods = false;
@@ -222,6 +271,14 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   }
 
   void _updateState(VoidCallback callback) => setState(callback);
+
+  void _changeQuantity(int delta) {
+    final stock = _forSale?.stock ?? 1;
+    final next = (_selectedQuantity + delta).clamp(1, stock > 0 ? stock : 1);
+    if (next == _selectedQuantity) return;
+    setState(() => _selectedQuantity = next);
+    _schedulePreview();
+  }
 
   // ==========================================================================
   // PREVIEW INPUTS + READINESS PROJECTION (R1 / R1.1 / R1.2)
@@ -245,7 +302,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     final isAuction = widget.auctionId != null && widget.auctionId!.isNotEmpty;
     return PreviewOrderParams(
       productId: widget.productId,
-      quantity: 1,
+      quantity: _selectedQuantity,
       addressId: _selectedAddressId,
       discountCode: _appliedDiscount?.code,
       negotiationId: widget.negotiationId,
@@ -314,6 +371,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       isLoadingPaymentMethods: _isLoadingPaymentMethods,
       hasPaymentMethodsError: _paymentMethodsError != null,
       hasSelectedPaymentMethod: _selectedPaymentMethodCode != null,
+      // Bid-win never binds a method at creation (chosen at Order Detail),
+      // so the payment-method states never gate its readiness.
+      requiresPaymentMethodSelection: !_isBidWin,
     ),
   );
 
@@ -324,7 +384,12 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     // every surface, so checkout can never drift from the rest of the app.
     final colorScheme = Theme.of(context).colorScheme;
     final checkoutState = ref.watch(checkoutNotifierProvider);
-    ref.watch(forSaleDetailProvider(widget.forSaleId));
+    // ForSale detail drives quantity/stock/trust facts on for-sale checkouts
+    // only; auction contexts resolve their sale-surface data from the auction
+    // authority (see the order summary section).
+    if (!_isAuctionContext) {
+      ref.watch(forSaleDetailProvider(widget.forSaleId));
+    }
 
     // READINESS: the only authority for "may the buyer press Buat Pesanan".
     // Pricing availability is read from the backend preview, never from
@@ -457,9 +522,10 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // AUCTION WINNER CONTEXT: Show winner-specific messaging for auction checkout
-              // This frames the checkout as "securing your victory" rather than generic purchase
-              if (_isAuctionWinner) _AuctionWinnerBanner(),
+              // AUCTION BID-WIN CONTEXT: winner-specific messaging — this is
+              // the settlement-window completion of a won auction, framed as
+              // "securing your victory".
+              if (_isBidWin) _AuctionWinnerBanner(),
 
               // NEGOTIATION UX FIX: Show warning when checking out from negotiation
               // Negotiation acceptance does NOT reserve the product - checkout is required
@@ -472,6 +538,16 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                   child: _StockWarningBanner(),
                 ),
 
+              if ((_forSale?.stock ?? 0) > 1) ...[
+                _CheckoutQuantitySelector(
+                  quantity: _selectedQuantity,
+                  maximum: _forSale!.stock,
+                  onMinus: () => _changeQuantity(-1),
+                  onPlus: () => _changeQuantity(1),
+                ),
+                const SizedBox(height: 24),
+              ],
+
               // Order Summary Section
               // A preview is rendered ONLY while it is current: a result that no
               // longer matches the inputs stays out of the money model.
@@ -480,8 +556,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                 previewResult: displayPreview,
                 readiness: readiness,
                 onRefreshPricing: () => _fetchPreview(isManualRefresh: true),
-                isAuctionCheckout: _isAuctionWinner,
-                preOrderPricing: _hasFreshPreview ? _preOrderPricing : null,
+                isAuctionCheckout: _isAuctionContext,
+                preOrderPricing:
+                    _hasFreshPreview && !_isBidWin ? _preOrderPricing : null,
                 selectedMethodCode: _selectedPaymentMethodCode,
               ),
 
@@ -493,8 +570,10 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
 
               const SizedBox(height: 16),
 
-              // Shipping Address Section Ã¢â‚¬â€ saved address picker
-              _SavedAddressPickerSection(
+              // Shipping Address Summary — canonical ONE-address summary
+              // (caller-selected or primary); the full list only lives in
+              // the AddressPickerSheet.
+              AddressSelectionSummary(
                 selectedAddressId: _selectedAddressId,
                 onAddressSelected: _onAddressSelected,
               ),
@@ -548,22 +627,30 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                   appliedDiscount: _appliedDiscount,
                 ),
 
-              // CANONICAL PRE-ORDER PAYMENT METHOD SELECTION (Phase 2).
-              // The buyer chooses a method and sees its backend-computed fee +
-              // FINAL total BEFORE "Buat Pesanan". This is the single selection
-              // authority; the summary and CTA read the same state.
-              if (displayPreview != null)
-                _PaymentMethodSection(
-                  pricing: _preOrderPricing,
+              // PAYMENT METHOD — creation-time binding checkouts only
+              // (for_sale + auction buy-now). Bid-win orders are created
+              // WITHOUT a method (Owner canonical): the winner picks one at
+              // Order Detail and the first payment binds it, so an honest
+              // note replaces the picker — checkout never fakes a
+              // fee-inclusive final total.
+              if (displayPreview != null && !_isBidWin)
+                PaymentMethodTrigger(
+                  label: 'Metode Pembayaran',
                   selectedMethodCode: _selectedPaymentMethodCode,
+                  selectedMethodDisplayName:
+                      _selectedPaymentOption?.displayName,
                   isLoading: _isLoadingPaymentMethods,
-                  error: _paymentMethodsError,
-                  onSelected: (code) {
-                    setState(() => _selectedPaymentMethodCode = code);
-                  },
+                  hasMethods: _hasPreOrderPaymentMethods,
+                  errorMessage: _paymentMethodsError,
+                  onTap: _pickPaymentMethod,
                   onRetry: _loadPreOrderPaymentMethods,
                 ),
-              if (displayPreview != null) const SizedBox(height: 24),
+              if (displayPreview != null && !_isBidWin)
+                const SizedBox(height: 24),
+              if (displayPreview != null && _isBidWin)
+                _BidWinPaymentMethodNote(),
+              if (displayPreview != null && _isBidWin)
+                const SizedBox(height: 24),
 
               // Notes Section — carried to POST /orders (order input), never to
               // the pricing preview, so editing notes must not invalidate the
@@ -579,7 +666,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
           disabledReason: readiness.message,
           finalPayableAmount: _selectedPaymentOption?.finalPayableAmount,
           onCreateOrder: _handleCreateOrder,
-          isAuctionWinner: _isAuctionWinner,
+          isBidWin: _isBidWin,
         ),
       ),
     );
@@ -719,6 +806,33 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       _hasFreshPreview && !_isLoadingPaymentMethods
       ? _preOrderPricing?.optionFor(_selectedPaymentMethodCode)
       : null;
+
+  /// Whether the loaded pre-order pricing offers at least one method.
+  bool get _hasPreOrderPaymentMethods =>
+      (_preOrderPricing?.methods ?? const []).isNotEmpty;
+
+  /// Opens the canonical payment-method picker for the pre-order methods and
+  /// stores the buyer's choice. Selection state stays owned by this screen —
+  /// the picker only returns a `methodCode` (or null on dismissal).
+  Future<void> _pickPaymentMethod() async {
+    final pricing = _preOrderPricing;
+    if (pricing == null || pricing.methods.isEmpty) return;
+    final code = await PaymentMethodPickerSheet.show(
+      context,
+      selectedMethodCode: _selectedPaymentMethodCode,
+      methods: [
+        for (final m in pricing.methods)
+          PaymentMethodOption(
+            methodCode: m.methodCode,
+            displayName: m.displayName,
+            buyerPaymentFeeAmount: m.buyerPaymentFeeAmount,
+            totalPayableAmount: m.finalPayableAmount,
+          ),
+      ],
+    );
+    if (!mounted || code == null) return;
+    setState(() => _selectedPaymentMethodCode = code);
+  }
 
   /// Starts the countdown timer for token expiry
   ///

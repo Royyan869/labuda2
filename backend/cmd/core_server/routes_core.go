@@ -312,10 +312,12 @@ func SetupRoutes(
 		}
 
 		// Authenticated buyer endpoints
+		// Auction bid-win has NO dedicated endpoint: the winner completes the
+		// shared Checkout (POST /pricing/preview → POST /orders), which binds
+		// the order and the auction settlement in one transaction.
 		auctionRoutes.POST("/:id/bid", middleware.RequireActiveAccount(db.Pgx()), deps.AuctionHandler.PlaceBid)
-		auctionRoutes.POST("/:id/claim", middleware.RequireActiveAccount(db.Pgx()), deps.AuctionHandler.ClaimAuction)
 
-		// Saved Items endpoints (unified shortlist + auction watch)
+		// Saved Items endpoints (for_sale + auction)
 		savedItemsRoutes := v1.Group("/saved-items")
 		{
 			// Get user's saved items (for_sale + auctions)
@@ -670,9 +672,6 @@ func SetupRoutes(
 				deps.WithdrawalHandlerUnified.ListWithdrawals,
 			)
 		}
-
-		// Shortlist domain routes (CORE)
-		// Shortlist is for interest parking (save for later), NOT a shopping cart
 
 		// Discount domain routes (CORE)
 		discountRoutes := v1.Group("/discounts")
@@ -1420,30 +1419,6 @@ func SetupRoutes(
 		v1.GET("/users/:id/ratings", deps.RatingHandler.ListRatingsReceived)
 		v1.GET("/users/:id/ratings/summary", deps.RatingHandler.GetRatingSummary)
 		v1.GET("/users/me/ratings/given", deps.RatingHandler.ListRatingsGiven)
-
-		// ===== SOCIAL ROUTES - FLUTTER COMPATIBILITY =====
-		// These routes follow the Flutter app's expected API pattern
-		// They map to the same handlers but with different path structures
-		//
-		// NOTE: The Flutter datasource expects these routes:
-		// - POST /api/v1/follows (body: { following_id })
-		// - DELETE /api/v1/follows/{userId}
-		// - GET /api/v1/follows/{userId}/followers
-		// - GET /api/v1/follows/{userId}/following
-		// - POST /api/v1/blocks (body: { blocked_user_id })
-		// - DELETE /api/v1/blocks/{userId}
-		// - GET /api/v1/blocks
-		// - POST /api/v1/mutes (body: { muted_user_id })
-		// - DELETE /api/v1/mutes/{userId}
-		// - GET /api/v1/mutes
-		//
-		// CURRENTLY: The existing handlers expect routes in the pattern:
-		// - POST /api/v1/users/{id}/follow
-		// - GET /api/v1/users/{id}/followers
-		// etc.
-		//
-		// The Flutter routes above are NOT yet implemented.
-		// This is a TODO for Flutter route parity if needed.
 
 		// ===== PROMOTION DISCOVERY ROUTES (Phase 4) =====
 		// Public discovery endpoints for promoted items

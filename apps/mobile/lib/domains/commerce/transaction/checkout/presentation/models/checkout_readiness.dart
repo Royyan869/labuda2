@@ -16,6 +16,9 @@
 ///       AND that preview still matches the current preview inputs
 ///       AND its pricing token is not expired
 ///       AND that token is usable (non-empty)
+///       AND (a payment method is selected WHEN this checkout binds one at
+///           creation — auction bid-win does NOT: its method is chosen at
+///           Order Detail and the first payment binds it)
 ///
 /// `forSale.price` is NEVER an input to this projection: a local price can
 /// never make checkout ready.
@@ -48,12 +51,16 @@ enum CheckoutReadiness {
   expired,
 
   /// The pre-order payment methods are being loaded for the current token.
+  /// (Only exists on checkouts that bind a method at creation; bid-win never
+  /// loads pre-order methods.)
   loadingPaymentMethods,
 
-  /// The pre-order payment methods failed to load.
+  /// The pre-order payment methods failed to load (method-binding checkouts
+  /// only).
   paymentMethodsError,
 
-  /// The methods are available but the buyer has not selected one yet.
+  /// The methods are available but the buyer has not selected one yet
+  /// (method-binding checkouts only; never reached for auction bid-win).
   missingPaymentMethod,
 
   /// A current, non-expired backend preview exists AND a payment method is
@@ -175,6 +182,12 @@ class CheckoutReadinessInputs {
   /// A payment method is selected from the loaded pre-order pricing.
   final bool hasSelectedPaymentMethod;
 
+  /// Whether THIS checkout binds a payment method at order creation.
+  /// True for for_sale and auction buy-now; FALSE for auction bid-win, whose
+  /// method is chosen at Order Detail and bound by the first payment — so the
+  /// payment-method states never gate its readiness.
+  final bool requiresPaymentMethodSelection;
+
   const CheckoutReadinessInputs({
     required this.hasProductId,
     required this.hasAddress,
@@ -189,6 +202,7 @@ class CheckoutReadinessInputs {
     this.isLoadingPaymentMethods = false,
     this.hasPaymentMethodsError = false,
     this.hasSelectedPaymentMethod = false,
+    this.requiresPaymentMethodSelection = true,
   });
 }
 
@@ -231,14 +245,19 @@ CheckoutReadiness evaluateCheckoutReadiness(CheckoutReadinessInputs inputs) {
     // The backend preview cannot drive an order without its snapshot token.
     return CheckoutReadiness.error;
   }
-  if (inputs.hasPaymentMethodsError) {
-    return CheckoutReadiness.paymentMethodsError;
-  }
-  if (inputs.isLoadingPaymentMethods) {
-    return CheckoutReadiness.loadingPaymentMethods;
-  }
-  if (!inputs.hasSelectedPaymentMethod) {
-    return CheckoutReadiness.missingPaymentMethod;
+  // Payment-method binding is a creation-time rule of method-binding
+  // checkouts only. Auction bid-win creates the order unbound — its method
+  // is chosen at Order Detail — so these states never gate it.
+  if (inputs.requiresPaymentMethodSelection) {
+    if (inputs.hasPaymentMethodsError) {
+      return CheckoutReadiness.paymentMethodsError;
+    }
+    if (inputs.isLoadingPaymentMethods) {
+      return CheckoutReadiness.loadingPaymentMethods;
+    }
+    if (!inputs.hasSelectedPaymentMethod) {
+      return CheckoutReadiness.missingPaymentMethod;
+    }
   }
   return CheckoutReadiness.ready;
 }

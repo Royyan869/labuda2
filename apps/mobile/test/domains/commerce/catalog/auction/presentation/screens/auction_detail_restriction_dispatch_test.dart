@@ -1,19 +1,18 @@
 // Auction detail — canonical commerce-restriction dispatch by error CODE.
 //
-// PROOF for the two migrated call-sites in auction_detail_screen.dart:
-//   1. `_handlePlaceBid()`  — bid rejection chain
-//   2. `_showClaimDialog().onClaim` — winner claim callback
+// PROOF for the migrated call-site in auction_detail_screen.dart:
+//   `_handlePlaceBid()` — bid rejection chain
 //
-// Both now dispatch the restriction FAMILY through the canonical
+// The bid chain dispatches the restriction FAMILY through the canonical
 // `CommerceRestrictionPresenter.handle(...)`:
 //   - MARKET_AUTHORITY_REQUIRED → canonical seller renewal navigation
 //   - COMMERCE_RESTRICTED       → unchanged restriction snackbar
 //
-// Specialized behavior is preserved and proven here as well:
-//   - bid: EMAIL_VERIFICATION_REQUIRED gate, BNR_AUCTION_RESTRICTED dialog
-//     with details, generic fallback
-//   - claim: modal callback lifecycle (modal stays open on failure, pops with
-//     the order id on success → payment-result navigation), generic fallback
+// The winner (bid-win) path no longer presents claim errors: the winner CTA
+// forwards to the SHARED Checkout with the bid-win intent, and Checkout owns
+// restriction presentation for order creation. This suite proves the CTA
+// routing; Checkout's own restriction dispatch is covered by the checkout
+// domain's contracts.
 //
 // Authority proof: a generic `FORBIDDEN` whose MESSAGE reads like a
 // subscription wall never triggers renewal — dispatch is by code.
@@ -35,12 +34,11 @@ import 'package:labuda/domains/commerce/transaction/shipping/domain/entities/shi
 import 'package:labuda/domains/commerce/transaction/shipping/domain/repositories/shipping_repository.dart';
 import 'package:labuda/domains/commerce/transaction/shipping/presentation/providers/providers.dart';
 import 'package:labuda/domains/finance/wallet/coins/coins.dart';
-import 'package:labuda/domains/user/profile/data/profile_providers.dart'
-    show addressRepositoryProvider;
 import 'package:labuda/domains/user/profile/domain/entities/address_entity.dart';
+import 'package:labuda/domains/user/profile/presentation/providers/notifiers/address_notifier.dart';
+import 'package:labuda/domains/user/profile/presentation/providers/state/address_state.dart';
 import 'package:labuda/domains/user/preference/saved_item/data/repositories/saved_item_repository.dart';
 import 'package:labuda/domains/user/preference/saved_item/data/repositories/saved_item_repository_provider.dart';
-import 'package:labuda/domains/user/profile/domain/repositories/i_address_repository.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
 import 'package:labuda/shared/models/wilayah_models.dart';
 
@@ -68,18 +66,31 @@ class _FakeCoinNotifier extends CoinNotifier {
   Future<void> getBalance() async {}
 }
 
-class _FakeAddressRepository implements IAddressRepository {
-  _FakeAddressRepository(this._addresses);
+/// Canonical address authority fake: the claim modal consumes
+/// `addressProvider` (never a direct repository); seeds the collection and
+/// derives the primary exactly like the real notifier.
+class _FakeAddressNotifier extends AddressNotifier {
+  _FakeAddressNotifier(this._addresses);
 
   final List<AddressEntity> _addresses;
 
   @override
-  Future<Result<List<AddressEntity>>> getAddressesByUserId(
-    String userId,
-  ) async => Result.success(_addresses);
+  AddressState build() {
+    AddressEntity? primary;
+    for (final address in _addresses) {
+      if (address.isPrimary) {
+        primary = address;
+        break;
+      }
+    }
+    return AddressState(
+      addresses: AsyncValue.data(_addresses),
+      primaryAddress: AsyncValue.data(primary),
+    );
+  }
 
   @override
-  dynamic noSuchMethod(Invocation invocation) => null;
+  Future<void> loadAddresses(String userId) async {}
 }
 
 class _FakeShippingRepository implements ShippingRepository {
@@ -112,29 +123,22 @@ class _FakeSavedItemRepository implements SavedItemRepository {
   dynamic noSuchMethod(Invocation invocation) => null;
 }
 
-/// Auction notifier with scripted bid/claim outcomes so the screen's rejection
-/// chains can be exercised for each error code.
+/// Auction notifier with a scripted bid outcome so the screen's rejection
+/// chain can be exercised for each error code.
 class _ScriptedAuctionNotifier extends AuctionNotifier {
   _ScriptedAuctionNotifier({
     required this.auction,
     this.bidErrorCode,
     this.bidErrorMessage,
     this.bidErrorDetails,
-    this.claimErrorCode,
-    this.claimErrorMessage,
-    this.claimOrderId,
   });
 
   final Auction auction;
   final String? bidErrorCode;
   final String? bidErrorMessage;
   final Map<String, dynamic>? bidErrorDetails;
-  final String? claimErrorCode;
-  final String? claimErrorMessage;
-  final String? claimOrderId;
 
   int placeBidCalls = 0;
-  int claimCalls = 0;
 
   @override
   AuctionNotifierState build() =>
@@ -160,33 +164,6 @@ class _ScriptedAuctionNotifier extends AuctionNotifier {
       errorDetails: bidErrorDetails,
     );
     return false;
-  }
-
-  @override
-  Future<String?> claimAuction({
-    required String auctionId,
-    required String addressId,
-    String? shippingSetupId,
-    String? shippingQuoteId,
-    String? chatId,
-    String? discountCode,
-    bool useCoins = false,
-  }) async {
-    claimCalls++;
-    if (claimOrderId != null) {
-      state = state.copyWith(
-        isLoading: false,
-        clearError: true,
-        successMessage: 'Klaim berhasil! Pesanan telah dibuat',
-      );
-      return claimOrderId;
-    }
-    state = state.copyWith(
-      isLoading: false,
-      error: claimErrorMessage ?? 'Gagal mengklaim lelang',
-      errorCode: claimErrorCode,
-    );
-    return null;
   }
 }
 
@@ -298,9 +275,6 @@ Future<_Harness> _pumpDetail(
   String? bidErrorCode,
   String? bidErrorMessage,
   Map<String, dynamic>? bidErrorDetails,
-  String? claimErrorCode,
-  String? claimErrorMessage,
-  String? claimOrderId,
   String currentUserId = 'buyer-1',
 }) async {
   final notifier = _ScriptedAuctionNotifier(
@@ -308,9 +282,6 @@ Future<_Harness> _pumpDetail(
     bidErrorCode: bidErrorCode,
     bidErrorMessage: bidErrorMessage,
     bidErrorDetails: bidErrorDetails,
-    claimErrorCode: claimErrorCode,
-    claimErrorMessage: claimErrorMessage,
-    claimOrderId: claimOrderId,
   );
   final navigation = _RecordingNavigationHandler();
 
@@ -330,6 +301,11 @@ Future<_Harness> _pumpDetail(
         ),
         coinProvider.overrideWith(() => _FakeCoinNotifier()),
         auctionNotifierProvider.overrideWith(() => notifier),
+        // The winner CTA's commerce intent resolves the LIVE auction through
+        // this provider; the harness serves the fixture directly.
+        auctionDetailProvider(
+          auction.id,
+        ).overrideWith((ref) async => auction),
         auctionStreamProvider(
           auction.id,
         ).overrideWith((ref) => Stream.value(auction)),
@@ -342,8 +318,8 @@ Future<_Harness> _pumpDetail(
         similarAuctionsProvider(
           auction.id,
         ).overrideWith((ref) async => const <Auction>[]),
-        addressRepositoryProvider.overrideWithValue(
-          _FakeAddressRepository([_shippingAddress()]),
+        addressProvider.overrideWith(
+          () => _FakeAddressNotifier([_shippingAddress()]),
         ),
         shippingRepositoryProvider.overrideWithValue(_FakeShippingRepository()),
         navigationHandlerProvider.overrideWithValue(navigation),
@@ -351,9 +327,9 @@ Future<_Harness> _pumpDetail(
           _FakeSavedItemRepository(),
         ),
       ],
-      // The screen navigates through GoRouter (`context.pushReplacement` on a
-      // successful claim), so the harness must provide a real GoRouter with the
-      // canonical payment-result destination — a plain MaterialApp cannot.
+      // The winner CTA navigates through GoRouter to the shared checkout
+      // route, so the harness must provide a real GoRouter with that
+      // destination — a plain MaterialApp cannot.
       child: MaterialApp.router(
         routerConfig: GoRouter(
           initialLocation: '/',
@@ -364,13 +340,10 @@ Future<_Harness> _pumpDetail(
                   AuctionDetailScreen(auctionId: auction.id),
             ),
             GoRoute(
-              path: '/payment-result/:orderId',
+              path: '/checkout/:forSaleId',
               builder: (context, state) => Scaffold(
                 body: Center(
-                  child: Text(
-                    'payment-result:/payment-result/'
-                    '${state.pathParameters['orderId']}',
-                  ),
+                  child: Text('checkout:${state.uri}'),
                 ),
               ),
             ),
@@ -399,11 +372,10 @@ Future<void> _placeBidThroughUi(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
-/// Drives the real claim UI: winner CTA → claim modal → claim action.
-Future<void> _claimThroughUi(WidgetTester tester) async {
+/// Drives the real winner UI: bottom-bar CTA "Klaim Sekarang" → shared
+/// checkout bid-win intent.
+Future<void> _winnerCheckoutThroughUi(WidgetTester tester) async {
   await tester.tap(find.text('Klaim Sekarang'));
-  await tester.pumpAndSettle();
-  await tester.tap(find.text('Klaim & Lanjutkan'));
   await tester.pumpAndSettle();
 }
 
@@ -565,7 +537,7 @@ void main() {
     );
   });
 
-  group('Auction detail claim — canonical restriction dispatch', () {
+  group('Auction detail winner CTA — shared checkout entry', () {
     Auction winnerAuction(String id) => _auction(
       id: id,
       sellerId: 'seller-1',
@@ -573,92 +545,45 @@ void main() {
       winnerId: 'buyer-1',
     );
 
-    testWidgets('MARKET_AUTHORITY_REQUIRED → canonical seller renewal', (
-      tester,
-    ) async {
-      final harness = await _pumpDetail(
-        tester,
-        auction: winnerAuction('auction-claim-ma'),
-        claimErrorCode: 'MARKET_AUTHORITY_REQUIRED',
-        claimErrorMessage: 'Active seller subscription required',
-      );
-
-      await _claimThroughUi(tester);
-
-      expect(harness.notifier.claimCalls, 1);
-      expect(harness.navigation.renewalCalls, 1);
-      // Modal lifecycle preserved: callback returned null → modal stays open.
-      expect(find.text('Klaim & Lanjutkan'), findsOneWidget);
-      expect(
-        find.text('Gagal mengklaim lelang. Silakan coba lagi.'),
-        findsOneWidget,
-      );
-      expect(find.textContaining('payment-result:'), findsNothing);
-      expect(tester.takeException(), isNull);
-    });
-
-    testWidgets('COMMERCE_RESTRICTED keeps restriction presentation', (
-      tester,
-    ) async {
-      final harness = await _pumpDetail(
-        tester,
-        auction: winnerAuction('auction-claim-cr'),
-        claimErrorCode: 'COMMERCE_RESTRICTED',
-        claimErrorMessage: 'Aktivitas commerce Anda saat ini dibatasi.',
-      );
-
-      await _claimThroughUi(tester);
-
-      expect(
-        find.textContaining('Aktivitas commerce Anda saat ini dibatasi'),
-        findsOneWidget,
-      );
-      // Canonical snackbar copy for this action (the modal's own generic
-      // banner is separate and also mentions "mengklaim lelang").
-      expect(
-        find.textContaining('Tidak dapat mengklaim lelang'),
-        findsOneWidget,
-      );
-      expect(harness.navigation.renewalCalls, 0);
-      expect(find.text('Klaim & Lanjutkan'), findsOneWidget);
-      expect(tester.takeException(), isNull);
-    });
-
-    testWidgets('generic error keeps the generic fallback', (tester) async {
-      final harness = await _pumpDetail(
-        tester,
-        auction: winnerAuction('auction-claim-gen'),
-        claimErrorCode: 'FORBIDDEN',
-        claimErrorMessage: 'Lelang sudah diklaim sebelumnya',
-      );
-
-      await _claimThroughUi(tester);
-
-      expect(find.text('Lelang sudah diklaim sebelumnya'), findsOneWidget);
-      expect(harness.navigation.renewalCalls, 0);
-      expect(find.text('Klaim & Lanjutkan'), findsOneWidget);
-      expect(tester.takeException(), isNull);
-    });
-
     testWidgets(
-      'successful claim still returns the order id to the modal lifecycle',
+      'winner CTA opens the SAME shared checkout with the bid-win intent',
       (tester) async {
-        final harness = await _pumpDetail(
-          tester,
-          auction: winnerAuction('auction-claim-ok'),
-          claimOrderId: 'order-1',
-        );
+        final auction = winnerAuction('auction-bidwin-route');
+        final harness = await _pumpDetail(tester, auction: auction);
 
-        await _claimThroughUi(tester);
+        await _winnerCheckoutThroughUi(tester);
 
-        expect(harness.notifier.claimCalls, 1);
+        // ONE PURCHASE FUNNEL: no claim modal, no claim RPC — the winner
+        // lands on the shared CheckoutScreen with bid_win=1. Checkout owns
+        // address/shipping/pricing/order creation and its own restriction
+        // presentation.
         expect(
-          find.text('payment-result:/payment-result/order-1'),
+          find.textContaining(
+            'checkout:/checkout/${auction.id}',
+            findRichText: true,
+          ),
           findsOneWidget,
         );
-        expect(harness.navigation.renewalCalls, 0);
+        expect(find.textContaining('bid_win=1'), findsOneWidget);
+        expect(find.textContaining('auction_id=${auction.id}'), findsOneWidget);
+        expect(harness.notifier.placeBidCalls, 0);
         expect(tester.takeException(), isNull);
       },
     );
+
+    testWidgets('non-winner never reaches the checkout entry', (tester) async {
+      final auction = _auction(
+        id: 'auction-not-winner',
+        sellerId: 'seller-1',
+        status: AuctionStatus.waitingSettlement,
+        winnerId: 'someone-else',
+      );
+      final harness = await _pumpDetail(tester, auction: auction);
+
+      // The winner CTA is not offered to non-winners at all.
+      expect(find.text('Klaim Sekarang'), findsNothing);
+      expect(harness.notifier.placeBidCalls, 0);
+      expect(tester.takeException(), isNull);
+    });
   });
 }

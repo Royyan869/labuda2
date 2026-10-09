@@ -428,7 +428,7 @@ func (w *ProjectionWorker) handleOrderEvent(
 
 	query := `
 		SELECT o.id, o.buyer_id, o.seller_id, o.source_type, o.source_id,
-		       o.status, o.escrow_status, o.has_dispute,
+		       o.status, o.has_dispute,
 		       d.status as dispute_status, d.reason as dispute_reason,
 		       d.opened_at as dispute_opened_at, d.resolved_at as dispute_resolved_at,
 		       o.subtotal, o.shipping_total, o.commission_amount,
@@ -450,7 +450,7 @@ func (w *ProjectionWorker) handleOrderEvent(
 
 	err := tx.QueryRow(ctx, query, orderID).Scan(
 		&summary.ID, &summary.BuyerID, &summary.SellerID, &summary.SourceType, &summary.SourceID,
-		&summary.Status, &summary.EscrowStatus, &summary.HasDispute,
+		&summary.Status, &summary.HasDispute,
 		&summary.DisputeStatus, &summary.DisputeReason, &summary.DisputeOpenedAt, &summary.DisputeResolvedAt,
 		&summary.Subtotal, &summary.ShippingTotal, &summary.CommissionAmount,
 		&summary.ServiceFeeAmount, &summary.TotalPayableAmount,
@@ -515,7 +515,7 @@ func (w *ProjectionWorker) handleDisputeEvent(
 
 	query := `
 		SELECT o.id, o.buyer_id, o.seller_id, o.source_type, o.source_id,
-		       o.status, o.escrow_status, o.has_dispute,
+		       o.status, o.has_dispute,
 		       d.status as dispute_status, d.reason as dispute_reason,
 		       d.opened_at as dispute_opened_at, d.resolved_at as dispute_resolved_at,
 		       o.subtotal, o.shipping_total, o.commission_amount,
@@ -537,7 +537,7 @@ func (w *ProjectionWorker) handleDisputeEvent(
 
 	err := tx.QueryRow(ctx, query, disputeID).Scan(
 		&summary.ID, &summary.BuyerID, &summary.SellerID, &summary.SourceType, &summary.SourceID,
-		&summary.Status, &summary.EscrowStatus, &summary.HasDispute,
+		&summary.Status, &summary.HasDispute,
 		&summary.DisputeStatus, &summary.DisputeReason, &summary.DisputeOpenedAt, &summary.DisputeResolvedAt,
 		&summary.Subtotal, &summary.ShippingTotal, &summary.CommissionAmount,
 		&summary.ServiceFeeAmount, &summary.TotalPayableAmount,
@@ -704,7 +704,7 @@ func (w *ProjectionWorker) rebuildOrderSummaries(ctx context.Context) error {
 	query := `
 		INSERT INTO order_summaries (
 			id, buyer_id, seller_id, source_type, source_id,
-			status, escrow_status, has_dispute,
+			status, has_dispute,
 			dispute_status, dispute_reason, dispute_opened_at, dispute_resolved_at,
 			subtotal, shipping_total, commission_amount,
 			service_fee_amount, total_payable_amount,
@@ -713,7 +713,7 @@ func (w *ProjectionWorker) rebuildOrderSummaries(ctx context.Context) error {
 			auto_release_at, created_at, updated_at
 		)
 		SELECT o.id, o.buyer_id, o.seller_id, o.source_type, o.source_id,
-		       o.status, o.escrow_status, o.has_dispute,
+		       o.status, o.has_dispute,
 		       d.status, d.reason, d.opened_at, d.resolved_at,
 		       o.subtotal, o.shipping_total, o.commission_amount,
 		       o.service_fee_amount, o.total_payable_amount,
@@ -735,7 +735,6 @@ func (w *ProjectionWorker) rebuildOrderSummaries(ctx context.Context) error {
 			source_type = EXCLUDED.source_type,
 			source_id = EXCLUDED.source_id,
 			status = EXCLUDED.status,
-			escrow_status = EXCLUDED.escrow_status,
 			has_dispute = EXCLUDED.has_dispute,
 			dispute_status = EXCLUDED.dispute_status,
 			dispute_reason = EXCLUDED.dispute_reason,

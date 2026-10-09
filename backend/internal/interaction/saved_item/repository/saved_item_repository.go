@@ -12,9 +12,6 @@ type SavedItemRepository interface {
 	// Create creates a new saved item
 	Create(ctx context.Context, item *entity.SavedItem) error
 
-	// GetByUser retrieves all saved items for a user
-	GetByUser(ctx context.Context, userID uuid.UUID) ([]*entity.SavedItem, error)
-
 	// GetByUserAndTarget retrieves a specific saved item
 	// Returns nil if not found
 	GetByUserAndTarget(ctx context.Context, userID uuid.UUID, targetType entity.TargetType, targetID uuid.UUID) (*entity.SavedItem, error)

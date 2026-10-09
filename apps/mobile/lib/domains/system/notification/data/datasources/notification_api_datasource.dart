@@ -57,16 +57,23 @@ class NotificationApiDatasource {
     return match.first;
   }
 
-  /// Mark specific notifications as read
-  Future<void> markNotificationsAsRead(List<String> notificationIds) async {
+  /// Mark specific notifications as read.
+  /// Returns the canonical post-mutation `unread_count` from the LAST
+  /// mutation response (backend contract from Task 1).
+  Future<int> markNotificationsAsRead(List<String> notificationIds) async {
+    var unreadCount = 0;
     for (final id in notificationIds) {
-      await _apiClient.post('/notifications/$id/read', data: {});
+      final response = await _apiClient.post('/notifications/$id/read', data: {});
+      unreadCount = _readMutationUnreadCount(response);
     }
+    return unreadCount;
   }
 
-  /// Mark all notifications as read
-  Future<void> markAllNotificationsAsRead() async {
-    await _apiClient.post('/notifications/read-all', data: {});
+  /// Mark all notifications as read.
+  /// Returns the canonical post-mutation `unread_count` (normally 0).
+  Future<int> markAllNotificationsAsRead() async {
+    final response = await _apiClient.post('/notifications/read-all', data: {});
+    return _readMutationUnreadCount(response);
   }
 
   /// Mark notifications as read by entity type and entity ID
@@ -84,9 +91,18 @@ class NotificationApiDatasource {
     );
   }
 
-  /// Delete a notification
-  Future<void> deleteNotification(String notificationId) async {
-    await _apiClient.delete('/notifications/$notificationId');
+  /// Delete a notification.
+  /// Returns the canonical post-mutation `unread_count` from the response.
+  Future<int> deleteNotification(String notificationId) async {
+    final response = await _apiClient.delete('/notifications/$notificationId');
+    return _readMutationUnreadCount(response);
+  }
+
+  /// Extracts the canonical post-mutation unread count from a mutation
+  /// response envelope (`data.unread_count`).
+  int _readMutationUnreadCount(dynamic response) {
+    final payload = response.data['data'] as Map<String, dynamic>? ?? const {};
+    return MutationUnreadCountResponse.fromJson(payload).unreadCount;
   }
 
   /// Get unread notification count.

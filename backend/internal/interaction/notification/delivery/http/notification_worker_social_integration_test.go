@@ -226,7 +226,7 @@ func newNotificationLifecycleFixture(t *testing.T) *notificationLifecycleFixture
 		handler:          handler,
 		notificationHTTP: notificationhttp.NewNotificationHandlerWithDefaults(appDB, zap.NewNop()),
 		chatService:      chatService,
-		chatHTTP:         chathttp.NewHandler(chatService, nil, nil, nil, nil, appDB, zap.NewNop()),
+		chatHTTP:         chathttp.NewHandler(chatService, nil, nil, appDB, zap.NewNop()),
 		pushSender:       pushSender,
 	}
 }
@@ -486,7 +486,7 @@ func TestChatNotificationLifecycle_PostgresBacked(t *testing.T) {
 
 		row := fetchNotificationRow(t, ctx, fixture.notificationRepo, fixture.appDB, recipientID, senderID, roomID)
 		require.Equal(t, recipientID, row.RecipientID)
-		require.Equal(t, senderID, row.ActorID)
+		require.Equal(t, senderID, row.Actor.UserID())
 		require.Equal(t, notificationentity.TypeChatMessage, row.Type)
 		require.Equal(t, roomID, row.EntityID)
 		require.Equal(t, map[string]any{
@@ -633,7 +633,7 @@ func TestChatNotificationLifecycle_PostgresBacked(t *testing.T) {
 			return nil
 		})
 		require.NoError(t, err)
-		require.Equal(t, senderID, row.ActorID)
+		require.Equal(t, senderID, row.Actor.UserID())
 		require.Equal(t, map[string]any{
 			"chatId":    roomID.String(),
 			"messageId": messageID.String(),
@@ -681,7 +681,7 @@ func TestChatNotificationLifecycle_PostgresBacked(t *testing.T) {
 		senderID := insertNotificationUser(t, ctx, fixture.appDB, "chat-moderated-sender", "active", false)
 		recipientID := insertNotificationUser(t, ctx, fixture.appDB, "chat-moderated-recipient", "active", false)
 		roomID := insertNotificationRoom(t, ctx, fixture.appDB, senderID, recipientID)
-		messageID := insertNotificationMessage(
+		insertNotificationMessage(
 			t,
 			ctx,
 			fixture.appDB,
@@ -691,15 +691,6 @@ func TestChatNotificationLifecycle_PostgresBacked(t *testing.T) {
 			`{"kind":"image","url":"moderated-attachment"}`,
 			time.Now().UTC().Truncate(time.Microsecond),
 		)
-
-		payload, err := json.Marshal(worker.ChatMessagePayload{
-			RoomID:      roomID.String(),
-			MessageID:   messageID.String(),
-			SenderID:    senderID.String(),
-			RecipientID: recipientID.String(),
-			MessageType: "text",
-		})
-		require.NoError(t, err)
 
 		require.Equal(t, baseline, fixture.pushSender.count())
 		require.Equal(t, 0, fetchNotificationCount(t, ctx, fixture.appDB, recipientID, senderID, roomID))

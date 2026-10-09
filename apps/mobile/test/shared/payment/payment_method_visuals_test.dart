@@ -34,8 +34,11 @@ void main() {
   group('PaymentMethodVisuals model', () {
     test('every canonical method has a visual definition', () {
       for (final code in canonicalMethods) {
-        expect(PaymentMethodVisuals.isCanonical(code), isTrue,
-            reason: '$code must have a canonical visual');
+        expect(
+          PaymentMethodVisuals.isCanonical(code),
+          isTrue,
+          reason: '$code must have a canonical visual',
+        );
         final v = PaymentMethodVisuals.visual(code);
         expect(v.label, isNotEmpty);
         expect(v.fallbackIcon, isNotNull);
@@ -63,20 +66,36 @@ void main() {
 
     test('bank_transfer is generic: no bank-specific primary visual', () {
       final v = PaymentMethodVisuals.visual('bank_transfer');
-      expect(v.primaryAsset, isNull,
-          reason: 'bank_transfer must not use a specific bank logo');
-      expect(v.secondaryBrands, isEmpty,
-          reason: 'no bank brand may represent generic bank transfer');
+      expect(
+        v.primaryAsset,
+        isNull,
+        reason: 'bank_transfer must not use a specific bank logo',
+      );
+      expect(
+        v.secondaryBrands,
+        isEmpty,
+        reason: 'no bank brand may represent generic bank transfer',
+      );
       // No scoped method may reference a specific bank asset.
       final forbiddenBankAssets = <String>[
-        'bca', 'bni', 'bri', 'permata', 'danamon', 'mandiri',
-        'cimb', 'maybank', 'bank_mega',
+        'bca',
+        'bni',
+        'bri',
+        'permata',
+        'danamon',
+        'mandiri',
+        'cimb',
+        'maybank',
+        'bank_mega',
       ];
       for (final code in scopedMethods) {
         for (final asset in _assetPathsIn(PaymentMethodVisuals.visual(code))) {
           for (final bank in forbiddenBankAssets) {
-            expect(asset.contains(bank), isFalse,
-                reason: '$code must not use bank asset $asset');
+            expect(
+              asset.contains(bank),
+              isFalse,
+              reason: '$code must not use bank asset $asset',
+            );
           }
         }
       }
@@ -84,19 +103,28 @@ void main() {
 
     test('credit_card has a generic primary and is not one card brand', () {
       final v = PaymentMethodVisuals.visual('credit_card');
-      expect(v.primaryAsset, isNull,
-          reason: 'the primary card visual must be generic');
+      expect(
+        v.primaryAsset,
+        isNull,
+        reason: 'the primary card visual must be generic',
+      );
       expect(v.fallbackIcon, Icons.credit_card);
       final names = v.secondaryBrands.map((b) => b.name).toList();
       expect(names, containsAll(<String>['Visa', 'Mastercard']));
-      expect(names.length, greaterThan(1),
-          reason: 'credit_card must not depend on a single card brand');
+      expect(
+        names.length,
+        greaterThan(1),
+        reason: 'credit_card must not depend on a single card brand',
+      );
     });
 
     test('convenience_store shows Alfamart + Indomaret as one method', () {
       final v = PaymentMethodVisuals.visual('convenience_store');
-      expect(v.primaryAsset, isNull,
-          reason: 'primary is generic; both brands are shown as secondary');
+      expect(
+        v.primaryAsset,
+        isNull,
+        reason: 'primary is generic; both brands are shown as secondary',
+      );
       final names = v.secondaryBrands.map((b) => b.name).toSet();
       expect(names, containsAll(<String>['Alfamart', 'Indomaret']));
       // DAN+DAN is intentionally not a separate brand (Owner decision).
@@ -112,8 +140,11 @@ void main() {
       final all = PaymentMethodVisuals.all.values
           .expand(_assetPathsIn)
           .join(' ');
-      expect(all.contains('dana'), isFalse,
-          reason: 'no DANA asset may be referenced until an official one exists');
+      expect(
+        all.contains('dana'),
+        isFalse,
+        reason: 'no DANA asset may be referenced until an official one exists',
+      );
     });
   });
 
@@ -124,10 +155,16 @@ void main() {
       };
       expect(referenced, isNotEmpty);
       for (final path in referenced) {
-        expect(path.startsWith('assets/icons/payment/'), isTrue,
-            reason: '$path must be a local payment asset');
-        expect(File(path).existsSync(), isTrue,
-            reason: '$path must exist in the app bundle');
+        expect(
+          path.startsWith('assets/icons/payment/'),
+          isTrue,
+          reason: '$path must be a local payment asset',
+        );
+        expect(
+          File(path).existsSync(),
+          isTrue,
+          reason: '$path must exist in the app bundle',
+        );
       }
     });
 
@@ -143,15 +180,20 @@ void main() {
     test('all payment-method surfaces use the one mapping', () {
       final files = <String>[
         'lib/domains/finance/transaction/payment/presentation/widgets/payment_method_picker_sheet.dart',
-        'lib/domains/commerce/transaction/checkout/presentation/widgets/checkout_payment_method_section.dart',
         'lib/domains/commerce/transaction/order/presentation/widgets/order_payment_info_card.dart',
       ];
       for (final path in files) {
         final src = File(path).readAsStringSync();
-        expect(src.contains('PaymentMethodVisuals'), isTrue,
-            reason: '$path must consume the canonical authority');
-        expect(src.contains('PaymentMethodLogo'), isTrue,
-            reason: '$path must render through the canonical logo widget');
+        expect(
+          src.contains('PaymentMethodVisuals'),
+          isTrue,
+          reason: '$path must consume the canonical authority',
+        );
+        expect(
+          src.contains('PaymentMethodLogo'),
+          isTrue,
+          reason: '$path must render through the canonical logo widget',
+        );
       }
     });
 
@@ -164,8 +206,12 @@ void main() {
         final src = entity.readAsStringSync();
         if (src.contains('assets/icons/payment/')) offenders.add(entity.path);
       }
-      expect(offenders, isEmpty,
-          reason: 'only PaymentMethodVisuals may map method_code -> payment asset');
+      expect(
+        offenders,
+        isEmpty,
+        reason:
+            'only PaymentMethodVisuals may map method_code -> payment asset',
+      );
     });
 
     test('the PaymentMethodType presentation authority stays purged', () {
@@ -179,10 +225,10 @@ void main() {
 
   group('PaymentMethodLogo rendering', () {
     Widget host(PaymentMethodVisual v) => MaterialApp(
-          home: Scaffold(
-            body: Center(child: PaymentMethodLogo(visual: v, size: 28)),
-          ),
-        );
+      home: Scaffold(
+        body: Center(child: PaymentMethodLogo(visual: v, size: 28)),
+      ),
+    );
 
     testWidgets('qris renders a local image', (tester) async {
       await tester.pumpWidget(host(PaymentMethodVisuals.visual('qris')));
@@ -202,7 +248,10 @@ void main() {
     ) async {
       await tester.pumpWidget(host(PaymentMethodVisuals.visual('dana')));
       expect(find.byType(Image), findsNothing);
-      expect(find.byIcon(Icons.account_balance_wallet_outlined), findsOneWidget);
+      expect(
+        find.byIcon(Icons.account_balance_wallet_outlined),
+        findsOneWidget,
+      );
     });
   });
 }

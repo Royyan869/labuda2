@@ -31,7 +31,7 @@
 /// ═══════════════════════════════════════════════════════════════════════════════
 /// - Purchasable when: status == active AND stock > 0
 /// - Visibility check is redundant (ACTIVE = PUBLIC ONLY)
-/// - Shortlist does NOT reserve stock (first-come-first-served until order)
+/// - Saved items do NOT reserve stock (first-come-first-served until order)
 /// - Terminal states (sold, withdrawn) cannot be purchased
 ///
 /// INTEGRATION POINTS:

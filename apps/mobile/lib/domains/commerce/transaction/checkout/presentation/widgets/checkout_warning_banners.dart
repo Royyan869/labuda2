@@ -113,10 +113,72 @@ class _AuctionWinnerBanner extends StatelessWidget {
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  'Lengkapi pembayaran untuk mengamankan kemenangan Anda. Harga final sudah terkunci.',
+                  'Harga final sudah terkunci. Selesaikan checkout untuk mengamankan kemenangan Anda.',
                   style: context.typeRoles.bodyDense.copyWith(
                     color: colorScheme.onSurfaceVariant,
                     height: 1.3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Bid-win payment-method honesty note.
+///
+/// Owner canonical: an auction bid-win order is created WITHOUT a payment
+/// method. The winner chooses the method on the created Order (Order Detail's
+/// PaymentMethodPicker) and the first payment binds it. Checkout therefore
+/// shows the escrow base honestly and states exactly where the method and its
+/// fee come from — it never fakes a fee-inclusive final total.
+class _BidWinPaymentMethodNote extends StatelessWidget {
+  const _BidWinPaymentMethodNote();
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(AppMetrics.p12),
+      decoration: BoxDecoration(
+        color: colorScheme.secondary.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(AppShape.r8),
+        border: Border.all(
+          color: colorScheme.secondary.withValues(alpha: 0.25),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.account_balance_wallet_outlined,
+            size: AppIconSize.action,
+            color: colorScheme.secondary,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Metode Pembayaran Dipilih Setelah Pesanan',
+                  style: context.typeRoles.bodyDense.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: colorScheme.secondary,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Total di atas adalah harga barang + pengiriman. '
+                  'Pilih metode pembayaran (beserta biaya layanannya) '
+                  'setelah pesanan dibuat, saat menyelesaikan pembayaran.',
+                  style: context.typeRoles.bodyDense.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                    height: 1.4,
                   ),
                 ),
               ],

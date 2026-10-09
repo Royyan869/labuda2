@@ -24,7 +24,7 @@ import (
 // orders into OrderService.Cancel -> OrderCompletionService.Cancel ->
 // Order.Cancel. The state machine allowed paid -> cancelled, and Cancel performs
 // no refund and no escrow flip, so a paid order could become
-// `status = cancelled` + `escrow_status = holding` with the buyer's money
+// `status = cancelled` with the escrow row still holding the buyer's money
 // frozen and the selling-surface stock already restored.
 //
 // CANONICAL: Cancel is the PRE-PAYMENT transition (pending_payment -> cancelled).
@@ -37,11 +37,10 @@ import (
 func TestCancel_RejectsPaidOrderWithoutRefund(t *testing.T) {
 	buyerID := uuid.New()
 	order := &entity.Order{
-		ID:           uuid.New(),
-		BuyerID:      buyerID,
-		SellerID:     uuid.New(),
-		Status:       entity.StatusPaid,
-		EscrowStatus: entity.EscrowStatusHolding,
+		ID:       uuid.New(),
+		BuyerID:  buyerID,
+		SellerID: uuid.New(),
+		Status:   entity.StatusPaid,
 	}
 
 	repo := &stubOrderRepo{
@@ -67,10 +66,9 @@ func TestCancel_RejectsPaidOrderWithoutRefund(t *testing.T) {
 	assert.Equal(t, entity.StatusPaid, invalidTransition.CurrentStatus)
 	assert.Equal(t, entity.StatusCancelled, invalidTransition.TargetStatus)
 
-	// INVARIANT: no mutation was persisted; the order stayed paid with escrow held.
+	// INVARIANT: no mutation was persisted; the order stayed paid.
 	assert.Zero(t, repo.updateStatusCalls, "no order status write may be persisted")
 	assert.Equal(t, entity.StatusPaid, order.Status)
-	assert.Equal(t, entity.EscrowStatusHolding, order.EscrowStatus)
 }
 
 // cancelRejectTx is a minimal db.Tx double. Exec returns a non-zero

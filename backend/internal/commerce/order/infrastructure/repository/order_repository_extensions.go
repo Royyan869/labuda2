@@ -46,7 +46,7 @@ func (r *OrderRepository) GetBlockingOrderByShippingQuoteID(
 	var negotiationID *uuid.UUID
 	var quantity int
 	var unitPrice, subtotal, shippingTotal, commissionPercent, commissionAmount int64
-	var status, escrowStatus, sourceType string
+	var status, sourceType string
 	var shippingSetupName, shippingTransportType sql.NullString // NULLABLE in DB
 	var trackingNumber, shippingNote *string
 	var orderNum *string
@@ -68,7 +68,7 @@ func (r *OrderRepository) GetBlockingOrderByShippingQuoteID(
 		SELECT id, buyer_id, seller_id,
 		       source_type, source_id, negotiation_id,
 		       quantity, unit_price, subtotal, shipping_total, commission_percent,
-		       commission_amount, status, escrow_status,
+		       commission_amount, status,
 		       auto_release_at, has_dispute, confirmation_extension_used, idempotency_key,
 		       shipping_option_id, shipping_option_name, shipping_transport_type,
 		       tracking_number, shipping_note, order_number,
@@ -86,7 +86,7 @@ func (r *OrderRepository) GetBlockingOrderByShippingQuoteID(
 		&id, &buyerID, &sellerID,
 		&sourceType, &sourceID, &negotiationID,
 		&quantity, &unitPrice, &subtotal, &shippingTotal, &commissionPercent,
-		&commissionAmount, &status, &escrowStatus,
+		&commissionAmount, &status,
 		&autoReleaseAt, &hasDispute, &confirmationExtensionUsed, &idempotencyKeyPtr,
 		&shippingSetupID, &shippingSetupName, &shippingTransportType,
 		&trackingNumber, &shippingNote,
@@ -147,7 +147,6 @@ func (r *OrderRepository) GetBlockingOrderByShippingQuoteID(
 		ReadyToShipBy:             readyToShipBy,
 		AddressSnapshot:           shippingDestination,
 		Status:                    entity.Status(status),
-		EscrowStatus:              entity.EscrowStatus(escrowStatus),
 		HasDispute:                hasDispute,
 		ConfirmationExtensionUsed: confirmationExtensionUsed,
 		IdempotencyKey:            idempotencyKeyPtr,

@@ -10,6 +10,41 @@ import 'package:labuda/shared/utils/app_formatters.dart';
 import 'dispute_escalation_dialog.dart';
 import 'seller_refund_decision_dialog.dart';
 
+/// F5-local fit measure: whether a single-line title + badge pair fits the
+/// incoming width. Local copy (no new shared authority).
+bool _fitsTitleBadgeSingleLine({
+  required BuildContext context,
+  required double maxWidth,
+  required String title,
+  required String badge,
+  required TextStyle? titleStyle,
+  required TextStyle? badgeStyle,
+  required double fixedExtrasWidth,
+}) {
+  if (!maxWidth.isFinite) {
+    return false;
+  }
+  final TextDirection direction = Directionality.of(context);
+  final TextScaler scaler = MediaQuery.textScalerOf(context);
+
+  double singleLineWidth(String text, TextStyle? style) {
+    final TextPainter painter = TextPainter(
+      text: TextSpan(text: text, style: style),
+      textDirection: direction,
+      textScaler: scaler,
+      maxLines: 1,
+    )..layout();
+    return painter.width;
+  }
+
+  const double safetyMargin = 2;
+  return singleLineWidth(title, titleStyle) +
+          fixedExtrasWidth +
+          singleLineWidth(badge, badgeStyle) +
+          safetyMargin <=
+      maxWidth;
+}
+
 /// Section showing refund requests for an order
 /// Displays as a collapsible list or banner depending on content
 class OrderRefundListSection extends ConsumerWidget {
@@ -67,28 +102,70 @@ class OrderRefundListSection extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
-          Row(
-            children: [
-              Icon(
-                Icons.currency_exchange,
-                size: AppIconSize.action,
-                color: _getStatusColor(
-                  context,
-                  latestRefund.status,
-                  colorScheme,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'Permintaan Pengembalian',
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const Spacer(),
-              _StatusBadge(status: latestRefund.status),
-            ],
+          // Header (adaptive): title + badge share one row when the
+          // single-line pair fits, else the title stacks over the
+          // fully-readable badge. Same fit-measure as the F2 pricing rows.
+          LayoutBuilder(
+            builder: (BuildContext context, BoxConstraints constraints) {
+              final TextStyle? titleStyle = theme.textTheme.titleSmall
+                  ?.copyWith(fontWeight: FontWeight.w600);
+              final TextStyle badgeStyle = context.typeRoles.labelMicro
+                  .copyWith(fontWeight: FontWeight.w600);
+              final String badgeText =
+                  '${latestRefund.status.emoji} ${latestRefund.status.displayName}';
+              final bool fits = _fitsTitleBadgeSingleLine(
+                context: context,
+                maxWidth: constraints.maxWidth,
+                title: 'Permintaan Pengembalian',
+                badge: badgeText,
+                titleStyle: titleStyle,
+                badgeStyle: badgeStyle,
+                fixedExtrasWidth:
+                    AppIconSize.action +
+                    8 +
+                    8 +
+                    core.AppMetrics.p8 * 2,
+              );
+              if (fits) {
+                return Row(
+                  children: [
+                    Icon(
+                      Icons.currency_exchange,
+                      size: AppIconSize.action,
+                      color: _getStatusColor(
+                        context,
+                        latestRefund.status,
+                        colorScheme,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Permintaan Pengembalian',
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const Spacer(),
+                    _StatusBadge(status: latestRefund.status),
+                  ],
+                );
+              }
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Permintaan Pengembalian',
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  _StatusBadge(status: latestRefund.status),
+                ],
+              );
+            },
           ),
           const SizedBox(height: 12),
 
@@ -298,11 +375,16 @@ class _StatusBadge extends StatelessWidget {
         children: [
           Text(status.emoji, style: context.typeRoles.labelMicro),
           const SizedBox(width: 4),
-          Text(
-            status.displayName,
-            style: context.typeRoles.labelMicro.copyWith(
-              color: _getBadgeColor(context, colorScheme),
-              fontWeight: FontWeight.w600,
+          // F5: wraps (never truncates) when an ancestor bounds this badge;
+          // hugs intrinsic width otherwise. Business-meaningful status copy.
+          Flexible(
+            child: Text(
+              status.displayName,
+              style: context.typeRoles.labelMicro.copyWith(
+                color: _getBadgeColor(context, colorScheme),
+                fontWeight: FontWeight.w600,
+              ),
+              softWrap: true,
             ),
           ),
         ],

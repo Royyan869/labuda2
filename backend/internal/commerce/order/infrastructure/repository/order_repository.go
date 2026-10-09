@@ -61,7 +61,7 @@ func (r *OrderRepository) CreateOrderTx(
 			quantity, unit_price, subtotal, shipping_total, commission_percent,
 			commission_amount, service_fee_amount, total_payable_amount,
 			total_before_coins_amount,
-			status, escrow_status,
+			status,
 			auto_release_at, has_dispute, idempotency_key,
 			shipping_option_id, shipping_option_name, shipping_transport_type,
 			preparation_time_snapshot, ready_to_ship_by, address_snapshot,
@@ -75,8 +75,8 @@ func (r *OrderRepository) CreateOrderTx(
 		)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14,
 		        $15,
-		        $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29,
-		        $30, $31, $32, $33, $34, $35, $36, $37)
+		        $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28,
+		        $29, $30, $31, $32, $33, $34, $35, $36)
 	`,
 		order.ID,
 		order.BuyerID,
@@ -94,7 +94,6 @@ func (r *OrderRepository) CreateOrderTx(
 		order.TotalPayableAmount.Int64(),
 		order.TotalBeforeCoinsAmount.Int64(), // CANONICAL buyer-funded base = PD + S (fee F is NEVER part of it)
 		string(order.Status),
-		string(order.EscrowStatus),
 		order.AutoReleaseAt,
 		order.HasDispute,
 		order.IdempotencyKey,
@@ -148,7 +147,7 @@ func (r *OrderRepository) GetByID(
 	var quantity int
 	var unitPrice, subtotal, shippingTotal, commissionPercent, commissionAmount int64
 	var serviceFeeAmount, totalPayableAmount, totalBeforeCoinsAmount int64
-	var status, escrowStatus, sourceType string
+	var status, sourceType string
 	var shippingSetupName, shippingTransportType sql.NullString // NULLABLE in DB
 	var trackingNumber sql.NullString
 	var proofType sql.NullString
@@ -177,7 +176,7 @@ func (r *OrderRepository) GetByID(
 		       source_type, source_id, negotiation_id,
 		       quantity, unit_price, subtotal, shipping_total,
 		       commission_percent, commission_amount, service_fee_amount, total_payable_amount, total_before_coins_amount,
-		       status, escrow_status, auto_release_at, has_dispute,
+		       status, auto_release_at, has_dispute,
 		       confirmation_extension_used, confirmation_extended_at, idempotency_key,
 		       shipping_option_id, shipping_option_name, shipping_transport_type,
 	       tracking_number, proof_type, shipping_proof_media, shipping_note,
@@ -196,7 +195,7 @@ func (r *OrderRepository) GetByID(
 		&sourceType, &sourceID, &negotiationID,
 		&quantity, &unitPrice, &subtotal, &shippingTotal,
 		&commissionPercent, &commissionAmount, &serviceFeeAmount, &totalPayableAmount, &totalBeforeCoinsAmount,
-		&status, &escrowStatus, &autoReleaseAt, &hasDispute, &confirmationExtensionUsed, &confirmationExtendedAt, &idempotencyKey,
+		&status, &autoReleaseAt, &hasDispute, &confirmationExtensionUsed, &confirmationExtendedAt, &idempotencyKey,
 		&shippingSetupID, &shippingSetupName, &shippingTransportType,
 		&trackingNumber, &proofType, &shippingProofMedia, &shippingNote,
 		&orderNum,
@@ -271,7 +270,6 @@ func (r *OrderRepository) GetByID(
 		ReadyToShipBy:             db.ToTimePtr(readyToShipBy),
 		AddressSnapshot:           shippingDestination,
 		Status:                    entity.Status(status),
-		EscrowStatus:              entity.EscrowStatus(escrowStatus),
 		HasDispute:                hasDispute,
 		ConfirmationExtensionUsed: confirmationExtensionUsed,
 		IdempotencyKey:            db.ToStringPtr(idempotencyKey),
@@ -315,7 +313,7 @@ func (r *OrderRepository) GetForUpdate(
 	var quantity int
 	var unitPrice, subtotal, shippingTotal, commissionPercent, commissionAmount int64
 	var serviceFeeAmount, totalPayableAmount, totalBeforeCoinsAmount int64
-	var status, escrowStatus, sourceType string
+	var status, sourceType string
 	var shippingSetupName, shippingTransportType sql.NullString // NULLABLE in DB
 	var trackingNumber sql.NullString
 	var proofType sql.NullString
@@ -344,7 +342,7 @@ func (r *OrderRepository) GetForUpdate(
 		       source_type, source_id, negotiation_id,
 		       quantity, unit_price, subtotal, shipping_total,
 		       commission_percent, commission_amount, service_fee_amount, total_payable_amount, total_before_coins_amount,
-		       status, escrow_status, auto_release_at, has_dispute,
+		       status, auto_release_at, has_dispute,
 		       confirmation_extension_used, confirmation_extended_at, idempotency_key,
 		       shipping_option_id, shipping_option_name, shipping_transport_type,
 	       tracking_number, proof_type, shipping_proof_media, shipping_note,
@@ -364,7 +362,7 @@ func (r *OrderRepository) GetForUpdate(
 		&sourceType, &sourceID, &negotiationID,
 		&quantity, &unitPrice, &subtotal, &shippingTotal,
 		&commissionPercent, &commissionAmount, &serviceFeeAmount, &totalPayableAmount, &totalBeforeCoinsAmount,
-		&status, &escrowStatus, &autoReleaseAt, &hasDispute, &confirmationExtensionUsed, &confirmationExtendedAt, &idempotencyKey,
+		&status, &autoReleaseAt, &hasDispute, &confirmationExtensionUsed, &confirmationExtendedAt, &idempotencyKey,
 		&shippingSetupID, &shippingSetupName, &shippingTransportType,
 		&trackingNumber, &proofType, &shippingProofMedia, &shippingNote,
 		&orderNum,
@@ -439,7 +437,6 @@ func (r *OrderRepository) GetForUpdate(
 		ReadyToShipBy:             db.ToTimePtr(readyToShipBy),
 		AddressSnapshot:           shippingDestination,
 		Status:                    entity.Status(status),
-		EscrowStatus:              entity.EscrowStatus(escrowStatus),
 		HasDispute:                hasDispute,
 		ConfirmationExtensionUsed: confirmationExtensionUsed,
 		IdempotencyKey:            db.ToStringPtr(idempotencyKey),
@@ -520,7 +517,7 @@ func (r *OrderRepository) GetByShippingQuoteID(
 	var quantity int
 	var unitPrice, subtotal, shippingTotal, commissionPercent, commissionAmount int64
 	var serviceFeeAmount, totalPayableAmount int64
-	var status, escrowStatus, sourceType string
+	var status, sourceType string
 	var shippingSetupName, shippingTransportType sql.NullString // NULLABLE in DB
 	var trackingNumber, shippingNote *string
 	var orderNum *string
@@ -542,7 +539,7 @@ func (r *OrderRepository) GetByShippingQuoteID(
 		SELECT id, buyer_id, seller_id,
 		       source_type, source_id, negotiation_id,
 		       quantity, unit_price, subtotal, shipping_total, commission_percent,
-		       commission_amount, service_fee_amount, total_payable_amount, status, escrow_status,
+		       commission_amount, service_fee_amount, total_payable_amount, status,
 		       auto_release_at, has_dispute, confirmation_extension_used, idempotency_key,
 		       shipping_option_id, shipping_option_name, shipping_transport_type,
 	       tracking_number, shipping_note, order_number,
@@ -557,7 +554,7 @@ func (r *OrderRepository) GetByShippingQuoteID(
 		&id, &buyerID, &sellerID,
 		&sourceType, &sourceID, &negotiationID,
 		&quantity, &unitPrice, &subtotal, &shippingTotal, &commissionPercent,
-		&commissionAmount, &serviceFeeAmount, &totalPayableAmount, &status, &escrowStatus,
+		&commissionAmount, &serviceFeeAmount, &totalPayableAmount, &status,
 		&autoReleaseAt, &hasDispute, &confirmationExtensionUsed, &idempotencyKeyPtr,
 		&shippingSetupID, &shippingSetupName, &shippingTransportType,
 		&trackingNumber, &shippingNote,
@@ -622,7 +619,6 @@ func (r *OrderRepository) GetByShippingQuoteID(
 		ReadyToShipBy:             readyToShipBy,
 		AddressSnapshot:           shippingDestination,
 		Status:                    entity.Status(status),
-		EscrowStatus:              entity.EscrowStatus(escrowStatus),
 		HasDispute:                hasDispute,
 		ConfirmationExtensionUsed: confirmationExtensionUsed,
 		IdempotencyKey:            idempotencyKeyPtr,
@@ -679,7 +675,7 @@ func (r *OrderRepository) GetByPricingTokenID(
 	var quantity int
 	var unitPrice, subtotal, shippingTotal, commissionPercent, commissionAmount int64
 	var serviceFeeAmount, totalPayableAmount, totalBeforeCoinsAmount int64
-	var status, escrowStatus, sourceType string
+	var status, sourceType string
 	var shippingSetupName, shippingTransportType sql.NullString // NULLABLE in DB
 	var trackingNumber sql.NullString
 	var proofType sql.NullString
@@ -710,7 +706,7 @@ func (r *OrderRepository) GetByPricingTokenID(
 		       quantity, unit_price, subtotal, shipping_total,
 		       commission_percent, commission_amount, service_fee_amount, total_payable_amount,
 		       total_before_coins_amount,
-		       status, escrow_status, auto_release_at, has_dispute,
+		       status, auto_release_at, has_dispute,
 		       confirmation_extension_used, confirmation_extended_at, idempotency_key,
 		       shipping_option_id, shipping_option_name, shipping_transport_type,
 	       tracking_number, proof_type, shipping_proof_media, shipping_note,
@@ -730,7 +726,7 @@ func (r *OrderRepository) GetByPricingTokenID(
 		&quantity, &unitPrice, &subtotal, &shippingTotal,
 		&commissionPercent, &commissionAmount, &serviceFeeAmount, &totalPayableAmount,
 		&totalBeforeCoinsAmount,
-		&status, &escrowStatus, &autoReleaseAt, &hasDispute, &confirmationExtensionUsed, &confirmationExtendedAt, &idempotencyKey,
+		&status, &autoReleaseAt, &hasDispute, &confirmationExtensionUsed, &confirmationExtendedAt, &idempotencyKey,
 		&shippingSetupID, &shippingSetupName, &shippingTransportType,
 		&trackingNumber, &proofType, &shippingProofMedia, &shippingNote,
 		&orderNum,
@@ -801,7 +797,6 @@ func (r *OrderRepository) GetByPricingTokenID(
 		ReadyToShipBy:             db.ToTimePtr(readyToShipBy),
 		AddressSnapshot:           shippingDestination,
 		Status:                    entity.Status(status),
-		EscrowStatus:              entity.EscrowStatus(escrowStatus),
 		HasDispute:                hasDispute,
 		ConfirmationExtensionUsed: confirmationExtensionUsed,
 		IdempotencyKey:            db.ToStringPtr(idempotencyKey),
@@ -860,7 +855,7 @@ func (r *OrderRepository) CreateOrderItemTx(
 	return nil
 }
 
-// UpdateStatusTx persists order status and escrow status changes.
+// UpdateStatusTx persists order status changes.
 // Also persists shipping proof information when order is marked as shipped.
 //
 // IMMUTABILITY: Shipping proof fields (proof_type, tracking_number, shipping_proof_media)
@@ -874,28 +869,26 @@ func (r *OrderRepository) UpdateStatusTx(
 	_, err := tx.Exec(ctx, `
 		UPDATE orders
 		SET status = $2,
-		    escrow_status = $3,
-		    auto_release_at = $4,
-		    has_dispute = $5,
-		    confirmation_extension_used = $6,
-		    confirmation_extended_at = $7,
+		    auto_release_at = $3,
+		    has_dispute = $4,
+		    confirmation_extension_used = $5,
+		    confirmation_extended_at = $6,
 		    proof_type = CASE WHEN status IN ('shipped', 'delivered', 'completed', 'dispute_open', 'partially_refunded')
 		                     THEN proof_type  -- Immutable: keep existing value
-		                     ELSE $8 END,     -- Allow update only if not shipped yet
+		                     ELSE $7 END,     -- Allow update only if not shipped yet
 		    tracking_number = CASE WHEN status IN ('shipped', 'delivered', 'completed', 'dispute_open', 'partially_refunded')
 		                         THEN tracking_number  -- Immutable: keep existing value
-		                         ELSE $9 END,          -- Allow update only if not shipped yet
+		                         ELSE $8 END,          -- Allow update only if not shipped yet
 		    shipping_proof_media = CASE WHEN status IN ('shipped', 'delivered', 'completed', 'dispute_open', 'partially_refunded')
 		                           THEN shipping_proof_media  -- Immutable: keep existing value
-		                           ELSE $10 END,             -- Allow update only if not shipped yet
-		    shipping_note = $11,
-		    completed_at = $12,
-		    updated_at = $13
+		                           ELSE $9 END,             -- Allow update only if not shipped yet
+		    shipping_note = $10,
+		    completed_at = $11,
+		    updated_at = $12
 		WHERE id = $1
 	`,
 		order.ID,
 		string(order.Status),
-		string(order.EscrowStatus),
 		order.AutoReleaseAt,
 		order.HasDispute,
 		order.ConfirmationExtensionUsed,
@@ -921,7 +914,7 @@ func (r *OrderRepository) UpdateStatusTx(
 // this repository method only stores the projection rows for
 // service_fee_amount and total_payable_amount.
 //
-// INVARIANT: total_payable_amount = (total_before_coins_amount − coins_applied)
+// INVARIANT: total_payable_amount = (total_before_coins_amount âˆ’ coins_applied)
 // + service_fee_amount; with no coins applied that is simply base + F.
 // This UPDATE deliberately never writes total_before_coins_amount: the buyer
 // funding base (PD + S) is fixed at order creation and neither the payment fee
@@ -930,7 +923,7 @@ func (r *OrderRepository) UpdateStatusTx(
 // PAYMENT METHOD BINDING (Phase 2 follow-up): paymentMethodCode is written with
 // COALESCE so an order that already carries a bound method can NEVER be
 // switched to a different method by a payment. Only an unbound order (NULL —
-// auction-claim) is bound here, to the method used at first payment. This makes
+// auction bid-win) is bound here, to the method used at first payment. This makes
 // "the order cannot silently switch method" a persistence-layer invariant.
 func (r *OrderRepository) UpdatePaymentSelectionTx(
 	ctx context.Context,
@@ -970,7 +963,7 @@ func (r *OrderRepository) UpdatePaymentSelectionTx(
 //
 // Query conditions:
 // - status IN ('shipped', 'delivered') - timer starts at shipped
-// - escrow_status = 'holding'
+// - a holding escrow row exists (canonical escrow authority, NOT a projection)
 // - has_dispute = false (CRITICAL - prevents auto-completing disputed orders)
 // - no refund blocking release (canonical predicate: refundEntity.Refund.BlocksOrderRelease)
 // - auto_release_at <= NOW()
@@ -1003,7 +996,10 @@ func (r *OrderRepository) FindOrdersForAutoComplete(
 		SELECT id
 		FROM orders o
 		WHERE o.status IN ('shipped', 'delivered')
-		  AND o.escrow_status = 'holding'
+		  AND EXISTS (
+		      SELECT 1 FROM escrows e
+		      WHERE e.order_id = o.id AND e.status = 'holding'
+		  )
 		  AND o.has_dispute = false
 		  AND o.auto_release_at <= NOW()
 		  AND NOT EXISTS (
@@ -1040,13 +1036,13 @@ func (r *OrderRepository) FindOrdersForAutoComplete(
 // FindOverdueOrdersForCancel returns IDs of orders that are overdue for shipment.
 // Uses FOR UPDATE SKIP LOCKED to support concurrent workers.
 //
-// 🔥 PHASE 2: AUTO-CANCEL (CRITICAL)
+// ðŸ”¥ PHASE 2: AUTO-CANCEL (CRITICAL)
 //
 // This method finds orders that should be auto-cancelled due to shipment timeout.
 //
 // Query conditions:
 // - status = 'paid' (only paid orders that haven't shipped)
-// - escrow_status = 'holding' (only orders with escrow held)
+// - a holding escrow row exists (canonical escrow authority)
 // - ready_to_ship_by IS NOT NULL (deadline is set)
 // - ready_to_ship_by + INTERVAL '2 days' < NOW() (grace period exceeded)
 //
@@ -1062,11 +1058,14 @@ func (r *OrderRepository) FindOverdueOrdersForCancel(
 	// Each worker locks a subset of orders, preventing duplicate processing
 	query := `
 			SELECT id
-			FROM orders
-			WHERE status = 'paid'
-			  AND escrow_status = 'holding'
-			  AND ready_to_ship_by IS NOT NULL
-			  AND ready_to_ship_by + (INTERVAL '1 day' * 2) < NOW()
+			FROM orders o
+			WHERE o.status = 'paid'
+			  AND EXISTS (
+			      SELECT 1 FROM escrows e
+			      WHERE e.order_id = o.id AND e.status = 'holding'
+			  )
+			  AND o.ready_to_ship_by IS NOT NULL
+			  AND o.ready_to_ship_by + (INTERVAL '1 day' * 2) < NOW()
 			FOR UPDATE SKIP LOCKED
 			LIMIT $1
 		`

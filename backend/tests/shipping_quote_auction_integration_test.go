@@ -259,7 +259,7 @@ func TestShippingQuote_Auction_ProductionFlow(t *testing.T) {
 	require.NotNil(t, loadedA.ChatID)
 	require.Equal(t, roomA, *loadedA.ChatID)
 
-	// Mirror the /claim handler: validate + lock the pricing token before order
+	// Mirror the POST /orders bid-win path: validate + lock the pricing token before order
 	// creation (quote mode => shipping_option_id is uuid.Nil).
 	require.NoError(t, tdb.WithTx(ctx, func(tx db.Tx) error {
 		_, e := pricingSvc.ValidateForOrderLocked(ctx, tx, tokenA, winnerID, product, "auction", auctionID, 0, winnerAddressID, uuid.Nil)

@@ -63,7 +63,7 @@ func newShippingRevalidationService(t *testing.T) *AuctionService {
 		coverageRepo,
 		productShippingRepo,
 		outboxRepo.NewOutboxRepository(nil),
-		nil, nil,
+		nil, 
 		auctionRoleCheckerStub{hasCapability: true},
 		nil,
 		zap.NewNop(),
@@ -262,7 +262,7 @@ func TestActivationShipping_GuardsRemainIntact(t *testing.T) {
 		shippingRepo.NewShippingCoverageRepository(),
 		shippingRepo.NewProductShippingSetupRepository(shippingRepo.NewShippingSetupRepository()),
 		outboxRepo.NewOutboxRepository(nil),
-		nil, nil,
+		nil, 
 		auctionRoleCheckerStub{hasCapability: false},
 		nil,
 		zap.NewNop(),
@@ -308,7 +308,7 @@ func TestActivationShipping_FailClosed_MissingDependency(t *testing.T) {
 		nil, // shippingCoverageRepo nil – required
 		nil, // productShippingRepo nil – required
 		outboxRepo.NewOutboxRepository(nil),
-		nil, nil,
+		nil, 
 		auctionRoleCheckerStub{hasCapability: true},
 		nil,
 		zap.NewNop(),

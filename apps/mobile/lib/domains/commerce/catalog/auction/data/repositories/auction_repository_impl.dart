@@ -90,11 +90,7 @@ class AuctionRepositoryImpl implements AuctionRepository {
       return Result.success(entity);
     } on StructuredApiException catch (e) {
       _logger.error('Failed to create auction: ${e.message}');
-      return Result.error(
-        e.message,
-        code: e.code,
-        details: e.details,
-      );
+      return Result.error(e.message, code: e.code, details: e.details);
     } catch (e) {
       _logger.error('Failed to create auction: $e');
       return Result.error(e.toString());
@@ -152,9 +148,11 @@ class AuctionRepositoryImpl implements AuctionRepository {
       final entities = dtos.map(AuctionMapper.toEntity).toList();
       // Keep discoverable only (scheduled + active) – defensive filter for any future status drift.
       final discoverable = entities
-          .where((a) =>
-              a.status == AuctionStatus.scheduled ||
-              a.status == AuctionStatus.active)
+          .where(
+            (a) =>
+                a.status == AuctionStatus.scheduled ||
+                a.status == AuctionStatus.active,
+          )
           .toList();
       return Result.success(discoverable);
     } catch (e) {
@@ -293,40 +291,6 @@ class AuctionRepositoryImpl implements AuctionRepository {
     }
   }
 
-  @override
-  Future<Result<String>> claimAuction({
-    required String auctionId,
-    required String addressId,
-    String? shippingSetupId,
-    String? shippingQuoteId,
-    String? chatId,
-    String? discountCode,
-    bool useCoins = false,
-  }) async {
-    try {
-      final orderId = await _datasource.claimAuction(
-        auctionId,
-        addressId: addressId,
-        shippingSetupId: shippingSetupId,
-        shippingQuoteId: shippingQuoteId,
-        chatId: chatId,
-        discountCode: discountCode,
-        useCoins: useCoins,
-      );
-      return Result.success(orderId);
-    } on StructuredApiException catch (e) {
-      _logger.error('Failed to claim auction: ${e.message}');
-      return Result.error(
-        e.message,
-        code: e.code,
-        details: e.details,
-      );
-    } catch (e) {
-      _logger.error('Failed to claim auction: $e');
-      return Result.error(e.toString());
-    }
-  }
-
   // ========== Real-time Streams (Polling-based for API) ==========
 
   // Live polling is reserved for detail/bids (watchAuction/watchBids).
@@ -345,10 +309,7 @@ class AuctionRepositoryImpl implements AuctionRepository {
       // Fetch initial data — goes through the shared dedup emitter so the
       // first poll tick cannot re-emit the same snapshot.
       getAuctionById(auctionId).then((result) {
-        result.fold(
-          (_) => null,
-          (auction) => _emitAuction(auctionId, auction),
-        );
+        result.fold((_) => null, (auction) => _emitAuction(auctionId, auction));
       });
     }
 
@@ -374,7 +335,13 @@ class AuctionRepositoryImpl implements AuctionRepository {
       });
     }
 
-    return _bidStreamControllers[auctionId]!.stream;
+    final controller = _bidStreamControllers[auctionId]!;
+    if (controller.hasListener) {
+      getAuctionBids(auctionId: auctionId, limit: limit).then((result) {
+        result.fold((_) => null, (bids) => _emitBids(auctionId, bids));
+      });
+    }
+    return controller.stream;
   }
 
   // ========== Private Polling Methods ==========
@@ -434,7 +401,9 @@ class AuctionRepositoryImpl implements AuctionRepository {
       controller.close();
       _auctionStreamControllers.remove(auctionId);
     }
-  }  /// Emit a detail snapshot through the polling dedup gate: identical
+  }
+
+  /// Emit a detail snapshot through the polling dedup gate: identical
   /// snapshots (same public fingerprint) never re-emit; real changes always
   /// do. Shared by initial fetch and poll ticks.
   void _emitAuction(String auctionId, Auction? auction) {
@@ -495,10 +464,7 @@ class AuctionRepositoryImpl implements AuctionRepository {
           monitor.logError(e.toString());
         }
       }
-      result.fold(
-        (_) => null,
-        (auction) => _emitAuction(auctionId, auction),
-      );
+      result.fold((_) => null, (auction) => _emitAuction(auctionId, auction));
     } catch (_) {
       // Detail surface failure must not kill the bids surface.
     }

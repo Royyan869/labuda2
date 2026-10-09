@@ -51,18 +51,6 @@ func IsErrInvalidRefundAmount(err error) bool {
 	return errors.As(err, &e)
 }
 
-// IsErrAlreadyResolved checks if err is *entity.ErrAlreadyResolved
-func IsErrAlreadyResolved(err error) bool {
-	var e *entity.ErrAlreadyResolved
-	return errors.As(err, &e)
-}
-
-// IsErrInvalidStateForPartialRefund checks if err is *entity.ErrInvalidStateForPartialRefund
-func IsErrInvalidStateForPartialRefund(err error) bool {
-	var e *entity.ErrInvalidStateForPartialRefund
-	return errors.As(err, &e)
-}
-
 // ============================================================================
 // Negotiation Domain Error Type Checkers (PASS_8A / F3)
 //
@@ -199,22 +187,6 @@ func MapErrorToResponse(err error) ErrorMapping {
 			StatusCode: http.StatusBadRequest,
 			Code:       "INVALID_REFUND_AMOUNT",
 			Message:    "Refund amount must be greater than 0 and less than or equal to escrow amount.",
-		}
-	}
-
-	if IsErrAlreadyResolved(err) {
-		return ErrorMapping{
-			StatusCode: http.StatusConflict,
-			Code:       "ALREADY_RESOLVED",
-			Message:    "Trade has already been resolved and cannot be modified.",
-		}
-	}
-
-	if IsErrInvalidStateForPartialRefund(err) {
-		return ErrorMapping{
-			StatusCode: http.StatusBadRequest,
-			Code:       "INVALID_STATE_FOR_PARTIAL_REFUND",
-			Message:    "Trade state does not allow partial refund.",
 		}
 	}
 

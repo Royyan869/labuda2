@@ -195,15 +195,17 @@ func (r *Resolver) CandidateScan(ctx context.Context, since time.Time, limit int
 func (r *Resolver) fetchOrder(ctx context.Context, orderID uuid.UUID) (*recon.OrderRow, error) {
 	// CANONICAL SOURCE: total_before_coins_amount = PD + S is the buyer-funded
 	// escrow base. orders.escrow_amount is NOT authoritative (never persisted).
+	// Orders carry NO escrow projection — escrow state is read from the
+	// escrows table (fetchEscrow) as the sole authority.
 	const q = `
-		SELECT id, status::text, escrow_status::text, total_before_coins_amount,
+		SELECT id, status::text, total_before_coins_amount,
 		       has_dispute, created_at, updated_at
 		FROM orders
 		WHERE id = $1
 	`
 	var out recon.OrderRow
 	err := r.pool.QueryRow(ctx, q, orderID).Scan(
-		&out.ID, &out.Status, &out.EscrowStatus, &out.GrossAmount,
+		&out.ID, &out.Status, &out.GrossAmount,
 		&out.HasDispute, &out.CreatedAt, &out.UpdatedAt,
 	)
 	if err != nil {

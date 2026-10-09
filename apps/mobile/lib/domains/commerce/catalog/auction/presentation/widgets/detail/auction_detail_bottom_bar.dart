@@ -48,13 +48,10 @@ class AuctionDetailBottomBar extends StatelessWidget {
         auction.status == AuctionStatus.waitingSettlement;
   }
 
-  /// Check if auction is in a terminal state (no actions available)
-  /// BOUNDARY NORMALIZATION (PHASE 1D): Status-based check only.
-  /// expired_bnr is not a backend state (purged) — settlement failure
-  /// returns the auction to draft.
   bool get _isTerminalState {
     return auction.status == AuctionStatus.cancelled ||
-        auction.status == AuctionStatus.ended;
+        auction.status == AuctionStatus.ended ||
+        auction.status == AuctionStatus.lapsed;
   }
 
   /// Expired-seller visibility — true when the auction's seller has lapsed
@@ -81,12 +78,8 @@ class AuctionDetailBottomBar extends StatelessWidget {
   /// flow. Owner never bids on their own auction.
   bool get _canPlaceBid {
     final caps = _capabilities;
-    if (caps == null) {
-      return auction.status == AuctionStatus.active && !_isSellerInactive;
-    }
-    if (caps.role == 'owner') return false;
-    if (caps.role == 'buyer') return caps.canBid;
-    return auction.status == AuctionStatus.active && !_isSellerInactive;
+    if (caps == null) return false;
+    return caps.canBid;
   }
 
   /// Whether the chat action is available for this viewer. Canonical
@@ -128,8 +121,15 @@ class AuctionDetailBottomBar extends StatelessWidget {
       return 'Lelang Berakhir';
     }
 
-    // Active auction
-    // Framed as bidding action (buy now is handled in modal)
+    if (auction.status == AuctionStatus.waitingSettlement) {
+      return 'Menunggu Penyelesaian';
+    }
+
+    if (auction.status == AuctionStatus.lapsed) {
+      return 'Lelang Kedaluarsa';
+    }
+
+    // Active auction. Buy Now is handled in modal by can_buy_now.
     return 'Pasang Bid';
   }
 

@@ -19,6 +19,10 @@ type NotificationHandler struct {
 	repo notificationrepo.Repository
 	db   *db.DB
 	log  *zap.Logger
+	// mutationEmitter emits the canonical notification.updated realtime
+	// signal inside the mutation transaction when state actually changed
+	// (TASK_4.2). Optional: nil keeps REST-only behavior (test harnesses).
+	mutationEmitter *notificationrepo.MutationRealtimeEmitter
 }
 
 // NewNotificationHandler creates a new NotificationHandler.
@@ -48,6 +52,13 @@ func NewNotificationHandlerWithDefaults(db *db.DB, log *zap.Logger) *Notificatio
 		db:   db,
 		log:  log,
 	}
+}
+
+// SetMutationRealtimeEmitter wires the canonical notification.updated
+// emission point (TASK_4.2). Must be called during boot wiring (production);
+// nil keeps REST-only behavior for test harnesses.
+func (h *NotificationHandler) SetMutationRealtimeEmitter(e *notificationrepo.MutationRealtimeEmitter) {
+	h.mutationEmitter = e
 }
 
 // NotificationResponse represents the notification response.
@@ -353,7 +364,14 @@ func (h *NotificationHandler) MarkNotificationAsRead(c *gin.Context) {
 		return
 	}
 
-	// Mark as read within transaction
+	// Mark as read, recount unread, and emit the canonical realtime
+	// state-change signal — all within the SAME transaction, so the returned
+	// count is the canonical post-mutation state and the event exists iff
+	// the mutation commits. CountUnread is the one and only unread-count
+	// authority. The notification.updated event is emitted ONLY when the
+	// row actually flipped unread→read (state-change rule, TASK_4.2).
+	var unreadCount int
+	var stateChanged bool
 	err = h.db.WithTx(ctx, func(tx db.Tx) error {
 		// Verify notification belongs to user
 		notif, err := h.repo.GetByID(ctx, tx, notificationID)
@@ -363,7 +381,20 @@ func (h *NotificationHandler) MarkNotificationAsRead(c *gin.Context) {
 		if notif.RecipientID != userID {
 			return &notificationEntity.ErrNotificationNotFound{NotificationID: notificationID}
 		}
-		return h.repo.MarkAsRead(ctx, tx, notificationID)
+		stateChanged = !notif.IsRead
+		if err := h.repo.MarkAsRead(ctx, tx, notificationID); err != nil {
+			return err
+		}
+		unreadCount, err = h.repo.CountUnread(ctx, tx, userID)
+		if err != nil {
+			return err
+		}
+		if stateChanged {
+			if err := h.mutationEmitter.EmitStateUpdated(ctx, tx, userID); err != nil {
+				return err
+			}
+		}
+		return nil
 	})
 
 	if err != nil {
@@ -376,7 +407,7 @@ func (h *NotificationHandler) MarkNotificationAsRead(c *gin.Context) {
 		return
 	}
 
-	response.Success(c, gin.H{"success": true})
+	response.Success(c, gin.H{"success": true, "unread_count": unreadCount})
 }
 
 // MarkAllAsRead handles POST /api/v1/notifications/read-all
@@ -397,9 +428,30 @@ func (h *NotificationHandler) MarkAllAsRead(c *gin.Context) {
 		return
 	}
 
-	// Mark all as read within transaction
+	// Mark all as read, recount unread, and emit ONE canonical realtime
+	// state-change signal — all within the SAME transaction. The event is
+	// emitted only if there was at least one unread notification (state
+	// actually changed); mark-all over an already-cleared inbox emits
+	// nothing. Never one event per affected row (TASK_4.2).
+	var unreadCount int
 	err := h.db.WithTx(ctx, func(tx db.Tx) error {
-		return h.repo.MarkAllAsRead(ctx, tx, userID)
+		unreadBefore, err := h.repo.CountUnread(ctx, tx, userID)
+		if err != nil {
+			return err
+		}
+		if unreadBefore == 0 {
+			// No-op: nothing to mark, no state change, no event.
+			unreadCount = 0
+			return nil
+		}
+		if err := h.repo.MarkAllAsRead(ctx, tx, userID); err != nil {
+			return err
+		}
+		unreadCount, err = h.repo.CountUnread(ctx, tx, userID)
+		if err != nil {
+			return err
+		}
+		return h.mutationEmitter.EmitStateUpdated(ctx, tx, userID)
 	})
 
 	if err != nil {
@@ -411,7 +463,7 @@ func (h *NotificationHandler) MarkAllAsRead(c *gin.Context) {
 		return
 	}
 
-	response.Success(c, gin.H{"success": true})
+	response.Success(c, gin.H{"success": true, "unread_count": unreadCount})
 }
 
 // MarkAsReadByEntityRequest holds the request body for marking notifications as read by entity.
@@ -544,7 +596,13 @@ func (h *NotificationHandler) DeleteNotification(c *gin.Context) {
 		return
 	}
 
-	// Delete within transaction
+	// Delete, recount unread, and emit the canonical realtime state-change
+	// signal — all within the SAME TRANSACTION. Deleting an existing
+	// notification always changes the recipient's notification state (the
+	// list changes; the count changes when the row was unread), so a
+	// successful delete always emits exactly one event; a delete of a
+	// missing notification fails before any event (TASK_4.2).
+	var unreadCount int
 	err = h.db.WithTx(ctx, func(tx db.Tx) error {
 		// Verify notification belongs to user before deleting
 		notif, err := h.repo.GetByID(ctx, tx, notificationID)
@@ -554,7 +612,14 @@ func (h *NotificationHandler) DeleteNotification(c *gin.Context) {
 		if notif.RecipientID != userID {
 			return &notificationEntity.ErrNotificationNotFound{NotificationID: notificationID}
 		}
-		return h.repo.Delete(ctx, tx, notificationID)
+		if err := h.repo.Delete(ctx, tx, notificationID); err != nil {
+			return err
+		}
+		unreadCount, err = h.repo.CountUnread(ctx, tx, userID)
+		if err != nil {
+			return err
+		}
+		return h.mutationEmitter.EmitStateUpdated(ctx, tx, userID)
 	})
 
 	if err != nil {
@@ -567,7 +632,7 @@ func (h *NotificationHandler) DeleteNotification(c *gin.Context) {
 		return
 	}
 
-	response.Success(c, gin.H{"success": true})
+	response.Success(c, gin.H{"success": true, "unread_count": unreadCount})
 }
 
 // ============================================================================

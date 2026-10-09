@@ -8,10 +8,12 @@ import (
 // TestCheckDangerousDormantGuard_AllRegistered verifies every worker in the
 // dangerousDormantWorkers registry is checked correctly.
 func TestCheckDangerousDormantGuard_AllRegistered(t *testing.T) {
-	// Sanity: the registry should contain exactly 2 entries.
-	// Batch 71: MODERATION_EVENT_HANDLER promoted to default-ON (safe enablement).
-	if got := len(dangerousDormantWorkers); got != 2 {
-		t.Fatalf("dangerousDormantWorkers has %d entries, want 2", got)
+	// Sanity: the registry should contain exactly 1 entry.
+	// PAYMENT_EXPIRY_WORKER was promoted to default-ON lifecycle mechanism
+	// (owner-locked: unpaid expired orders must close automatically; the
+	// worker only touches unpaid pending payments — no money movement).
+	if got := len(dangerousDormantWorkers); got != 1 {
+		t.Fatalf("dangerousDormantWorkers has %d entries, want 1", got)
 	}
 
 	for name, wantPrereq := range dangerousDormantWorkers {
@@ -70,10 +72,24 @@ func TestCheckDangerousDormantGuard_IdempotencyCleanupWorkerNotDangerous(t *test
 	}
 }
 
+// TestCheckDangerousDormantGuard_PaymentExpiryWorkerNotDangerous verifies
+// PAYMENT_EXPIRY_WORKER is NOT in the dangerous dormant registry. It is a
+// default-ON lifecycle mechanism scoped to unpaid pending payments only
+// (no settlement, no escrow, no ledger, no gateway refund).
+func TestCheckDangerousDormantGuard_PaymentExpiryWorkerNotDangerous(t *testing.T) {
+	prereq, err := CheckDangerousDormantGuard("PAYMENT_EXPIRY_WORKER")
+	if err != nil {
+		t.Fatalf("PAYMENT_EXPIRY_WORKER should not be in dangerous registry, got error: %v", err)
+	}
+	if prereq != "" {
+		t.Errorf("prerequisite should be empty, got %q", prereq)
+	}
+}
+
 // TestCheckDangerousDormantGuard_AckValueMustBeExactTrue verifies partial or
 // wrong ack values are rejected.
 func TestCheckDangerousDormantGuard_AckValueMustBeExactTrue(t *testing.T) {
-	const name = "PAYMENT_EXPIRY_WORKER"
+	const name = "USER_BAN_EVENT_HANDLER"
 	ackKey := "ACK_DANGEROUS_" + name
 
 	badValues := []string{"yes", "1", "TRUE", "True", "on", ""}

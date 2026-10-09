@@ -7,6 +7,9 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
+
+	actionRepo "github.com/labuda/backend/internal/commerce/auction/infrastructure/repository"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -52,7 +55,7 @@ func seedAuctionViewListing(t *testing.T, ctx context.Context, tdb *testdb.TestD
 }
 
 func newAuctionViewHandler(tdb *testdb.TestDB, pvRepo productviewRepo.ProductViewRepository) *AuctionHandler {
-	svc := auctionApp.NewAuctionService(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, zap.NewNop())
+	svc := auctionApp.NewAuctionService(nil, nil, nil, nil, nil, nil, nil, nil, nil, zap.NewNop())
 	return NewAuctionHandler(svc, nil, nil, db.NewFromPool(tdb.Pool()), zap.NewNop(), pvRepo)
 }
 
@@ -153,6 +156,69 @@ func TestAuctionDetail_ProductView(t *testing.T) {
 		w := callGetAuction(t, h, uuid.New().String(), nil, nil)
 		require.Equal(t, http.StatusNotFound, w.Code)
 		require.Equal(t, before, totalAuctionProductViews(t, tdb))
+	})
+
+	t.Run("active terminal relist refreshes current detail lifecycle", func(t *testing.T) {
+		productID, auctionID := seedAuctionViewListing(t, ctx, tdb, seller)
+		viewer := seedAuctionViewUser(t, ctx, tdb)
+		require.Equal(t, http.StatusOK, callGetAuction(t, h, auctionID.String(), &viewer, nil).Code)
+
+		repo := actionRepo.NewAuctionRepository()
+		require.NoError(t, tdb.WithTx(ctx, func(tx db.Tx) error {
+			auction, err := repo.GetForUpdate(ctx, tx, auctionID)
+			if err != nil {
+				return err
+			}
+			if err := auction.End(); err != nil {
+				return err
+			}
+			return repo.UpdateTx(ctx, tx, auction)
+		}))
+
+		ended := callGetAuction(t, h, auctionID.String(), &viewer, nil)
+		require.Equal(t, http.StatusOK, ended.Code)
+		require.Contains(t, ended.Body.String(), `"ended"`)
+		require.Equal(t, int64(2), countAuctionProductViews(t, tdb, pvRepo, productID))
+
+		require.NoError(t, tdb.WithTx(ctx, func(tx db.Tx) error {
+			auction, err := repo.GetForUpdate(ctx, tx, auctionID)
+			if err != nil {
+				return err
+			}
+			if err := auction.Relist(
+				time.Now().UTC(),
+				time.Now().UTC().Add(24*time.Hour),
+				10000,
+				1000,
+				nil,
+			); err != nil {
+				return err
+			}
+			if err := repo.UpdateTx(ctx, tx, auction); err != nil {
+				return err
+			}
+			return nil
+		}))
+
+		relisted := callGetAuction(t, h, auctionID.String(), &viewer, nil)
+		require.Equal(t, http.StatusOK, relisted.Code)
+		require.Contains(t, relisted.Body.String(), `"scheduled"`)
+		// Relist canonical lifecycle is scheduled first; activation is the
+		// separate canonical worker/entity transition.
+		require.NoError(t, tdb.WithTx(ctx, func(tx db.Tx) error {
+			auction, err := repo.GetForUpdate(ctx, tx, auctionID)
+			if err != nil {
+				return err
+			}
+			if err := auction.Activate(); err != nil {
+				return err
+			}
+			return repo.UpdateTx(ctx, tx, auction)
+		}))
+
+		active := callGetAuction(t, h, auctionID.String(), &viewer, nil)
+		require.Equal(t, http.StatusOK, active.Code)
+		require.Contains(t, active.Body.String(), `"active"`)
 	})
 
 	t.Run("historical view preserved after ended", func(t *testing.T) {

@@ -364,8 +364,8 @@ func (h *NotificationEventHandler) handleAuctionBidPlaced(ctx context.Context, p
 
 // handleAuctionWaitingSettlement processes auction.waiting_settlement events.
 // Notifies:
-//   - WINNER (primary): they won the auction and must claim within 24 hours.
-//   - SELLER (secondary): their auction has a winner waiting to claim/pay.
+//   - WINNER (primary): they won the auction and must complete checkout within 24 hours.
+//   - SELLER (secondary): their auction has a winner waiting to check out / pay.
 func (h *NotificationEventHandler) handleAuctionWaitingSettlement(ctx context.Context, payload []byte) (notificationInfo, error) {
 	var p AuctionLifecyclePayload
 	if err := json.Unmarshal(payload, &p); err != nil {
@@ -397,7 +397,7 @@ func (h *NotificationEventHandler) handleAuctionWaitingSettlement(ctx context.Co
 		"auctionId": auctionID.String(),
 	}
 
-	// Notify WINNER — must claim within 24 hours (primary obligation).
+	// Notify WINNER — must complete checkout within 24 hours (primary obligation).
 	winnerInfo, wErr := h.insertNotificationWithPolicy(
 		ctx,
 		winnerID, notificationentity.UserActor(sellerID),

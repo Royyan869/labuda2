@@ -205,19 +205,6 @@ class _FakeAuctionRepository implements AuctionRepository {
   }
 
   @override
-  Future<Result<String>> claimAuction({
-    required String auctionId,
-    required String addressId,
-    String? shippingSetupId,
-    String? shippingQuoteId,
-    String? chatId,
-    String? discountCode,
-    bool useCoins = false,
-  }) async {
-    throw UnimplementedError();
-  }
-
-  @override
   Stream<List<AuctionBid>> watchAuctionBids(
     String auctionId, {
     int limit = 50,
@@ -1077,6 +1064,66 @@ void main() {
       expect(visible(), ['s', 'a', 'w', 'e', 'c', 'l']);
     });
 
+    test('auctionsFor is the single canonical projection', () {
+      final data = [
+        _auction(id: 's', status: AuctionStatus.scheduled),
+        _auction(id: 'a', status: AuctionStatus.active),
+        _auction(id: 'a2', status: AuctionStatus.active),
+        _auction(id: 'e', status: AuctionStatus.ended),
+      ];
+      final state = SellerAuctionsPagerState.initial(
+        ownerId: 'seller-1',
+      ).copyWith(auctions: data);
+
+      // null → the complete loaded collection (same reference, no copy).
+      expect(state.auctionsFor(null), same(data));
+
+      // non-null → exactly the matching rows, source order preserved.
+      expect(
+        state.auctionsFor(AuctionStatus.active).map((a) => a.id).toList(),
+        ['a', 'a2'],
+      );
+      expect(
+        state.auctionsFor(AuctionStatus.scheduled).map((a) => a.id).toList(),
+        ['s'],
+      );
+      expect(state.auctionsFor(AuctionStatus.cancelled), isEmpty);
+
+      // The result is non-growable, matching the existing contract.
+      expect(
+        () => state.auctionsFor(AuctionStatus.active).add(data.first),
+        throwsUnsupportedError,
+      );
+
+      // visibleAuctions is defined through the same projection.
+      expect(state.visibleAuctions, same(data));
+      final filtered = state.copyWith(activeFilter: AuctionStatus.active);
+      expect(filtered.visibleAuctions.map((a) => a.id).toList(), ['a', 'a2']);
+      expect(
+        filtered.visibleAuctions.map((a) => a.id).toList(),
+        filtered.auctionsFor(filtered.activeFilter).map((a) => a.id).toList(),
+      );
+    });
+
+    test('the status-filtering rule has a single owner and one consumer', () {
+      final pager = File(
+        'lib/domains/commerce/catalog/auction/presentation/providers/'
+        'seller_auctions_pager.dart',
+      ).readAsStringSync();
+      final screen = File(
+        'lib/domains/commerce/catalog/auction/presentation/screens/'
+        'seller_auctions_screen.dart',
+      ).readAsStringSync();
+
+      // The rule lives once, in the pager state.
+      expect(pager.contains('auctionsFor(activeFilter)'), isTrue);
+      // The screen no longer owns or mirrors the rule.
+      expect(screen.contains('_auctionsForFilter'), isFalse);
+      expect(screen.contains('status == filter'), isFalse);
+      // The screen consumes the canonical projection per page.
+      expect(screen.contains('pagerState.auctionsFor(filter)'), isTrue);
+    });
+
     test('production code has no finished aggregate or local label map', () {
       final pager = File(
         'lib/domains/commerce/catalog/auction/presentation/providers/seller_auctions_pager.dart',
@@ -1283,6 +1330,203 @@ void main() {
       expect(find.text('boom'), findsNothing);
       expect(find.text('Gagal memuat lelang'), findsNothing);
       expect(find.byType(EmptyState), findsNothing);
+    });
+  });
+
+  group('SellerAuctions — tab swipe synchronization', () {
+    // The [TabBar] and [TabBarView] share one controller, so its index is the
+    // authoritative selected-tab observable for these assertions.
+    TabController controllerOf(WidgetTester tester) =>
+        tester.widget<TabBar>(find.byType(TabBar)).controller!;
+
+    // Drag past half the page width so the PageView snaps exactly one page.
+    Future<void> swipe(WidgetTester tester, {required bool forward}) async {
+      final width = tester.getSize(find.byType(TabBarView)).width;
+      final dx = width * 0.75 * (forward ? -1 : 1);
+      await tester.drag(find.byType(TabBarView), Offset(dx, 0));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('swipe changes indicator and filtered content, and back', (
+      tester,
+    ) async {
+      _useTallViewport(tester);
+      final repo = _FakeAuctionRepository(
+        onGetUserAuctions: (sellerId, status, limit, cursor) async =>
+            Result.success([
+              _auction(
+                id: 's',
+                status: AuctionStatus.scheduled,
+                title: 'Koi s',
+              ),
+              _auction(id: 'a', status: AuctionStatus.active, title: 'Koi a'),
+            ]),
+      );
+      await _pumpSellerAuctions(tester, repo);
+
+      // Default = Semua (index 0).
+      expect(controllerOf(tester).index, 0);
+      expect(find.text('Koi s'), findsOneWidget);
+      expect(find.text('Koi a'), findsOneWidget);
+
+      // Swipe → Terjadwal (index 1).
+      await swipe(tester, forward: true);
+      expect(controllerOf(tester).index, 1);
+      expect(find.text('Koi s'), findsOneWidget);
+      expect(find.text('Koi a'), findsNothing);
+
+      // Swipe → Aktif (index 2).
+      await swipe(tester, forward: true);
+      expect(controllerOf(tester).index, 2);
+      expect(find.text('Koi a'), findsOneWidget);
+      expect(find.text('Koi s'), findsNothing);
+
+      // Swipe back → Terjadwal (index 1).
+      await swipe(tester, forward: false);
+      expect(controllerOf(tester).index, 1);
+      expect(find.text('Koi s'), findsOneWidget);
+      expect(find.text('Koi a'), findsNothing);
+    });
+
+    testWidgets('tap then swipe then tap keeps indicator and filter in sync', (
+      tester,
+    ) async {
+      _useTallViewport(tester);
+      final repo = _FakeAuctionRepository(
+        onGetUserAuctions: (sellerId, status, limit, cursor) async =>
+            Result.success([
+              _auction(
+                id: 's',
+                status: AuctionStatus.scheduled,
+                title: 'Koi s',
+              ),
+              _auction(id: 'a', status: AuctionStatus.active, title: 'Koi a'),
+            ]),
+      );
+      await _pumpSellerAuctions(tester, repo);
+
+      // Tap → Aktif (index 2).
+      await tester.tap(_tab('Aktif'));
+      await tester.pumpAndSettle();
+      expect(controllerOf(tester).index, 2);
+      expect(find.text('Koi a'), findsOneWidget);
+      expect(find.text('Koi s'), findsNothing);
+
+      // Swipe → Menunggu Penyelesaian (index 3), which has no rows.
+      await swipe(tester, forward: true);
+      expect(controllerOf(tester).index, 3);
+      expect(find.text('Tidak Ada Hasil'), findsOneWidget);
+
+      // Tap → Semua (index 0).
+      await tester.tap(_tab('Semua'));
+      await tester.pumpAndSettle();
+      expect(controllerOf(tester).index, 0);
+      expect(find.text('Koi s'), findsOneWidget);
+      expect(find.text('Koi a'), findsOneWidget);
+    });
+
+    testWidgets('swipe does not refetch the owner inventory', (tester) async {
+      _useTallViewport(tester);
+      var fetchCount = 0;
+      final repo = _FakeAuctionRepository(
+        onGetUserAuctions: (sellerId, status, limit, cursor) async {
+          fetchCount++;
+          return Result.success([
+            _auction(id: 'a', status: AuctionStatus.active, title: 'Koi a'),
+          ]);
+        },
+      );
+      await _pumpSellerAuctions(tester, repo);
+      expect(fetchCount, 1);
+
+      await swipe(tester, forward: true);
+      await swipe(tester, forward: true);
+      await swipe(tester, forward: false);
+
+      expect(fetchCount, 1, reason: 'filter changes are local to the pager');
+    });
+
+    testWidgets('reset after a swiped filter restores Semua content', (
+      tester,
+    ) async {
+      _useTallViewport(tester);
+      final repo = _FakeAuctionRepository(
+        onGetUserAuctions: (sellerId, status, limit, cursor) async =>
+            Result.success([
+              _auction(
+                id: 's',
+                status: AuctionStatus.scheduled,
+                title: 'Koi s',
+              ),
+            ]),
+      );
+      await _pumpSellerAuctions(tester, repo);
+
+      // Semua (0) → Terjadwal (1) has data → Aktif (2) is empty.
+      await swipe(tester, forward: true);
+      await swipe(tester, forward: true);
+      expect(controllerOf(tester).index, 2);
+      expect(find.text('Tidak Ada Hasil'), findsOneWidget);
+
+      await tester.tap(find.widgetWithText(FilledButton, 'Atur Ulang'));
+      await tester.pumpAndSettle();
+
+      expect(controllerOf(tester).index, 0);
+      expect(find.text('Tidak Ada Hasil'), findsNothing);
+      expect(find.text('Koi s'), findsOneWidget);
+    });
+
+    testWidgets('incoming page shows its own filtered collection mid-drag', (
+      tester,
+    ) async {
+      _useTallViewport(tester);
+      final repo = _FakeAuctionRepository(
+        onGetUserAuctions: (sellerId, status, limit, cursor) async =>
+            Result.success([
+              _auction(
+                id: 's',
+                status: AuctionStatus.scheduled,
+                title: 'Koi s',
+              ),
+              _auction(id: 'a', status: AuctionStatus.active, title: 'Koi a'),
+            ]),
+      );
+      await _pumpSellerAuctions(tester, repo);
+
+      // Default Semua shows every status.
+      expect(find.text('Koi s'), findsOneWidget);
+      expect(find.text('Koi a'), findsOneWidget);
+      expect(controllerOf(tester).index, 0);
+
+      final width = tester.getSize(find.byType(TabBarView)).width;
+      final gesture = await tester.startGesture(
+        tester.getCenter(find.byType(TabBarView)),
+      );
+      await tester.pump(const Duration(milliseconds: 16));
+      // Step past the touch slop, then drag three-quarters of a page toward
+      // Terjadwal (index 1) and HOLD: the gesture must not settle yet.
+      await gesture.moveBy(Offset(-width * 0.07, 0));
+      await tester.pump(const Duration(milliseconds: 16));
+      await gesture.moveBy(Offset(-width * 0.68, 0));
+      await tester.pump(const Duration(milliseconds: 16));
+
+      // The committed tab has NOT changed while the drag is in progress.
+      expect(controllerOf(tester).index, 0);
+
+      // Both pages are laid out side by side. The outgoing Semua page shows
+      // both rows; the incoming Terjadwal page shows only scheduled rows. A
+      // regression to the committed `visibleAuctions` (still Semua here) would
+      // paint 'Koi a' on the incoming page too, yielding two 'Koi a' widgets.
+      expect(find.byType(CustomScrollView), findsNWidgets(2));
+      expect(find.text('Koi s'), findsNWidgets(2));
+      expect(find.text('Koi a'), findsOneWidget);
+
+      // Release: the drag settles onto Terjadwal with its own filter.
+      await gesture.up();
+      await tester.pumpAndSettle();
+      expect(controllerOf(tester).index, 1);
+      expect(find.text('Koi s'), findsOneWidget);
+      expect(find.text('Koi a'), findsNothing);
     });
   });
 

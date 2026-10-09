@@ -16,7 +16,7 @@ import (
 	"github.com/labuda/backend/pkg/db"
 )
 
-// SavedItemService handles saved item operations (unified shortlist + auction watch)
+// SavedItemService handles saved item operations (for_sale + auction)
 type SavedItemService struct {
 	savedItemRepo        savedItemRepo.SavedItemRepository
 	forSaleRepo          forSaleRepo.ForSaleRepository
@@ -78,9 +78,15 @@ func (s *SavedItemService) AddForSale(ctx context.Context, input AddForSaleInput
 		return nil, fmt.Errorf("forSale not found: %w", err)
 	}
 
-	// Guard: ForSale must be active
+	// Guard: ForSale must be active and have available quantity.
 	if forSale.Status != forSaleEntity.ForSaleStatusActive {
 		return nil, &forSaleEntity.ForSaleNotActiveError{Status: forSale.Status}
+	}
+	if forSale.QuantityAvailable <= 0 {
+		return nil, &forSaleEntity.ForSaleNotAvailableError{
+			ForSaleID: forSale.ID,
+			Reason:    "forSale has no available quantity",
+		}
 	}
 
 	// Guard: ForSale must be public
@@ -120,7 +126,7 @@ func (s *SavedItemService) AddForSale(ctx context.Context, input AddForSaleInput
 // AddAuction adds an auction to the user's saved items
 // Validation:
 // - Auction must exist
-// - Auction status must not be "ended" or "cancelled"
+// - Auction status must be active
 // Returns existing item if already saved (idempotent)
 func (s *SavedItemService) AddAuction(ctx context.Context, input AddAuctionInput) (*savedItemEntity.SavedItem, error) {
 	// Get auction for validation using a read-only transaction
@@ -134,14 +140,9 @@ func (s *SavedItemService) AddAuction(ctx context.Context, input AddAuctionInput
 		return nil, fmt.Errorf("auction not found: %w", err)
 	}
 
-	// Guard: Auction must not be ended
-	if auction.Status == auctionEntity.StatusEnded {
-		return nil, fmt.Errorf("cannot watch ended auction")
-	}
-
-	// Guard: Auction must not be cancelled
-	if auction.Status == auctionEntity.StatusCancelled {
-		return nil, fmt.Errorf("cannot watch cancelled auction")
+	// Guard: Saved is only a relationship to an active auction.
+	if auction.Status != auctionEntity.StatusActive {
+		return nil, fmt.Errorf("cannot watch auction with status %s", auction.Status)
 	}
 
 	// Check if item already exists

@@ -3,6 +3,42 @@ import 'package:labuda/core/core.dart';
 import 'package:labuda/generated/app_localizations.dart';
 import 'package:labuda/shared/utils/app_formatters.dart';
 
+/// F5-local fit measure: whether a single-line title + badge pair fits the
+/// incoming width. Same principle as the order F2 fit-measure; local copy
+/// (no new shared authority) because this library cannot see it.
+bool _fitsTitleBadgeSingleLine({
+  required BuildContext context,
+  required double maxWidth,
+  required String title,
+  required String badge,
+  required TextStyle? titleStyle,
+  required TextStyle? badgeStyle,
+  required double fixedExtrasWidth,
+}) {
+  if (!maxWidth.isFinite) {
+    return false;
+  }
+  final TextDirection direction = Directionality.of(context);
+  final TextScaler scaler = MediaQuery.textScalerOf(context);
+
+  double singleLineWidth(String text, TextStyle? style) {
+    final TextPainter painter = TextPainter(
+      text: TextSpan(text: text, style: style),
+      textDirection: direction,
+      textScaler: scaler,
+      maxLines: 1,
+    )..layout();
+    return painter.width;
+  }
+
+  const double safetyMargin = 2;
+  return singleLineWidth(title, titleStyle) +
+          fixedExtrasWidth +
+          singleLineWidth(badge, badgeStyle) +
+          safetyMargin <=
+      maxWidth;
+}
+
 /// Personal Information Section (Contact Info Only)
 /// KYC/KTP is now managed separately via KYC Status Card
 class PersonalInformationSection extends StatelessWidget {
@@ -94,6 +130,54 @@ class PersonalInformationSection extends StatelessWidget {
     );
   }
 
+  /// Verification badge (Verified/Unverified). The label wraps instead of
+  /// truncating when an ancestor bounds this badge, and hugs intrinsic
+  /// width otherwise — business-meaningful copy is never ellipsized.
+  Widget _buildPhoneBadge(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppMetrics.p8,
+        vertical: AppMetrics.p4,
+      ),
+      decoration: BoxDecoration(
+        color: phoneVerified
+            ? context.statusColors.success.withValues(alpha: 0.1)
+            : context.statusColors.warning.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(AppShape.r6),
+        border: Border.all(
+          color: phoneVerified
+              ? context.statusColors.success.withValues(alpha: 0.3)
+              : context.statusColors.warning.withValues(alpha: 0.3),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            phoneVerified ? Icons.verified : Icons.warning,
+            color: phoneVerified
+                ? context.statusColors.success
+                : context.statusColors.warning,
+            size: AppIconSize.inlineGlyph,
+          ),
+          const SizedBox(width: 4),
+          Flexible(
+            child: Text(
+              phoneVerified ? 'Verified' : 'Unverified',
+              style: context.typeRoles.labelMicro.copyWith(
+                color: phoneVerified
+                    ? context.statusColors.success
+                    : context.statusColors.warning,
+                fontWeight: FontWeight.w600,
+              ),
+              softWrap: true,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildPhoneVerificationSection(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Column(
@@ -108,65 +192,80 @@ class PersonalInformationSection extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Icon(
-                    Icons.phone_outlined,
-                    color: scheme.onSurfaceVariant,
-                    size: AppIconSize.action,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Phone Number',
-                    style: context.typeRoles.labelMicro.copyWith(
-                      color: scheme.onSurfaceVariant,
-                    ),
-                  ),
-                  const Spacer(),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppMetrics.p8,
-                      vertical: AppMetrics.p4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: phoneVerified
-                          ? context.statusColors.success.withValues(alpha: 0.1)
-                          : context.statusColors.warning.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(AppShape.r6),
-                      border: Border.all(
-                        color: phoneVerified
-                            ? context.statusColors.success.withValues(
-                                alpha: 0.3,
-                              )
-                            : context.statusColors.warning.withValues(
-                                alpha: 0.3,
-                              ),
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
+              // F5 header (adaptive): title + verification badge share one
+              // row when the single-line pair fits, else the title stacks
+              // over the fully-readable badge.
+              LayoutBuilder(
+                builder: (BuildContext context, BoxConstraints constraints) {
+                  final TextStyle titleStyle = context.typeRoles.labelMicro
+                      .copyWith(color: scheme.onSurfaceVariant);
+                  final TextStyle badgeStyle = context.typeRoles.labelMicro
+                      .copyWith(fontWeight: FontWeight.w600);
+                  final String badgeText = phoneVerified
+                      ? 'Verified'
+                      : 'Unverified';
+                  final bool fits = _fitsTitleBadgeSingleLine(
+                    context: context,
+                    maxWidth: constraints.maxWidth,
+                    title: 'Phone Number',
+                    badge: badgeText,
+                    titleStyle: titleStyle,
+                    badgeStyle: badgeStyle,
+                    fixedExtrasWidth:
+                        AppIconSize.action +
+                        8 +
+                        AppIconSize.inlineGlyph +
+                        4 +
+                        AppMetrics.p8 * 2,
+                  );
+                  if (fits) {
+                    return Row(
                       children: [
                         Icon(
-                          phoneVerified ? Icons.verified : Icons.warning,
-                          color: phoneVerified
-                              ? context.statusColors.success
-                              : context.statusColors.warning,
-                          size: AppIconSize.inlineGlyph,
+                          Icons.phone_outlined,
+                          color: scheme.onSurfaceVariant,
+                          size: AppIconSize.action,
                         ),
-                        const SizedBox(width: 4),
+                        const SizedBox(width: 8),
                         Text(
-                          phoneVerified ? 'Verified' : 'Unverified',
+                          'Phone Number',
                           style: context.typeRoles.labelMicro.copyWith(
-                            color: phoneVerified
-                                ? context.statusColors.success
-                                : context.statusColors.warning,
-                            fontWeight: FontWeight.w600,
+                            color: scheme.onSurfaceVariant,
                           ),
                         ),
+                        const Spacer(),
+                        _buildPhoneBadge(context),
                       ],
-                    ),
-                  ),
-                ],
+                    );
+                  }
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.phone_outlined,
+                            color: scheme.onSurfaceVariant,
+                            size: AppIconSize.action,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Phone Number',
+                              style: context.typeRoles.labelMicro.copyWith(
+                                color: scheme.onSurfaceVariant,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      _buildPhoneBadge(context),
+                    ],
+                  );
+                },
               ),
               const SizedBox(height: 12),
               TextField(

@@ -1,4 +1,4 @@
-package application
+﻿package application
 
 import (
 	"context"
@@ -65,7 +65,7 @@ func TestAuctionService_RequireSellerNotRestricted_Unrestricted_Allows(t *testin
 }
 
 // TestAuctionService_RequireUserNotRestricted_Restricted_Blocks proves that
-// a restricted bidder is rejected at the bid/claim boundary.
+// a restricted bidder is rejected at the bid and bid-win checkout boundaries.
 func TestAuctionService_RequireUserNotRestricted_Restricted_Blocks(t *testing.T) {
 	svc := &AuctionService{
 		commerceGovRepo: &auctionCommerceRestrictionRepo{restricted: true},

@@ -16,13 +16,13 @@ import (
 
 // ============================================================================
 // ORDER-A1 INVARIANT (DB-backed): a paid order cannot reach
-// `status = cancelled` + `escrow_status = holding` through the normal
-// Cancel path.
+// `status = cancelled` through the normal Cancel path.
 // ============================================================================
 //
-// The seeded order is promoted to the paid state (escrow holding) — the exact
-// state the buyer cancel endpoint must never be able to cancel without moving
-// money. Cancel() must be rejected and leave the row untouched.
+// The seeded order is promoted to the paid state (escrow held in the canonical
+// escrows table) — the exact state the buyer cancel endpoint must never be
+// able to cancel without moving money. Cancel() must be rejected and leave the
+// row untouched.
 func TestCancelPaidOrder_RejectedWithoutRefund(t *testing.T) {
 	ctx := context.Background()
 	tdb, cleanup := testdb.SetupDB(t)
@@ -37,7 +37,6 @@ func TestCancelPaidOrder_RejectedWithoutRefund(t *testing.T) {
 		_, err := tx.Exec(ctx, `
 			UPDATE orders
 			SET status = 'paid',
-			    escrow_status = 'holding',
 			    ready_to_ship_by = NOW() + INTERVAL '3 days'
 			WHERE id = $1
 		`, orderID)
@@ -51,12 +50,7 @@ func TestCancelPaidOrder_RejectedWithoutRefund(t *testing.T) {
 	})
 	require.Error(t, err, "cancelling a paid order must be rejected")
 
-	// INVARIANT: still paid, escrow still held.
+	// INVARIANT: still paid (escrow state lives only in the canonical escrows
+	// table — the guard is order.Status based).
 	assertFPS002Status(t, ctx, tdb, orderID, orderentity.StatusPaid)
-
-	var escrowStatus string
-	require.NoError(t, tdb.WithTx(ctx, func(tx db.Tx) error {
-		return tx.QueryRow(ctx, `SELECT escrow_status FROM orders WHERE id = $1`, orderID).Scan(&escrowStatus)
-	}))
-	require.Equal(t, "holding", escrowStatus)
 }

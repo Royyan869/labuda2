@@ -104,7 +104,7 @@ class NotificationListScreen extends ConsumerWidget {
     WidgetRef ref,
     List<NotificationEntity> filtered,
     NotificationFilter selectedFilter, {
-    required Future<void> Function(String) markAsRead,
+    required Future<void> Function(String, String) markAsRead,
     required bool isInitialLoading,
     required bool hasInitialError,
     required bool isRefreshing,
@@ -288,11 +288,12 @@ class NotificationListScreen extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     NotificationEntity notification,
-    Future<void> Function(String) markAsRead,
+    Future<void> Function(String, String) markAsRead,
   ) async {
-    // Mark as read if unread
+    // Mark as read if unread. The closure converges the unread-count badge
+    // and the list from the backend's canonical post-mutation count.
     if (!notification.isRead) {
-      await markAsRead(notification.id);
+      await markAsRead(notification.id, userId);
     }
 
     // Navigate using NotificationNavigationService from provider

@@ -67,20 +67,6 @@ class SellerSubscription extends Equatable {
   /// Check if subscription is expiring soon (within 30 days)
   bool get isExpiringSoon => daysUntilExpiry > 0 && daysUntilExpiry <= 30;
 
-  /// Create empty subscription
-  factory SellerSubscription.empty() {
-    final now = DateTime.now();
-    return SellerSubscription(
-      isActive: false,
-      yearlyFee: 0,
-      startDate: now,
-      expiryDate: now,
-      status: SubscriptionStatus.expired,
-      paymentId: '',
-      createdAt: now,
-    );
-  }
-
   /// Copy with
   SellerSubscription copyWith({
     bool? isActive,

@@ -388,7 +388,6 @@ func TestCreateFromSaleSurface_HappyPath(t *testing.T) {
 	// --- Order itself ---
 	require.Equal(t, input.BuyerID, order.BuyerID)
 	require.Equal(t, orderentity.StatusPending, order.Status)
-	require.Equal(t, orderentity.EscrowStatusHolding, order.EscrowStatus)
 
 	// --- Payment method identity is bound to the order (Phase 2 follow-up) ---
 	require.NotNil(t, order.PaymentMethodCode, "order must carry the selected method")

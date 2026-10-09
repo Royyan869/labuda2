@@ -168,10 +168,6 @@ func (r *testSubscriptionRepo) FetchActiveExpiredBatchIDs(context.Context, db.Tx
 	return nil, nil
 }
 
-func (r *testSubscriptionRepo) ExistsActiveByUserID(context.Context, db.Tx, uuid.UUID) (bool, error) {
-	return false, nil
-}
-
 func (r *testSubscriptionRepo) GetActiveConfig(context.Context, db.Tx) (*subscriptionEntity.SellerSubscriptionConfig, error) {
 	return r.config, nil
 }

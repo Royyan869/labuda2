@@ -17,7 +17,8 @@ class MarkAllAsReadUseCase {
   /// Execute use case
   ///
   /// Marks semua notifications untuk userId sebagai read.
-  Future<Result<void>> call({required String userId}) {
+  /// Returns the canonical post-mutation `unread_count` from the backend.
+  Future<Result<int>> call({required String userId}) {
     return repository.markAllAsRead(userId: userId);
   }
 }

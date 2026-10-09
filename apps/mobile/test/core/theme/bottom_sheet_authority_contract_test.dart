@@ -62,27 +62,30 @@ void main() {
       expect(definitions, ['lib/shared/widgets/app_bottom_sheet_base.dart']);
     });
 
-    test('the theme owns the sheet surface, shape and elevation (both modes)', () {
-      for (final theme in [AppTheme.lightTheme, AppTheme.darkTheme]) {
-        final scheme = theme.colorScheme;
-        final sheet = theme.bottomSheetTheme;
+    test(
+      'the theme owns the sheet surface, shape and elevation (both modes)',
+      () {
+        for (final theme in [AppTheme.lightTheme, AppTheme.darkTheme]) {
+          final scheme = theme.colorScheme;
+          final sheet = theme.bottomSheetTheme;
 
-        expect(sheet.backgroundColor, scheme.surfaceContainerLow);
-        expect(sheet.surfaceTintColor, Colors.transparent);
-        expect(sheet.elevation, AppElevation.none);
-        expect(sheet.modalElevation, AppElevation.none);
+          expect(sheet.backgroundColor, scheme.surfaceContainerLow);
+          expect(sheet.surfaceTintColor, Colors.transparent);
+          expect(sheet.elevation, AppElevation.none);
+          expect(sheet.modalElevation, AppElevation.none);
 
-        final shape = sheet.shape;
-        expect(shape, isA<RoundedRectangleBorder>());
-        final radius = (shape! as RoundedRectangleBorder).borderRadius;
-        expect(radius, isA<BorderRadius>());
-        final corners = radius as BorderRadius;
-        expect(corners.topLeft.x, AppShape.r20);
-        expect(corners.topRight.x, AppShape.r20);
-        expect(corners.bottomLeft, Radius.zero);
-        expect(corners.bottomRight, Radius.zero);
-      }
-    });
+          final shape = sheet.shape;
+          expect(shape, isA<RoundedRectangleBorder>());
+          final radius = (shape! as RoundedRectangleBorder).borderRadius;
+          expect(radius, isA<BorderRadius>());
+          final corners = radius as BorderRadius;
+          expect(corners.topLeft.x, AppShape.r20);
+          expect(corners.topRight.x, AppShape.r20);
+          expect(corners.bottomLeft, Radius.zero);
+          expect(corners.bottomRight, Radius.zero);
+        }
+      },
+    );
 
     test('action builder has real consumers', () {
       for (final path in const [
@@ -116,14 +119,17 @@ void main() {
       }
     });
 
-    test('commerce resource picker uses the canonical base, not a raw modal', () {
-      final source = _code(
-        'lib/domains/social/comment/presentation/widgets/'
-        'commerce_resource_picker.dart',
-      );
-      expect(source, contains('AppBottomSheetBase.show'));
-      expect(source, isNot(contains('showModalBottomSheet')));
-    });
+    test(
+      'commerce resource picker uses the canonical base, not a raw modal',
+      () {
+        final source = _code(
+          'lib/domains/social/comment/presentation/widgets/'
+          'commerce_resource_picker.dart',
+        );
+        expect(source, contains('AppBottomSheetBase.show'));
+        expect(source, isNot(contains('showModalBottomSheet')));
+      },
+    );
 
     test('base builder is used for form/content', () {
       expect(
@@ -131,7 +137,10 @@ void main() {
           'lib/domains/social/content/presentation/widgets/create_content/'
           'content_modals.dart',
         ),
-        contains('AppBottomSheet.show'),
+        contains('AppBottomSheetBase.show'),
+        reason:
+            'the last compatibility-facade consumer must address the '
+            'canonical builder directly',
       );
       expect(
         _read(
@@ -180,14 +189,29 @@ void main() {
       expect(source, isNot(contains('AppDragHandle')));
     });
 
-    test('the address form ceiling reads the canonical available height', () {
+    test('the address form fills the sheet allocation, never a ceiling', () {
       const path =
           'lib/domains/user/profile/presentation/widgets/address_form_dialog.dart';
       final source = _code(path);
+      // The ceiling is the SHEET's alone (base owns `availableHeight * 0.9`);
+      // the body consumes the sheet's live content allocation instead.
+      // Re-spelling the ceiling at body level is the BOTTOMSHEET-02-FIT-GAP
+      // duplicate: it claimed `handle + wrap + spacer` (72+N px) the content
+      // region never had and parked the CTA below the content clip.
       expect(
         source,
-        contains('AppBottomSheetBase.availableHeight(context) * 0.9'),
-        reason: '$path must derive its ceiling from the canonical authority',
+        contains('AppBottomSheetBase.contentAllocationOf(context)'),
+        reason: '$path must fill the sheet\'s allocated content region',
+      );
+      expect(
+        source,
+        isNot(contains('availableHeight')),
+        reason: '$path re-spells the sheet ceiling — a second authority',
+      );
+      expect(
+        source,
+        isNot(contains('0.9')),
+        reason: '$path re-applies the sheet ceiling fraction',
       );
       for (final raw in const [
         'MediaQuery.sizeOf(context).height',
@@ -209,10 +233,16 @@ void main() {
       const path =
           'lib/domains/user/profile/presentation/widgets/address_form_dialog.dart';
       final source = _code(path);
-      // The hosting sheet already owns keyboard movement, so the embedded bar
-      // must not rise a second time. ListView scroll clearance stays as-is.
+      // The hosting sheet already owns keyboard movement, so the embedded
+      // bar must not rise a second time — AND the body must not re-spell the
+      // lift either (BOTTOMSHEET-02: the ListView tail is design spacing;
+      // geometry proof lives in the address-form inset test).
       expect(source, contains('embeddedInLiftedSheet: true'));
-      expect(source, contains('viewInsets.bottom'));
+      expect(
+        source,
+        isNot(contains('viewInsets.bottom')),
+        reason: '$path re-spells a body-owned keyboard reservation',
+      );
     });
 
     test('the embedded bar mode defaults off and keeps its authorities', () {
@@ -221,6 +251,25 @@ void main() {
       // Self-lift for unlifted placements and Safe Area handling stay owned.
       expect(source, contains('MediaQuery.viewInsetsOf(context).bottom'));
       expect(source, contains('SafeArea('));
+      // Context boundary (BOTTOMSHEET-03): embedded mode spends NO second
+      // system-bottom reservation — the base spacer is the one authority.
+      expect(
+        source,
+        contains('bottom: !embeddedInLiftedSheet'),
+        reason:
+            'the bar must gate its SafeArea bottom on the existing embedded '
+            'context — an unconditional SafeArea bottom is the duplicate '
+            'system-bottom reservation (BOTTOMSHEET-03)',
+      );
+    });
+
+    test('the base offers no caller-pinned sheet height', () {
+      final source = _code('lib/shared/widgets/app_bottom_sheet_base.dart');
+      // The sheet fit model is exactly ceiling + live content allocation; a
+      // caller-pinned sheet height is a second fit authority beside them
+      // (BOTTOMSHEET-04: unused by every consumer, purged).
+      expect(source, isNot(contains('double? height')));
+      expect(source, isNot(contains('height: height')));
     });
 
     test('no persistent or draggable sheet architecture remains', () {
@@ -285,8 +334,10 @@ void main() {
         'lib/domains/user/profile/presentation/screens/address_list_screen.dart',
         'lib/domains/user/preference/seller/presentation/screens/'
             'seller_upgrade_wizard_screen.dart',
-        'lib/domains/commerce/transaction/checkout/presentation/widgets/'
-            'checkout_address_section.dart',
+        'lib/domains/user/profile/presentation/widgets/'
+            'address_picker_sheet.dart',
+        'lib/domains/user/profile/presentation/widgets/'
+            'address_selection_summary.dart',
       ];
       for (final path in hosts) {
         final source = _code(path);
@@ -323,10 +374,7 @@ void main() {
     test('no second bottom-sheet renderer, service or facade exists', () {
       for (final file in _libSources()) {
         final source = _code(file.path);
-        for (final name in const [
-          'BottomSheetService',
-          'SheetManager',
-        ]) {
+        for (final name in const ['BottomSheetService', 'SheetManager']) {
           expect(
             source,
             isNot(contains(name)),
@@ -372,6 +420,9 @@ void main() {
 
     test('no code names a purged sheet artifact', () {
       const purged = [
+        // The compatibility facade class: pure delegation, one historical
+        // consumer — converged to `AppBottomSheetBase.show` and removed.
+        'AppBottomSheet',
         'AppBottomSheetSettings',
         'SettingsItem',
         'LinkPickerModal',

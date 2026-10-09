@@ -41,41 +41,53 @@ class _ExternalProductManagementScreenState
         onPressed: () => _showCreateDialog(context),
         child: const Icon(Icons.add),
       ),
-      body: productsAsync.when(
-        data: (result) {
-          if (!result.isSuccess) {
-            return Center(child: const Text('Data belum bisa dimuat.'));
-          }
+      // SAFE-AREA-40: the body owns the LIVE system bottom inset exactly
+      // once — /seller/promotions/external-products is a FLAT top-level
+      // GoRoute (SellerModule), so no shell bar owns it. The list uses an
+      // EXPLICIT `ListView.padding` (design p16), which disables
+      // BoxScrollView's window-padding auto-consumption, so no other
+      // widget in the body can own the bottom region. `top: false`: the
+      // Scaffold AppBar owns the status-bar region (the body slot's top
+      // is already below the bar). The add-FAB is positioned by the
+      // Scaffold endFloat layout — an authority outside this wrapper.
+      body: SafeArea(
+        top: false,
+        child: productsAsync.when(
+          data: (result) {
+            if (!result.isSuccess) {
+              return Center(child: const Text('Data belum bisa dimuat.'));
+            }
 
-          final products = result.data ?? <ExternalProduct>[];
-          if (products.isEmpty) {
-            return const Center(
-              child: Padding(
-                padding: EdgeInsets.all(AppMetrics.p24),
-                child: Text(
-                  'No external products yet.\nTap + to create one.',
-                  textAlign: TextAlign.center,
+            final products = result.data ?? <ExternalProduct>[];
+            if (products.isEmpty) {
+              return const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(AppMetrics.p24),
+                  child: Text(
+                    'No external products yet.\nTap + to create one.',
+                    textAlign: TextAlign.center,
+                  ),
                 ),
-              ),
-            );
-          }
-
-          return ListView.separated(
-            padding: const EdgeInsets.all(AppMetrics.p16),
-            itemCount: products.length,
-            separatorBuilder: (_, _) => const SizedBox(height: 12),
-            itemBuilder: (context, index) {
-              final product = products[index];
-              return _ExternalProductCard(
-                product: product,
-                onTap: () => _navigateToDetail(product.id),
               );
-            },
-          );
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) =>
-            const Center(child: Text('Data belum bisa dimuat.')),
+            }
+
+            return ListView.separated(
+              padding: const EdgeInsets.all(AppMetrics.p16),
+              itemCount: products.length,
+              separatorBuilder: (_, _) => const SizedBox(height: 12),
+              itemBuilder: (context, index) {
+                final product = products[index];
+                return _ExternalProductCard(
+                  product: product,
+                  onTap: () => _navigateToDetail(product.id),
+                );
+              },
+            );
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (error, _) =>
+              const Center(child: Text('Data belum bisa dimuat.')),
+        ),
       ),
     );
   }

@@ -74,13 +74,12 @@ func cleanSnapshot() Snapshot {
 			CreatedAt:       fixedNow.Add(-3 * time.Hour),
 		},
 		Order: &OrderRow{
-			ID:           orderUUID,
-			Status:       OrderStatusCompleted,
-			EscrowStatus: OrderEscrowStatusReleased,
-			GrossAmount:  100_000,
-			HasDispute:   false,
-			CreatedAt:    fixedNow.Add(-3 * time.Hour),
-			UpdatedAt:    fixedNow.Add(-30 * time.Minute),
+			ID:          orderUUID,
+			Status:      OrderStatusCompleted,
+			GrossAmount: 100_000,
+			HasDispute:  false,
+			CreatedAt:   fixedNow.Add(-3 * time.Hour),
+			UpdatedAt:   fixedNow.Add(-30 * time.Minute),
 		},
 		Escrow: &EscrowRow{
 			ID:         escrowUUID,
@@ -147,7 +146,6 @@ func TestClassify_Matrix(t *testing.T) {
 				s.Ledger.BuyerSettlementExists = false
 				s.Ledger.OrderReleaseExists = false
 				s.Order.Status = OrderStatusPendingPayment
-				s.Order.EscrowStatus = OrderEscrowStatusNone
 				s.Escrow = nil
 				s.Outbox.MoneyReleasedAliveByOrderID = map[uuid.UUID]bool{}
 			},
@@ -164,7 +162,6 @@ func TestClassify_Matrix(t *testing.T) {
 				s.Ledger.BuyerSettlementExists = false
 				s.Ledger.OrderReleaseExists = false
 				s.Order.Status = OrderStatusPendingPayment
-				s.Order.EscrowStatus = OrderEscrowStatusNone
 				s.Escrow = nil
 				s.Outbox.MoneyReleasedAliveByOrderID = map[uuid.UUID]bool{}
 			},
@@ -195,7 +192,6 @@ func TestClassify_Matrix(t *testing.T) {
 				s.Escrow.Status = EscrowStatusHolding
 				s.Escrow.ReleasedAt = nil
 				s.Order.Status = OrderStatusDelivered
-				s.Order.EscrowStatus = OrderEscrowStatusHolding
 				s.Ledger.OrderReleaseExists = false
 				s.Outbox.MoneyReleasedAliveByOrderID = map[uuid.UUID]bool{}
 				s.Gateway.RefundChargebackHistory = []GatewayRefundEntry{
@@ -384,24 +380,10 @@ func TestClassify_Matrix(t *testing.T) {
 			expectAll: []DriftClass{DriftD7WebhookProcessedLedgerAbsent},
 		},
 
-		// -------- D8 --------
-		{
-			name: "D8_escrow_released_projection_holding",
-			mutate: func(s *Snapshot) {
-				s.Order.EscrowStatus = OrderEscrowStatusHolding
-			},
-			expectAll: []DriftClass{DriftD8EscrowStateMismatch},
-		},
-		{
-			name: "D8_escrow_refunded_projection_released",
-			mutate: func(s *Snapshot) {
-				s.Escrow.Status = EscrowStatusRefunded
-				s.Escrow.RefundedAt = ptrTime(fixedNow.Add(-30 * time.Minute))
-				s.Escrow.ReleasedAt = nil
-				// Projection still says released → mismatch.
-			},
-			expectAll: []DriftClass{DriftD8EscrowStateMismatch},
-		},
+		// -------- D8 / D13 (PURGED) --------
+		// D8 (order escrow projection vs escrows.status) and D13 (projection
+		// 'none' while escrow row exists) are gone with the order-side escrow
+		// projection; the escrows table is the sole authority.
 
 		// -------- D9 --------
 		{
@@ -411,7 +393,6 @@ func TestClassify_Matrix(t *testing.T) {
 				s.Escrow.ReleasedAt = nil
 				s.Escrow.RefundedAt = ptrTime(fixedNow.Add(-30 * time.Minute))
 				s.Order.Status = OrderStatusRefunded
-				s.Order.EscrowStatus = OrderEscrowStatusRefunded
 				s.Ledger.OrderReleaseExists = false
 				s.Outbox.MoneyReleasedAliveByOrderID = map[uuid.UUID]bool{}
 				s.Refunds = []RefundRow{
@@ -516,20 +497,10 @@ func TestClassify_Matrix(t *testing.T) {
 				s.Ledger.BuyerSettlementExists = false
 				s.Ledger.OrderReleaseExists = false
 				s.Order.Status = OrderStatusPendingPayment
-				s.Order.EscrowStatus = OrderEscrowStatusNone
 				s.Escrow = nil
 				s.Outbox.MoneyReleasedAliveByOrderID = map[uuid.UUID]bool{}
 			},
 			expectAll: []DriftClass{DriftD12PendingPaymentPastExpiry},
-		},
-
-		// -------- D13 --------
-		{
-			name: "D13_orders_escrow_none_but_escrow_row_exists",
-			mutate: func(s *Snapshot) {
-				s.Order.EscrowStatus = OrderEscrowStatusNone
-			},
-			expectAll: []DriftClass{DriftD13ProjectionNoneEscrowExists},
 		},
 
 		// -------- D14 --------
@@ -566,13 +537,12 @@ func TestClassify_Matrix(t *testing.T) {
 
 		// -------- Cross-firing / conflicting state --------
 		{
-			name: "conflicting_D8_and_D9_full_refund_path_with_stale_projection",
+			name: "D9_full_refund_path_without_release_ledger",
 			mutate: func(s *Snapshot) {
 				s.Escrow.Status = EscrowStatusRefunded
 				s.Escrow.RefundedAt = ptrTime(fixedNow.Add(-30 * time.Minute))
 				s.Escrow.ReleasedAt = nil
 				s.Order.Status = OrderStatusRefunded
-				s.Order.EscrowStatus = OrderEscrowStatusReleased // stale projection
 				s.Ledger.OrderReleaseExists = false
 				s.Outbox.MoneyReleasedAliveByOrderID = map[uuid.UUID]bool{}
 				s.Refunds = []RefundRow{
@@ -601,7 +571,6 @@ func TestClassify_Matrix(t *testing.T) {
 				s.Outbox.MoneyRefundSucceededAliveByRefundID = map[uuid.UUID]bool{refundUUID: true}
 			},
 			expectAll: []DriftClass{
-				DriftD8EscrowStateMismatch,
 				DriftD9RefundFullCoinsNotRefunded,
 			},
 		},
@@ -617,7 +586,6 @@ func TestClassify_Matrix(t *testing.T) {
 				s.Payment.ExpiredAt = fixedNow.Add(-10 * time.Minute)
 				s.Webhooks = nil
 				s.Order.Status = OrderStatusPendingPayment
-				s.Order.EscrowStatus = OrderEscrowStatusNone
 				s.Escrow = nil
 				s.Ledger.BuyerSettlementExists = false
 				s.Ledger.OrderReleaseExists = false
@@ -637,32 +605,20 @@ func TestClassify_Matrix(t *testing.T) {
 				s.Gateway.Available = false
 				s.Gateway.TransactionStatus = ""
 				s.Gateway.RefundChargebackHistory = nil
-				// Force D8 + D10 + D13 + D14 candidates simultaneously; only
-				// local-only drift classes should fire.
+				// Force D10 + D14 candidates simultaneously; only local-only
+				// drift classes should fire. The escrow row is refunded with a
+				// settled payment, so D15 stays quiet.
 				s.Escrow.Status = EscrowStatusRefunded
 				s.Escrow.RefundedAt = ptrTime(fixedNow.Add(-30 * time.Minute))
 				s.Escrow.ReleasedAt = nil
-				s.Order.EscrowStatus = OrderEscrowStatusNone
 				s.Ledger.OrderReleaseExists = true
 				s.Outbox.MoneyReleasedAliveByOrderID = map[uuid.UUID]bool{} // D14
 			},
-			// D13 fires (projection none + escrow exists). D14 fires (release ledger
-			// exists but outbox missing). D8 suppressed because D13 takes precedence
-			// for the 'none' case (D8 guards EscrowStatus != none).
+			// D14 fires (release ledger exists but outbox missing). Gateway-required
+			// classes (D1..D6) are suppressed.
 			expectAll: []DriftClass{
-				DriftD13ProjectionNoneEscrowExists,
 				DriftD14LedgerEntryOutboxMissing,
 			},
-		},
-
-		// -------- D8 vs D13 disjointness --------
-		{
-			name: "D8_and_D13_are_mutually_exclusive",
-			mutate: func(s *Snapshot) {
-				s.Escrow.Status = EscrowStatusHolding
-				s.Order.EscrowStatus = OrderEscrowStatusNone
-			},
-			expectAll: []DriftClass{DriftD13ProjectionNoneEscrowExists},
 		},
 
 		// -------- D15 --------
@@ -677,7 +633,6 @@ func TestClassify_Matrix(t *testing.T) {
 				s.Gateway.Available = false
 				s.Gateway.TransactionStatus = ""
 				s.Order.Status = OrderStatusPendingPayment
-				s.Order.EscrowStatus = OrderEscrowStatusHolding
 				s.Order.GrossAmount = 125_000
 				s.Escrow.Status = EscrowStatusHolding
 				s.Escrow.ReleasedAt = nil
@@ -685,30 +640,31 @@ func TestClassify_Matrix(t *testing.T) {
 				s.Ledger.OrderReleaseExists = false
 				s.Outbox.MoneyReleasedAliveByOrderID = map[uuid.UUID]bool{}
 			},
-			expectAll: []DriftClass{DriftD15EscrowPresentPaymentAbsent},
+			expectAll: []DriftClass{DriftD15EscrowWithoutSettledPayment},
 		},
 		{
-			// orders.escrow_amount > 0 with no escrow row and no payment row.
-			// Same drift signal, surfaced from the projection column alone.
-			name: "D15_projection_amount_without_payment",
+			// Escrow row exists but the payment is not in a settled state —
+			// settlement invariant broken (escrow is only created inside the
+			// settlement tx).
+			name: "D15_escrow_present_payment_not_settled",
 			mutate: func(s *Snapshot) {
-				s.Payment = nil
-				s.Escrow = nil
+				s.Payment.Status = LocalPaymentStatusPending
+				s.Payment.PaidAt = nil
+				s.Payment.CreatedAt = fixedNow.Add(-1 * time.Minute) // inside D1 grace
 				s.Gateway.Available = false
 				s.Gateway.TransactionStatus = ""
-				s.Order.Status = OrderStatusPendingPayment
-				s.Order.EscrowStatus = OrderEscrowStatusNone
-				s.Order.GrossAmount = 125_000
 				s.Webhooks = nil
+				s.Order.Status = OrderStatusPaid
+				s.Ledger.BuyerSettlementExists = false
 				s.Ledger.OrderReleaseExists = false
 				s.Outbox.MoneyReleasedAliveByOrderID = map[uuid.UUID]bool{}
 			},
-			expectAll: []DriftClass{DriftD15EscrowPresentPaymentAbsent},
+			expectAll: []DriftClass{DriftD15EscrowWithoutSettledPayment},
 		},
 		{
-			// Order with no payment AND no escrow surface — D15 must NOT
-			// fire (this is the legitimate "fresh order, payment not yet
-			// created" state).
+			// No escrow row and no payment row is the legitimate "fresh
+			// order, payment not yet created" state — D15 must NOT fire.
+			// (The old projection-amount vector is gone with orders.escrow_status.)
 			name: "D15_suppressed_no_money_surface_yet",
 			mutate: func(s *Snapshot) {
 				s.Payment = nil
@@ -716,13 +672,19 @@ func TestClassify_Matrix(t *testing.T) {
 				s.Gateway.Available = false
 				s.Gateway.TransactionStatus = ""
 				s.Order.Status = OrderStatusPendingPayment
-				s.Order.EscrowStatus = OrderEscrowStatusNone
 				s.Order.GrossAmount = 0
 				s.Webhooks = nil
 				s.Ledger.OrderReleaseExists = false
 				s.Ledger.BuyerSettlementExists = false
 				s.Outbox.MoneyReleasedAliveByOrderID = map[uuid.UUID]bool{}
 			},
+			expectAll: nil,
+		},
+		{
+			// Escrow row present with a settled payment is the clean
+			// canonical state — D15 must NOT fire.
+			name: "D15_suppressed_escrow_with_settled_payment",
+			mutate: func(_ *Snapshot) {},
 			expectAll: nil,
 		},
 	}
@@ -772,7 +734,6 @@ func TestClassify_DeterministicAcrossInvocations(t *testing.T) {
 				s.Payment.ExpiredAt = fixedNow.Add(-30 * time.Minute)
 				s.Webhooks = nil
 				s.Order.Status = OrderStatusPendingPayment
-				s.Order.EscrowStatus = OrderEscrowStatusNone
 				s.Escrow = nil
 				s.Ledger.BuyerSettlementExists = false
 				s.Ledger.OrderReleaseExists = false
@@ -863,7 +824,7 @@ func TestClassify_DailyBucketingChangesKey(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// Coverage proof — assert every D1..D14 is exercised by at least one positive
+// Coverage proof — assert every D1..D15 is exercised by at least one positive
 // case in the matrix.
 // ---------------------------------------------------------------------------
 
@@ -876,14 +837,12 @@ func TestClassify_MatrixCoversAllDriftClasses(t *testing.T) {
 		DriftD5DuplicateSettlement,
 		DriftD6MissingWebhookDelivery,
 		DriftD7WebhookProcessedLedgerAbsent,
-		DriftD8EscrowStateMismatch,
 		DriftD9RefundFullCoinsNotRefunded,
 		DriftD10OrderCompletedReleaseAbsent,
 		DriftD11StuckPendingRefund,
 		DriftD12PendingPaymentPastExpiry,
-		DriftD13ProjectionNoneEscrowExists,
 		DriftD14LedgerEntryOutboxMissing,
-		DriftD15EscrowPresentPaymentAbsent,
+		DriftD15EscrowWithoutSettledPayment,
 	}
 
 	// Run the entire matrix and collect every drift class observed.
@@ -905,7 +864,6 @@ func TestClassify_MatrixCoversAllDriftClasses(t *testing.T) {
 			s.Ledger.BuyerSettlementExists = false
 			s.Ledger.OrderReleaseExists = false
 			s.Order.Status = OrderStatusPendingPayment
-			s.Order.EscrowStatus = OrderEscrowStatusNone
 			s.Escrow = nil
 			s.Outbox.MoneyReleasedAliveByOrderID = map[uuid.UUID]bool{}
 		},
@@ -916,7 +874,6 @@ func TestClassify_MatrixCoversAllDriftClasses(t *testing.T) {
 			s.Escrow.Status = EscrowStatusHolding
 			s.Escrow.ReleasedAt = nil
 			s.Order.Status = OrderStatusDelivered
-			s.Order.EscrowStatus = OrderEscrowStatusHolding
 			s.Ledger.OrderReleaseExists = false
 			s.Outbox.MoneyReleasedAliveByOrderID = map[uuid.UUID]bool{}
 			s.Gateway.RefundChargebackHistory = []GatewayRefundEntry{
@@ -950,8 +907,6 @@ func TestClassify_MatrixCoversAllDriftClasses(t *testing.T) {
 		func(s *Snapshot) { s.Webhooks = nil },
 		// D7
 		func(s *Snapshot) { s.Ledger.BuyerSettlementExists = false },
-		// D8
-		func(s *Snapshot) { s.Order.EscrowStatus = OrderEscrowStatusHolding },
 		// D9
 		func(s *Snapshot) {
 			s.Refunds = []RefundRow{{
@@ -990,12 +945,9 @@ func TestClassify_MatrixCoversAllDriftClasses(t *testing.T) {
 			s.Ledger.BuyerSettlementExists = false
 			s.Ledger.OrderReleaseExists = false
 			s.Order.Status = OrderStatusPendingPayment
-			s.Order.EscrowStatus = OrderEscrowStatusNone
 			s.Escrow = nil
 			s.Outbox.MoneyReleasedAliveByOrderID = map[uuid.UUID]bool{}
 		},
-		// D13
-		func(s *Snapshot) { s.Order.EscrowStatus = OrderEscrowStatusNone },
 		// D14
 		func(s *Snapshot) { s.Outbox.MoneyReleasedAliveByOrderID = map[uuid.UUID]bool{} },
 		// D15
@@ -1005,7 +957,6 @@ func TestClassify_MatrixCoversAllDriftClasses(t *testing.T) {
 			s.Gateway.TransactionStatus = ""
 			s.Webhooks = nil
 			s.Order.Status = OrderStatusPendingPayment
-			s.Order.EscrowStatus = OrderEscrowStatusHolding
 			s.Escrow.Status = EscrowStatusHolding
 			s.Escrow.ReleasedAt = nil
 			s.Ledger.OrderReleaseExists = false
@@ -1216,15 +1167,14 @@ func permutationFixture() Snapshot {
 		CoinsRefundRequiredAliveByOrderID: map[uuid.UUID]bool{},
 	}
 
-	// Force a D5 collision (third distinct settled transaction_id) and a D8
-	// mismatch on top of the refund signal.
+	// Force a D5 collision (third distinct settled transaction_id) on top of
+	// the refund signal.
 	s.Webhooks = append(s.Webhooks, WebhookEventRef{
 		EventID: "WH-dup", MidtransOrderID: midtransOID,
 		Status:            WebhookStatusSucceeded,
 		TransactionStatus: GatewayStatusSettlement, TransactionID: "MT-TX-DUP",
 		ReceivedAt: fixedNow.Add(-30 * time.Minute),
 	})
-	s.Order.EscrowStatus = OrderEscrowStatusHolding // disagrees with escrow.status=released → D8
 
 	return s
 }
@@ -1245,7 +1195,6 @@ func TestClassify_PermutationStability_AllSlices(t *testing.T) {
 		for _, required := range []DriftClass{
 			DriftD4PartialRefundMismatch,
 			DriftD5DuplicateSettlement,
-			DriftD8EscrowStateMismatch,
 			DriftD11StuckPendingRefund,
 			DriftD14LedgerEntryOutboxMissing,
 		} {

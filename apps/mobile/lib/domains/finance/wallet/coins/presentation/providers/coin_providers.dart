@@ -15,7 +15,7 @@ import 'package:labuda/domains/finance/wallet/coins/coins_di.dart';
 // ============================================================
 
 /// Provides user's Coin balance (one-time fetch)
-final coinBalanceProvider = FutureProvider.family<CoinBalance?, String>((
+final coinBalanceProvider = FutureProvider.family<CoinBalance, String>((
   ref,
   userId,
 ) async {
@@ -23,17 +23,6 @@ final coinBalanceProvider = FutureProvider.family<CoinBalance?, String>((
   final result = await repository.getCoinBalance(userId);
 
   return result.fold((error) => throw Exception(error), (balance) => balance);
-});
-
-/// Watches user's Coin balance for real-time updates
-final coinBalanceStreamProvider = StreamProvider.family<CoinBalance?, String>((
-  ref,
-  userId,
-) {
-  final repository = ref.watch(coinRepositoryProvider);
-  return repository
-      .watchCoinBalance(userId)
-      .map((result) => result.fold((error) => null, (balance) => balance));
 });
 
 // ============================================================
@@ -59,23 +48,6 @@ final coinTransactionsProvider =
       );
     });
 
-/// Watches transaction history for real-time updates
-final coinTransactionsStreamProvider =
-    StreamProvider.family<List<CoinTransaction>, ({String userId, int limit})>((
-      ref,
-      params,
-    ) {
-      final repository = ref.watch(coinRepositoryProvider);
-      return repository
-          .watchTransactions(userId: params.userId, limit: params.limit)
-          .map(
-            (result) => result.fold(
-              (error) => <CoinTransaction>[],
-              (transactions) => transactions,
-            ),
-          );
-    });
-
 // ============================================================
 // Helper Providers
 // ============================================================
@@ -90,7 +62,6 @@ final hasEnoughCoinsProvider =
         coinBalanceProvider(params.userId).future,
       );
 
-      if (balance == null) return false;
       return balance.hasEnoughCoins(params.requiredAmount);
     });
 
@@ -100,7 +71,7 @@ final totalCoinsProvider = FutureProvider.family<int, String>((
   userId,
 ) async {
   final balance = await ref.watch(coinBalanceProvider(userId).future);
-  return balance?.balance ?? 0;
+  return balance.balance;
 });
 
 /// Gets the estimated discount value from coins
@@ -112,7 +83,6 @@ final estimatedCoinsValueProvider = FutureProvider.family<int, String>((
   userId,
 ) async {
   final balance = await ref.watch(coinBalanceProvider(userId).future);
-  if (balance == null) return 0;
   // Exchange rate: 1 coin = Rp1 (for ESTIMATION only)
   return balance.balance * 1;
 });

@@ -8,6 +8,7 @@ import (
 	notificationentity "github.com/labuda/backend/internal/interaction/notification/entity"
 	"github.com/labuda/backend/internal/interaction/notification/policy"
 	"github.com/labuda/backend/internal/platform/events"
+	"github.com/labuda/backend/internal/realtime"
 	dbpkg "github.com/labuda/backend/pkg/db"
 	"go.uber.org/zap"
 )
@@ -81,6 +82,7 @@ type ChatMessagePayload struct {
 
 // OrderPayload represents the payload for order events.
 // Financial amount total_before_coins_amount is not included — projection re-queries write model.
+// Escrow state is not included — it lives only in the escrows table (sole authority).
 type OrderPayload struct {
 	OrderID          string `json:"order_id"`
 	BuyerID          string `json:"buyer_id"`
@@ -88,7 +90,6 @@ type OrderPayload struct {
 	SourceType       string `json:"source_type"`
 	SourceID         string `json:"source_id"`
 	Status           string `json:"status"`
-	EscrowStatus     string `json:"escrow_status"`
 	Subtotal         int64  `json:"subtotal"`
 	ShippingTotal    int64  `json:"shipping_total"`
 	CommissionAmount int64  `json:"commission_amount"`
@@ -435,15 +436,11 @@ func (h *NotificationEventHandler) getTitleAndBody(notifyType string) (title, bo
 	case "auction.bid.placed":
 		return "Bid Baru", "Ada penawaran baru di lelang Anda"
 	case "auction.waiting_settlement":
-		return "Lelang Dimenangkan!", "Selamat! Anda memenangkan lelang. Segera klaim dalam 24 jam."
+		return "Lelang Dimenangkan!", "Selamat! Anda memenangkan lelang. Segera selesaikan checkout dalam 24 jam."
 	case "auction.seller_has_winner":
 		return "Ada Pemenang Lelang", "Lelang Anda memiliki pemenang. Tunggu hingga pembayaran masuk."
 	case "auction.ended_no_winner":
 		return "Lelang Berakhir Tanpa Pemenang", "Lelang Anda telah berakhir tanpa ada pemenang."
-	case "auction.bnr_seller":
-		return "Lelang Tidak Diselesaikan", "Pemenang tidak menyelesaikan pembayaran dalam batas waktu"
-	case "auction.bnr_winner":
-		return "Klaim Lelang Kedaluwarsa", "Batas waktu klaim lelang terlewat. Pelanggaran BNR tercatat."
 	case "seller.subscription.expiring":
 		return "Langganan Akan Berakhir", "Langganan Anda akan berakhir, segera perpanjang untuk melanjutkan penjualan"
 	case "seller.subscription.expired":
@@ -701,11 +698,44 @@ func (h *NotificationEventHandler) insertNotificationWithPolicy(
 			info.data,
 		)
 		insertedID, wasInserted, err := h.notificationInserter.Insert(ctx, tx, n)
-		if err == nil {
-			insertedNotificationID = insertedID
-			inserted = wasInserted
+		if err != nil {
+			return err
 		}
-		return err
+		insertedNotificationID = insertedID
+		inserted = wasInserted
+
+		// NOTIFICATION CREATED → REALTIME EVENT (TASK_5).
+		//
+		// Emitted ONLY when a row was actually written (wasInserted=true): the
+		// dedup no-op must never produce a notification.created event. The
+		// outbox insert runs in the SAME transaction as the notification
+		// INSERT, so the event exists if and only if the notification commits —
+		// a rollback removes both, and a retry re-runs both. Delivery is
+		// asynchronous via the realtime worker (never inside this transaction).
+		if wasInserted && h.realtimeOutbox != nil {
+			unreadCount := 0
+			if h.unreadCounter != nil {
+				count, countErr := h.unreadCounter.CountUnread(ctx, tx, recipientID)
+				if countErr != nil {
+					return fmt.Errorf("count unread for notification.created failed: %w", countErr)
+				}
+				unreadCount = count
+			}
+			payload := map[string]interface{}{
+				"recipient_id":    recipientID.String(),
+				"notification_id": insertedID.String(),
+				"type":            notifyType,
+				"unread_count":    unreadCount,
+			}
+			// Deterministic per-notification key: a replayed insert that
+			// dedups never reaches this branch, and the outbox unique
+			// (idempotency_key) makes the emit itself idempotent.
+			idempotencyKey := "notification.created." + insertedID.String()
+			if outboxErr := h.realtimeOutbox.InsertTx(ctx, tx, realtime.EventTypeNotificationCreated, payload, idempotencyKey); outboxErr != nil {
+				return fmt.Errorf("insert notification.created outbox event failed: %w", outboxErr)
+			}
+		}
+		return nil
 	})
 
 	if err != nil {

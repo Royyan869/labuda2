@@ -34,7 +34,6 @@ const _activeDetailInventory = <String>[
   'lib/domains/commerce/catalog/auction/presentation/widgets/detail/auction_bid_history.dart',
   'lib/domains/commerce/catalog/auction/presentation/widgets/detail/auction_bid_position_indicator.dart',
   'lib/domains/commerce/catalog/auction/presentation/widgets/detail/auction_bid_section.dart',
-  'lib/domains/commerce/catalog/auction/presentation/widgets/detail/auction_claim_shipping_modal.dart',
   'lib/domains/commerce/catalog/auction/presentation/widgets/detail/auction_countdown_timer.dart',
   'lib/domains/commerce/catalog/auction/presentation/widgets/detail/auction_detail_bottom_bar.dart',
   'lib/domains/commerce/catalog/auction/presentation/widgets/detail/auction_detail_header.dart',

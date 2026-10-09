@@ -32,6 +32,13 @@ import 'package:labuda/core/core.dart';
 /// foundation pads `MediaQuery.viewInsetsOf(context).bottom` itself. No
 /// caller may compute insets for the bar. This same mechanism covers embedded
 /// footers (e.g. a dialog footer), where no Scaffold lifts anything.
+///
+/// Inside a lifted `AppBottomSheetBase` sheet ([embeddedInLiftedSheet]) the
+/// presenter already owns BOTH insets: the base lifts the sheet above the
+/// keyboard and spends the system bottom inset exactly once as its own
+/// spacer. The bar then reserves NEITHER again — a second system-bottom
+/// reservation would grow the bar by the inset and double the gap below the
+/// CTA (BOTTOMSHEET-03: padat/normal).
 class BottomActionBar extends StatelessWidget {
   /// Info content rendered INSIDE the chrome, above the actions (e.g. a
   /// checkout total row, a disabled reason, an unavailability banner).
@@ -61,12 +68,15 @@ class BottomActionBar extends StatelessWidget {
   final Widget? footer;
 
   /// Set when the bar is embedded inside an [AppBottomSheetBase] sheet whose
-  /// presenter already owns keyboard movement (the base lifts the whole sheet
-  /// above `viewInsets.bottom`). The bar then must NOT rise a second time or
-  /// its buttons float one keyboard-height above the keyboard. Defaults to
-  /// `false`: every other placement (`Scaffold.bottomNavigationBar`,
-  /// body-embedded footers, unlifted sheets) keeps the self-lift.
-  /// System bottom Safe Area handling is unchanged in both modes.
+  /// presenter already owns both insets (the base lifts the whole sheet above
+  /// `viewInsets.bottom` and spends the system bottom inset exactly once as
+  /// its own spacer). The bar then must NOT rise a second time or its buttons
+  /// float one keyboard-height above the keyboard, and it adds NO second
+  /// system-bottom reservation — the base spacer alone keeps the CTA clear of
+  /// the navigation area. Defaults to `false`: every other placement
+  /// (`Scaffold.bottomNavigationBar`, body-embedded footers, unlifted sheets)
+  /// keeps the self-lift and its own SafeArea system-bottom handling, exactly
+  /// as before (BOTTOMSHEET-03).
   final bool embeddedInLiftedSheet;
 
   const BottomActionBar({
@@ -108,6 +118,12 @@ class BottomActionBar extends StatelessWidget {
       ),
       child: SafeArea(
         top: false,
+        // Same context boundary as the keyboard lift: embedded in a lifted
+        // sheet, the base's spacer is the ONE system-bottom reservation, so
+        // the bar adds none (the inset would otherwise be spent twice — bar
+        // strip + spacer). Everywhere else the bar IS the bottom surface and
+        // keeps owning the inset itself.
+        bottom: !embeddedInLiftedSheet,
         child: Padding(
           padding: EdgeInsets.only(bottom: keyboardInset),
           child: Column(
@@ -257,8 +273,7 @@ class _StackedActions extends StatelessWidget {
             spinnerStroke: spinnerStroke,
           ),
         for (var i = 0; i < stacked.length; i++) ...[
-          if (primary != null || i > 0)
-            const SizedBox(height: AppMetrics.p12),
+          if (primary != null || i > 0) const SizedBox(height: AppMetrics.p12),
           _OutlinedBarButton(
             action: stacked[i],
             spinnerExtent: spinnerExtent,
@@ -323,7 +338,9 @@ class _FilledBarButton extends StatelessWidget {
               // Loading renders on the disabled fill (the theme owns the
               // neutral disabled surface), so the spinner rides the disabled
               // content role — never the brand onPrimary.
-              valueColor: AlwaysStoppedAnimation<Color>(scheme.onSurfaceVariant),
+              valueColor: AlwaysStoppedAnimation<Color>(
+                scheme.onSurfaceVariant,
+              ),
             ),
           )
         : action.icon == null
@@ -405,11 +422,7 @@ class _OutlinedBarButton extends StatelessWidget {
       height: AppContentSize.control,
       width: double.infinity,
       child: child != null
-          ? OutlinedButton(
-              onPressed: null,
-              style: style,
-              child: child,
-            )
+          ? OutlinedButton(onPressed: null, style: style, child: child)
           : action.icon == null
           ? OutlinedButton(
               onPressed: action.onPressed,

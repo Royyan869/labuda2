@@ -1,12 +1,14 @@
 // Follow API Models for Go Backend Integration
 //
 // These models match the Go backend DTOs in:
-// backend/internal/domain/social/dto/*.go
+// backend/internal/social/graph/delivery/http/follow_response.go
+// (FollowUserCardResponse) served by FollowHandler
+// (backend/internal/social/graph/delivery/http/follow_handler.go).
 //
 // Coverage:
-// - Follow (handler_follow.go)
-// - Block (handler_block.go)
-// - Mute (handler_mute.go)
+// - Follow (follow_handler.go FollowUser/UnfollowUser)
+// - Block (follow_handler.go BlockUser/UnblockUser)
+// - Mute (follow_handler.go MuteUser/UnmuteUser)
 
 import 'package:equatable/equatable.dart';
 import 'package:labuda/core/api/models/common_api_models.dart';

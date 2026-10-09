@@ -297,10 +297,11 @@ func (s *DisputeService) OpenDispute(
 }
 
 // enforceAppDisputeFinality blocks normal app-initiated disputes once the
-// order has reached the completed + released terminal state.
+// order has reached the completed terminal state. Completed is reachable only
+// via a successful escrow release (the escrow row is the sole authority and
+// flips to released inside the same completion transaction).
 func (s *DisputeService) enforceAppDisputeFinality(order *orderEntity.Order, callerID uuid.UUID) error {
-	if order.Status == orderEntity.StatusCompleted &&
-		order.EscrowStatus == orderEntity.EscrowStatusReleased {
+	if order.Status == orderEntity.StatusCompleted {
 		return fmt.Errorf("cannot open dispute after order completion; handle objections outside the app")
 	}
 	return nil
@@ -354,8 +355,8 @@ func (s *DisputeService) ResolveDispute(
 	if err != nil {
 		return fmt.Errorf("order not found for dispute: %w", err)
 	}
-	if order.Status == orderEntity.StatusCompleted &&
-		order.EscrowStatus == orderEntity.EscrowStatusReleased {
+	// Completed is terminal and reachable only via a successful escrow release.
+	if order.Status == orderEntity.StatusCompleted {
 		return ErrDisputeResolveAfterCompletion
 	}
 

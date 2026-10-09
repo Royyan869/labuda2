@@ -247,8 +247,6 @@ const _frozenExtentLockedToZero = <String>[
   'lib/shared/widgets/app_bottom_sheet_base.dart',
   'lib/domains/commerce/catalog/auction/presentation/widgets/detail/'
       'auction_action_modal.dart',
-  'lib/domains/commerce/catalog/auction/presentation/widgets/detail/'
-      'auction_claim_shipping_modal.dart',
   'lib/shared/widgets/language_selector.dart',
   'lib/shared/widgets/theme_selector.dart',
   // Slice 5 — the notification filter rail. It still holds `spacing` and

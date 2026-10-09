@@ -63,8 +63,8 @@ abstract final class PermissionHelper {
   /// - Active + Grace = seller-active
   /// - Expired / no subscription = NOT seller-active (even if role exists)
   static bool canAccessSellerFeatures(AuthUser? user) {
-    // S3: Use hasMarketAuthority (backend-derived) as primary check
-    // This combines: hasSellerProfile + sellerSubscriptionStatus == 'active'
+    // Seller feature access uses the canonical market authority
+    // (hasMarketAuthority) derived by the backend.
     return user?.hasMarketAuthority ?? false;
   }
 
@@ -73,14 +73,6 @@ abstract final class PermissionHelper {
   /// Returns: 'active', 'expired', 'none', or null if not a seller
   static String? getSellerSubscriptionStatus(AuthUser? user) {
     return user?.sellerSubscriptionStatus;
-  }
-
-  /// Check if seller has an active subscription
-  ///
-  /// This is the same as canAccessSellerFeatures() but more explicit
-  static bool isSellerSubscriptionActive(AuthUser? user) {
-    final status = user?.sellerSubscriptionStatus;
-    return status == 'active';
   }
 
   /// Check if seller subscription has expired

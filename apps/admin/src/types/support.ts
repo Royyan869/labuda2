@@ -121,7 +121,8 @@ export interface SupportTicketsListResponse {
 export interface SupportTicketOrderInfo {
   order_id: string
   status: string
-  escrow_status: string
+  // Live view of the canonical escrow row; empty/absent when the order has no escrow.
+  escrow_status?: string | null
   has_dispute: boolean
 }
 

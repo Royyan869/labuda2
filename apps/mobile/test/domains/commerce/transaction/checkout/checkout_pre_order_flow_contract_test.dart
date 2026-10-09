@@ -23,14 +23,16 @@ const _actionBar =
 
 void main() {
   group('Checkout pre-order flow — canonical sequence', () {
-    test('checkout loads PRE-ORDER methods and binds the method to the order',
-        () {
-      final logic = _read(_logic);
-      expect(logic, contains('getPreOrderPaymentPricing('));
-      expect(logic, contains('paymentMethodCode:'));
-      // Order creation is the FIRST durable write and carries the selection.
-      expect(logic, contains('notifier.createOrder(request)'));
-    });
+    test(
+      'checkout loads PRE-ORDER methods and binds the method to the order',
+      () {
+        final logic = _read(_logic);
+        expect(logic, contains('getPreOrderPaymentPricing('));
+        expect(logic, contains('paymentMethodCode:'));
+        // Order creation is the FIRST durable write and carries the selection.
+        expect(logic, contains('notifier.createOrder(request)'));
+      },
+    );
 
     test('the old order-scoped sequence is purged', () {
       final logic = _read(_logic);
@@ -39,10 +41,29 @@ void main() {
         isNot(contains('getPaymentMethodOptions(')),
         reason: 'checkout must not fetch methods AFTER creating the order',
       );
+    });
+
+    test('checkout selects through the canonical trigger + picker sheet', () {
+      final impl = _read(_impl);
       expect(
-        logic,
-        isNot(contains('PaymentMethodPickerSheet')),
-        reason: 'checkout owns the selection; no post-order picker',
+        impl,
+        contains('PaymentMethodTrigger('),
+        reason: 'checkout must render the canonical payment-method trigger',
+      );
+      expect(
+        impl,
+        contains('PaymentMethodPickerSheet.show'),
+        reason: 'checkout must open the canonical picker sheet',
+      );
+      expect(
+        impl,
+        isNot(contains('_PaymentMethodSection')),
+        reason: 'the inline payment-method section must stay purged',
+      );
+      expect(
+        impl,
+        isNot(contains('_PaymentMethodTile')),
+        reason: 'the inline payment-method tile must stay purged',
       );
     });
 

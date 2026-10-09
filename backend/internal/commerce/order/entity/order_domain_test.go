@@ -19,7 +19,7 @@ import (
 // without any database dependencies. These tests can run without PostgreSQL
 // and focus on:
 //
-// 1. State machine transitions (Order status, Escrow status)
+// 1. State machine transitions (Order status)
 // 2. Entity field contracts
 // 3. Business rule validations
 // 4. Calculation correctness
@@ -53,7 +53,7 @@ func TestOrderStatusTransitions(t *testing.T) {
 		{
 			name: "pending -> paid (valid)",
 			setupOrder: func() *orderentity.Order {
-				return createTestOrder(orderentity.StatusPending, orderentity.EscrowStatusHolding)
+				return createTestOrder(orderentity.StatusPending)
 			},
 			transition: func(o *orderentity.Order) error {
 				return o.MarkPaid()
@@ -64,7 +64,7 @@ func TestOrderStatusTransitions(t *testing.T) {
 		{
 			name: "paid -> shipped (valid)",
 			setupOrder: func() *orderentity.Order {
-				return createTestOrder(orderentity.StatusPaid, orderentity.EscrowStatusHolding)
+				return createTestOrder(orderentity.StatusPaid)
 			},
 			transition: func(o *orderentity.Order) error {
 				ref := strPtr("RESI-123-456")
@@ -77,7 +77,7 @@ func TestOrderStatusTransitions(t *testing.T) {
 		{
 			name: "shipped -> completed (valid)",
 			setupOrder: func() *orderentity.Order {
-				return createTestOrder(orderentity.StatusShipped, orderentity.EscrowStatusHolding)
+				return createTestOrder(orderentity.StatusShipped)
 			},
 			transition: func(o *orderentity.Order) error {
 				return o.ValidateComplete()
@@ -88,7 +88,7 @@ func TestOrderStatusTransitions(t *testing.T) {
 		{
 			name: "pending -> cancelled (valid)",
 			setupOrder: func() *orderentity.Order {
-				return createTestOrder(orderentity.StatusPending, orderentity.EscrowStatusHolding)
+				return createTestOrder(orderentity.StatusPending)
 			},
 			transition: func(o *orderentity.Order) error {
 				return o.Cancel()
@@ -103,7 +103,7 @@ func TestOrderStatusTransitions(t *testing.T) {
 			// shipped / refunded / cancelled_timeout.
 			name: "paid -> cancelled (invalid)",
 			setupOrder: func() *orderentity.Order {
-				return createTestOrder(orderentity.StatusPaid, orderentity.EscrowStatusHolding)
+				return createTestOrder(orderentity.StatusPaid)
 			},
 			transition: func(o *orderentity.Order) error {
 				return o.Cancel()
@@ -115,7 +115,7 @@ func TestOrderStatusTransitions(t *testing.T) {
 		{
 			name: "completed -> shipped (invalid)",
 			setupOrder: func() *orderentity.Order {
-				return createTestOrder(orderentity.StatusCompleted, orderentity.EscrowStatusReleased)
+				return createTestOrder(orderentity.StatusCompleted)
 			},
 			transition: func(o *orderentity.Order) error {
 				proofType := strPtr("tracking")
@@ -129,7 +129,7 @@ func TestOrderStatusTransitions(t *testing.T) {
 		{
 			name: "paid with dispute -> complete fails",
 			setupOrder: func() *orderentity.Order {
-				o := createTestOrder(orderentity.StatusPaid, orderentity.EscrowStatusHolding)
+				o := createTestOrder(orderentity.StatusPaid)
 				o.HasDispute = true
 				return o
 			},
@@ -143,7 +143,7 @@ func TestOrderStatusTransitions(t *testing.T) {
 		{
 			name: "pending -> expired (valid)",
 			setupOrder: func() *orderentity.Order {
-				return createTestOrder(orderentity.StatusPending, orderentity.EscrowStatusHolding)
+				return createTestOrder(orderentity.StatusPending)
 			},
 			transition: func(o *orderentity.Order) error {
 				return o.MarkExpired()
@@ -172,7 +172,7 @@ func TestOrderStatusTransitions(t *testing.T) {
 // (escrow-funded) order must not transition to cancelled, otherwise the buyer
 // cancel endpoint could freeze money (cancelled + escrow holding, no refund).
 func TestCancel_PaidOrderInvalidTransition(t *testing.T) {
-	order := createTestOrder(orderentity.StatusPaid, orderentity.EscrowStatusHolding)
+	order := createTestOrder(orderentity.StatusPaid)
 
 	err := order.Cancel()
 
@@ -188,65 +188,10 @@ func TestCancel_PaidOrderInvalidTransition(t *testing.T) {
 // TestCancel_PendingOrderStillValid guards the preserved pre-payment behavior:
 // a pending_payment order is still cancellable through the normal Cancel path.
 func TestCancel_PendingOrderStillValid(t *testing.T) {
-	order := createTestOrder(orderentity.StatusPending, orderentity.EscrowStatusHolding)
+	order := createTestOrder(orderentity.StatusPending)
 
 	assert.NoError(t, order.Cancel())
 	assert.Equal(t, orderentity.StatusCancelled, order.Status)
-}
-
-// ============================================================================
-// TEST: Escrow Status Transitions
-// ============================================================================
-
-// TestEscrowStatusTransitions verifies that escrow status transitions
-// follow valid state machine rules.
-//
-// BUSINESS TRUTH PROTECTED:
-// - Escrow state machine is enforced
-// - Invalid escrow transitions are rejected
-//
-// CRITICAL FOR: Financial integrity of the platform
-func TestEscrowStatusTransitions(t *testing.T) {
-	tests := []struct {
-		name        string
-		fromStatus  orderentity.EscrowStatus
-		toStatus    orderentity.EscrowStatus
-		wantAllowed bool
-		description string
-	}{
-		{"holding -> released (valid)", orderentity.EscrowStatusHolding, orderentity.EscrowStatusReleased, true, "release to seller on completion"},
-		{"holding -> refunded (valid)", orderentity.EscrowStatusHolding, orderentity.EscrowStatusRefunded, true, "refund to buyer on cancellation"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// Build order with initial escrow status
-			// B4A: Shipped can complete directly (canonical buyer path)
-			orderStatus := orderentity.StatusPending
-			if tt.toStatus == orderentity.EscrowStatusReleased {
-				orderStatus = orderentity.StatusShipped // B4A: shipped→completed is canonical
-			}
-			order := createTestOrder(orderStatus, tt.fromStatus)
-
-			// Attempt transition by calling appropriate method
-			var err error
-			switch tt.toStatus {
-			case orderentity.EscrowStatusReleased:
-				err = order.ValidateComplete() // Validates order can transition to completed
-			case orderentity.EscrowStatusRefunded:
-				// Direct refund not tested here (would need Cancel() flow)
-				// Just verify it's a valid transition from holding
-				if tt.fromStatus == orderentity.EscrowStatusHolding {
-					err = nil
-				}
-			}
-
-			if tt.wantAllowed {
-				// For valid transitions, we expect no error
-				assert.NoError(t, err, tt.description)
-			}
-		})
-	}
 }
 
 // ============================================================================
@@ -265,7 +210,7 @@ func TestEscrowStatusTransitions(t *testing.T) {
 // CRITICAL FOR: B4A order acceptance redesign integrity
 func TestB4A_ShippedToCompleted_CanonicalBuyerPath(t *testing.T) {
 	t.Run("shipped order can be completed directly (B4A buyer acceptance)", func(t *testing.T) {
-		order := createTestOrder(orderentity.StatusShipped, orderentity.EscrowStatusHolding)
+		order := createTestOrder(orderentity.StatusShipped)
 
 		// Buyer taps "Terima Barang" → calls ValidateComplete()
 		err := order.ValidateComplete()
@@ -273,7 +218,7 @@ func TestB4A_ShippedToCompleted_CanonicalBuyerPath(t *testing.T) {
 	})
 
 	t.Run("shipped order with dispute cannot be completed", func(t *testing.T) {
-		order := createTestOrder(orderentity.StatusShipped, orderentity.EscrowStatusHolding)
+		order := createTestOrder(orderentity.StatusShipped)
 		order.HasDispute = true
 
 		err := order.ValidateComplete()
@@ -282,14 +227,14 @@ func TestB4A_ShippedToCompleted_CanonicalBuyerPath(t *testing.T) {
 	})
 
 	t.Run("shipped order can open dispute", func(t *testing.T) {
-		order := createTestOrder(orderentity.StatusShipped, orderentity.EscrowStatusHolding)
+		order := createTestOrder(orderentity.StatusShipped)
 
 		err := order.MarkDisputeOpen()
 		assert.NoError(t, err, "shipped order must allow dispute opening")
 	})
 
 	t.Run("paid order cannot be completed (must be shipped first)", func(t *testing.T) {
-		order := createTestOrder(orderentity.StatusPaid, orderentity.EscrowStatusHolding)
+		order := createTestOrder(orderentity.StatusPaid)
 
 		err := order.ValidateComplete()
 		assert.Error(t, err, "paid order must not be directly completable")
@@ -367,7 +312,7 @@ func TestOrderSourceTypes(t *testing.T) {
 //
 // CRITICAL FOR: Ensuring Trade domain stays dead
 func TestNoTradeInOrder(t *testing.T) {
-	order := createTestOrder(orderentity.StatusPending, orderentity.EscrowStatusHolding)
+	order := createTestOrder(orderentity.StatusPending)
 
 	// Verify Order has NO trade_id field
 	// The orderentity.Order struct should have: SourceType + SourceID instead
@@ -436,7 +381,7 @@ func TestNoVATInOrder(t *testing.T) {
 //
 // BUSINESS TRUTH PROTECTED:
 // - Order has SourceType + SourceID for order source
-// - Order has proper escrow status tracking
+// - Order status starts as pending
 //
 // CRITICAL FOR: Domain contract integrity
 func TestOrderEntityFields(t *testing.T) {
@@ -483,7 +428,6 @@ func TestOrderEntityFields(t *testing.T) {
 	assert.NotNil(t, order.NegotiationID)
 	assert.Equal(t, negotiationID, *order.NegotiationID)
 	assert.Equal(t, orderentity.StatusPending, order.Status)
-	assert.Equal(t, orderentity.EscrowStatusHolding, order.EscrowStatus)
 	assert.Equal(t, 1, order.Quantity)
 	assert.Equal(t, money.New(500000), order.UnitPrice)
 	assert.Equal(t, money.New(500000), order.Subtotal) // 1 * 500000
@@ -785,11 +729,10 @@ func createTestOrderWithPrep(status orderentity.Status, prepTime string) *ordere
 		time.Now(),
 	)
 	order.Status = status
-	order.EscrowStatus = orderentity.EscrowStatusHolding
 	return order
 }
 
-func createTestOrder(status orderentity.Status, escrowStatus orderentity.EscrowStatus) *orderentity.Order {
+func createTestOrder(status orderentity.Status) *orderentity.Order {
 	order := orderentity.NewOrderFromSource(
 		uuid.New(),
 		uuid.New(),
@@ -816,7 +759,6 @@ func createTestOrder(status orderentity.Status, escrowStatus orderentity.EscrowS
 	)
 	// Override status for testing
 	order.Status = status
-	order.EscrowStatus = escrowStatus
 	return order
 }
 
@@ -834,7 +776,7 @@ func TestIsWithinPostShipDisputeWindow_EarlyShipment(t *testing.T) {
 	// The window must be exactly 12h regardless of how early the seller shipped.
 	now := time.Now()
 	autoRelease := now.Add(orderentity.AutoReleaseDuration) // mark-ship = now
-	order := createTestOrder(orderentity.StatusShipped, orderentity.EscrowStatusHolding)
+	order := createTestOrder(orderentity.StatusShipped)
 	order.AutoReleaseAt = &autoRelease
 
 	assert.True(t, order.IsWithinPostShipDisputeWindow(),
@@ -847,7 +789,7 @@ func TestIsWithinPostShipDisputeWindow_LateShipment(t *testing.T) {
 	// NOT truncated by ReadyToShipBy arithmetic.
 	markShipTime := time.Now().Add(-6 * time.Hour) // shipped 6h ago
 	autoRelease := markShipTime.Add(orderentity.AutoReleaseDuration)
-	order := createTestOrder(orderentity.StatusShipped, orderentity.EscrowStatusHolding)
+	order := createTestOrder(orderentity.StatusShipped)
 	order.AutoReleaseAt = &autoRelease
 
 	assert.True(t, order.IsWithinPostShipDisputeWindow(),
@@ -858,7 +800,7 @@ func TestIsWithinPostShipDisputeWindow_Expired(t *testing.T) {
 	// Shipped 13 hours ago — window (12h) should be closed.
 	markShipTime := time.Now().Add(-13 * time.Hour)
 	autoRelease := markShipTime.Add(orderentity.AutoReleaseDuration)
-	order := createTestOrder(orderentity.StatusShipped, orderentity.EscrowStatusHolding)
+	order := createTestOrder(orderentity.StatusShipped)
 	order.AutoReleaseAt = &autoRelease
 
 	assert.False(t, order.IsWithinPostShipDisputeWindow(),
@@ -870,7 +812,7 @@ func TestIsWithinPostShipDisputeWindow_ExactBoundary(t *testing.T) {
 	// time.Now() should be >= windowCloses, so window is closed.
 	markShipTime := time.Now().Add(-12*time.Hour - time.Second)
 	autoRelease := markShipTime.Add(orderentity.AutoReleaseDuration)
-	order := createTestOrder(orderentity.StatusShipped, orderentity.EscrowStatusHolding)
+	order := createTestOrder(orderentity.StatusShipped)
 	order.AutoReleaseAt = &autoRelease
 
 	assert.False(t, order.IsWithinPostShipDisputeWindow(),
@@ -881,7 +823,7 @@ func TestIsWithinPostShipDisputeWindow_JustBeforeBoundary(t *testing.T) {
 	// Shipped 11h59m ago — just inside the window.
 	markShipTime := time.Now().Add(-11*time.Hour - 59*time.Minute)
 	autoRelease := markShipTime.Add(orderentity.AutoReleaseDuration)
-	order := createTestOrder(orderentity.StatusShipped, orderentity.EscrowStatusHolding)
+	order := createTestOrder(orderentity.StatusShipped)
 	order.AutoReleaseAt = &autoRelease
 
 	assert.True(t, order.IsWithinPostShipDisputeWindow(),
@@ -890,7 +832,7 @@ func TestIsWithinPostShipDisputeWindow_JustBeforeBoundary(t *testing.T) {
 
 func TestIsWithinPostShipDisputeWindow_WrongStatus(t *testing.T) {
 	autoRelease := time.Now().Add(orderentity.AutoReleaseDuration)
-	order := createTestOrder(orderentity.StatusPaid, orderentity.EscrowStatusHolding)
+	order := createTestOrder(orderentity.StatusPaid)
 	order.AutoReleaseAt = &autoRelease
 
 	assert.False(t, order.IsWithinPostShipDisputeWindow(),
@@ -898,7 +840,7 @@ func TestIsWithinPostShipDisputeWindow_WrongStatus(t *testing.T) {
 }
 
 func TestIsWithinPostShipDisputeWindow_NilAutoReleaseAt(t *testing.T) {
-	order := createTestOrder(orderentity.StatusShipped, orderentity.EscrowStatusHolding)
+	order := createTestOrder(orderentity.StatusShipped)
 	order.AutoReleaseAt = nil
 
 	assert.False(t, order.IsWithinPostShipDisputeWindow(),

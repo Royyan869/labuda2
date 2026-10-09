@@ -2,12 +2,13 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
-/// The three payment flows migrated off their obsolete local trigger renderers
-/// onto the one canonical `PaymentMethodTrigger`.
+/// The payment-method surfaces, all converged onto the one canonical
+/// `PaymentMethodTrigger`.
 const _consumers = <String>[
   'lib/domains/user/preference/seller/presentation/screens/seller_upgrade_wizard_screen.dart',
   'lib/domains/user/preference/seller/presentation/screens/seller_renewal_screen.dart',
   'lib/domains/commerce/pricing/promotion/presentation/screens/canonical_promotion_create_screen.dart',
+  'lib/domains/commerce/transaction/checkout/presentation/screens/checkout_screen_impl.dart',
 ];
 
 /// The local trigger renderers purged by this convergence.
@@ -19,7 +20,7 @@ const _obsoleteRenderers = <String>[
 
 void main() {
   group('payment-method trigger convergence (residue proof)', () {
-    test('the three consumers use the one canonical trigger', () {
+    test('every consumer uses the one canonical trigger', () {
       for (final path in _consumers) {
         final src = File(path).readAsStringSync();
         expect(
@@ -30,7 +31,8 @@ void main() {
         expect(
           src.contains('PaymentMethodPickerSheet.show'),
           isTrue,
-          reason: '$path must keep the canonical picker as its selection surface',
+          reason:
+              '$path must keep the canonical picker as its selection surface',
         );
         expect(
           src.contains('selectedMethodCode:'),

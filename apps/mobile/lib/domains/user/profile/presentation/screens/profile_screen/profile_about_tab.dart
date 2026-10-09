@@ -13,6 +13,44 @@ import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// About tab content for profile screen - displays user bio, farm info, achievements, and contact
+///
+/// F5-local fit measure: whether a single-line title + badge pair fits the
+/// incoming width. Local copy (no new shared authority).
+bool _fitsTitleBadgeSingleLine({
+  required BuildContext context,
+  required double maxWidth,
+  required String title,
+  required String badge,
+  required TextStyle? titleStyle,
+  required TextStyle? badgeStyle,
+  required double fixedExtrasWidth,
+}) {
+  if (!maxWidth.isFinite) {
+    return false;
+  }
+  // NOTE: no explicit TextDirection type here — package:intl (imported by
+  // this file) exports its own TextDirection; inference keeps dart:ui's.
+  final direction = Directionality.of(context);
+  final TextScaler scaler = MediaQuery.textScalerOf(context);
+
+  double singleLineWidth(String text, TextStyle? style) {
+    final TextPainter painter = TextPainter(
+      text: TextSpan(text: text, style: style),
+      textDirection: direction,
+      textScaler: scaler,
+      maxLines: 1,
+    )..layout();
+    return painter.width;
+  }
+
+  const double safetyMargin = 2;
+  return singleLineWidth(title, titleStyle) +
+          fixedExtrasWidth +
+          singleLineWidth(badge, badgeStyle) +
+          safetyMargin <=
+      maxWidth;
+}
+
 class ProfileAboutTab extends ConsumerWidget {
   final String userId;
   final bool isOwnProfile;
@@ -934,24 +972,78 @@ class _SellerStatusBadge extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(
-                _getStatusIcon(),
-                color: _getStatusColor(),
-                size: AppIconSize.action,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'Status Penjual',
-                style: context.typeRoles.bodyDense.copyWith(
-                  fontWeight: FontWeight.w500,
-                  color: scheme.onSurfaceVariant,
-                ),
-              ),
-              const Spacer(),
-              _buildStatusBadge(context),
-            ],
+          // F5 header (adaptive): title + seller-state badge share one row
+          // when the single-line pair fits, else the title stacks over the
+          // fully-readable badge.
+          LayoutBuilder(
+            builder: (BuildContext context, BoxConstraints constraints) {
+              final TextStyle titleStyle = context.typeRoles.bodyDense
+                  .copyWith(
+                    fontWeight: FontWeight.w500,
+                    color: scheme.onSurfaceVariant,
+                  );
+              final TextStyle badgeStyle = context.typeRoles.labelMicro
+                  .copyWith(fontWeight: FontWeight.w600);
+              final bool fits = _fitsTitleBadgeSingleLine(
+                context: context,
+                maxWidth: constraints.maxWidth,
+                title: 'Status Penjual',
+                badge: sellerState.displayLabel,
+                titleStyle: titleStyle,
+                badgeStyle: badgeStyle,
+                fixedExtrasWidth:
+                    AppIconSize.action + 8 + AppMetrics.p12 * 2,
+              );
+              if (fits) {
+                return Row(
+                  children: [
+                    Icon(
+                      _getStatusIcon(),
+                      color: _getStatusColor(),
+                      size: AppIconSize.action,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Status Penjual',
+                      style: context.typeRoles.bodyDense.copyWith(
+                        fontWeight: FontWeight.w500,
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const Spacer(),
+                    _buildStatusBadge(context),
+                  ],
+                );
+              }
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        _getStatusIcon(),
+                        color: _getStatusColor(),
+                        size: AppIconSize.action,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Status Penjual',
+                          style: context.typeRoles.bodyDense.copyWith(
+                            fontWeight: FontWeight.w500,
+                            color: scheme.onSurfaceVariant,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  _buildStatusBadge(context),
+                ],
+              );
+            },
           ),
           if (sellerState.isExpired && sellerState.bannerMessage != null) ...[
             const SizedBox(height: 12),
@@ -1005,6 +1097,7 @@ class _SellerStatusBadge extends ConsumerWidget {
           fontWeight: FontWeight.w600,
           color: _getStatusColor(),
         ),
+        softWrap: true,
       ),
     );
   }

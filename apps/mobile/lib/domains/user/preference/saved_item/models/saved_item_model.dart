@@ -107,4 +107,5 @@ class SavedItemModel {
   bool get isAuction => targetType == TargetType.auction;
   bool get isBookmark => intentType == IntentType.bookmark;
   bool get isWatch => intentType == IntentType.watch;
+
 }

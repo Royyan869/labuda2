@@ -1,7 +1,7 @@
 // Package application: canonical Midtrans Snap creation authority.
 //
 // ONE SNAP CREATION AUTHORITY: every incoming buyer payment flow (product
-// checkout, auction claim, seller registration, seller renewal, promotion
+// checkout (incl. auction bid-win), seller registration, seller renewal, promotion
 // funding / Promote Balance top-up) creates its gateway session through
 // SnapService. The pure request builder, the production-mode refusal, the
 // expiry floor/ceiling, the Finish callback shape, and the channel restriction

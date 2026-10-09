@@ -279,7 +279,7 @@ String? _authRedirectForLocation(
           : RoutePaths.accountRestricted;
 
     case AppAuthStatus.authenticated:
-      if ((location.startsWith('/auth') && location != completeProfileRoute) ||
+      if (location.startsWith('/auth') ||
           location == '/welcome' ||
           location == splashRoute) {
         return '/home';
@@ -561,6 +561,9 @@ class AppRouter implements NavigationHandler {
 
   @override
   void navigateToSavedItems() => _currentRouter?.push('/saved-items');
+
+  @override
+  void navigateToMyBids() => _currentRouter?.push(RoutePaths.myBids);
 
   @override
   void navigateToOrders() => _currentRouter?.push('/orders');

@@ -66,12 +66,28 @@ class _MyForSalesScreenState extends ConsumerState<MyForSalesScreen>
       initialIndex: _selectedFilterIndex,
       vsync: this,
     );
+    _tabController.addListener(_handleTabChange);
   }
 
   @override
   void dispose() {
+    _tabController.removeListener(_handleTabChange);
     _tabController.dispose();
     super.dispose();
+  }
+
+  /// Single synchronization authority for the tab bar and the domain filter.
+  ///
+  /// A tap (the [TabBar] animates the controller) and a horizontal swipe (the
+  /// [TabBarView] page change) both land here, so [_statusFilter] can never
+  /// disagree with the visible page. The guard makes the callback idempotent
+  /// across the many notification ticks a single selection emits, avoiding
+  /// duplicate `setState` work.
+  void _handleTabChange() {
+    final filter = _kMyForSaleFilters[_tabController.index];
+    if (_statusFilter != filter) {
+      setState(() => _statusFilter = filter);
+    }
   }
 
   /// Single params authority for this management surface. Every read,
@@ -137,11 +153,6 @@ class _MyForSalesScreenState extends ConsumerState<MyForSalesScreen>
             for (final filter in _kMyForSaleFilters)
               Tab(text: _myForSaleFilterLabel(filter)),
           ],
-          onTap: (index) {
-            // Single canonical filter state: the tab only selects it, the body
-            // reads it. No second filter state exists.
-            setState(() => _statusFilter = _kMyForSaleFilters[index]);
-          },
         ),
       ),
       // LOADING FOUNDATION (owner-locked):
@@ -155,36 +166,23 @@ class _MyForSalesScreenState extends ConsumerState<MyForSalesScreen>
       // top-level GoRoute, no shell bar), so no shell owns it. FAB
       // positioning stays the Scaffold endFloat authority, measured
       // OUTSIDE this SafeArea (never conflated with body inset).
+      //
+      // One page per canonical filter, each bound to the SAME [_tabController]
+      // as the [TabBar] above so tap and horizontal swipe select the same page
+      // and the visible content always matches [_statusFilter].
       body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: () => _reload(params),
-          child: CustomScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            slivers: [
-              if (forSalesAsync.isLoading && forSales.isEmpty)
-                // First request with no data → LoadingIndicator. Never
-                // EmptyState (not yet loaded) and never a raw spinner.
-                const SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: Center(child: LoadingIndicator()),
-                )
-              else if (forSalesAsync.hasError && forSales.isEmpty)
-                // CANONICAL page-level load error (PageErrorState): safe
-                // localized copy only; the raw provider error never reaches
-                // the screen. Retry re-executes the canonical reload.
-                SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: PageErrorState(onRetry: () => _reload(params)),
-                )
-              else
-                ..._buildCollectionSlivers(
-                  context,
-                  forSalesAsync,
-                  forSales,
-                  params,
-                ),
-            ],
-          ),
+        child: TabBarView(
+          controller: _tabController,
+          children: [
+            for (final filter in _kMyForSaleFilters)
+              _buildFilterView(
+                context,
+                filter,
+                forSalesAsync,
+                forSales,
+                params,
+              ),
+          ],
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
@@ -199,53 +197,82 @@ class _MyForSalesScreenState extends ConsumerState<MyForSalesScreen>
     );
   }
 
-  /// Collection branch: runs only when a settled collection exists
-  /// (possibly preserved across a failed refresh). Applies the local status
-  /// filter, then renders EmptyState (zero-result success) or the rows with
-  /// the inline refresh indicator / refresh-error banner on top.
-  List<Widget> _buildCollectionSlivers(
+  /// One [TabBarView] page, parameterized by its canonical [filter].
+  ///
+  /// The page owns the exact same loading/error/empty/refresh handling as the
+  /// former single scroll view; the only change is that the local status
+  /// filter is the page's filter rather than the shared [_statusFilter]. The
+  /// watched provider key ([params]) is untouched, so switching tabs never
+  /// refetches the collection.
+  Widget _buildFilterView(
     BuildContext context,
+    ForSaleStatus? filter,
     AsyncValue<List<ForSale>> forSalesAsync,
     List<ForSale> forSales,
     SellerForSalesParams params,
   ) {
-    // Apply status filter: show all if null, otherwise filter by selected status
-    // Default is active, so withdrawn (deleted) For Sale are hidden by default
-    final filteredForSales = _statusFilter == null
+    // Apply status filter: show all if null, otherwise filter by this page's
+    // status. Default is active, so withdrawn (deleted) For Sale stay hidden
+    // until the seller opens the Withdrawn page.
+    final filteredForSales = filter == null
         ? forSales
-        : forSales.where((l) => l.status == _statusFilter).toList();
+        : forSales.where((l) => l.status == filter).toList();
 
-    if (filteredForSales.isEmpty) {
-      return [
-        SliverFillRemaining(
-          hasScrollBody: false,
-          child: _buildEmptyState(context, collectionEmpty: forSales.isEmpty),
-        ),
-      ];
-    }
-
-    return [
-      // Refresh with existing data: rows stay, update indication on top.
-      if (forSalesAsync.isLoading)
-        const SliverToBoxAdapter(child: LinearProgressIndicator(minHeight: 2)),
-      // Refresh failure: rows stay, inline banner with retry that
-      // re-executes the canonical reload. Never a full-page error here.
-      if (forSalesAsync.hasError)
-        SliverToBoxAdapter(child: _buildRefreshErrorBanner(params)),
-      SliverPadding(
-        padding: const EdgeInsets.all(AppMetrics.p16),
-        sliver: SliverList(
-          delegate: SliverChildBuilderDelegate((context, index) {
-            final forSale = filteredForSales[index];
-            return _SellerForSaleManagementCard(
-              forSale: forSale,
-              onTap: () => _viewForSaleDetail(context, forSale.forSaleId),
-              onDelete: () => _deleteForSale(context, forSale),
-            );
-          }, childCount: filteredForSales.length),
-        ),
+    return RefreshIndicator(
+      onRefresh: () => _reload(params),
+      child: CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          if (forSalesAsync.isLoading && forSales.isEmpty)
+            // First request with no data → LoadingIndicator. Never
+            // EmptyState (not yet loaded) and never a raw spinner.
+            const SliverFillRemaining(
+              hasScrollBody: false,
+              child: Center(child: LoadingIndicator()),
+            )
+          else if (forSalesAsync.hasError && forSales.isEmpty)
+            // CANONICAL page-level load error (PageErrorState): safe
+            // localized copy only; the raw provider error never reaches
+            // the screen. Retry re-executes the canonical reload.
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: PageErrorState(onRetry: () => _reload(params)),
+            )
+          else if (filteredForSales.isEmpty)
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: _buildEmptyState(
+                context,
+                collectionEmpty: forSales.isEmpty,
+              ),
+            )
+          else ...[
+            // Refresh with existing data: rows stay, update indication on top.
+            if (forSalesAsync.isLoading)
+              const SliverToBoxAdapter(
+                child: LinearProgressIndicator(minHeight: 2),
+              ),
+            // Refresh failure: rows stay, inline banner with retry that
+            // re-executes the canonical reload. Never a full-page error here.
+            if (forSalesAsync.hasError)
+              SliverToBoxAdapter(child: _buildRefreshErrorBanner(params)),
+            SliverPadding(
+              padding: const EdgeInsets.all(AppMetrics.p16),
+              sliver: SliverList(
+                delegate: SliverChildBuilderDelegate((context, index) {
+                  final forSale = filteredForSales[index];
+                  return _SellerForSaleManagementCard(
+                    forSale: forSale,
+                    onTap: () => _viewForSaleDetail(context, forSale.forSaleId),
+                    onDelete: () => _deleteForSale(context, forSale),
+                  );
+                }, childCount: filteredForSales.length),
+              ),
+            ),
+          ],
+        ],
       ),
-    ];
+    );
   }
 
   /// Minimum bounded refresh-failure indication: persistent inline banner
@@ -346,12 +373,10 @@ class _MyForSalesScreenState extends ConsumerState<MyForSalesScreen>
         title: l10n.emptySearchTitle,
         subtitle: l10n.emptySearchMessage,
         actionLabel: l10n.resetFilterAction,
-        onAction: () {
-          setState(() {
-            _statusFilter = null;
-            _tabController.index = _selectedFilterIndex;
-          });
-        },
+        // Single synchronization path: moving the controller to the synthetic
+        // "Semua Status" page (index 0) drives [_handleTabChange], which
+        // resets [_statusFilter] to null. No second filter mutation here.
+        onAction: () => _tabController.index = 0,
       );
     }
 

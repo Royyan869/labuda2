@@ -62,6 +62,20 @@ class WebSocketService {
   Future<String?> Function()? get labudaTokenProviderForTest => _labudaTokenProvider;
   int get connectGenerationForTest => _connectGeneration;
 
+  // STABLE STREAM CONTRACT (Phase 4.1):
+  //
+  // `_messageController` and `_stateController` are created ONCE for the
+  // lifetime of this service instance and are NEVER replaced by
+  // connect/reconnect/disconnect. Consumers (chat repository, notification
+  // realtime sync) hold a single subscription for the session; reconnect
+  // only swaps the TRANSPORT channel feeding these controllers, so it is
+  // fully transparent to them. Replacement here was the proven root cause of
+  // consumers going silent after every reconnect (runtime proof: Phase 4.1).
+  //
+  // Ownership of closing: ONLY `dispose()` may close these controllers.
+  // `disconnect()` (logout) tears down the transport but keeps the streams
+  // alive so a later login on the same service instance reuses the SAME
+  // streams.
   Future<void> connect(String authToken) async {
     if (_isConnecting || isConnected) return;
 
@@ -84,8 +98,9 @@ class WebSocketService {
         headers: {'Authorization': 'Bearer $authToken'},
       );
 
-      _messageController = StreamController<WebSocketMessage>.broadcast();
-      _stateController = StreamController<ConnectionState>.broadcast();
+      // Create-once: a reconnect must not orphan existing consumers.
+      _messageController ??= StreamController<WebSocketMessage>.broadcast();
+      _stateController ??= StreamController<ConnectionState>.broadcast();
 
       _channel!.stream.listen(
         _handleMessage,
@@ -457,10 +472,10 @@ class WebSocketService {
   /// Test-only seam to construct the message controller without
   /// opening a real WebSocket. Required before driving
   /// [handleMessageForTest] so the controller can `addError` on parse
-  /// failures.
+  /// failures. Create-once like the production lifecycle — never replaces
+  /// an existing stream.
   void primeMessageControllerForTest() {
-    _messageController?.close();
-    _messageController = StreamController<WebSocketMessage>.broadcast();
+    _messageController ??= StreamController<WebSocketMessage>.broadcast();
   }
 
   /// Test-only seam to drive [_handleMessage] directly with a raw
@@ -468,6 +483,12 @@ class WebSocketService {
   /// error rather than being silently swallowed.
   void handleMessageForTest(dynamic frame) => _handleMessage(frame);
 
+  /// Tears down the transport WITHOUT closing the stable streams.
+  ///
+  /// Logout semantics: kill the connection, cancel timers, clear session
+  /// bookkeeping — but keep `messages`/`connectionState` alive so a later
+  /// login on this same service instance reuses the SAME streams and every
+  /// existing consumer subscription stays valid (reconnect transparency).
   Future<void> disconnect() async {
     // Phase 5: bump generation to invalidate any in-flight handshake and
     // prevent stale reconnect (reconnect resolves fresh tokens via the
@@ -482,12 +503,6 @@ class WebSocketService {
     await _channel?.sink.close(status.goingAway);
     _channel = null;
 
-    await _messageController?.close();
-    _messageController = null;
-
-    await _stateController?.close();
-    _stateController = null;
-
     _reconnectAttempts = 0;
     // _state already disconnected but ensure controller handles closed state gracefully.
     try {
@@ -496,4 +511,30 @@ class WebSocketService {
     developer.log('WebSocket disconnected', name: 'WebSocketService');
   }
 
+  /// Permanently finishes this service instance: no further reconnects and
+  /// the stable streams are CLOSED (this is the ONLY place that closes them).
+  /// After dispose, consumers receive no further events and [messages]
+  /// degrades to an empty stream.
+  Future<void> dispose() async {
+    _connectGeneration++;
+    _isConnecting = false;
+    _reconnectTimer?.cancel();
+    _pingTimer?.cancel();
+    _subscribedRooms.clear();
+    _pendingAcks.clear();
+
+    await _channel?.sink.close(status.goingAway);
+    _channel = null;
+
+    final messageController = _messageController;
+    _messageController = null;
+    await messageController?.close();
+
+    final stateController = _stateController;
+    _stateController = null;
+    await stateController?.close();
+
+    _reconnectAttempts = 0;
+    developer.log('WebSocket service disposed', name: 'WebSocketService');
+  }
 }

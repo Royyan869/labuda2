@@ -170,9 +170,6 @@ class SellerState extends Equatable {
     return const SellerState.pendingActivation();
   }
 
-  /// Check if user can create forSales/auctions
-  bool get canCreateContent => type == SellerStateType.active;
-
   /// Check if user is a seller (active, expired, or awaiting activation)
   bool get isSeller =>
       type == SellerStateType.active ||
@@ -242,9 +239,6 @@ class SellerState extends Equatable {
 extension SellerStateExtension on SellerState {
   /// True if NOT_SELLER state
   bool get isNotSeller => type == SellerStateType.notSeller;
-
-  /// True if ACTIVE state
-  bool get canSell => type == SellerStateType.active;
 
   /// True if EXPIRED state
   bool get needsRenewal => type == SellerStateType.expired;

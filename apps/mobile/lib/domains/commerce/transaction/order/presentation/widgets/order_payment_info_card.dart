@@ -14,28 +14,107 @@ class OrderPaymentInfoCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(
-                Icons.payment_outlined,
-                size: AppIconSize.action,
-                color: _getPaymentStatusColor(context, colorScheme),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'Info Pembayaran',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const Spacer(),
-              // No verdict on the payment row: claim no payment state at all.
-              if (order.paymentStatus != null)
-                _PaymentStatusBadge(
-                  status: order.paymentStatus!,
-                  colorScheme: colorScheme,
-                ),
-            ],
+          // F5 header (adaptive): title + status badge share one row when the
+          // single-line pair fits the incoming width, else the title stacks
+          // over the fully-readable badge. The title is compressible chrome
+          // (ellipsis); the badge carries business meaning and is never
+          // truncated. Same fit-measure as the F2 pricing rows (same library).
+          LayoutBuilder(
+            builder: (BuildContext context, BoxConstraints constraints) {
+              final String? badgeLabel = order.paymentStatus == null
+                  ? null
+                  : _PaymentStatusBadge.labelOf(order.paymentStatus!);
+              final TextStyle? titleStyle = theme.textTheme.titleMedium
+                  ?.copyWith(fontWeight: FontWeight.w600);
+              final TextStyle badgeStyle = context.typeRoles.labelMicro
+                  .copyWith(fontWeight: FontWeight.w600);
+              final bool fits =
+                  badgeLabel == null ||
+                  _fitsOrderLabelValueSingleLine(
+                    context: context,
+                    maxWidth: constraints.maxWidth,
+                    label: 'Info Pembayaran',
+                    value: badgeLabel,
+                    labelStyle: titleStyle,
+                    valueStyle: badgeStyle,
+                    fixedExtrasWidth:
+                        AppIconSize.action +
+                        8 +
+                        8 +
+                        core.AppMetrics.p12 * 2,
+                  );
+              if (badgeLabel == null) {
+                // No status, no badge: title alone always owns a bounded
+                // slot (a bare title can itself exceed narrow widths at
+                // large text scales).
+                return Row(
+                  children: [
+                    Icon(
+                      Icons.payment_outlined,
+                      size: AppIconSize.action,
+                      color: _getPaymentStatusColor(context, colorScheme),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Info Pembayaran',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                );
+              }
+              if (fits) {
+                return Row(
+                  children: [
+                    Icon(
+                      Icons.payment_outlined,
+                      size: AppIconSize.action,
+                      color: _getPaymentStatusColor(context, colorScheme),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Info Pembayaran',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const Spacer(),
+                    // No verdict on the payment row: claim no payment state
+                    // at all.
+                    if (order.paymentStatus != null)
+                      _PaymentStatusBadge(
+                        status: order.paymentStatus!,
+                        colorScheme: colorScheme,
+                      ),
+                  ],
+                );
+              }
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Info Pembayaran',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (order.paymentStatus != null) ...[
+                    const SizedBox(height: 4),
+                    _PaymentStatusBadge(
+                      status: order.paymentStatus!,
+                      colorScheme: colorScheme,
+                    ),
+                  ],
+                ],
+              );
+            },
           ),
           const SizedBox(height: 16),
           // Payment method — canonical bound code (backend payment_method_code).
@@ -113,33 +192,86 @@ class _PaymentInfoRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final TextStyle? labelStyle = theme.textTheme.bodyMedium?.copyWith(
+      color: colorScheme.onSurfaceVariant,
+    );
+    final TextStyle? valueStyle = theme.textTheme.bodyMedium?.copyWith(
+      color: valueColor ?? colorScheme.onSurface,
+      fontWeight: isBold ? FontWeight.w700 : FontWeight.w600,
+    );
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (leading != null) ...[
-              leading!,
-              const SizedBox(width: 6),
-            ],
-            Text(
-              label,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: colorScheme.onSurfaceVariant,
+    // F2 canonical composition (see _PricingRow): horizontal when the
+    // single-line content provably fits, vertical label-over-value otherwise.
+    // The leading logo is bounded by its own maxWidth (96); its reserve is a
+    // property of that visual, not a content width hack.
+    const double gapWidth = 12;
+    const double leadingGapWidth = 6;
+    const double leadingReserveWidth = 96;
+    final double fixedExtrasWidth =
+        gapWidth + (leading != null ? leadingReserveWidth + leadingGapWidth : 0);
+
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        final bool fits = _fitsOrderLabelValueSingleLine(
+          context: context,
+          maxWidth: constraints.maxWidth,
+          label: label,
+          value: value,
+          labelStyle: labelStyle,
+          valueStyle: valueStyle,
+          fixedExtrasWidth: fixedExtrasWidth,
+        );
+        if (fits) {
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (leading != null) ...[
+                leading!,
+                const SizedBox(width: leadingGapWidth),
+              ],
+              Expanded(
+                child: Text(
+                  label,
+                  style: labelStyle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
+              const SizedBox(width: gapWidth),
+              Flexible(
+                child: Text(
+                  value,
+                  style: valueStyle,
+                  textAlign: TextAlign.end,
+                  // NEVER ellipsis here: the Total value is monetary and must
+                  // remain fully visible. softWrap is a layout backstop only.
+                  softWrap: true,
+                ),
+              ),
+            ],
+          );
+        }
+        // Canonical vertical fallback: label (with logo) over value.
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (leading != null) ...[
+                  leading!,
+                  const SizedBox(width: leadingGapWidth),
+                ],
+                Flexible(
+                  child: Text(label, style: labelStyle, softWrap: true),
+                ),
+              ],
             ),
+            const SizedBox(height: 4),
+            Text(value, style: valueStyle, softWrap: true),
           ],
-        ),
-        Text(
-          value,
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: valueColor ?? colorScheme.onSurface,
-            fontWeight: isBold ? FontWeight.w700 : FontWeight.w600,
-          ),
-        ),
-      ],
+        );
+      },
     );
   }
 }
@@ -170,6 +302,7 @@ class _PaymentStatusBadge extends StatelessWidget {
           color: _getBadgeColor(context),
           fontWeight: FontWeight.w600,
         ),
+        softWrap: true,
       ),
     );
   }
@@ -191,7 +324,11 @@ class _PaymentStatusBadge extends StatelessWidget {
     }
   }
 
-  String _getBadgeLabel() {
+  String _getBadgeLabel() => labelOf(status);
+
+  /// Canonical badge copy for one payment status. Static so the F5 header
+  /// fit-measure reads the same strings the badge renders (single source).
+  static String labelOf(PaymentStatus status) {
     switch (status) {
       case PaymentStatus.paid:
         return 'LUNAS';

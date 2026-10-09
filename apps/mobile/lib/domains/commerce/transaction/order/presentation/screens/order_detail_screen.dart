@@ -879,13 +879,23 @@ class _OrderPreparationSection extends StatelessWidget {
                   : colorScheme.onSurfaceVariant,
             ),
             const SizedBox(width: 6),
-            Text(
-              label,
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: isPrimary
-                    ? colorScheme.onError
-                    : colorScheme.onSurfaceVariant,
+            // F9(b): the label wraps instead of overflowing when the
+            // half-row cannot host icon + single-line text. Flexible-loose
+            // hugs intrinsic width, so fitting compositions render exactly
+            // as before; constrained ones grow vertically (the Container
+            // carries padding, no fixed height) instead of clipping.
+            // Labels stay complete — never truncated, never shortened.
+            Flexible(
+              child: Text(
+                label,
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: isPrimary
+                      ? colorScheme.onError
+                      : colorScheme.onSurfaceVariant,
+                ),
+                softWrap: true,
+                textAlign: TextAlign.center,
               ),
             ),
           ],

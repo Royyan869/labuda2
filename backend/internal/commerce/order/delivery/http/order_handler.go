@@ -250,12 +250,15 @@ func (h *OrderHandler) GetOrder(c *gin.Context) {
 		buyerName, buyerAvatar, sellerAvatar string
 		// Additive convergence identity fields (strict separation).
 		buyerUsername, sellerUsername, sellerFarmName, sellerAvatarURL string
-		// paymentStatus/paymentID/paymentExpiredAt track the latest/active
-		// payment for this order. Nil when no payment row exists (normal for
-		// orders in pending_payment state before the buyer initiates payment).
-		paymentStatus    *string
-		paymentID        *uuid.UUID
-		paymentExpiredAt *time.Time
+		// paymentStatus/paymentID track the latest/active payment for this
+		// order. Nil when no payment row exists (normal for orders in
+		// pending_payment state before the buyer initiates payment).
+		paymentStatus *string
+		paymentID     *uuid.UUID
+		// escrowStatus is the LIVE status of the canonical escrow row (escrows
+		// table — sole escrow authority). Nil when the order has no escrow row
+		// (unpaid orders never have one).
+		escrowStatus *string
 	)
 	// C1B: Query active refund state for decision builder.
 	var hasActiveRefund bool
@@ -368,16 +371,15 @@ func (h *OrderHandler) GetOrder(c *gin.Context) {
 			return fmt.Errorf("failed to fetch order items: %w", err)
 		}
 
-		// Fetch payment status, ID, and expiry for this order.
+		// Fetch payment status and ID for this order.
 		// Priority: settlement(1) > capture(2) > pending(3) > others(4).
 		// No row = no payment yet (normal for pending_payment orders).
-		// expired_at is threaded into the decision builder so the buyer CTA
-		// can distinguish an active pending payment from one whose window
-		// has lapsed (see selectPayActionLabelKey).
+		// The pay CTA's window gate reads orders.payment_expires_at (the
+		// canonical expiry source on the order entity) — NOT the payment
+		// row's expired_at, which is a copy and no longer threaded here.
 		var psIDStr, psStr string
-		var psExpiredAt time.Time
 		psErr := tx.QueryRow(ctx, `
-			SELECT id::text, status::text, expired_at
+			SELECT id::text, status::text
 			FROM payments
 			WHERE reference_type = 'order'
 			  AND reference_id = $1
@@ -390,15 +392,25 @@ func (h *OrderHandler) GetOrder(c *gin.Context) {
 			  END ASC,
 			  created_at DESC
 			LIMIT 1
-		`, orderID).Scan(&psIDStr, &psStr, &psExpiredAt)
+		`, orderID).Scan(&psIDStr, &psStr)
 		if psErr == nil {
 			paymentStatus = &psStr
-			paymentExpiredAt = &psExpiredAt
 			if pid, parseErr := uuid.Parse(psIDStr); parseErr == nil {
 				paymentID = &pid
 			}
 		}
-		// psErr non-nil = no payment row; leave paymentStatus/paymentID/paymentExpiredAt nil.
+		// psErr non-nil = no payment row; leave paymentStatus/paymentID nil.
+
+		// Fetch the LIVE escrow row status (canonical escrow authority).
+		// No row = order has no escrow (unpaid) — the field stays nil and the
+		// wire key is omitted.
+		var escrowStatusStr string
+		escrowErr := tx.QueryRow(ctx, `
+			SELECT status::text FROM escrows WHERE order_id = $1
+		`, orderID).Scan(&escrowStatusStr)
+		if escrowErr == nil {
+			escrowStatus = &escrowStatusStr
+		}
 
 		return nil
 	})
@@ -422,7 +434,7 @@ func (h *OrderHandler) GetOrder(c *gin.Context) {
 		hasActiveRefund, activeRefundStatus,
 		paymentStatus,
 		paymentID,
-		paymentExpiredAt,
+		escrowStatus,
 	)
 
 	response.Success(c, orderResp)
@@ -904,7 +916,12 @@ type CreateOrderRequest struct {
 	// binds the resulting service_fee_amount / total_payable_amount onto the
 	// order. POST /payments later rejects a method whose fee differs from the
 	// bound amount, so the pre-order total cannot silently change.
-	PaymentMethodCode string `json:"payment_method_code" binding:"required"`
+	//
+	// REQUIRED for for_sale and auction buy-now (bound at creation). MUST BE
+	// OMITTED for auction bid-win: Owner canonical — the winner chooses the
+	// payment method at Order Detail, and the first POST /payments binds it
+	// (orders.payment_method_code stays NULL until then).
+	PaymentMethodCode string `json:"payment_method_code"`
 
 	// UseCoins is the buyer's coin-redemption intent at Order creation. It is
 	// the ONE order-time representation of coin intent. The backend computes the
@@ -922,7 +939,10 @@ type CreateOrderRequest struct {
 // Creates an order from various source types using a unified interface:
 // - "for_sale": Direct purchase from a fixed-price sale
 // - "negotiation": Purchase from an accepted negotiation
-// - "auction": Purchase from an auction (buy-now or winner claim)
+// - "auction": Buy-now (active auction) OR bid-win (winner completing the
+//   shared Checkout within the settlement window; created WITHOUT a payment
+//   method — the winner picks one at Order Detail and the first POST /payments
+//   binds it)
 //
 // Request body:
 // - source_type: "for_sale" or "auction"
@@ -1104,14 +1124,10 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 		// This snapshot is the ONLY source of truth for order pricing
 		pricingSnapshot = buildPricingSnapshotFromToken(validatedToken)
 
-		// Step 2.5: BIND THE BUYER'S PRE-ORDER PAYMENT METHOD (Phase 2).
-		// The buyer chose a method (and saw its fee) BEFORE this order. The
-		// backend recomputes F from the canonical method authority on the cash
-		// base and folds the agreed final amount into the snapshot the order
-		// persists. The client never submits a fee or total.
-		if err := h.applySelectedPaymentMethod(ctx, tx, req.PaymentMethodCode, validatedToken, coinsToUse, pricingSnapshot); err != nil {
-			return err
-		}
+		// Step 2.5 is deferred to each settlement branch below: the payment
+		// method rule is settlement-specific (required + bound for for_sale and
+		// auction buy-now; must be omitted for auction bid-win, whose method is
+		// chosen at Order Detail and bound by the first POST /payments).
 
 		// N8-B defense-in-depth: fail fast if token↔request negotiation binding mismatched
 		// Canonical enforcement remains in OrderCreationService after rows are locked.
@@ -1125,6 +1141,15 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 
 		switch sourceType {
 		case orderEntity.OrderSourceForSale:
+			// Step 2.5 (for_sale): BIND THE BUYER'S PRE-ORDER PAYMENT METHOD.
+			// The buyer chose a method (and saw its fee) BEFORE this order. The
+			// backend recomputes F from the canonical method authority on the cash
+			// base and folds the agreed final amount into the snapshot the order
+			// persists. The client never submits a fee or total.
+			if err := h.applySelectedPaymentMethod(ctx, tx, req.PaymentMethodCode, validatedToken, coinsToUse, pricingSnapshot); err != nil {
+				return err
+			}
+
 			// Step 3: Prepare input with pricing snapshot
 			// CRITICAL: Quantity comes from token, NOT from request
 			// Frontend cannot manipulate quantity or pricing
@@ -1160,13 +1185,99 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 			}
 
 			if auction.OrderID != nil {
-				return fmt.Errorf("auction already settled: order_id=%s", *auction.OrderID)
+				return fmt.Errorf("%w: order_id=%s", auctionEntity.ErrAlreadySettled, *auction.OrderID)
 			}
+
+			// SETTLEMENT TYPE IS THE AUCTION'S, never the client's: buy-now is an
+			// active auction with a buy-now price; bid-win is an ended /
+			// waiting_settlement auction that has a winner.
+			isBidWin := (auction.Status == auctionEntity.StatusEnded ||
+				auction.Status == auctionEntity.StatusWaitingSettlement) && auction.HasWinner()
+
+			if isBidWin {
+				// ============================================================
+				// BID-WIN (winner checkout via the shared Checkout surface)
+				// ============================================================
+				// Owner canonical: the winner chooses the payment method at
+				// Order Detail, so the order is created UNBOUND.
+				if req.PaymentMethodCode != "" {
+					return fmt.Errorf("payment_method_code must be omitted for auction bid-win orders")
+				}
+				if auction.WinnerID() == nil || *auction.WinnerID() != userID {
+					return auctionEntity.ErrNotWinner
+				}
+				// Auction settlement window (end_at + 24h): the winner must
+				// complete checkout inside it. Authoritative re-check under the
+				// FOR UPDATE lock — the pricing-preview check is advisory only.
+				if auction.SettlementDeadlinePassed(time.Now()) {
+					return auctionEntity.ErrSettlementDeadlinePassed
+				}
+				winningBid := auction.WinningBid()
+				if winningBid == nil {
+					return fmt.Errorf("auction has no winning bid amount")
+				}
+				if validatedToken.UnitPrice.Int64() != *winningBid {
+					return fmt.Errorf("auction winning bid changed after preview: preview=%d current=%d", validatedToken.UnitPrice.Int64(), *winningBid)
+				}
+
+				// SHIPPING PREREQUISITE: resolve the buyer's shipping decision
+				// (first-resolution-wins). This anchors the Order payment window
+				// (shipping_resolved_at + 24h) and silences the Auction settlement
+				// worker, which only considers auctions with shipping_resolved_at
+				// IS NULL. A pre-resolved auction keeps its original anchor.
+				if auction.ShippingResolvedAt == nil {
+					if err := auction.ResolveShipping(time.Now()); err != nil {
+						return fmt.Errorf("shipping resolution failed: %w", err)
+					}
+				}
+
+				order, err = h.orderService.CreateFromAuction(ctx, tx, orderApp.CreateFromAuctionInput{
+					AuctionID:             auction.ID,
+					AuctionSellerID:       auction.SellerID,
+					ProductID:             productID,
+					BuyerID:               userID,
+					WinningBid:            *winningBid,
+					AddressID:             addressID,
+					ShippingSetupID:       shippingSetupID,
+					ProvinceCode:          req.ProvinceCode,
+					CityCode:              req.CityCode,
+					DiscountCode:          nil, // Discount is folded into the pricing token at preview
+					AuctionSettlementType: orderEntity.AuctionSettlementBidWin,
+					PricingSnapshot:       pricingSnapshot,
+					IdempotencyKey:        &idempotencyKey,
+					// Nil: the winner's method is chosen at Order Detail; the
+					// first POST /payments binds it (orders.payment_method_code).
+					PaymentMethodCode: nil,
+					// Payment window anchor: set by ResolveShipping above in this
+					// same transaction (or the pre-existing resolution).
+					ShippingResolvedAt: *auction.ShippingResolvedAt,
+				})
+				if err != nil {
+					return err
+				}
+
+				// Bind the order in the SAME transaction. The auction STAYS in
+				// waiting_settlement — payment success settles it to ended
+				// (settleAuctionOnPaymentSuccess); payment expiry auto-reschedules
+				// it with this binding released (releaseAuctionOrderBinding).
+				auction.OrderID = &order.ID
+				if err := h.auctionRepo.UpdateTx(ctx, tx, auction); err != nil {
+					return fmt.Errorf("failed to persist auction settlement: %w", err)
+				}
+				break
+			}
+
 			if auction.Status != auctionEntity.StatusActive || auction.BuyNowPrice == nil {
-				return fmt.Errorf("auction is not available for buy now checkout: status=%s", auction.Status)
+				return fmt.Errorf("auction is not available for checkout: status=%s", auction.Status)
 			}
 			if auction.BuyNowPrice != nil && validatedToken.UnitPrice.Int64() != *auction.BuyNowPrice {
 				return fmt.Errorf("auction price changed after preview: preview=%d current=%d", validatedToken.UnitPrice.Int64(), *auction.BuyNowPrice)
+			}
+
+			// Step 2.5 (buy-now): the buyer chose a method BEFORE this order —
+			// same binding rule as for_sale.
+			if err := h.applySelectedPaymentMethod(ctx, tx, req.PaymentMethodCode, validatedToken, coinsToUse, pricingSnapshot); err != nil {
+				return err
 			}
 
 			order, err = h.orderService.CreateFromAuction(ctx, tx, orderApp.CreateFromAuctionInput{
@@ -1193,8 +1304,7 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 			// transaction as order creation. Without this, the auction row
 			// is never updated — it stays order_id=NULL, status=active — so
 			// a second buyer could buy-now or bid on the same unique item
-			// again. This mirrors what the dedicated /auctions/:id/claim
-			// handler already does for bid-win settlement.
+			// again.
 			auction.OrderID = &order.ID
 			if err := auction.End(); err != nil {
 				return fmt.Errorf("failed to settle auction after buy-now: %w", err)
@@ -1285,6 +1395,33 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 		if errors.Is(err, shippingApp.ErrShippingSetupUnavailable) {
 			response.Error(c, 400, "SHIPPING_OPTION_UNAVAILABLE",
 				"Produk ini di luar area pengiriman untuk alamat Anda.")
+			return
+		}
+
+		// Auction bid-win settlement guards (authoritative re-checks under the
+		// auction row lock): machine-readable codes so the shared Checkout can
+		// present the canonical auction-unavailable UX.
+		if errors.Is(err, auctionEntity.ErrNotWinner) {
+			response.Forbidden(c, "Caller is not the auction winner")
+			return
+		}
+		if errors.Is(err, auctionEntity.ErrSettlementDeadlinePassed) {
+			response.Error(c, 410, "AUCTION_SETTLEMENT_DEADLINE_PASSED",
+				"Batas waktu penyelesaian lelang telah berakhir.")
+			return
+		}
+		if errors.Is(err, auctionEntity.ErrAlreadySettled) {
+			response.Error(c, 409, "AUCTION_ALREADY_SETTLED",
+				"Lelang ini sudah diselesaikan.")
+			return
+		}
+		if strings.Contains(err.Error(), "auction is not available for checkout") {
+			response.Error(c, 409, "AUCTION_UNAVAILABLE",
+				"Lelang ini tidak tersedia untuk checkout.")
+			return
+		}
+		if strings.Contains(err.Error(), "payment_method_code must be omitted") {
+			response.BadRequest(c, "Bid-win orders are created without a payment method; choose one when paying from the order")
 			return
 		}
 
@@ -1438,23 +1575,25 @@ func (h *OrderHandler) CompleteOrder(c *gin.Context) {
 		return
 	}
 
-	// HARDENING: Safety check - verify EscrowStatus is consistent
-	// After order completion, EscrowStatus should be "released"
-	// If not, log warning but return value anyway (resilience over correctness)
-	if updatedOrder.EscrowStatus != orderEntity.EscrowStatusReleased {
-		h.log.Warn("Order completed but EscrowStatus is not 'released' - possible staleness",
-			zap.String("order_id", updatedOrder.ID.String()),
-			zap.String("status", string(updatedOrder.Status)),
-			zap.String("escrow_status", string(updatedOrder.EscrowStatus)),
-			zap.String("expected_escrow_status", string(orderEntity.EscrowStatusReleased)),
-		)
+	// CANONICAL ESCROW VERIFICATION: after completion, the escrow row (sole
+	// authority) must be released — the release happened inside the same
+	// completion transaction. Log a warning if not (resilience over crash).
+	var completedEscrowStatus string
+	if err := h.db.Pool().QueryRow(ctx, `SELECT status::text FROM escrows WHERE order_id = $1`, orderID).Scan(&completedEscrowStatus); err == nil {
+		if completedEscrowStatus != "released" {
+			h.log.Warn("Order completed but escrow row is not 'released' - investigate",
+				zap.String("order_id", updatedOrder.ID.String()),
+				zap.String("status", string(updatedOrder.Status)),
+				zap.String("escrow_row_status", completedEscrowStatus),
+			)
+		}
 	}
 
 	// Return updated order with relevant fields
 	response.Success(c, gin.H{
 		"id":            updatedOrder.ID,
 		"status":        updatedOrder.Status,
-		"escrow_status": updatedOrder.EscrowStatus,
+		"escrow_status": completedEscrowStatus,
 		"completed_at":  updatedOrder.CompletedAt,
 	})
 }

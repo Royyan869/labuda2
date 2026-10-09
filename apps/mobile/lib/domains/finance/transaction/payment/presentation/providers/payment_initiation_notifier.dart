@@ -203,6 +203,13 @@ class PaymentInitiationNotifier extends _$PaymentInitiationNotifier {
   /// derived by grepping the error text for 'network' / 'expired', so those
   /// branches could only fire by accident.
   String _getUserFriendlyErrorMessage(String? code, String message) {
+    if (code == core.gone) {
+      // Backend 410 GONE — the order's payment window has closed
+      // (CreatePayment guard). Never surface the raw English backend
+      // message; the business outcome is "order a new one".
+      return 'Batas waktu pembayaran pesanan ini telah berakhir. '
+          'Silakan buat pesanan baru.';
+    }
     if (code == core.invalidPaymentStatus) {
       return 'Pembayaran tidak bisa diproses pada status saat ini. '
           'Silakan muat ulang status pembayaran.';

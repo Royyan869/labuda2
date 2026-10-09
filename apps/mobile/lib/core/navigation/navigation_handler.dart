@@ -58,7 +58,8 @@ abstract class NavigationHandler {
   // Commerce Navigation
   void navigateToAuction(String auctionId);
   void
-  navigateToSavedItems(); // Navigate to saved items (shortlist + auction watch) screen
+  navigateToSavedItems(); // Navigate to saved items (for_sale + auction) screen
+  void navigateToMyBids();
   void navigateToOrders(); // Navigate to order list screen
   void navigateToOrderDetail(String orderId); // Navigate to specific order
 

@@ -1,4 +1,4 @@
-package response
+﻿package response
 
 import (
 	"errors"
@@ -28,7 +28,7 @@ func TestMapErrorToResponse_CommerceRestricted(t *testing.T) {
 // mapping works even when ErrCommerceRestricted is wrapped with additional
 // context (the standard Go error wrapping pattern).
 func TestMapErrorToResponse_CommerceRestricted_WrappedError(t *testing.T) {
-	wrappedErr := errors.New("claim validation failed: %w")
+	wrappedErr := errors.New("bid-win settlement validation failed: %w")
 	_ = wrappedErr // Just demonstrating the concept; errors.Is handles wrapping
 
 	mapping := MapErrorToResponse(auth.ErrCommerceRestricted)

@@ -15,7 +15,6 @@ import 'package:labuda/domains/chat/chat/presentation/providers/chat_providers.d
 import 'package:labuda/domains/chat/chat/presentation/models/pending_commerce_attachment.dart';
 import 'package:labuda/domains/chat/chat/presentation/utils/commerce_chat_navigation.dart';
 import 'package:labuda/domains/commerce/negotiation/negotiation/presentation/providers/negotiation_providers.dart';
-import 'package:labuda/shared/governance/content_lifecycle.dart';
 import 'package:labuda/shared/shared.dart';
 import 'package:labuda/domains/social/share/share.dart';
 import 'package:labuda/domains/system/report/domain/entities/entities.dart';
@@ -77,6 +76,24 @@ class _ForSaleDetailScreenState extends ConsumerState<ForSaleDetailScreen> {
   }
 
   Widget _buildDetail(BuildContext context, ForSale forSale) {
+    // BUSINESS TRUTH (Owner): the author views their own listing WITHOUT a
+    // viewer-directed bottom surface. The bottom slot mirrors the surface
+    // exactly — NULL for the author, never a zero-height stand-in (a
+    // non-null slot makes the Scaffold strip the body's bottom system
+    // padding while reserving no region).
+    //
+    // ONE body law for both states: the body SafeArea below is
+    // unconditional. With a bar the framework strips the body's bottom
+    // padding (`removeBottomPadding: widget.bottomNavigationBar != null`
+    // in Scaffold) so the SafeArea contributes NOTHING and BottomActionBar
+    // owns the live system inset; with the slot null the SafeArea IS the
+    // sole bottom-inset authority. No `if author` layout branch, no fixed
+    // clearance, no manual inset arithmetic.
+    final authState = ref.watch(authControllerProvider);
+    final isOwner =
+        authState is AuthStateAuthenticated &&
+        forSale.sellerId == authState.user.id;
+
     return Scaffold(
       appBar: AppBarCustom(
         title: _title,
@@ -95,8 +112,8 @@ class _ForSaleDetailScreenState extends ConsumerState<ForSaleDetailScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   // Save button — non-owners only.
-                  if (!isOwner)
-                    CommerceSavedItemActionButton(
+                   if (!isOwner && forSale.status == ForSaleStatus.active)
+                     CommerceSavedItemActionButton(
                       targetType: 'for_sale',
                       targetId: forSale.forSaleId,
                       label: 'Simpan',
@@ -104,12 +121,12 @@ class _ForSaleDetailScreenState extends ConsumerState<ForSaleDetailScreen> {
                       icon: Icons.bookmark_border,
                       activeIcon: Icons.bookmark,
                     ),
-                  // Share button — all authenticated users can share a forSale to feed.
-                  IconButton(
-                    onPressed: () => _handleShareForSale(context, forSale),
-                    icon: const Icon(Icons.share_outlined),
-                    tooltip: 'Bagikan',
-                  ),
+                   if (forSale.status == ForSaleStatus.active)
+                     IconButton(
+                       onPressed: () => _handleShareForSale(context, forSale),
+                       icon: const Icon(Icons.share_outlined),
+                       tooltip: 'Bagikan',
+                     ),
                   // Report button — non-owners only.
                   if (!isOwner)
                     PopupMoreOptionsButton(
@@ -125,14 +142,15 @@ class _ForSaleDetailScreenState extends ConsumerState<ForSaleDetailScreen> {
         ],
       ),
       body: SafeArea(
-        bottom: false,
         child: RefreshIndicator(
           onRefresh: () async =>
               ref.invalidate(forSaleDetailProvider(widget.forSaleId)),
           child: _buildForSaleContent(context, forSale),
         ),
       ),
-      bottomNavigationBar: _ForSaleDetailActionBar(forSaleId: widget.forSaleId),
+      bottomNavigationBar: isOwner
+          ? null
+          : _ForSaleDetailActionBar(forSale: forSale),
     );
   }
 
@@ -308,10 +326,8 @@ class _ForSaleDetailTitle extends StatelessWidget {
   }
 }
 
-/// ForSale channel value block — the price/stock card that mirrors the
-/// Auction countdown block: the headline transaction value first, then the
-/// channel facts, in the canonical 16-margin [CommerceDetailSectionCard]
-/// frame.
+/// ForSale channel value block with canonical price, negotiation, and stock
+/// presentation.
 class _ForSalePriceSection extends StatelessWidget {
   final ForSale forSale;
 
@@ -332,109 +348,49 @@ class _ForSalePriceSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            forSale.formattedPrice,
-            style: theme.textTheme.headlineMedium?.copyWith(
-              color: colorScheme.primary,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppMetrics.p12,
-              vertical: AppMetrics.p8,
-            ),
-            decoration: BoxDecoration(
-              color: colorScheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(AppShape.r8),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.info_outline,
-                  size: AppIconSize.inlineGlyph,
-                  color: colorScheme.onSurfaceVariant,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    forSale.isNegotiable
-                        ? 'Beli langsung — penawaran bisa diajukan lewat chat'
-                        : 'Beli langsung — harga pas tanpa tawar',
-                    style: context.typeRoles.bodyDense.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                      fontStyle: FontStyle.italic,
-                    ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Text(
+                  forSale.formattedPrice,
+                  style: theme.textTheme.headlineMedium?.copyWith(
+                    color: colorScheme.primary,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
-          CommerceDetailLabelValue(
-            label: 'Stok',
-            value: forSale.stock > 0 ? '${forSale.stock} tersedia' : 'Habis',
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Shown in the bottom bar position when the seller's subscription is expired.
-/// Replaces the BuyNow button with a visible explanation so buyers understand
-/// why no transaction action is available, rather than seeing a blank bottom.
-class _SellerInactiveBanner extends StatelessWidget {
-  const _SellerInactiveBanner();
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppMetrics.p16,
-        vertical: AppMetrics.p12,
-      ),
-      decoration: BoxDecoration(
-        color: theme.scaffoldBackgroundColor,
-        border: Border(
-          top: BorderSide(color: theme.colorScheme.outlineVariant),
-        ),
-      ),
-      child: SafeArea(
-        child: Row(
-          children: [
-            Icon(
-              Icons.pause_circle_outline,
-              size: AppIconSize.action,
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Penjual tidak aktif',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: theme.colorScheme.onSurface,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Transaksi baru tidak tersedia untuk seller ini.',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
               ),
+              if (forSale.isNegotiable)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppMetrics.p8,
+                    vertical: AppMetrics.p4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: colorScheme.secondaryContainer,
+                    borderRadius: BorderRadius.circular(AppShape.r8),
+                  ),
+                  child: Text(
+                    'Nego',
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: colorScheme.onSecondaryContainer,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          if (forSale.stock == 0) ...[
+            const SizedBox(height: 12),
+            const CommerceDetailLabelValue(label: 'Status', value: 'Habis'),
+          ] else if (forSale.stock > 1) ...[
+            const SizedBox(height: 12),
+            CommerceDetailLabelValue(
+              label: 'Stok',
+              value: '${forSale.stock} tersedia',
             ),
           ],
-        ),
+        ],
       ),
     );
   }
@@ -447,79 +403,33 @@ class _SellerInactiveBanner extends StatelessWidget {
 /// can_chat / can_negotiate / can_buy. The bar no longer re-derives
 /// transaction permission from raw status/stock/seller-lifecycle locally.
 ///
-/// - Guest (Model B): affordances stay visible; any CTA routes to the
-///   canonical sign-in flow.
-/// - Owner: buyer action bar not applicable (owner actions live elsewhere).
-/// - Buyer: Chat/Nego/Buy Now per capability; the seller-trust axis alone
-///   renders the explanatory inactive banner (never the capability set — an
-///   all-false set also means the viewer identity never reached backend).
+/// - Guest or missing capability: no commerce action bar.
+/// - Owner: never mounted — the screen's `bottomNavigationBar` slot is NULL
+///   for the author.
+/// - Buyer: Chat/Nego/Buy Now per canonical capability.
 class _ForSaleDetailActionBar extends ConsumerWidget {
-  final String forSaleId;
+  final ForSale forSale;
 
-  const _ForSaleDetailActionBar({required this.forSaleId});
+  const _ForSaleDetailActionBar({required this.forSale});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authControllerProvider);
-    final forSaleAsync = ref.watch(forSaleDetailProvider(forSaleId));
-    final forSale = forSaleAsync.value;
-    if (forSale == null) return const SizedBox.shrink();
 
     final isAuthenticated = authState is AuthStateAuthenticated;
 
-    // Owner: buyer action bar not applicable.
-    if (isAuthenticated && forSale.sellerId == authState.user.id) {
+    final caps = forSale.viewerCapabilities;
+    if (!isAuthenticated || caps == null) {
       return const SizedBox.shrink();
     }
 
-    // Guest (Model B): affordances visible; the auth boundary redirects to
-    // the canonical login flow on tap. Nego/Buy affordance uses raw facts
-    // for PRESENTATION only (permission is never granted locally).
-    if (!isAuthenticated) {
-      return _ForSaleActionBar(
-        forSale: forSale,
-        guest: true,
-        canChat: true,
-        canNegotiate: forSale.isNegotiable,
-        canBuy: forSale.productId != null && forSale.stock > 0,
-        unavailable: false,
-      );
-    }
-
-    final caps = forSale.viewerCapabilities;
-
-    // SELLER-TRUST AXIS is the ONLY source of the "Penjual tidak aktif"
-    // banner. An all-false capability set is NOT: it also occurs when the
-    // viewer identity never reached the backend, and that must never be
-    // presented to the user as a seller problem.
-    if (forSale.sellerTrustLifecycle != ContentLifecycle.active) {
-      return const _SellerInactiveBanner();
-    }
-
-    // Caps carry at least one affordance → canonical capability-driven bar.
-    if (caps != null && (caps.canChat || caps.canNegotiate || caps.canBuy)) {
-      final unavailable = caps.canChat && !caps.canBuy && !caps.canNegotiate;
-      return _ForSaleActionBar(
-        forSale: forSale,
-        guest: false,
-        canChat: caps.canChat,
-        canNegotiate: caps.canNegotiate,
-        canBuy: caps.canBuy,
-        unavailable: unavailable,
-      );
-    }
-
-    // CAPS UNUSABLE — slot absent (non-detail payload) or all-false (viewer
-    // identity never reached the backend). NEVER render a blank bottom bar:
-    // fall back to the same presentation-only facts the guest branch uses.
-    // Permission stays server-side; the bar only promises an affordance.
+    final unavailable = caps.canChat && !caps.canBuy && !caps.canNegotiate;
     return _ForSaleActionBar(
       forSale: forSale,
-      guest: false,
-      canChat: true,
-      canNegotiate: forSale.isNegotiable,
-      canBuy: forSale.productId != null && forSale.stock > 0,
-      unavailable: false,
+      canChat: caps.canChat,
+      canNegotiate: caps.canNegotiate,
+      canBuy: caps.canBuy,
+      unavailable: unavailable,
     );
   }
 }
@@ -527,7 +437,6 @@ class _ForSaleDetailActionBar extends ConsumerWidget {
 /// Renders the buyer action row(s) from canonical capability facts.
 class _ForSaleActionBar extends ConsumerWidget {
   final ForSale forSale;
-  final bool guest;
   final bool canChat;
   final bool canNegotiate;
   final bool canBuy;
@@ -535,16 +444,11 @@ class _ForSaleActionBar extends ConsumerWidget {
 
   const _ForSaleActionBar({
     required this.forSale,
-    required this.guest,
     required this.canChat,
     required this.canNegotiate,
     required this.canBuy,
     required this.unavailable,
   });
-
-  void _requireLogin(BuildContext context) {
-    context.push(RoutePaths.signIn);
-  }
 
   Future<void> _openChat(BuildContext context, WidgetRef ref) async {
     await openCommerceChat(
@@ -572,10 +476,6 @@ class _ForSaleActionBar extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref,
   ) async {
-    if (guest) {
-      _requireLogin(context);
-      return;
-    }
     final sent = await NegotiationOfferSheet.show(
       context: context,
       productTitle: forSale.title,
@@ -614,10 +514,6 @@ class _ForSaleActionBar extends ConsumerWidget {
   }
 
   Future<void> _buyNow(BuildContext context, WidgetRef ref) async {
-    if (guest) {
-      _requireLogin(context);
-      return;
-    }
     // ONE FUNNEL: the commerce intent resolves the LIVE listing, enforces the
     // seller trust gate, resolves the physical product id and carries the deal
     // binding (viewer_negotiation_id → negotiation_id). The detail screen
@@ -671,7 +567,7 @@ class _ForSaleActionBar extends ConsumerWidget {
         if (canNegotiate)
           BottomBarIconAction(
             icon: Icons.handshake_outlined,
-            label: 'Nego',
+            label: 'Tawar',
             onPressed: () => _openNegotiationOffer(context, ref),
           ),
       ],

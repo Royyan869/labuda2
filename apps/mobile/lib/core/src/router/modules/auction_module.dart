@@ -5,6 +5,7 @@ import 'package:labuda/domains/commerce/catalog/auction/domain/domain.dart'
 import 'package:labuda/domains/commerce/catalog/auction/presentation/create_auction_route_contract.dart';
 import 'package:labuda/domains/commerce/catalog/auction/presentation/screens/create_auction_screen.dart';
 import 'package:labuda/domains/commerce/catalog/auction/presentation/screens/auction_detail_screen.dart';
+import 'package:labuda/domains/commerce/catalog/auction/presentation/screens/my_bids_screen.dart';
 import 'package:labuda/domains/commerce/catalog/auction/presentation/screens/seller_auction_edit_screen.dart'
     show SellerAuctionEditScreen;
 import 'package:labuda/domains/commerce/catalog/auction/presentation/screens/seller_auction_relist_screen.dart'
@@ -18,7 +19,7 @@ import 'base_module.dart';
 /// Handles all auction-related navigation including:
 /// - Auction creation
 /// - Auction detail screens
-/// - Bidding activity screen
+/// - My Bids screen (open user auctions: active + waiting_settlement)
 /// - Seller auction management (owner inventory, incl. relist)
 class AuctionModule extends BaseModule {
   @override
@@ -41,6 +42,12 @@ class AuctionModule extends BaseModule {
       ),
     ),
 
+    GoRoute(
+      path: RoutePaths.myBids,
+      name: RouteNames.myBids,
+      builder: (context, state) => const MyBidsScreen(),
+    ),
+
     // Auction detail route
     GoRoute(
       path: RoutePaths.auctionDetails,
@@ -56,12 +63,11 @@ class AuctionModule extends BaseModule {
     GoRoute(
       path: RoutePaths.sellerAuctions,
       name: RouteNames.sellerAuctions,
-      pageBuilder: (context, state) =>
-          MaterialPage(
-            key: state.pageKey,
-            name: RouteNames.sellerAuctions,
-            child: const SellerAuctionsScreen(),
-          ),
+      pageBuilder: (context, state) => MaterialPage(
+        key: state.pageKey,
+        name: RouteNames.sellerAuctions,
+        child: const SellerAuctionsScreen(),
+      ),
     ),
 
     // Owner-only auction forms. The path identifies the auction; the form

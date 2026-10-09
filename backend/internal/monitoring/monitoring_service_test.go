@@ -10,12 +10,18 @@ import (
 // TestCheckEscrowBalanceInvariant documents the escrow balance invariant check.
 func TestCheckEscrowBalanceInvariant(t *testing.T) {
 	t.Run("specification", func(t *testing.T) {
-		// SPECIFICATION: Escrow account balance must equal sum of all order
-		// escrow amounts where escrow_status = 'holding'
+		// SPECIFICATION: Escrow account balance must equal sum of all
+		// holding escrow rows in the canonical escrows table (sole authority;
+		// orders carry no escrow projection).
 		//
 		// SQL queries:
 		// 1. SELECT balance FROM financial_accounts WHERE account_type = 'escrow'
-		// 2. SELECT SUM(escrow_amount) FROM orders WHERE escrow_status = 'holding'
+		// 2. SELECT COALESCE(SUM(amount), 0) FROM escrows WHERE status = 'holding'
+		//
+		// Shipped-order stuck detection uses an EXISTS subquery, not an
+		// orders.escrow_status predicate:
+		// WHERE o.status = 'shipped' AND o.auto_release_at < NOW()
+		//   AND EXISTS (SELECT 1 FROM escrows e WHERE e.order_id = o.id AND e.status = 'holding')
 	})
 }
 
@@ -66,12 +72,12 @@ func TestCheckDuplicateEscrowReleases(t *testing.T) {
 	t.Run("specification", func(t *testing.T) {
 		// SPECIFICATION: No order should have escrow released multiple times
 		//
-		// SQL query:
+		// SQL query (escrow state lives in the canonical escrows table):
 		// SELECT o.id, COUNT(le.id) as credit_count
 		// FROM orders o
+		// INNER JOIN escrows e ON e.order_id = o.id AND e.status = 'released'
 		// INNER JOIN financial_accounts fa ON fa.user_id = o.seller_id AND fa.account_type = 'SELLER_PAYABLE'
 		// INNER JOIN ledger_entries le ON le.account_id = fa.id AND le.entry_type = 'credit'
-		// WHERE o.escrow_status = 'released'
 		// GROUP BY o.id
 		// HAVING COUNT(le.id) > 1
 	})

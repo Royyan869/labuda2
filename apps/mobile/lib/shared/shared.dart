@@ -63,8 +63,6 @@ export 'payment/payment_method_logo.dart'; // ⭐ THE canonical payment-method l
 export 'widgets/avatar_editor_widget.dart'; // ⭐ Avatar editor
 export 'widgets/app_dialog.dart'; // ⭐ THE dialog authority (confirm/info)
 export 'widgets/app_bottom_sheet.dart'; // ⭐ Professional bottom sheets
-// export 'widgets/upload_post_bottom_sheet.dart'; // ✅ Moved to respective feature modules
-// export 'widgets/upload_request_bottom_sheet.dart'; // ✅ Moved to respective feature modules
 // export 'widgets/media_picker_modal.dart';     // ⭐ Professional media picker
 // export 'widgets/user_selection_modal.dart';   // ⭐ User selection with search
 // export 'widgets/creation_modals.dart'; // ✅ Removed - creation module deleted
@@ -88,7 +86,7 @@ export 'widgets/metadata_view.dart'; // ⭐ THE Metadata horizontal composition 
 export 'widgets/clickable_location_widget.dart'; // ⭐ Clickable location widget that opens Google Maps
 export 'widgets/coordinate_preview_modal.dart'; // ⭐ Coordinate preview modal with Edit & View Maps options
 // PURGED: permission_guard.dart — zero consumers; router redirect is the guard authority
- // ⭐ Auth & Role guard widgets
+// ⭐ Auth & Role guard widgets
 export 'widgets/blocked_user_banner.dart'; // ⭐ Blocked user banner widget
 export 'widgets/external_link_interstitial.dart'; // ⭐ External link safety interstitial
 
@@ -116,7 +114,6 @@ export 'src/widgets/upload_task_utils.dart'; // ⭐ Upload task utilities
 export 'widgets/empty_state.dart'; // ⭐ Reusable empty state component (canonical; EmptyStateWidget purged)
 // export 'widgets/common_text_field.dart';    // ✅ Removed - use AppTextField
 // export 'widgets/image_picker_widget.dart';
-// export 'widgets/bottom_sheet_widget.dart';
 
 // Model exports
 export 'models/wilayah_models.dart'; // ⭐ Wilayah models

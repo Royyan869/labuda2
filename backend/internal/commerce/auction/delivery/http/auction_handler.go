@@ -3,7 +3,6 @@ package http
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -16,8 +15,6 @@ import (
 	"github.com/labuda/backend/internal/commerce/auction/entity"
 	forSaleEntity "github.com/labuda/backend/internal/commerce/forsale/entity"
 	mediarequest "github.com/labuda/backend/internal/commerce/media/request"
-	orderApp "github.com/labuda/backend/internal/commerce/order/application"
-	orderEntity "github.com/labuda/backend/internal/commerce/order/entity"
 	productEntity "github.com/labuda/backend/internal/commerce/product/entity"
 	productRepo "github.com/labuda/backend/internal/commerce/product/repository"
 	productviewEntity "github.com/labuda/backend/internal/commerce/productview/entity"
@@ -25,16 +22,13 @@ import (
 	commerceshared "github.com/labuda/backend/internal/commerce/shared"
 	shippingApp "github.com/labuda/backend/internal/commerce/shipping/application"
 	"github.com/labuda/backend/internal/governance/viewercontext"
-	addressEntity "github.com/labuda/backend/internal/identity/address/entity"
 	"github.com/labuda/backend/internal/identity/auth"
-	coinsapp "github.com/labuda/backend/internal/incentive/coins/application"
 	"github.com/labuda/backend/internal/middleware"
 	"github.com/labuda/backend/internal/pkg/blockcheck"
 	"github.com/labuda/backend/internal/pkg/publiccard"
 	"github.com/labuda/backend/internal/pkg/sellerdisplay"
 	"github.com/labuda/backend/internal/platform/response"
 	pricingtokenapp "github.com/labuda/backend/internal/pricing/token/application"
-	pricingtokenentity "github.com/labuda/backend/internal/pricing/token/entity"
 	"github.com/labuda/backend/pkg/db"
 	"go.uber.org/zap"
 )
@@ -44,20 +38,11 @@ type AuctionHandler struct {
 	auctionService      *auctionApp.AuctionService
 	productRepo         productRepo.ProductRepository
 	pricingTokenService *pricingtokenapp.PricingTokenService
-	coinBalanceReader   CoinsBalanceReader
 	// CANONICAL PRODUCT VIEW: records one Product View when this detail page
 	// is successfully opened by an entitled viewer. Nil = recording disabled.
 	productViews productviewRepo.ProductViewRepository
 	db           *db.DB
 	log          *zap.Logger
-}
-
-// CoinsBalanceReader is the minimal coins-domain surface AuctionHandler needs
-// to resolve the canonical coin redemption (K) at claim-time Order creation.
-// Canonical implementation: coinsRepo.GetActiveBalance. Optional: when unset,
-// use_coins=true fails closed.
-type CoinsBalanceReader interface {
-	GetActiveBalance(ctx context.Context, tx db.Tx, userID uuid.UUID) (int64, error)
 }
 
 // NewAuctionHandler creates a new AuctionHandler.
@@ -127,35 +112,6 @@ func (h *AuctionHandler) recordProductView(
 			zap.Error(err),
 		)
 	}
-}
-
-// SetCoinsBalanceReader wires the canonical coins-domain balance reader used to
-// resolve the canonical coin redemption (K) at claim-time Order creation.
-func (h *AuctionHandler) SetCoinsBalanceReader(r CoinsBalanceReader) {
-	h.coinBalanceReader = r
-}
-
-// resolveClaimCoins computes the canonical K for an auction claim order from
-// the buyer's use_coins intent, capped by the live active balance and the
-// token's 20%-of-PD ceiling. Single order-time coin authority.
-func (h *AuctionHandler) resolveClaimCoins(
-	ctx context.Context,
-	tx db.Tx,
-	userID uuid.UUID,
-	useCoins bool,
-	maxCoinsAllowed int64,
-) (int64, error) {
-	if !useCoins {
-		return 0, nil
-	}
-	if h.coinBalanceReader == nil {
-		return 0, fmt.Errorf("coin balance reader not configured")
-	}
-	balance, err := h.coinBalanceReader.GetActiveBalance(ctx, tx, userID)
-	if err != nil {
-		return 0, fmt.Errorf("failed to resolve coin balance: %w", err)
-	}
-	return coinsapp.ResolveOrderRedemption(balance, maxCoinsAllowed, true), nil
 }
 
 // CreateAuctionRequest holds the request body for creating an auction.
@@ -863,249 +819,6 @@ func (h *AuctionHandler) PlaceBid(c *gin.Context) {
 	}
 
 	response.Created(c, bidToResponse(bid))
-}
-
-// BuyNowRequest holds the request body for buy now.
-// ClaimAuctionRequest holds the request body for the canonical claim endpoint.
-type ClaimAuctionRequest struct {
-	AddressID uuid.UUID `json:"address_id" binding:"required"`
-	// Exactly one shipping source: a normal option OR a manual shipping quote.
-	ShippingSetupID uuid.UUID  `json:"shipping_option_id,omitempty"`
-	ShippingQuoteID *uuid.UUID `json:"shipping_quote_id,omitempty"`
-	ChatID          *uuid.UUID `json:"chat_id,omitempty"` // Required when shipping_quote_id is set (conversation scope)
-	DiscountCode    *string    `json:"discount_code"`
-	UseCoins        *bool      `json:"use_coins,omitempty"` // Optional: buyer coin-use intent; backend decides actual amount
-}
-
-// ClaimAuction handles POST /api/v1/auctions/:id/claim
-//
-// Canonical winner shipping-resolution + order-creation action. In a single
-// atomic transaction:
-//  1. Validate winner, shipping deadline (end_at + 24h), not-settled,
-//     not-already-resolved. Locks auction FOR UPDATE.
-//  2. Resolve shipping: set auction.shipping_resolved_at = now (first
-//     resolution wins).
-//  3. Generate + validate the pricing token, create the order, bind
-//     auction.OrderID = order.ID.
-//  4. The auction STAYS in waiting_settlement — it only transitions to ended
-//     when payment succeeds. On payment expiry the auction AUTO-RESCHEDULES
-//     (settlement failure) rather than remaining terminal-ended.
-//
-// Request body:
-//   - address_id:        Buyer's shipping address (UUID, required)
-//   - shipping_option_id: Selected shipping option (UUID, required)
-//
-// Response: { "order_id": "<uuid>" }
-func (h *AuctionHandler) ClaimAuction(c *gin.Context) {
-	ctx := c.Request.Context()
-
-	auctionID, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		response.BadRequest(c, "Invalid auction ID")
-		return
-	}
-
-	userIDVal, exists := c.Get("userID")
-	if !exists {
-		response.Unauthorized(c, "User not authenticated")
-		return
-	}
-	winnerID, ok := userIDVal.(uuid.UUID)
-	if !ok {
-		response.InternalServerError(c, "Invalid user ID in context")
-		return
-	}
-
-	var req ClaimAuctionRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(c, err.Error())
-		return
-	}
-
-	// Exactly one shipping source: a normal option OR a conversation-scoped
-	// manual shipping quote.
-	hasClaimSetup := req.ShippingSetupID != uuid.Nil
-	hasClaimQuote := req.ShippingQuoteID != nil && *req.ShippingQuoteID != uuid.Nil
-	if hasClaimSetup == hasClaimQuote {
-		response.BadRequest(c, "exactly one of shipping_option_id or shipping_quote_id must be provided")
-		return
-	}
-
-	var orderID uuid.UUID
-	err = h.db.WithTx(ctx, func(tx db.Tx) error {
-		// Step 1: Validate winner, deadline, not-settled, not-resolved.
-		// Locks auction FOR UPDATE.
-		auction, err := h.auctionService.GeneratePricingTokenForAuctionClaim(ctx, tx, auctionApp.GeneratePricingTokenForAuctionInput{
-			AuctionID:       auctionID,
-			WinnerID:        winnerID,
-			AddressID:       req.AddressID,
-			ShippingSetupID: req.ShippingSetupID,
-		})
-		if err != nil {
-			return fmt.Errorf("claim validation failed: %w", err)
-		}
-
-		// Step 1b: Mark shipping resolved (first-resolution-wins). Anchors the
-		// payment deadline: shipping_resolved_at + 24h.
-		if err := auction.ResolveShipping(time.Now()); err != nil {
-			return fmt.Errorf("shipping resolution failed: %w", err)
-		}
-
-		// Step 2: Generate pricing token within the same transaction.
-		useCoins := req.UseCoins != nil && *req.UseCoins
-		tokenResp, err := h.pricingTokenService.GenerateForAuction(ctx, tx, &pricingtokenapp.GenerateForAuctionRequest{
-			UserID:          winnerID,
-			AuctionID:       auctionID,
-			AddressID:       req.AddressID,
-			ShippingSetupID: req.ShippingSetupID,
-			ShippingQuoteID: req.ShippingQuoteID,
-			ChatID:          req.ChatID,
-			DiscountCode:    req.DiscountCode,
-		})
-		if err != nil {
-			return fmt.Errorf("pricing token generation failed: %w", err)
-		}
-
-		// Step 3: Validate and lock the token for consumption.
-		validatedToken, err := h.pricingTokenService.ValidateForOrderLocked(
-			ctx, tx,
-			tokenResp.Token,
-			winnerID,
-			auction.ProductID,
-			"auction",
-			auction.ID,
-			0, // Quantity from token
-			req.AddressID,
-			req.ShippingSetupID,
-		)
-		if err != nil {
-			return fmt.Errorf("pricing token validation failed: %w", err)
-		}
-
-		// Step 3.5: Resolve canonical K at the order layer (same authority as
-		// POST /orders): min(balance, token.MaxCoinsAllowed) when use_coins, else 0.
-		coinsToUse, err := h.resolveClaimCoins(ctx, tx, winnerID, useCoins, validatedToken.MaxCoinsAllowed)
-		if err != nil {
-			return err
-		}
-		validatedToken.CoinsUsed = coinsToUse
-
-		// Step 4: Build pricing snapshot from validated token.
-		pricingSnapshot := buildClaimPricingSnapshot(validatedToken)
-
-		// Determine settlement type from token response.
-		settlementType := orderEntity.AuctionSettlementBidWin
-		if tokenResp.AuctionSettlementType == "buy_now" {
-			settlementType = orderEntity.AuctionSettlementBuyNow
-		}
-
-		// Step 5: Create order from auction.
-		order, err := h.auctionService.CreateOrderFromAuction(ctx, tx, auctionApp.CreateOrderFromAuctionInput{
-			Auction:               auction,
-			BuyerID:               winnerID,
-			WinningBid:            *auction.CurrentBid,
-			AddressID:             req.AddressID,
-			ShippingSetupID:       req.ShippingSetupID,
-			AuctionSettlementType: settlementType,
-			PricingSnapshot:       pricingSnapshot,
-		})
-		if err != nil {
-			return fmt.Errorf("order creation failed: %w", err)
-		}
-
-		// Step 6: Mark pricing token as consumed, persisting the canonical K.
-		if err := h.pricingTokenService.FinalizeOrderConsumption(ctx, tx, validatedToken, order.ID, coinsToUse); err != nil {
-			return fmt.Errorf("pricing token consume failed: %w", err)
-		}
-
-		// Step 7: Bind the order and persist shipping resolution + OrderID.
-		// The auction STAYS in waiting_settlement until payment succeeds
-		// (payment success settles it to ended; payment expiry auto-reschedules
-		// it with the order binding released).
-		auction.OrderID = &order.ID
-		if err := h.auctionService.PersistAuctionUpdate(ctx, tx, auction); err != nil {
-			return fmt.Errorf("auction persist failed: %w", err)
-		}
-
-		orderID = order.ID
-		return nil
-	})
-
-	if err != nil {
-		h.log.Error("Failed to claim auction",
-			zap.String("auction_id", auctionID.String()),
-			zap.String("winner_id", winnerID.String()),
-			zap.Error(err),
-		)
-
-		switch {
-		case errors.Is(err, entity.ErrAlreadySettled):
-			response.Conflict(c, "Auction has already been claimed")
-		case errors.Is(err, entity.ErrNotClaimable):
-			response.Conflict(c, "Auction is not claimable")
-		case errors.Is(err, entity.ErrSettlementDeadlinePassed):
-			response.Gone(c, "Auction settlement deadline has passed")
-		case errors.Is(err, entity.ErrNoWinner):
-			response.Conflict(c, "Auction has no winner")
-		case errors.Is(err, entity.ErrNotWinner):
-			response.Forbidden(c, "Caller is not the auction winner")
-		case errors.Is(err, entity.ErrShippingAlreadyResolved):
-			response.Conflict(c, "Auction shipping has already been resolved")
-		default:
-			response.InternalServerError(c, "Failed to claim auction")
-		}
-		return
-	}
-
-	response.Created(c, gin.H{
-		"order_id": orderID.String(),
-	})
-}
-
-// buildClaimPricingSnapshot converts a validated PricingToken to a PricingSnapshot
-// for auction claim order creation. Mirrors the order handler's
-// buildPricingSnapshotFromToken but lives in the auction handler package to
-// avoid cross-package coupling.
-func buildClaimPricingSnapshot(token *pricingtokenentity.PricingToken) *orderApp.PricingSnapshot {
-	var shippingSource *string
-	if token.ShippingQuoteID != nil {
-		source := "shipping_quote"
-		shippingSource = &source
-	} else {
-		source := "for_sale"
-		shippingSource = &source
-	}
-
-	var addressSnapshot *addressEntity.AddressSnapshot
-	if len(token.AddressSnapshot) > 0 {
-		var snapshot addressEntity.AddressSnapshot
-		if err := json.Unmarshal(token.AddressSnapshot, &snapshot); err == nil {
-			addressSnapshot = &snapshot
-		}
-	}
-
-	return &orderApp.PricingSnapshot{
-		UnitPrice:             token.UnitPrice,
-		Subtotal:              token.Subtotal,
-		ShippingTotal:         token.ShippingTotal,
-		CommissionPercent:     token.CommissionPercent,
-		CommissionAmount:      token.CommissionAmount,
-		EscrowAmount:          token.EscrowAmount,
-		ServiceFeeAmount:      token.ServiceFeeAmount,
-		TotalPayableAmount:    token.TotalPayableAmount,
-		DiscountAmount:        token.DiscountAmount,
-		OrderValueForCoins:    token.OrderValueForCoins,
-		ShippingSetupName:     token.ShippingSetupName,
-		ShippingTransportType: token.ShippingTransportType,
-		AddressSnapshot:       addressSnapshot,
-		ShippingSource:        shippingSource,
-		ShippingQuoteID:       token.ShippingQuoteID,
-		ChatID:                token.ChatID, // Conversation that produced the quote (nil for non-chat checkouts)
-		AuctionID:             token.AuctionID,
-		NegotiationID:         token.NegotiationID,
-		TokenID:               token.Token,
-		PaymentMethod:         "default",
-	}
 }
 
 // ListAuctionsRequest holds query parameters for forSale auctions.

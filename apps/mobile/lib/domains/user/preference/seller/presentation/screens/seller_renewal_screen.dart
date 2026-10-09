@@ -272,26 +272,17 @@ class _SellerRenewalScreenState extends ConsumerState<SellerRenewalScreen> {
           Navigator.of(context).pop(true);
           return;
         }
-        final recheck = await showDialog<bool>(
+        // F9(a) convergence: pure recheck yes/no decision consumes the
+        // canonical AppDialog.confirm grammar (same order and meaning).
+        final recheck = await AppDialog.confirm(
           context: context,
-          builder: (ctx) => AlertDialog(
-            title: const Text('Pembayaran masih diproses'),
-            content: const Text(
+          title: 'Pembayaran masih diproses',
+          message:
               'Pembayaran Anda belum terkonfirmasi. Cek ulang statusnya sekarang?',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(false),
-                child: const Text('Nanti saja'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(true),
-                child: const Text('Cek status'),
-              ),
-            ],
-          ),
+          confirmLabel: 'Cek status',
+          cancelLabel: 'Nanti saja',
         );
-        if (recheck != true) return;
+        if (!recheck) return;
         // "Cek status" must CHECK, not reopen the polling dialog: continue
         // so the next iteration runs the manual check first.
         continue;

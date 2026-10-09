@@ -610,32 +610,6 @@ func (r *SellerSubscriptionRepositoryImpl) fetchBatchIDs(
 	return ids, nil
 }
 
-// ExistsActiveByUserID checks if a user has an active subscription.
-// Returns true if at least one active subscription exists, false otherwise.
-func (r *SellerSubscriptionRepositoryImpl) ExistsActiveByUserID(
-	ctx context.Context,
-	tx db.Tx,
-	userID uuid.UUID,
-) (bool, error) {
-	var exists bool
-
-	err := tx.QueryRow(ctx, `
-		SELECT EXISTS(
-			SELECT 1
-			FROM seller_subscriptions
-			WHERE user_id = $1
-			AND status = 'active'
-			LIMIT 1
-		)
-	`, userID).Scan(&exists)
-
-	if err != nil {
-		return false, fmt.Errorf("check active subscription exists failed: %w", err)
-	}
-
-	return exists, nil
-}
-
 // UpdateConfigTx atomically updates a subscription configuration within a transaction.
 //
 // Atomic Safety: When enabling a config (enabled = true), this method automatically

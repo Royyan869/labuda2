@@ -133,6 +133,58 @@ class OrderSellerPricingCard extends StatelessWidget {
   }
 }
 
+/// Pricing row widget for displaying label-value pairs.
+///
+/// F2 CANONICAL COMPOSITION (Owner decisions: money is never truncated):
+/// horizontal `Row` when the single-line label + value provably fit the
+/// incoming width, vertical `Column` (label over value) otherwise.
+///
+/// Width ownership is explicit — the label owns the remainder through
+/// `Expanded` (single line, ellipsis backstop; labels are compressible) and
+/// the value renders from a bounded `Flexible` slot with `softWrap` and NO
+/// ellipsis, so monetary values stay fully visible and can never overflow.
+/// The horizontal/vertical decision comes from [LayoutBuilder] constraints +
+/// measured single-line text widths — never a hardcoded device breakpoint,
+/// never `MediaQuery` width arithmetic, never `IntrinsicWidth`.
+bool _fitsOrderLabelValueSingleLine({
+  required BuildContext context,
+  required double maxWidth,
+  required String label,
+  required String value,
+  required TextStyle? labelStyle,
+  required TextStyle? valueStyle,
+  required double fixedExtrasWidth,
+}) {
+  // Unbounded incoming width (never expected inside OrderSectionCard):
+  // stack vertically, which is always safe.
+  if (!maxWidth.isFinite) {
+    return false;
+  }
+  final TextDirection direction = Directionality.of(context);
+  final TextScaler scaler = MediaQuery.textScalerOf(context);
+
+  double singleLineWidth(String text, TextStyle? style) {
+    final TextPainter painter = TextPainter(
+      text: TextSpan(text: text, style: style),
+      textDirection: direction,
+      textScaler: scaler,
+      maxLines: 1,
+    )..layout();
+    return painter.width;
+  }
+
+  // 2px safety margin: TextPainter measurement vs real Row layout can differ
+  // by subpixels. Err toward stacking (safe direction), never toward a
+  // hairline overflow.
+  const double safetyMargin = 2;
+  final double required =
+      singleLineWidth(label, labelStyle) +
+      fixedExtrasWidth +
+      singleLineWidth(value, valueStyle) +
+      safetyMargin;
+  return required <= maxWidth;
+}
+
 /// Pricing row widget for displaying label-value pairs
 class _PricingRow extends StatelessWidget {
   final String label;
@@ -151,28 +203,68 @@ class _PricingRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final TextStyle? labelStyle = theme.textTheme.bodyMedium?.copyWith(
+      color: colorScheme.onSurfaceVariant,
+      fontWeight: isBold ? FontWeight.w600 : FontWeight.normal,
+    );
+    final TextStyle? valueStyle = theme.textTheme.bodyMedium?.copyWith(
+      color: valueColor ?? (isBold ? null : colorScheme.onSurfaceVariant),
+      fontWeight: isBold ? FontWeight.w600 : FontWeight.normal,
+    );
 
     return Padding(
       padding: const EdgeInsets.only(bottom: core.AppMetrics.p8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            label,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: colorScheme.onSurfaceVariant,
-              fontWeight: isBold ? FontWeight.w600 : FontWeight.normal,
-            ),
-          ),
-          Text(
-            value,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color:
-                  valueColor ?? (isBold ? null : colorScheme.onSurfaceVariant),
-              fontWeight: isBold ? FontWeight.w600 : FontWeight.normal,
-            ),
-          ),
-        ],
+      child: LayoutBuilder(
+        builder: (BuildContext context, BoxConstraints constraints) {
+          // Horizontal gap between label and value in the Row branch.
+          const double gapWidth = 12;
+          final bool fits = _fitsOrderLabelValueSingleLine(
+            context: context,
+            maxWidth: constraints.maxWidth,
+            label: label,
+            value: value,
+            labelStyle: labelStyle,
+            valueStyle: valueStyle,
+            fixedExtrasWidth: gapWidth,
+          );
+          if (fits) {
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Text(
+                    label,
+                    style: labelStyle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(width: gapWidth),
+                Flexible(
+                  child: Text(
+                    value,
+                    style: valueStyle,
+                    textAlign: TextAlign.end,
+                    // NEVER ellipsis here: monetary values must remain fully
+                    // visible. softWrap is a layout backstop only (the fit
+                    // check above already proved single-line fit); it wraps
+                    // instead of overflowing, never truncates.
+                    softWrap: true,
+                  ),
+                ),
+              ],
+            );
+          }
+          // Canonical vertical fallback: label over value, both fully visible.
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: labelStyle, softWrap: true),
+              const SizedBox(height: 4),
+              Text(value, style: valueStyle, softWrap: true),
+            ],
+          );
+        },
       ),
     );
   }

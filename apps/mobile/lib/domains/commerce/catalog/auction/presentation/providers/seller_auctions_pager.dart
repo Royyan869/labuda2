@@ -88,11 +88,23 @@ class SellerAuctionsPagerState {
       !isLoadMoreLoading &&
       !isRefreshing;
 
-  List<Auction> get visibleAuctions => activeFilter == null
+  /// Canonical status-filtering rule for the loaded [auctions] collection.
+  ///
+  /// `null` (Semua) returns the collection unchanged; a non-null [status]
+  /// returns only the auctions whose status exactly matches it. Source
+  /// ordering is preserved and the result is non-growable.
+  ///
+  /// This is the SINGLE filtering authority. [visibleAuctions] projects the
+  /// committed [activeFilter]; the screen projects a `TabBarView` page's own
+  /// filter mid-swipe so an incoming page never shows the previously selected
+  /// tab's collection before the controller settles.
+  List<Auction> auctionsFor(AuctionStatus? status) => status == null
       ? auctions
       : auctions
-            .where((auction) => auction.status == activeFilter)
+            .where((auction) => auction.status == status)
             .toList(growable: false);
+
+  List<Auction> get visibleAuctions => auctionsFor(activeFilter);
 
   bool get hasVisibleAuctions => visibleAuctions.isNotEmpty;
 

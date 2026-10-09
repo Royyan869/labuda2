@@ -61,7 +61,6 @@ type OrderSummary struct {
 	// Type and status
 	SourceType   string // for_sale, auction, negotiation
 	Status       string
-	EscrowStatus string
 	HasDispute   bool
 
 	// Dispute information
@@ -108,7 +107,7 @@ func (r *Repository) UpsertOrderSummary(
 	query := `
 		INSERT INTO order_summaries (
 			id, buyer_id, seller_id, source_type, source_id,
-			status, escrow_status, has_dispute,
+			status, has_dispute,
 			dispute_status, dispute_reason, dispute_opened_at, dispute_resolved_at,
 			subtotal, shipping_total, commission_amount,
 			service_fee_amount, total_payable_amount,
@@ -116,12 +115,12 @@ func (r *Repository) UpsertOrderSummary(
 			shipping_option_name, shipping_transport_type,
 			auto_release_at, created_at, updated_at
 		) VALUES ($1, $2, $3, $4, $5,
-		          $6, $7, $8,
-		          $9, $10, $11, $12,
-		          $13, $14, $15, $16, $17,
-		          $18, $19,
-		          $20, $21,
-		          $22, $23, $24)
+		          $6, $7,
+		          $8, $9, $10, $11,
+		          $12, $13, $14, $15, $16,
+		          $17, $18,
+		          $19, $20,
+		          $21, $22, $23)
 		ON CONFLICT (id)
 		DO UPDATE SET
 			buyer_id = EXCLUDED.buyer_id,
@@ -129,7 +128,6 @@ func (r *Repository) UpsertOrderSummary(
 			source_type = EXCLUDED.source_type,
 			source_id = EXCLUDED.source_id,
 			status = EXCLUDED.status,
-			escrow_status = EXCLUDED.escrow_status,
 			has_dispute = EXCLUDED.has_dispute,
 			dispute_status = EXCLUDED.dispute_status,
 			dispute_reason = EXCLUDED.dispute_reason,
@@ -150,7 +148,7 @@ func (r *Repository) UpsertOrderSummary(
 
 	_, err := tx.Exec(ctx, query,
 		summary.ID, summary.BuyerID, summary.SellerID, summary.SourceType, summary.SourceID,
-		summary.Status, summary.EscrowStatus, summary.HasDispute,
+		summary.Status, summary.HasDispute,
 		summary.DisputeStatus, summary.DisputeReason, summary.DisputeOpenedAt, summary.DisputeResolvedAt,
 		summary.Subtotal, summary.ShippingTotal, summary.CommissionAmount,
 		summary.ServiceFeeAmount, summary.TotalPayableAmount,
@@ -175,7 +173,7 @@ func (r *Repository) GetOrderSummary(
 
 	query := `
 		SELECT id, buyer_id, seller_id, source_type, source_id,
-		       status, escrow_status, has_dispute,
+		       status, has_dispute,
 		       dispute_status, dispute_reason, dispute_opened_at, dispute_resolved_at,
 		       subtotal, shipping_total, commission_amount, service_fee_amount, total_payable_amount,
 		       total_before_coins_amount, refunded_amount,
@@ -187,7 +185,7 @@ func (r *Repository) GetOrderSummary(
 
 	err := r.db.Pool().QueryRow(ctx, query, orderID).Scan(
 		&summary.ID, &summary.BuyerID, &summary.SellerID, &summary.SourceType, &summary.SourceID,
-		&summary.Status, &summary.EscrowStatus, &summary.HasDispute,
+		&summary.Status, &summary.HasDispute,
 		&summary.DisputeStatus, &summary.DisputeReason, &summary.DisputeOpenedAt, &summary.DisputeResolvedAt,
 		&summary.Subtotal, &summary.ShippingTotal, &summary.CommissionAmount, &summary.ServiceFeeAmount, &summary.TotalPayableAmount,
 		&summary.TotalBeforeCoinsAmount, &summary.RefundedAmount,
@@ -279,7 +277,7 @@ func (r *Repository) ListOrderSummariesByBuyer(
 
 	query := `
 		SELECT id, buyer_id, seller_id, source_type, source_id,
-		       status, escrow_status, has_dispute,
+		       status, has_dispute,
 		       dispute_status, dispute_reason, dispute_opened_at, dispute_resolved_at,
 		       subtotal, shipping_total, commission_amount,
 		       total_before_coins_amount, refunded_amount,
@@ -320,7 +318,7 @@ func (r *Repository) ListOrderSummariesByBuyer(
 		var s OrderSummary
 		err := row.Scan(
 			&s.ID, &s.BuyerID, &s.SellerID, &s.SourceType, &s.SourceID,
-			&s.Status, &s.EscrowStatus, &s.HasDispute,
+			&s.Status, &s.HasDispute,
 			&s.DisputeStatus, &s.DisputeReason, &s.DisputeOpenedAt, &s.DisputeResolvedAt,
 			&s.Subtotal, &s.ShippingTotal, &s.CommissionAmount,
 			&s.TotalBeforeCoinsAmount, &s.RefundedAmount,
@@ -358,7 +356,7 @@ func (r *Repository) ListOrderSummariesBySeller(
 
 	query := `
 		SELECT id, buyer_id, seller_id, source_type, source_id,
-		       status, escrow_status, has_dispute,
+		       status, has_dispute,
 		       dispute_status, dispute_reason, dispute_opened_at, dispute_resolved_at,
 		       subtotal, shipping_total, commission_amount,
 		       total_before_coins_amount, refunded_amount,
@@ -399,7 +397,7 @@ func (r *Repository) ListOrderSummariesBySeller(
 		var s OrderSummary
 		err := row.Scan(
 			&s.ID, &s.BuyerID, &s.SellerID, &s.SourceType, &s.SourceID,
-			&s.Status, &s.EscrowStatus, &s.HasDispute,
+			&s.Status, &s.HasDispute,
 			&s.DisputeStatus, &s.DisputeReason, &s.DisputeOpenedAt, &s.DisputeResolvedAt,
 			&s.Subtotal, &s.ShippingTotal, &s.CommissionAmount,
 			&s.TotalBeforeCoinsAmount, &s.RefundedAmount,
@@ -538,7 +536,7 @@ func (r *Repository) ListOrderSummariesForAdmin(
 	offset := (filters.Page - 1) * filters.PageSize
 	dataQuery := `
 		SELECT id, buyer_id, seller_id, source_type, source_id,
-		       status, escrow_status, has_dispute,
+		       status, has_dispute,
 		       dispute_status, dispute_reason, dispute_opened_at, dispute_resolved_at,
 		       subtotal, shipping_total, commission_amount,
 		       total_before_coins_amount, refunded_amount,
@@ -560,7 +558,7 @@ func (r *Repository) ListOrderSummariesForAdmin(
 		var s OrderSummary
 		err := row.Scan(
 			&s.ID, &s.BuyerID, &s.SellerID, &s.SourceType, &s.SourceID,
-			&s.Status, &s.EscrowStatus, &s.HasDispute,
+			&s.Status, &s.HasDispute,
 			&s.DisputeStatus, &s.DisputeReason, &s.DisputeOpenedAt, &s.DisputeResolvedAt,
 			&s.Subtotal, &s.ShippingTotal, &s.CommissionAmount,
 			&s.TotalBeforeCoinsAmount, &s.RefundedAmount,

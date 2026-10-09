@@ -47,12 +47,30 @@ class AppDragHandle extends StatelessWidget {
   }
 }
 
-/// Base AppBottomSheet with standard content support.
+/// Canonical form/content bottom sheet.
 ///
 /// SURFACE / SHAPE / ELEVATION are owned by `bottomSheetTheme` — this builder
 /// paints NO local colour, radius or shadow, so the framework's modal Material
 /// is the single visual authority. Callers may only supply CONTENT and the
 /// small grammar flags below.
+/// Carries the live content budget from [AppBottomSheetBase.show]'s own
+/// layout down to the body that fills it. Produced ONLY there — there is no
+/// second producer of this number, and a body that ignores it simply scrolls
+/// in the region as before.
+class _AppSheetContentAllocation extends InheritedWidget {
+  const _AppSheetContentAllocation({
+    required this.maxHeight,
+    required super.child,
+  });
+
+  /// The maximum height the content may occupy inside the scroll region.
+  final double maxHeight;
+
+  @override
+  bool updateShouldNotify(_AppSheetContentAllocation oldWidget) =>
+      oldWidget.maxHeight != maxHeight;
+}
+
 class AppBottomSheetBase {
   /// The height a modal sheet may occupy on this screen — ONE authority.
   ///
@@ -62,9 +80,9 @@ class AppBottomSheetBase {
   /// moment the keyboard opens (the sheet would then be taller than the space
   /// left above it) and would let a sheet cover the status bar.
   ///
-  /// Both the sheet's own ceiling ([show]) and any body-height request read
-  /// THIS function, so a ceiling and a body can never disagree about how much
-  /// room there is.
+  /// The sheet's own ceiling ([show]) reads THIS function; a body sizes from
+  /// [contentAllocationOf], never from the raw ceiling, so the two can never
+  /// disagree about how much room there is.
   static double availableHeight(BuildContext context) {
     final media = MediaQuery.of(context);
     final available =
@@ -72,12 +90,37 @@ class AppBottomSheetBase {
     return math.max(0.0, available);
   }
 
+  /// The height the sheet's CONTENT REGION actually has — ONE authority.
+  ///
+  /// The sheet's ceiling is spent top-down: drag handle, optional title,
+  /// optional save block, and the system spacer each take their share BEFORE
+  /// the scroll region exists, and the region is wrapped in the content
+  /// padding. This returns exactly what is left — measured from the LIVE
+  /// column layout (never re-derived from the ceiling formula), so it can
+  /// never disagree with what the sheet renders.
+  ///
+  /// A body that composes as fixed header + self-scrolling form + fixed
+  /// footer (e.g. `AddressFormDialog`) must fill exactly THIS budget:
+  /// re-spelling the sheet's `0.9` ceiling at body level instead claimed
+  /// `handle + wrap + spacer` pixels the region never had — the footer rode
+  /// `handle + wrap + spacer` (72+N px) past the content clip
+  /// (BOTTOMSHEET-02-FIT-GAP, geometry-proven).
+  static double contentAllocationOf(BuildContext context) {
+    final _AppSheetContentAllocation? allocation = context
+        .dependOnInheritedWidgetOfExactType<_AppSheetContentAllocation>();
+    assert(
+      allocation != null,
+      'AppBottomSheetBase.contentAllocationOf(context) must be read inside '
+      'a sheet presented by AppBottomSheetBase.show(...)',
+    );
+    return allocation!.maxHeight;
+  }
+
   /// Show a standard bottom sheet with custom content
   static Future<T?> show<T>({
     required BuildContext context,
     required Widget content,
     String? title,
-    double? height,
     bool isDismissible = true,
     bool enableDrag = true,
     bool useRootNavigator = false,
@@ -106,83 +149,102 @@ class AppBottomSheetBase {
           constraints: BoxConstraints(
             maxHeight: availableHeight(sheetContext) * 0.9,
           ),
-          child: SizedBox(
-            height: height,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Drag handle — one implementation ([AppDragHandle]); anchored
-                // to the real drag gesture.
-                if (showDragHandle && enableDrag) const AppDragHandle(),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Drag handle — one implementation ([AppDragHandle]); anchored
+              // to the real drag gesture.
+              if (showDragHandle && enableDrag) const AppDragHandle(),
 
-                // Title Section
-                if (title != null) ...[
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.fromLTRB(
-                      AppMetrics.p24,
-                      AppMetrics.p8,
-                      AppMetrics.p24,
-                      AppMetrics.p16,
+              // Title Section
+              if (title != null) ...[
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.fromLTRB(
+                    AppMetrics.p24,
+                    AppMetrics.p8,
+                    AppMetrics.p24,
+                    AppMetrics.p16,
+                  ),
+                  child: Text(
+                    title,
+                    style: context.typeRoles.titleSection.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: Theme.of(sheetContext).colorScheme.onSurface,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                const Divider(height: 1),
+              ],
+
+              // Content — scrolls internally inside the constrained sheet.
+              Flexible(
+                // The content budget is read from the LIVE column layout:
+                // this region's constraints are exactly what the ceiling
+                // left after handle/title/save/spacer, and the wrap below
+                // is subtracted once, here, where it is applied.
+                child: LayoutBuilder(
+                  builder: (regionContext, regionConstraints) {
+                    final EdgeInsetsGeometry wrap =
+                        padding ?? const EdgeInsets.all(AppMetrics.p24);
+                    final EdgeInsets resolved = wrap.resolve(
+                      Directionality.of(regionContext),
+                    );
+                    final double contentAllocation = math.max(
+                      0.0,
+                      regionConstraints.maxHeight - resolved.vertical,
+                    );
+                    return _AppSheetContentAllocation(
+                      maxHeight: contentAllocation,
+                      child: SingleChildScrollView(
+                        child: Container(
+                          width: double.infinity,
+                          padding: wrap,
+                          child: content,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+
+              // Save Button
+              if (showSaveButton && onSave != null) ...[
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.fromLTRB(
+                    AppMetrics.p24,
+                    AppMetrics.p8,
+                    AppMetrics.p24,
+                    AppMetrics.p16,
+                  ),
+                  child: ElevatedButton(
+                    onPressed: onSave,
+                    style: ElevatedButton.styleFrom(
+                      minimumSize: const Size(double.infinity, 48),
                     ),
                     child: Text(
-                      title,
-                      style: context.typeRoles.titleSection.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: Theme.of(sheetContext).colorScheme.onSurface,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                  const Divider(height: 1),
-                ],
-
-                // Content — scrolls internally inside the constrained sheet.
-                Flexible(
-                  child: SingleChildScrollView(
-                    child: Container(
-                      width: double.infinity,
-                      padding: padding ?? const EdgeInsets.all(AppMetrics.p24),
-                      child: content,
+                      saveButtonText,
+                      style: Theme.of(sheetContext).textTheme.labelLarge
+                          ?.copyWith(fontWeight: FontWeight.w600),
                     ),
                   ),
                 ),
-
-                // Save Button
-                if (showSaveButton && onSave != null) ...[
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.fromLTRB(
-                      AppMetrics.p24,
-                      AppMetrics.p8,
-                      AppMetrics.p24,
-                      AppMetrics.p16,
-                    ),
-                    child: ElevatedButton(
-                      onPressed: onSave,
-                      style: ElevatedButton.styleFrom(
-                        minimumSize: const Size(double.infinity, 48),
-                      ),
-                      child: Text(
-                        saveButtonText,
-                        style: Theme.of(sheetContext).textTheme.labelLarge
-                            ?.copyWith(fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                  ),
-                ],
-
-                // Bottom system inset — consumed ONCE, at the sheet's own
-                // layer, from the EFFECTIVE bottom padding
-                // (`MediaQuery.paddingOf`), the same value
-                // `SafeArea(top: false)` consumes: while the keyboard covers
-                // the system navigation area the effective inset is zero, so
-                // no artificial gap is left between the content and the
-                // keyboard. When the system bar hides, the spacer goes to
-                // zero with it.
-                SizedBox(height: MediaQuery.paddingOf(sheetContext).bottom),
               ],
-            ),
+
+              // Bottom system inset — consumed ONCE, at the sheet's own
+              // layer, from the EFFECTIVE bottom padding
+              // (`MediaQuery.paddingOf`) — the same value `SafeArea(top:
+              // false)` consumes for a NON-embedded bar; an embedded bar
+              // (BOTTOMSHEET-03) deliberately does not re-consume it here.
+              // While the keyboard covers
+              // the system navigation area the effective inset is zero, so
+              // no artificial gap is left between the content and the
+              // keyboard. When the system bar hides, the spacer goes to
+              // zero with it.
+              SizedBox(height: MediaQuery.paddingOf(sheetContext).bottom),
+            ],
           ),
         ),
       ),

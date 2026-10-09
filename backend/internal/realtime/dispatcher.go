@@ -122,6 +122,43 @@ func (d *Dispatcher) Dispatch(eventType string, payload []byte) error {
 		return nil
 	}
 
+	if eventType == EventTypeNotificationCreated || eventType == EventTypeNotificationUpdated {
+		parsed, err := d.resolveNotificationEventRoute(eventType, payload)
+		if err != nil {
+			return err
+		}
+
+		var serverMsg []byte
+		if eventType == EventTypeNotificationUpdated {
+			serverMsg = marshalNotificationUpdated(parsed.unreadCount)
+		} else {
+			serverMsg = marshalNotificationCreated(parsed.notificationID, parsed.notifyType, parsed.unreadCount)
+		}
+
+		d.hub.BroadcastToUserFiltered(parsed.recipientID, serverMsg, func(userID uuid.UUID) bool {
+			ctx := context.Background()
+			status, err := d.statusChecker.GetStatus(ctx, userID)
+			if err != nil {
+				d.log.Debug("Lifecycle check failed for notification subscriber, dropping broadcast delivery",
+					zap.String("user_id", userID.String()),
+					zap.String("event_type", eventType),
+					zap.Error(err),
+				)
+				return false
+			}
+			lifecycle := viewercontext.CoarsenLifecycle(status, false)
+			decision := evaluator.EvaluateWSBroadcast(lifecycle)
+			return decision == evaluator.WSBroadcastAllow
+		})
+
+		d.log.Debug("Notification event dispatched with per-user governance filter",
+			zap.String("event_type", eventType),
+			zap.String("recipient_id", parsed.recipientID.String()),
+		)
+
+		return nil
+	}
+
 	if eventType != EventTypeChatMessageSent {
 		// OWNERSHIP SAFETY: the worker claims only realtime-owned event types
 		// (OwnedOutboxEventTypes), so an unknown type here means the ownership
@@ -180,6 +217,59 @@ func marshalChatSignal(eventType string, roomID, messageID uuid.UUID) []byte {
 
 type roomEventRecipientPayload struct {
 	RecipientID string `json:"recipient_id"`
+}
+
+// notificationCreatedOutboxPayload is the outbox payload shape written by the
+// notification worker in the same transaction as the notification INSERT
+// (created) and by the mutation emitter in the same transaction as a
+// notification-state mutation (updated).
+type notificationCreatedOutboxPayload struct {
+	RecipientID    string `json:"recipient_id"`
+	NotificationID string `json:"notification_id"`
+	Type           string `json:"type"`
+	UnreadCount    int    `json:"unread_count"`
+}
+
+type parsedNotificationRoute struct {
+	recipientID    uuid.UUID
+	notificationID uuid.UUID
+	notifyType     string
+	unreadCount    int
+}
+
+func (d *Dispatcher) resolveNotificationEventRoute(eventType string, payload []byte) (parsedNotificationRoute, error) {
+	var p notificationCreatedOutboxPayload
+	if err := json.Unmarshal(payload, &p); err != nil {
+		return parsedNotificationRoute{}, fmt.Errorf("failed to parse notification payload: %w", err)
+	}
+	if p.RecipientID == "" {
+		return parsedNotificationRoute{}, fmt.Errorf("recipient_id is required")
+	}
+	recipientID, err := uuid.Parse(p.RecipientID)
+	if err != nil {
+		return parsedNotificationRoute{}, fmt.Errorf("invalid recipient_id: %w", err)
+	}
+	if p.UnreadCount < 0 {
+		return parsedNotificationRoute{}, fmt.Errorf("unread_count must be non-negative")
+	}
+	parsed := parsedNotificationRoute{
+		recipientID: recipientID,
+		notifyType:  p.Type,
+		unreadCount: p.UnreadCount,
+	}
+	// The created event identifies the new row; the updated event is a
+	// user-level state-change signal and deliberately carries no row identity.
+	if eventType == EventTypeNotificationCreated {
+		if p.NotificationID == "" {
+			return parsedNotificationRoute{}, fmt.Errorf("notification_id is required")
+		}
+		notificationID, err := uuid.Parse(p.NotificationID)
+		if err != nil {
+			return parsedNotificationRoute{}, fmt.Errorf("invalid notification_id: %w", err)
+		}
+		parsed.notificationID = notificationID
+	}
+	return parsed, nil
 }
 
 func (d *Dispatcher) resolveRoomEventRoute(payload []byte) (uuid.UUID, ChatRoomSummaryPayload, error) {

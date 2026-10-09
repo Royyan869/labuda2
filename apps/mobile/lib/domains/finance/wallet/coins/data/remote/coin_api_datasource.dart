@@ -84,19 +84,6 @@ class CoinApiDatasource {
     );
   }
 
-  /// Polls balance every 30 seconds for reactive UI updates.
-  Stream<CoinBalanceDto> watchBalance(String userId) {
-    return Stream.periodic(const Duration(seconds: 30), (_) => userId).asyncMap(
-      (_) async {
-        final result = await getBalance(userId);
-        return result.fold(
-          (error) => CoinBalanceDto.empty(userId),
-          (balance) => balance,
-        );
-      },
-    );
-  }
-
   // ============================================================
   // Transactions  —  GET /api/v1/coins/transactions
   // ============================================================
@@ -123,22 +110,6 @@ class CoinApiDatasource {
         return list
             .map((e) => CoinTransactionDto.fromJson(e as Map<String, dynamic>))
             .toList();
-      },
-    );
-  }
-
-  /// Polls transactions every 30 seconds for reactive UI updates.
-  Stream<List<CoinTransactionDto>> watchTransactions({
-    required String userId,
-    int limit = 50,
-  }) {
-    return Stream.periodic(const Duration(seconds: 30), (_) => userId).asyncMap(
-      (_) async {
-        final result = await getTransactions(userId: userId, limit: limit);
-        return result.fold(
-          (error) => <CoinTransactionDto>[],
-          (transactions) => transactions,
-        );
       },
     );
   }

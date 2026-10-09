@@ -1,4 +1,4 @@
-//go:build integration
+﻿//go:build integration
 
 package application
 
@@ -63,7 +63,7 @@ func newRevalidationService(prodRepo *productRepoImpl.ProductRepositoryImpl) *Au
 		coverageRepo,
 		productShippingRepo,
 		outboxRepo.NewOutboxRepository(nil),
-		nil, nil,
+		nil, 
 		auctionRoleCheckerStub{hasCapability: true},
 		nil,
 		zap.NewNop(),

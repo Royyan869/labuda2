@@ -4,6 +4,7 @@ package worker
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/labuda/backend/internal/identity/auth"
 	platformevent "github.com/labuda/backend/internal/platform/event"
 	dbpkg "github.com/labuda/backend/pkg/db"
+	"github.com/jackc/pgx/v5"
 	"go.uber.org/zap"
 )
 
@@ -151,7 +153,7 @@ func (h *UserBanEventHandler) getActiveOrdersForUser(ctx context.Context, userID
 		// Query for orders where user is buyer OR seller
 		// Only include non-terminal statuses
 		rows, err := tx.Query(ctx, `
-			SELECT id, buyer_id, seller_id, status, escrow_status,
+			SELECT id, buyer_id, seller_id, status,
 			       proof_type, tracking_number, shipping_proof_media,
 			       has_dispute, created_at
 			FROM orders
@@ -168,13 +170,12 @@ func (h *UserBanEventHandler) getActiveOrdersForUser(ctx context.Context, userID
 			var o orderEntity.Order
 			var buyerID, sellerID uuid.UUID
 			var status orderEntity.Status
-			var escrowStatus orderEntity.EscrowStatus
 			var proofType, trackingNumber, shippingProofMedia *string
 			var hasDispute bool
 			var createdAt time.Time
 
 			if err := rows.Scan(
-				&o.ID, &buyerID, &sellerID, &status, &escrowStatus,
+				&o.ID, &buyerID, &sellerID, &status,
 				&proofType, &trackingNumber, &shippingProofMedia,
 				&hasDispute, &createdAt,
 			); err != nil {
@@ -184,7 +185,6 @@ func (h *UserBanEventHandler) getActiveOrdersForUser(ctx context.Context, userID
 			o.BuyerID = buyerID
 			o.SellerID = sellerID
 			o.Status = status
-			o.EscrowStatus = escrowStatus
 			o.ProofType = proofType
 			o.TrackingNumber = trackingNumber
 			o.ShippingProofMedia = shippingProofMedia
@@ -198,6 +198,23 @@ func (h *UserBanEventHandler) getActiveOrdersForUser(ctx context.Context, userID
 	})
 
 	return orders, err
+}
+
+// escrowHolding reports whether the canonical escrow row for the order is in
+// holding state. The escrows table is the sole escrow authority — never a
+// persisted order projection.
+func (h *UserBanEventHandler) escrowHolding(ctx context.Context, orderID uuid.UUID) (bool, error) {
+	var status string
+	err := h.db.Pool().QueryRow(ctx, `
+		SELECT status::text FROM escrows WHERE order_id = $1
+	`, orderID).Scan(&status)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return false, nil // no escrow row = no funds held
+		}
+		return false, fmt.Errorf("failed to read escrow for order %s: %w", orderID, err)
+	}
+	return status == "holding", nil
 }
 
 // processOrderForBan processes a single order for a banned user.
@@ -238,18 +255,25 @@ func (h *UserBanEventHandler) processOrderForBan(
 		zap.String("user_role", h.getUserRole(order, bannedUserID)),
 	)
 
-	// Determine action based on evidence and order state
+	// Determine action based on evidence and order state.
+	// escrowHolding is the LIVE state of the canonical escrow row (sole
+	// authority) — the money-routing decision never reads a projection.
+	escrowHolding, escrowErr := h.escrowHolding(ctx, order.ID)
+	if escrowErr != nil {
+		return escrowErr
+	}
+
 	switch {
-	case h.shouldAutoCompleteForBannedBuyer(bannedUserID, order):
+	case h.shouldAutoCompleteForBannedBuyer(bannedUserID, order, escrowHolding):
 		// STEP 1 — Buyer banned + delivered -> auto-complete immediately
 		// Seller gets paid, buyer cannot complete after ban
 		return h.completeOrderForBan(ctx, order, bannedUserID, eventID)
 
-	case h.shouldRefundDirectly(order):
+	case h.shouldRefundDirectly(order, escrowHolding):
 		// No shipment evidence - safe to refund
 		return h.refundOrderForBan(ctx, order, bannedUserID, eventID)
 
-	case h.shouldForceDispute(bannedUserID, order):
+	case h.shouldForceDispute(bannedUserID, order, escrowHolding):
 		// Has shipment evidence - need dispute to determine outcome
 		return h.forceDisputeForBan(ctx, order, bannedUserID, eventID)
 
@@ -300,9 +324,11 @@ func (h *UserBanEventHandler) hasShipmentEvidence(order *orderEntity.Order) bool
 
 // shouldRefundDirectly determines if an order should be refunded directly.
 // Returns true if there's no shipment evidence and funds can be safely returned.
-func (h *UserBanEventHandler) shouldRefundDirectly(order *orderEntity.Order) bool {
-	// Only refund if escrow is still holding (not already released/refunded)
-	if order.EscrowStatus != orderEntity.EscrowStatusHolding {
+// escrowHolding is the LIVE state of the canonical escrow row.
+func (h *UserBanEventHandler) shouldRefundDirectly(order *orderEntity.Order, escrowHolding bool) bool {
+	// Only refund if the canonical escrow row is still holding (not already
+	// released/refunded; no row at all = nothing to refund)
+	if !escrowHolding {
 		return false
 	}
 
@@ -321,9 +347,10 @@ func (h *UserBanEventHandler) shouldRefundDirectly(order *orderEntity.Order) boo
 //	                                            admin must decide with ban context)
 //
 // For all other statuses: dispute iff shipment evidence exists.
-func (h *UserBanEventHandler) shouldForceDispute(bannedUserID uuid.UUID, order *orderEntity.Order) bool {
-	// Only force dispute if escrow is still holding
-	if order.EscrowStatus != orderEntity.EscrowStatusHolding {
+// escrowHolding is the LIVE state of the canonical escrow row.
+func (h *UserBanEventHandler) shouldForceDispute(bannedUserID uuid.UUID, order *orderEntity.Order, escrowHolding bool) bool {
+	// Only force dispute if the canonical escrow row is still holding
+	if !escrowHolding {
 		return false
 	}
 
@@ -354,6 +381,7 @@ func (h *UserBanEventHandler) shouldForceDispute(bannedUserID uuid.UUID, order *
 func (h *UserBanEventHandler) shouldAutoCompleteForBannedBuyer(
 	bannedUserID uuid.UUID,
 	order *orderEntity.Order,
+	escrowHolding bool,
 ) bool {
 	// Only applies when buyer is the banned user
 	if order.BuyerID != bannedUserID {
@@ -365,8 +393,8 @@ func (h *UserBanEventHandler) shouldAutoCompleteForBannedBuyer(
 		return false
 	}
 
-	// Only if escrow is still holding
-	if order.EscrowStatus != orderEntity.EscrowStatusHolding {
+	// Only if the canonical escrow row is still holding
+	if !escrowHolding {
 		return false
 	}
 

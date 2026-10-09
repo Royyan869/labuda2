@@ -223,7 +223,8 @@ func (r *AuctionBidRepository) ListAuctionIDsByBidder(
 	return auctionIDs, nil
 }
 
-// GetUserLastBidForAuction retrieves the user's highest bid for an auction.
+// GetUserLastBidForAuction retrieves the user's latest bid for an auction
+// by time (Owner business truth: "bid saya" = bid terbaru, not highest).
 // Returns nil if the user has not bid on this auction.
 func (r *AuctionBidRepository) GetUserLastBidForAuction(
 	ctx context.Context,
@@ -241,7 +242,7 @@ func (r *AuctionBidRepository) GetUserLastBidForAuction(
 		FROM auction_bids
 		WHERE bidder_id = $1
 		  AND auction_id = $2
-		ORDER BY amount DESC, created_at DESC
+		ORDER BY created_at DESC, id DESC
 		LIMIT 1
 	`, bidderID, auctionID).Scan(
 		&id, &bidAuctionID, &bidBidderID, &amount, &idempotencyKey, &createdAt,
@@ -263,5 +264,3 @@ func (r *AuctionBidRepository) GetUserLastBidForAuction(
 		CreatedAt:      createdAt,
 	}, nil
 }
-
-

@@ -13,22 +13,23 @@ import (
 )
 
 // BiddingItem represents a user's bidding view for a single auction.
+// Wire contract is snake_case (canonical My Bids API).
 type BiddingItem struct {
-	AuctionID   uuid.UUID
-	Title       string
-	YourLastBid int64
-	CurrentBid  int64
-	Status      string // leading | outbid | won | lost | waiting_claim
-	EndAt       time.Time
-	UpdatedAt   time.Time
+	AuctionID   uuid.UUID `json:"auction_id"`
+	Title       string    `json:"title"`
+	YourLastBid int64     `json:"your_last_bid"`
+	CurrentBid  int64     `json:"current_bid"`
+	Status      string    `json:"status"` // leading | outbid | waiting_claim
+	EndAt       time.Time `json:"end_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }
 
 // BiddingResult holds the result of GetUserBidding with aggregated counts.
+// My Bids has no history tab: only open (active + waiting_settlement)
+// auctions are returned, so the only count is the active one.
 type BiddingResult struct {
-	Items       []BiddingItem
-	ActiveCount int
-	WonCount    int
-	LostCount   int
+	Items       []BiddingItem `json:"items"`
+	ActiveCount int           `json:"active_count"`
 }
 
 // BiddingService provides user bidding view aggregation.
@@ -46,8 +47,12 @@ func NewBiddingService() *BiddingService {
 	}
 }
 
-// GetUserBidding retrieves all auctions where the user has placed bids,
-// aggregated with user's bid information and derived status.
+// GetUserBidding retrieves the user's My Bids view: auctions with an open
+// (not yet final) bidding process for this user, i.e. canonical auction
+// states active and waiting_settlement only. Ended, cancelled and lapsed
+// auctions are hidden — My Bids is not a bid-history archive (raw history
+// stays canonical in auction_bids). This service is the single visibility
+// authority; consumers are pure projection/presentation.
 func (s *BiddingService) GetUserBidding(
 	ctx context.Context,
 	tx db.Tx,
@@ -64,14 +69,11 @@ func (s *BiddingService) GetUserBidding(
 		return &BiddingResult{
 			Items:       []BiddingItem{},
 			ActiveCount: 0,
-			WonCount:    0,
-			LostCount:   0,
 		}, nil
 	}
 
 	// Load all auctions
 	items := make([]BiddingItem, 0, len(auctionIDs))
-	var activeCount, wonCount, lostCount int
 
 	for _, auctionID := range auctionIDs {
 		// Get auction
@@ -81,7 +83,15 @@ func (s *BiddingService) GetUserBidding(
 			continue
 		}
 
-		// Get user's last bid for this auction
+		// Canonical My Bids visibility: only open processes.
+		// Ended/cancelled/lapsed (and scheduled) are hidden, never
+		// re-labeled as lost for My Bids presentation.
+		if auction.Status != entity.StatusActive &&
+			auction.Status != entity.StatusWaitingSettlement {
+			continue
+		}
+
+		// Get user's latest bid for this auction
 		userBid, err := s.bidRepo.GetUserLastBidForAuction(ctx, tx, userID, auctionID)
 		if err != nil {
 			// Skip if we can't get user bid
@@ -113,16 +123,6 @@ func (s *BiddingService) GetUserBidding(
 		}
 
 		items = append(items, item)
-
-		// Update counters
-		switch status {
-		case "leading", "waiting_claim":
-			activeCount++
-		case "won":
-			wonCount++
-		case "outbid", "lost":
-			lostCount++
-		}
 	}
 
 	// Sort items
@@ -130,9 +130,7 @@ func (s *BiddingService) GetUserBidding(
 
 	return &BiddingResult{
 		Items:       items,
-		ActiveCount: activeCount,
-		WonCount:    wonCount,
-		LostCount:   lostCount,
+		ActiveCount: len(items),
 	}, nil
 }
 
@@ -189,8 +187,11 @@ func (s *BiddingService) deriveStatus(userID uuid.UUID, auction *entity.Auction)
 }
 
 // sortBiddingItems sorts bidding items by status priority:
-// 1. ACTIVE (active + waiting_settlement) -> sort by EndAt ASC
-// 2. ENDED (ended) -> sort by EndAt DESC
+//  1. ACTIVE (leading + outbid) + WAITING_SETTLEMENT (waiting_claim)
+//     -> sort by EndAt ASC (soonest ending first)
+//
+// The non-open tail branch is retained for determinism; My Bids visibility
+// only surfaces open auctions so it is normally empty.
 func (s *BiddingService) sortBiddingItems(items []BiddingItem) {
 	sort.SliceStable(items, func(i, j int) bool {
 		iActive := isActiveStatus(items[i].Status)

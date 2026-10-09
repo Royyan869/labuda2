@@ -14,9 +14,6 @@ import (
 	auctionRepo "github.com/labuda/backend/internal/commerce/auction/infrastructure/repository"
 	forsaleEntity "github.com/labuda/backend/internal/commerce/forsale/entity"
 	"github.com/labuda/backend/internal/commerce/governance/commercegov"
-	orderApp "github.com/labuda/backend/internal/commerce/order/application"
-	orderEntity "github.com/labuda/backend/internal/commerce/order/entity"
-	orderRepo "github.com/labuda/backend/internal/commerce/order/infrastructure/repository"
 	productEntity "github.com/labuda/backend/internal/commerce/product/entity"
 	commerceshared "github.com/labuda/backend/internal/commerce/shared"
 	shippingApp "github.com/labuda/backend/internal/commerce/shipping/application"
@@ -42,10 +39,11 @@ type ProductCreator interface {
 
 // AuctionService handles auction state transitions and operations.
 // It enforces state machine rules and persists changes with proper locking.
-// Commission is read from PlatformConfigService at order creation time (snapshot model).
 //
-// All order creation operations are delegated to OrderService to maintain
-// single responsibility principle.
+// ORDER CREATION IS NOT AN AUCTION CONCERN: auction-sourced orders (buy-now
+// and bid-win) are created exclusively by POST /orders → OrderCreationService.
+// The auction side only owns settlement eligibility, the settlement window,
+// shipping prerequisite flags, and the order binding (auction.OrderID).
 //
 // MARKET AUTHORITY ENFORCEMENT (PHASE 1B):
 //   - Create (create = publish): requires an active seller subscription — the
@@ -54,8 +52,6 @@ type ProductCreator interface {
 type AuctionService struct {
 	auctionRepo              *auctionRepo.AuctionRepository
 	bidRepo                  *auctionRepo.AuctionBidRepository
-	orderRepo                *orderRepo.OrderRepository
-	orderService             *orderApp.OrderService
 	shippingSvc              *shippingApp.ShippingService
 	shippingSetupRepo        shippingRepo.ShippingSetupRepository
 	shippingCoverageRepo     shippingRepo.ShippingCoverageRepository
@@ -73,7 +69,6 @@ type AuctionService struct {
 }
 
 // NewAuctionService creates a new AuctionService.
-// Commission is read from PlatformConfigService at order creation time.
 func NewAuctionService(
 	accountStatus auth.AccountStatusChecker,
 	shippingService *shippingApp.ShippingService,
@@ -82,7 +77,6 @@ func NewAuctionService(
 	productShippingRepo shippingRepo.ProductShippingSetupRepository,
 	outboxRepo *outboxRepo.OutboxRepository,
 	configService *platformconfigApp.ConfigService,
-	orderService *orderApp.OrderService,
 	roleChecker auth.RoleChecker,
 	addressRepository addressRepo.AddressRepository,
 	log *zap.Logger,
@@ -94,8 +88,6 @@ func NewAuctionService(
 	return &AuctionService{
 		auctionRepo:          auctionRepo.NewAuctionRepository(),
 		bidRepo:              auctionRepo.NewAuctionBidRepository(),
-		orderRepo:            orderRepo.NewOrderRepository(),
-		orderService:         orderService,
 		shippingSvc:          shippingService,
 		shippingSetupRepo:    shippingSetupRepo,
 		shippingCoverageRepo: shippingCoverageRepo,
@@ -518,7 +510,7 @@ func (s *AuctionService) validateScheduleGates(
 	// SHIPPING COVERAGE CHECK: Auction must have at least one shipping option
 	// with at least one active coverage before going live. Buyers cannot
 	// checkout an auction with no coverable address, so we block here rather
-	// than surprising them at claim time.
+	// than surprising them at checkout time.
 	return s.ensureShippingCoverage(ctx, tx, auction.ProductID)
 }
 
@@ -1015,103 +1007,6 @@ func (s *AuctionService) PlaceBid(
 	return bid, nil
 }
 
-// CreateOrderFromAuctionInput contains parameters for creating an order from auction.
-type CreateOrderFromAuctionInput struct {
-	Auction               *entity.Auction
-	BuyerID               uuid.UUID
-	WinningBid            int64
-	AddressID             uuid.UUID // Buyer's shipping address ID
-	ShippingSetupID       uuid.UUID
-	ProvinceCode          string                            // Deprecated: Use AddressID instead
-	CityCode              string                            // Deprecated: Use AddressID instead
-	DiscountCode          *string                           // Optional discount code
-	AuctionSettlementType orderEntity.AuctionSettlementType // buy_now vs bid_win
-	PricingSnapshot       *orderApp.PricingSnapshot         // REQUIRED: Pricing snapshot from validated pricing token
-	IdempotencyKey        *string                           // Optional: HTTP idempotency key for safe retries
-}
-
-// CreateOrderFromAuction creates an order from an ended auction.
-// This is called by the auction end worker.
-//
-// All business logic is delegated to OrderService.CreateFromAuction().
-// This method only provides orchestration and parameter passing.
-//
-// ⚠️ CRITICAL AUCTION SETTLEMENT INVARIANT ⚠️
-// This function MUST maintain atomicity to prevent:
-// 1. Double-spending: Same auction creating multiple orders
-// 2. Inventory leaks: Auction not locked, listing sold elsewhere
-// 3. Price manipulation: Bid prices changed after auction ends
-//
-// ✅ ALWAYS use transactions (tx parameter required)
-// ✅ ALWAYS lock auction with FOR UPDATE before calling
-// ✅ ALWAYS validate PricingSnapshot is present and valid
-// ❌ NEVER call this without proper locking - it WILL cause races
-// ❌ NEVER bypass OrderService validation logic
-//
-// DB CONSTRAINTS ARE FINAL GUARD:
-// - UNIQUE(auction_id) on orders prevents duplicate orders
-// - CHECK(for_sale_status = 'sold') prevents double-spending
-// - NEVER disable these constraints for "performance"
-//
-// ATOMICITY: All operations happen within the caller-provided transaction.
-func (s *AuctionService) CreateOrderFromAuction(
-	ctx context.Context,
-	tx db.Tx,
-	input CreateOrderFromAuctionInput,
-) (*orderEntity.Order, error) {
-	// CRITICAL: PricingSnapshot is REQUIRED
-	if input.PricingSnapshot == nil {
-		return nil, fmt.Errorf("pricing_snapshot is required for auction order creation: all orders must use pricing token")
-	}
-
-	// Delegate to OrderService for all order creation logic
-	// OrderService handles:
-	// - Listing locking and validation
-	// - Quantity reduction
-	// - Order and order item creation
-	// - Outbox event emission
-	order, err := s.orderService.CreateFromAuction(ctx, tx, orderApp.CreateFromAuctionInput{
-		AuctionID:             input.Auction.ID,
-		AuctionSellerID:       input.Auction.SellerID,
-		ProductID:             input.Auction.ProductID,
-		BuyerID:               input.BuyerID,
-		WinningBid:            input.WinningBid,
-		AddressID:             input.AddressID,
-		ShippingSetupID:       input.ShippingSetupID,
-		ProvinceCode:          input.ProvinceCode,
-		CityCode:              input.CityCode,
-		DiscountCode:          input.DiscountCode,
-		AuctionSettlementType: input.AuctionSettlementType,
-		PricingSnapshot:       input.PricingSnapshot,
-		IdempotencyKey:        input.IdempotencyKey,
-		ShippingResolvedAt:    auctionShippingResolvedAt(input.Auction),
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create order from auction: %w", err)
-	}
-
-	s.log.Info("Order created from auction",
-		zap.String("order_id", order.ID.String()),
-		zap.String("auction_id", input.Auction.ID.String()),
-		zap.String("buyer_id", input.BuyerID.String()),
-		zap.Int64("winning_bid", input.WinningBid),
-	)
-
-	return order, nil
-}
-
-// auctionShippingResolvedAt returns the auction's shipping resolution time.
-// Order creation requires shipping to be resolved first; if the field is
-// unexpectedly nil the caller is about to create an order without a resolution
-// anchor — fail closed by returning the zero time (the order layer then treats
-// payment expiry conservatively from now).
-func auctionShippingResolvedAt(auction *entity.Auction) time.Time {
-	if auction.ShippingResolvedAt != nil {
-		return *auction.ShippingResolvedAt
-	}
-	return time.Time{}
-}
-
 // sellerQuoteRequiredForWinner determines whether the seller must provide a
 // private shipping quote before the winner can resolve shipping (Case A).
 //
@@ -1119,7 +1014,7 @@ func auctionShippingResolvedAt(auction *entity.Auction) time.Time {
 // is_available_for_checkout=true) is resolved; when no shipping setup linked
 // to the auctioned product covers that destination, a private quote is
 // required. Returns false when the winner has no usable primary address yet
-// (the buyer resolves shipping — and provides an address — at claim time).
+// (the buyer resolves shipping — and provides an address — at checkout time).
 func (s *AuctionService) sellerQuoteRequiredForWinner(
 	ctx context.Context,
 	tx db.Tx,
@@ -1136,7 +1031,7 @@ func (s *AuctionService) sellerQuoteRequiredForWinner(
 	}
 	if primary == nil || !primary.IsAvailableForCheckout {
 		// Winner has no usable primary address yet. Fail-open to Case B — the
-		// winner supplies an address when resolving shipping at claim time.
+		// winner supplies an address when resolving shipping at checkout time.
 		return false, nil
 	}
 
@@ -1179,12 +1074,10 @@ func (s *AuctionService) RescheduleAfterSettlementFailure(
 }
 
 // EndAuctionInput contains parameters for ending an auction internally.
-// Used by the auction end worker.
+// Used by the auction end worker. Shipping details are NOT worker concerns:
+// the winner supplies them in the shared Checkout (POST /orders bid-win).
 type EndAuctionInput struct {
-	AuctionID       uuid.UUID
-	ShippingSetupID uuid.UUID
-	ProvinceCode    string
-	CityCode        string
+	AuctionID uuid.UUID
 }
 
 // EndAuctionInternal ends an auction and prepares it for settlement.
@@ -1196,11 +1089,11 @@ type EndAuctionInput struct {
 //   - SellerActionRequired is classified from the winner's primary-address
 //     coverage (seller must provide a private quote when no shipping setup
 //     covers the winner's destination)
-//   - Winner must resolve shipping (claim) to create the order within the
-//     canonical shipping deadline: end_at + 24h
+//   - Winner must complete the shared Checkout (POST /orders bid-win) inside
+//     the canonical settlement window: end_at + 24h
 //
-// CRITICAL CHANGE: Worker NO LONGER creates orders directly.
-// ALL auction orders must be created by the winner via the claim flow.
+// The worker NEVER creates orders: auction-sourced orders are created only by
+// POST /orders, which binds auction.OrderID in the same transaction.
 //
 // LOCK DISCIPLINE:
 // - Lock Auction (FOR UPDATE)
@@ -1239,26 +1132,25 @@ func (s *AuctionService) EndAuctionInternal(
 		return nil
 	}
 
-	// NOTE: Shipping details are NO LONGER used by worker
-	// Worker only transitions auction state
-	// Winner must use pricing token flow to create order
-
+	// NOTE: Shipping details are NOT worker concerns: the worker only
+	// transitions auction state. The winner supplies address + shipping in the
+	// shared Checkout (POST /orders bid-win).
 	if auction.HasWinner() {
-		// Winner exists - transition to waiting_settlement.
-		// Winner will resolve shipping (claim) to create the order.
+		// Winner exists - transition to waiting_settlement. The winner
+		// completes the shared Checkout to create the order.
 		if err := auction.TransitionToWaitingSettlement(); err != nil {
 			return err
 		}
 
 		// Canonical Case A/B classification: determine whether the seller must
-		// provide a private shipping quote before the winner can resolve
-		// shipping. The winner's primary shipping address is resolved and
+		// provide a private shipping quote before the winner can complete
+		// checkout. The winner's primary shipping address is resolved and
 		// checked against the product's shipping coverage. When no selected
 		// shipping setup covers the winner's destination, the seller must act
 		// (seller_action_required = true). Fail-open (false) if the winner has
 		// no primary address yet or coverage cannot be determined — the
-		// buyer-side deadline then applies, and the winner resolves shipping
-		// at claim time.
+		// settlement-window deadline then applies, and the winner resolves
+		// shipping at checkout time.
 		requiresSellerQuote, err := s.sellerQuoteRequiredForWinner(ctx, tx, auction)
 		if err != nil {
 			s.log.Warn("seller_action_required determination failed, defaulting false",
@@ -1304,17 +1196,6 @@ func (s *AuctionService) EndAuctionInternal(
 	}
 
 	return nil
-}
-
-// PersistAuctionUpdate persists an already-mutated auction entity within the
-// caller's transaction. Used by the one-shot claim handler after setting
-// OrderID and calling Settle() on the entity.
-func (s *AuctionService) PersistAuctionUpdate(
-	ctx context.Context,
-	tx db.Tx,
-	auction *entity.Auction,
-) error {
-	return s.auctionRepo.UpdateTx(ctx, tx, auction)
 }
 
 // GetAuction retrieves an auction without locking.
@@ -1422,84 +1303,6 @@ func (s *AuctionService) ListAuctions(
 		NextCursor: nextCursor,
 		HasMore:    hasMore,
 	}, nil
-}
-
-// GeneratePricingTokenForAuctionInput contains parameters for generating pricing token for auction claim.
-type GeneratePricingTokenForAuctionInput struct {
-	AuctionID       uuid.UUID
-	WinnerID        uuid.UUID
-	AddressID       uuid.UUID
-	ShippingSetupID uuid.UUID
-}
-
-// GeneratePricingTokenForAuctionClaim generates a pricing token for auction claim.
-//
-// This is the NEW flow for auction claims:
-// 1. Winner validates and gets pricing token
-// 2. Winner proceeds to checkout with pricing token
-// 3. Order is created using the pricing token
-//
-// This ensures ALL orders go through pricing token validation.
-//
-// VALIDATIONS:
-// - Auction is in waiting_settlement state
-// - Caller is the winner
-// - Settlement deadline has not passed
-// - NOT already settled (order_id is NULL)
-//
-// Returns auction data for pricing token generation.
-func (s *AuctionService) GeneratePricingTokenForAuctionClaim(
-	ctx context.Context,
-	tx db.Tx,
-	input GeneratePricingTokenForAuctionInput,
-) (*entity.Auction, error) {
-	// Lock auction for validation
-	auction, err := s.auctionRepo.GetForUpdate(ctx, tx, input.AuctionID)
-	if err != nil {
-		return nil, err
-	}
-
-	// SETTLEMENT GUARD: Check if already settled
-	if auction.OrderID != nil {
-		return nil, entity.ErrAlreadySettled
-	}
-
-	// Validate auction is in waiting_settlement state
-	if auction.Status != entity.StatusWaitingSettlement {
-		return nil, fmt.Errorf("%w: status=%s (expected waiting_settlement)", entity.ErrNotClaimable, auction.Status)
-	}
-
-	// Validate the canonical shipping deadline (auction.end_at + 24h) has not
-	// passed. Deadline authority is DERIVED — never stored, never extended.
-	now := time.Now()
-	if now.After(auction.SettlementDeadline()) {
-		return nil, fmt.Errorf("%w: deadline=%s", entity.ErrSettlementDeadlinePassed, auction.SettlementDeadline().Format(time.RFC3339))
-	}
-
-	// Shipping resolution guard: shipping must be resolved before an order can
-	// be created. First-resolution-wins — a claim cannot proceed after shipping
-	// has already been resolved by another path.
-	if auction.ShippingResolvedAt != nil {
-		return nil, entity.ErrShippingAlreadyResolved
-	}
-
-	// Validate caller is the winner
-	if !auction.HasWinner() {
-		return nil, entity.ErrNoWinner
-	}
-	if auction.WinnerID() == nil || *auction.WinnerID() != input.WinnerID {
-		return nil, entity.ErrNotWinner
-	}
-
-	// COMMERCE RESTRICTION: Reject restricted winner at the claim/payment boundary.
-	// Checked inside the same transaction as the auction claim to prevent TOCTOU bypass.
-	if err := s.requireUserNotRestricted(ctx, tx, input.WinnerID); err != nil {
-		return nil, err
-	}
-
-	// Return auction for pricing token generation
-	// The pricing token service will use this to generate the token
-	return auction, nil
 }
 
 // ActivateScheduledAuctionInput contains parameters for activating a scheduled auction.
@@ -1719,7 +1522,7 @@ func applyAdminCancel(auction *entity.Auction) error {
 	// order resolution must go through the canonical order/dispute/refund
 	// path, not this endpoint. In practice unreachable because OrderID is
 	// only ever set in the same transaction that transitions status to the
-	// terminal `ended` state (see auction_handler.go claim flow), but this
+	// settlement state in the POST /orders transaction (bid-win keeps waiting_settlement; buy-now ends), but this
 	// guard is cheap insurance against that invariant ever drifting.
 	if auction.OrderID != nil {
 		return &ErrAuctionCancelConflict{
@@ -1763,10 +1566,10 @@ func applyAdminCancel(auction *entity.Auction) error {
 // CancelForModeration's precedent — cancelling never mutates money, escrow,
 // or order state at this stage: PlaceBid only ever writes bid rows and
 // auction.current_bid; no ledger/order side effect exists until an order is
-// actually created via claim/buy-now):
+// actually created via bid-win checkout / buy-now):
 //   - scheduled, active (with or without bids), waiting_settlement
 //     (winner determined; safe only while no order is bound — the non-nil
-//     OrderID conflict guard below covers the claimed-but-unpaid case).
+//     OrderID conflict guard below covers the bound-but-unpaid case).
 //
 // CONFLICT STATES (fail closed, return ErrAuctionCancelConflict):
 //   - ended, cancelled (already terminal)

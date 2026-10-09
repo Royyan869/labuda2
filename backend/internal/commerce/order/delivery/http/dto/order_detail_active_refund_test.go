@@ -15,7 +15,6 @@ func TestOrderDetailResponse_WithActiveRefund(t *testing.T) {
 		BuyerID:                   uuid.New(),
 		SellerID:                  uuid.New(),
 		Status:                    entity.StatusShipped,
-		EscrowStatus:              entity.EscrowStatusHolding,
 		CreatedAt:                 time.Now().Add(-2 * time.Hour),
 		UpdatedAt:                 time.Now().Add(-1 * time.Hour),
 		ConfirmationExtensionUsed: false,
@@ -47,7 +46,7 @@ func TestOrderDetailResponse_WithActiveRefund(t *testing.T) {
 		&refundStatus,
 		&paymentStatus,
 		&paymentID,
-		nil, // no payment expiry in test
+		strPtr("holding"), // escrow row exists and holds funds
 	)
 
 	assert.True(t, resp.HasActiveRefund)
@@ -75,7 +74,6 @@ func TestOrderDetailResponse_WithoutActiveRefund(t *testing.T) {
 		BuyerID:                   uuid.New(),
 		SellerID:                  uuid.New(),
 		Status:                    entity.StatusShipped,
-		EscrowStatus:              entity.EscrowStatusHolding,
 		CreatedAt:                 time.Now().Add(-2 * time.Hour),
 		UpdatedAt:                 time.Now().Add(-1 * time.Hour),
 		ConfirmationExtensionUsed: false,
@@ -92,7 +90,7 @@ func TestOrderDetailResponse_WithoutActiveRefund(t *testing.T) {
 		nil,
 		nil, // no payment status in test
 		nil, // no payment ID in test
-		nil, // no payment expiry in test
+		nil, // no escrow row
 	)
 
 	assert.False(t, resp.HasActiveRefund)

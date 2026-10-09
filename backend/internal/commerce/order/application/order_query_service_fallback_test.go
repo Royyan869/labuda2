@@ -133,14 +133,13 @@ func (r *configuredCountRow) Scan(dest ...any) error {
 func makeOrderSummary(buyerID, sellerID uuid.UUID) *projection.OrderSummary {
 	now := time.Now()
 	return &projection.OrderSummary{
-		ID:           uuid.New(),
-		BuyerID:      buyerID,
-		SellerID:     sellerID,
-		SourceType:   "for_sale",
-		Status:       "pending_payment",
-		EscrowStatus: "none",
-		CreatedAt:    now,
-		UpdatedAt:    now,
+		ID:          uuid.New(),
+		BuyerID:     buyerID,
+		SellerID:    sellerID,
+		SourceType:  "for_sale",
+		Status:      "pending_payment",
+		CreatedAt:   now,
+		UpdatedAt:   now,
 	}
 }
 
@@ -336,15 +335,14 @@ func TestListAllOrdersForAdmin_PartialProjection_SafeFallback(t *testing.T) {
 	svc := NewOrderQueryService(&stubProjectionLister{
 		adminResults: []*projection.OrderSummary{
 			{
-				ID:           uuid.New(),
-				BuyerID:      buyerID,
-				SellerID:     sellerID,
-				SourceID:     &sid,
-				SourceType:   "for_sale",
-				Status:       "paid",
-				EscrowStatus: "holding",
-				CreatedAt:    time.Now(),
-				UpdatedAt:    time.Now(),
+				ID:         uuid.New(),
+				BuyerID:    buyerID,
+				SellerID:   sellerID,
+				SourceID:   &sid,
+				SourceType: "for_sale",
+				Status:     "paid",
+				CreatedAt:  time.Now(),
+				UpdatedAt:  time.Now(),
 			},
 		},
 		adminTotal: 1, // projection claims 1; write model has 3
@@ -381,15 +379,14 @@ func TestListAllOrdersForAdmin_NoFallback_WhenProjectionHasResults(t *testing.T)
 	svc := NewOrderQueryService(&stubProjectionLister{
 		adminResults: []*projection.OrderSummary{
 			{
-				ID:           uuid.New(),
-				BuyerID:      buyerID,
-				SellerID:     sellerID,
-				SourceID:     &sid,
-				SourceType:   "for_sale",
-				Status:       "paid",
-				EscrowStatus: "holding",
-				CreatedAt:    time.Now(),
-				UpdatedAt:    time.Now(),
+				ID:         uuid.New(),
+				BuyerID:    buyerID,
+				SellerID:   sellerID,
+				SourceID:   &sid,
+				SourceType: "for_sale",
+				Status:     "paid",
+				CreatedAt:  time.Now(),
+				UpdatedAt:  time.Now(),
 			},
 		},
 		adminTotal: 1,

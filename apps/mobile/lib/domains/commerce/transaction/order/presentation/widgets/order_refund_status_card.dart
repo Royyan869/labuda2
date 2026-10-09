@@ -20,24 +20,68 @@ class RefundStatusCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header with status badge
-          Row(
-            children: [
-              Icon(
-                _getRefundStatusIcon(),
-                size: AppIconSize.action,
-                color: _getRefundStatusColor(context, colorScheme),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'Permintaan Pengembalian',
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const Spacer(),
-              _RefundStatusBadge(status: refund.status),
-            ],
+          // Header with status badge (adaptive): title + badge share one row
+          // when the single-line pair fits, else the title stacks over the
+          // fully-readable badge. The title is compressible chrome
+          // (ellipsis); the badge carries business meaning and wraps instead
+          // of truncating. Same fit-measure as the F2 pricing rows.
+          LayoutBuilder(
+            builder: (BuildContext context, BoxConstraints constraints) {
+              final TextStyle? titleStyle = theme.textTheme.titleSmall
+                  ?.copyWith(fontWeight: FontWeight.w600);
+              final TextStyle badgeStyle = context.typeRoles.labelMicro
+                  .copyWith(fontWeight: FontWeight.w600);
+              final String badgeText =
+                  '${refund.status.emoji} ${refund.status.displayName}';
+              final bool fits = _fitsOrderLabelValueSingleLine(
+                context: context,
+                maxWidth: constraints.maxWidth,
+                label: 'Permintaan Pengembalian',
+                value: badgeText,
+                labelStyle: titleStyle,
+                valueStyle: badgeStyle,
+                fixedExtrasWidth:
+                    AppIconSize.action +
+                    8 +
+                    8 +
+                    core.AppMetrics.p8 * 2,
+              );
+              if (fits) {
+                return Row(
+                  children: [
+                    Icon(
+                      _getRefundStatusIcon(),
+                      size: AppIconSize.action,
+                      color: _getRefundStatusColor(context, colorScheme),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Permintaan Pengembalian',
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const Spacer(),
+                    _RefundStatusBadge(status: refund.status),
+                  ],
+                );
+              }
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Permintaan Pengembalian',
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  _RefundStatusBadge(status: refund.status),
+                ],
+              );
+            },
           ),
           const SizedBox(height: 12),
           // Reason
@@ -191,11 +235,16 @@ class _RefundStatusBadge extends StatelessWidget {
         children: [
           Text(status.emoji, style: context.typeRoles.labelMicro),
           const SizedBox(width: 4),
-          Text(
-            status.displayName,
-            style: context.typeRoles.labelMicro.copyWith(
-              color: _getBadgeColor(context, colorScheme),
-              fontWeight: FontWeight.w600,
+          // F5: wraps (never truncates) when an ancestor bounds this badge;
+          // hugs intrinsic width otherwise. Business-meaningful status copy.
+          Flexible(
+            child: Text(
+              status.displayName,
+              style: context.typeRoles.labelMicro.copyWith(
+                color: _getBadgeColor(context, colorScheme),
+                fontWeight: FontWeight.w600,
+              ),
+              softWrap: true,
             ),
           ),
         ],

@@ -4,14 +4,14 @@
 //   - zero '/checkout/' route construction anywhere in the chat domain;
 //   - the FOR-SALE path forwards to the commerce-owned intent
 //     (openForSaleCheckout / CheckoutIntent);
-//   - the AUCTION winner path forwards to the canonical winner CLAIM flow
-//     (AuctionClaimShippingModal + auctionNotifierProvider.claimAuction →
-//     POST /auctions/:id/claim), carrying the quote + conversation provenance.
+//   - the AUCTION winner path forwards to the SAME shared Checkout through
+//     the commerce-owned auction intent (openAuctionCheckout /
+//     AuctionCheckoutIntent(bidWin: true)), carrying the quote + conversation
+//     provenance.
 //
-// The obsolete auction buy-now intent (openAuctionCheckout / AuctionCheckoutIntent)
-// is NOT a chat entry point: it belongs to auction-detail buy-now only. Routing a
-// chat auction through it is the architecture that was deleted — these contracts
-// make its resurrection fail CI.
+// The obsolete claim flow (AuctionClaimShippingModal + claimAuction →
+// POST /auctions/:id/claim) is PURGED: bid-win settlement is POST /orders
+// via the shared Checkout. These contracts make any resurrection fail CI.
 
 import 'dart:io';
 
@@ -58,7 +58,7 @@ void main() {
         isEmpty,
         reason:
             'Checkout route construction is commerce-owned — forward an '
-            'intent/claim instead of building the route.',
+            'intent instead of building the route.',
       );
     });
 
@@ -69,32 +69,30 @@ void main() {
       expect(chatScreen, isNot(contains('target.productId')));
     });
 
-    test('the auction winner path forwards through the canonical claim flow', () {
-      // Canonical flow: resolve the auction from Commerce, seed the
-      // Commerce-owned claim modal, and forward the explicit claim intent.
-      expect(chatScreen, contains('auctionDetailProvider'));
-      expect(chatScreen, contains('AuctionClaimShippingModal.show'));
-      expect(chatScreen, contains('auctionNotifierProvider'));
-      expect(chatScreen, contains('.claimAuction('));
-      // Quote + conversation provenance travel WITH the claim (the backend
-      // consumes the quote via the ONE ShippingQuote authority).
+    test('the auction winner path forwards through the shared bid-win checkout', () {
+      // ONE PURCHASE FUNNEL: chat resolves NOTHING — the commerce auction
+      // intent resolves the live auction, product id and trust gate, and
+      // builds the canonical checkout route with the bid-win discriminator.
+      expect(chatScreen, contains('openAuctionCheckout'));
+      expect(chatScreen, contains('AuctionCheckoutIntent('));
+      expect(chatScreen, contains('bidWin: true'));
+      // Quote + conversation provenance travel WITH the intent (the backend
+      // consumes the quote via the ONE ShippingQuote authority inside order
+      // creation).
       expect(chatScreen, contains('shippingQuoteId'));
       expect(chatScreen, contains('chatId'));
     });
 
-    test('chat never routes auctions through the obsolete buy-now intent', () {
+    test('chat never resurrects the purged claim flow', () {
       expect(
         chatScreen,
-        isNot(contains('openAuctionCheckout')),
-        reason:
-            'Auction buy-now (openAuctionCheckout) is auction-detail only. The '
-            'chat auction winner path is the canonical claim flow — a chat '
-            'route to the buy-now intent is the deleted architecture.',
+        isNot(contains('AuctionClaimShippingModal')),
+        reason: 'the claim modal was purged with the claim flow',
       );
       expect(
         chatScreen,
-        isNot(contains('AuctionCheckoutIntent')),
-        reason: 'obsolete chat auction buy-now intent',
+        isNot(contains('claimAuction')),
+        reason: 'the claim RPC was purged with the claim flow',
       );
     });
 

@@ -69,7 +69,8 @@ const (
 	StatusActive Status = "active"
 
 	// StatusWaitingSettlement is when auction has ended but order not yet created.
-	// Winner can claim auction to create order.
+	// The winner completes the shared Checkout (POST /orders bid-win) to
+	// create the order inside the settlement window.
 	StatusWaitingSettlement Status = "waiting_settlement"
 
 	// StatusEnded is when auction completes normally (time expires, buy now,
@@ -302,15 +303,9 @@ func (e *AuctionNotActiveError) Error() string {
 // auction that already has an order_id set (prevents double settlement).
 var ErrAlreadySettled = fmt.Errorf("auction already settled")
 
-// ErrNotClaimable is returned when the auction status is not waiting_settlement.
-var ErrNotClaimable = fmt.Errorf("auction not claimable")
-
-// ErrSettlementDeadlinePassed is returned when the settlement shipping
-// deadline (auction.end_at + 24h) has expired.
+// ErrSettlementDeadlinePassed is returned when the settlement window
+// (auction.end_at + 24h) has expired before the winner completed checkout.
 var ErrSettlementDeadlinePassed = fmt.Errorf("auction settlement deadline has passed")
-
-// ErrNoWinner is returned when the auction has no winner set.
-var ErrNoWinner = fmt.Errorf("auction has no winner")
 
 // ErrNotWinner is returned when the caller is not the auction winner.
 var ErrNotWinner = fmt.Errorf("caller is not the auction winner")
@@ -321,7 +316,8 @@ var ErrNotWinner = fmt.Errorf("caller is not the auction winner")
 var ErrShippingAlreadyResolved = fmt.Errorf("auction shipping already resolved")
 
 // Auction represents an auction for a single product.
-// This is a Commerce Entry Layer - it creates orders but doesn't touch the ledger.
+// This is a Commerce Entry Layer — it owns auction lifecycle and settlement
+// eligibility; auction-sourced ORDERS are created only by POST /orders.
 //
 // STATE MACHINE:
 //   - Scheduled: initial state at create (create = publish); limited
@@ -489,6 +485,14 @@ func (a *Auction) TransitionToWaitingSettlement() error {
 // auction.end_at + 24h. There is NO extension and NO second deadline authority.
 func (a *Auction) SettlementDeadline() time.Time {
 	return a.EndAt.Add(24 * time.Hour)
+}
+
+// SettlementDeadlinePassed reports whether the canonical settlement window
+// (end_at + 24h) has passed as of now. This is the SINGLE deadline predicate
+// for every enforcement point — the advisory pricing-preview check and the
+// authoritative POST /orders bid-win re-check under the row lock.
+func (a *Auction) SettlementDeadlinePassed(now time.Time) bool {
+	return now.After(a.SettlementDeadline())
 }
 
 // RescheduleAfterSettlementFailure returns the auction from

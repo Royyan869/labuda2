@@ -9,11 +9,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/utils/money_input_formatter.dart';
 import 'package:labuda/shared/widgets/app_bottom_sheet_base.dart';
+import 'package:labuda/shared/widgets/app_dialog.dart';
 import 'package:labuda/shared/widgets/app_snackbar.dart';
 import 'package:labuda/shared/domain/entities/resource_projection.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction.dart';
-import 'package:labuda/shared/governance/content_lifecycle.dart';
-import 'package:labuda/shared/governance/seller_inactive_badge.dart';
 
 /// Canonical Place Bid amount representation is integer (backend binds
 /// `amount` to int64 and persists to PostgreSQL bigint; a JSON literal like
@@ -115,7 +114,7 @@ class _AuctionActionModalState extends ConsumerState<AuctionActionModal> {
     super.dispose();
   }
 
-  void _handlePlaceBid() {
+  Future<void> _handlePlaceBid() async {
     // Canonical integer parsing — fractional or malformed input is rejected
     // explicitly at this boundary. "1000000.9" never reaches the chain as a
     // coerced 1000000; there is no round/floor/ceil and no double detour
@@ -136,98 +135,77 @@ class _AuctionActionModalState extends ConsumerState<AuctionActionModal> {
       return;
     }
 
-    // Show confirmation dialog before placing bid
-    showDialog(
+    // Show confirmation dialog before placing bid.
+    // F9(a) convergence: pure place-bid yes/no decision consumes the
+    // canonical AppDialog.confirm grammar (same order and meaning). The
+    // side effects stay caller-side: confirm only resolves the decision.
+    final confirmed = await AppDialog.confirm(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Konfirmasi Penawaran'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Kamu akan menawar sebesar'),
-            const SizedBox(height: 12),
-            Text(
-              'Rp ${formatGroupedAmount(amount)}',
-              style: context.typeRoles.titleProminent.copyWith(
-                fontWeight: FontWeight.bold,
-                // Money reads as the brand price role — same authority the
-                // ForSale detail price and the checkout totals use.
-                color: Theme.of(dialogContext).colorScheme.primary,
+      title: 'Konfirmasi Penawaran',
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Kamu akan menawar sebesar'),
+          const SizedBox(height: 12),
+          Text(
+            'Rp ${formatGroupedAmount(amount)}',
+            style: context.typeRoles.titleProminent.copyWith(
+              fontWeight: FontWeight.bold,
+              // Money reads as the brand price role — same authority the
+              // ForSale detail price and the checkout totals use.
+              color: Theme.of(context).colorScheme.primary,
+            ),
+          ),
+          const SizedBox(height: 16),
+          // TRANSACTION CLARITY: Consequence warning for auction inaction
+          Container(
+            padding: const EdgeInsets.all(AppMetrics.p12),
+            decoration: BoxDecoration(
+              color: context.statusColors.warning.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(AppShape.r8),
+              border: Border.all(
+                color: context.statusColors.warning.withValues(alpha: 0.3),
               ),
             ),
-            const SizedBox(height: 16),
-            // TRANSACTION CLARITY: Consequence warning for auction inaction
-            Container(
-              padding: const EdgeInsets.all(AppMetrics.p12),
-              decoration: BoxDecoration(
-                color: context.statusColors.warning.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(AppShape.r8),
-                border: Border.all(
-                  color: context.statusColors.warning.withValues(alpha: 0.3),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  Icons.info_outline,
+                  size: AppIconSize.inlineGlyph,
+                  color: context.statusColors.warning,
                 ),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(
-                    Icons.info_outline,
-                    size: AppIconSize.inlineGlyph,
-                    color: context.statusColors.warning,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Jika Anda menang dan tidak membayar, akun Anda dapat dibatasi',
-                      style: context.typeRoles.labelMicro.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Jika Anda menang dan tidak membayar, akun Anda dapat dibatasi',
+                    style: context.typeRoles.labelMicro.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('Batal'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(dialogContext).pop();
-              Navigator.of(context).pop();
-              widget.onPlaceBid(amount);
-            },
-            // CTA fill comes from the button theme (scheme.primary).
-            child: const Text('Konfirmasi'),
           ),
         ],
       ),
+      confirmLabel: 'Konfirmasi',
+      cancelLabel: 'Batal',
     );
+    if (!confirmed) return;
+    if (!mounted) return;
+    Navigator.of(context).pop();
+    widget.onPlaceBid(amount);
   }
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final currentBid = widget.auction.currentBid;
-    // Expired-seller visibility — disable bid & buy-now when the seller's
-    // subscription has lapsed. Backend rejects these calls anyway (Guard 6 +
-    // PlaceBid/BuyNow gates); the UI signals it up-front so the user is not
-    // surprised by a deep error after composing a bid.
-    final sellerInactive =
-        widget.auction.sellerTrustLifecycle != ContentLifecycle.active;
-
-    // Canonical per-viewer authority for the buy-now affordance. When the
-    // detail wire carries viewer_capabilities, `can_buy_now` decides
-    // (authenticated buyer + active + seller-trust + buy-now price evaluated
-    // server-side). Absence path (non-detail payload): fall back to the
-    // price-presence presentation check.
     final caps = widget.auction.viewerCapabilities;
-    final showBuyNow = caps == null
-        ? widget.auction.buyNowPrice != null
-        : caps.canBuyNow;
+    final canBid = caps?.canBid ?? false;
+    final showBuyNow = caps?.canBuyNow ?? false;
 
     return Column(
         mainAxisSize: MainAxisSize.min,
@@ -299,15 +277,9 @@ class _AuctionActionModalState extends ConsumerState<AuctionActionModal> {
           const SizedBox(height: 16),
           // Expired-seller badge — render above CTAs when seller-trust is
           // degraded so the user understands why the buttons are disabled.
-          if (sellerInactive) ...[
-            const SellerInactiveBadge(
-              label: 'Penjual tidak aktif — penawaran tidak tersedia',
-            ),
-            const SizedBox(height: 12),
-          ],
           // Place bid button
           ElevatedButton(
-            onPressed: sellerInactive ? null : _handlePlaceBid,
+            onPressed: canBid ? _handlePlaceBid : null,
             // CTA fill comes from the button theme (scheme.primary).
             style: ElevatedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: AppMetrics.p16),
@@ -321,12 +293,10 @@ class _AuctionActionModalState extends ConsumerState<AuctionActionModal> {
           if (showBuyNow) ...[
             const SizedBox(height: 12),
             OutlinedButton(
-              onPressed: sellerInactive
-                  ? null
-                  : () {
-                      Navigator.of(context).pop();
-                      widget.onBuyNow();
-                    },
+              onPressed: () {
+                Navigator.of(context).pop();
+                widget.onBuyNow();
+              },
               style: OutlinedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: AppMetrics.p16),
               ),

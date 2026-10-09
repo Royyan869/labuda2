@@ -16,6 +16,7 @@ import 'package:labuda/domains/commerce/transaction/shipping/presentation/provid
 import 'package:labuda/domains/user/identity/verification/verification.dart';
 import 'package:labuda/domains/user/preference/seller/domain/entities/seller_earnings.dart';
 import 'package:labuda/domains/user/preference/seller/domain/entities/seller_subscription.dart';
+import 'package:labuda/domains/user/preference/seller/domain/repositories/seller_repository.dart';
 import 'package:labuda/domains/user/preference/seller/presentation/screens/seller_dashboard_screen.dart';
 import 'package:labuda/domains/user/preference/seller/seller_di.dart';
 import 'package:labuda/generated/app_localizations.dart';
@@ -54,6 +55,21 @@ class _StaticShippingNotifier extends ShippingNotifier {
 
   @override
   Future<void> loadActiveShippingSetups() async {}
+}
+
+/// Minimal stub whose getSubscription fails. Used to prove the REAL
+/// sellerSubscriptionFutureProvider surfaces an AsyncError instead of a
+/// fabricated SellerSubscription.empty() when the backend call fails.
+class _FailingSubscriptionSellerRepository implements SellerRepository {
+  @override
+  Future<Result<SellerSubscription>> getSubscription(String sellerId) async {
+    return Result.error('network down');
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError(
+    'Not implemented in test stub: ${invocation.memberName}',
+  );
 }
 
 AuthUser _sellerUser({
@@ -617,5 +633,40 @@ void main() {
         findsNothing,
       );
     });
+
+    test(
+      'subscription provider surfaces AsyncError instead of a fabricated empty() when the fetch fails',
+      () async {
+        // Failure path (regression lock): a repository error must surface as
+        // AsyncError — NOT a fabricated SellerSubscription.empty() that would
+        // read as "expiring now" in OperationalActionQueueSection.
+        final container = ProviderContainer(
+          overrides: [
+            sellerRepositoryProvider.overrideWith(
+              (ref) => _FailingSubscriptionSellerRepository(),
+            ),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        final sub = container.listen(
+          sellerSubscriptionFutureProvider(_sellerId),
+          (_, _) {},
+        );
+        await container.pump();
+
+        final state = sub.read();
+        expect(
+          state.hasError,
+          isTrue,
+          reason: 'fetch failure must surface as AsyncError',
+        );
+        expect(
+          state.asData,
+          isNull,
+          reason: 'no fabricated subscription data on failure',
+        );
+      },
+    );
   });
 }

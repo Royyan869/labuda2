@@ -39,7 +39,7 @@ func seedBindingPaymentMethods(t *testing.T, h *paymentIntentHarness) {
 }
 
 // createBoundOrder inserts an order whose canonical payment-method binding is
-// methodCode (or nil for an unbound / auction-claim order).
+// methodCode (or nil for an unbound / auction bid-win order).
 func createBoundOrder(t *testing.T, h *paymentIntentHarness, methodCode *string) uuid.UUID {
 	t.Helper()
 	ctx := context.Background()
@@ -150,7 +150,7 @@ func TestPaymentMethodEnforcement_ExactIdentity(t *testing.T) {
 	require.Equal(t, http.StatusOK, respE2.Code,
 		"bound zero-fee method with its own identity must be accepted: %s", respE2.Body.String())
 
-	// Unbound order (auction-claim) → first payment binds the method.
+	// Unbound order (auction bid-win) → first payment binds the method.
 	orderF := createBoundOrder(t, h, nil)
 	require.Nil(t, loadOrderPaymentMethodCode(t, h, orderF))
 	respF := h.runCreatePayment(t, orderF, "bank_transfer", 0)

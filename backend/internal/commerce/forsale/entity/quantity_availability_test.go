@@ -101,6 +101,34 @@ func TestReduceQuantity_ExhaustsStock_TransitionsToSold(t *testing.T) {
 	}
 }
 
+// The active -> sold transition must stamp SoldAt atomically.
+func TestReduceQuantity_ExhaustsStock_StampsSoldAt(t *testing.T) {
+	l := newActiveForSale(2)
+	before := time.Now()
+	if err := l.ReduceQuantity(2); err != nil {
+		t.Fatalf("ReduceQuantity(2) on qty=2: %v", err)
+	}
+	if l.SoldAt == nil {
+		t.Fatal("SoldAt must be stamped on the active -> sold transition")
+	}
+	if l.SoldAt.Before(before) || l.SoldAt.After(time.Now()) {
+		t.Fatalf("SoldAt = %v, want within the transition window", l.SoldAt)
+	}
+}
+
+func TestReduceQuantity_PartialStock_SoldAtStaysNil(t *testing.T) {
+	l := newActiveForSale(5)
+	if err := l.ReduceQuantity(3); err != nil {
+		t.Fatalf("ReduceQuantity(3) on qty=5: %v", err)
+	}
+	if l.Status != ForSaleStatusActive {
+		t.Fatalf("Status = %s, want active (stock remains)", l.Status)
+	}
+	if l.SoldAt != nil {
+		t.Fatalf("SoldAt = %v, want nil while still active", l.SoldAt)
+	}
+}
+
 func TestRestoreQuantity_FromSold_RevivesToActive(t *testing.T) {
 	l := newActiveForSale(0)
 	l.Status = ForSaleStatusSold
@@ -112,5 +140,25 @@ func TestRestoreQuantity_FromSold_RevivesToActive(t *testing.T) {
 	}
 	if l.Status != ForSaleStatusActive {
 		t.Fatalf("Status = %s, want active after restore", l.Status)
+	}
+}
+
+// Reviving sold -> active must clear SoldAt for an accurate lifecycle record.
+func TestRestoreQuantity_FromSold_ClearsSoldAt(t *testing.T) {
+	l := newActiveForSale(1)
+	if err := l.ReduceQuantity(1); err != nil {
+		t.Fatalf("ReduceQuantity(1) on qty=1: %v", err)
+	}
+	if l.SoldAt == nil {
+		t.Fatal("precondition: SoldAt must be stamped after sell-out")
+	}
+	if err := l.RestoreQuantity(1); err != nil {
+		t.Fatalf("RestoreQuantity(1): %v", err)
+	}
+	if l.Status != ForSaleStatusActive {
+		t.Fatalf("Status = %s, want active after restore", l.Status)
+	}
+	if l.SoldAt != nil {
+		t.Fatalf("SoldAt = %v, want nil after sold -> active restore", l.SoldAt)
 	}
 }

@@ -37,7 +37,7 @@ type PricingToken struct {
 	// Chat commerce context (optional, mutually exclusive)
 	// Exactly one of these may be set for private commerce flows
 	NegotiationID *uuid.UUID // Set when token is generated from an accepted negotiation
-	AuctionID     *uuid.UUID // Set when token is generated from an auction (buy-now or winner claim)
+	AuctionID     *uuid.UUID // Set when token is generated from an auction (buy-now or bid-win)
 
 	// Shipping context (optional, mutually exclusive with ShippingSetupID)
 	// When set, shipping cost comes from ShippingQuote instead of ShippingSetup
@@ -51,7 +51,7 @@ type PricingToken struct {
 
 	// Pricing snapshot (immutable, calculated at token creation)
 	UnitPrice          money.Money
-	Subtotal           money.Money // quantity × unit_price
+	Subtotal           money.Money // quantity Ã— unit_price
 	ShippingTotal      money.Money
 	CommissionPercent  int64
 	CommissionAmount   money.Money
@@ -346,7 +346,7 @@ func NewPricingTokenFromNegotiation(
 // NewPricingTokenFromAuction creates a new PricingToken from an auction.
 //
 // AUCTION CHECKOUT SAFETY:
-// - The auction_id links the token to the auction (buy-now or winner claim)
+// - The auction_id links the token to the auction (buy-now or bid-win)
 // - The unit price comes from the auction (buy-now price or winning bid)
 // - Token validation ensures the auction is in a valid state for checkout
 // - Token consumption creates the order with the auction price
@@ -356,7 +356,7 @@ func NewPricingTokenFromNegotiation(
 //   - Bid-win: Treated as competitive final price, promo discounts and coins ALLOWED
 //     (Owner canonical 2026-06-16: both settlement types go through the same backend
 //     pricing authority — 20% cap, commission safety, balance check — so coins are
-//     permitted on bid-win claims.)
+//     permitted on bid-win checkouts.)
 //
 // This is enforced by the service layer during token generation.
 //

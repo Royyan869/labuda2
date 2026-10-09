@@ -28,7 +28,7 @@ library;
 import 'package:labuda/domains/commerce/transaction/order/domain/entities/order.dart'
     show DecisionContract;
 import 'package:labuda/domains/commerce/transaction/order/domain/entities/order_status.dart'
-    show OrderStatus, OrderStatusExtension, EscrowStatus, EscrowStatusExtension;
+    show OrderStatus, OrderStatusExtension;
 
 // ==================== ORDER API RESPONSE DTOS ====================
 
@@ -274,10 +274,6 @@ class OrderApiResponse {
   /// so absence stays observable to the consumer.
   final DecisionContract? decision;
 
-  /// Canonical escrow state projection (backend `escrow_status`:
-  /// "holding" | "released" | "refunded"). Null when absent or unrecognised.
-  final EscrowStatus? escrowStatus;
-
   OrderApiResponse({
     required this.id,
     required this.orderNumber,
@@ -319,7 +315,6 @@ class OrderApiResponse {
     this.paymentId,
     this.paymentMethodCode,
     this.decision,
-    this.escrowStatus,
   });
 
   // fromJson factory for API response parsing.
@@ -392,11 +387,6 @@ class OrderApiResponse {
               json['decision'] as Map<String, dynamic>,
             )
           : null,
-      // Escrow state projection — unknown/absent values map to null (the
-      // canonical nullable semantics owned by EscrowStatusExtension.parse).
-      escrowStatus: EscrowStatusExtension.parse(
-        json['escrow_status'] as String?,
-      ),
     );
   }
 }

@@ -158,16 +158,10 @@ void main() {
       await ds.cancelAuction('a1', const CancelAuctionDto(reason: 'x'));
       expect(client.lastPostPath, '/auctions/a1/cancel');
 
-      client.postPayload = {
-        'success': true,
-        'data': {'order_id': 'o1'},
-      };
-      await ds.claimAuction(
-        'a1',
-        addressId: 'addr1',
-        shippingSetupId: 'ship1',
-      );
-      expect(client.lastPostPath, '/auctions/a1/claim');
+      // NO claim endpoint exists (purged with the claim flow): bid-win
+      // settlement is POST /orders via the shared Checkout; the datasource
+      // exposes no claim method and no claim route is ever posted.
+      expect(client.lastPostPath, isNot(contains('/claim')));
     });
 
     test(
@@ -192,90 +186,6 @@ void main() {
         expect(client.lastGetPath, isNull);
       },
     );
-  });  // ========================================================================
-  // STAGE 15 — Auction claim shipping option contract proof
-  // ========================================================================
-  group('POST /auctions/:id/claim shipping option contract', () {
-    test('claim request emits shipping_option_id, not shipping_setup_id', () async {
-      final client = _RecordingApiClient();
-      final ds = AuctionRemoteDatasource(client);
-
-      client.postPayload = {
-        'success': true,
-        'data': {'order_id': 'o1'},
-      };
-      await ds.claimAuction(
-        'a1',
-        addressId: 'addr1',
-        shippingSetupId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-      );
-
-      final payload = client.lastPostData as Map<String, dynamic>;
-      expect(payload.containsKey('shipping_option_id'), isTrue);
-      expect(payload.containsKey('shipping_setup_id'), isFalse,
-        reason: 'stale wire key must never appear in live auction claim',
-      );
-    });
-
-    test('value trace: selected shipping option ID arrives unchanged as shipping_option_id', () async {
-      const selectedOptionId = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
-      final client = _RecordingApiClient();
-      final ds = AuctionRemoteDatasource(client);
-
-      client.postPayload = {
-        'success': true,
-        'data': {'order_id': 'o2'},
-      };
-      await ds.claimAuction(
-        'a1',
-        addressId: 'addr1',
-        shippingSetupId: selectedOptionId,
-      );
-
-      final payload = client.lastPostData as Map<String, dynamic>;
-      expect(payload['shipping_option_id'], equals(selectedOptionId));
-    });
-
-    test('negative stale-key guard: no live claim request emits shipping_setup_id', () async {
-      final client = _RecordingApiClient();
-      final ds = AuctionRemoteDatasource(client);
-
-      client.postPayload = {
-        'success': true,
-        'data': {'order_id': 'o3'},
-      };
-      await ds.claimAuction(
-        'a1',
-        addressId: 'addr1',
-        shippingSetupId: 'opt-999',
-      );
-
-      final payload = client.lastPostData as Map<String, dynamic>;
-      expect(payload.containsKey('shipping_setup_id'), isFalse);
-    });
-
-    test('claim payload preserves all required fields', () async {
-      final client = _RecordingApiClient();
-      final ds = AuctionRemoteDatasource(client);
-
-      client.postPayload = {
-        'success': true,
-        'data': {'order_id': 'o4'},
-      };
-      await ds.claimAuction(
-        'a1',
-        addressId: 'addr1',
-        shippingSetupId: 'ship1',
-        discountCode: 'PROMO10',
-        useCoins: true,
-      );
-
-      final payload = client.lastPostData as Map<String, dynamic>;
-      expect(payload['address_id'], 'addr1');
-      expect(payload['shipping_option_id'], 'ship1');
-      expect(payload['discount_code'], 'PROMO10');
-      expect(payload['use_coins'], true);
-    });
   });
 
   group('Auction DTO contract', () {

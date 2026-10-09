@@ -237,34 +237,86 @@ class OrderOverdueInfoCard extends StatelessWidget {
             ),
           ),
 
-          // Ready to ship by deadline
+          // Ready to ship by deadline.
+          // F5 Case B: both ends carry data (deadline date + late count),
+          // so neither truncates. Horizontal when the single-line pair fits
+          // the incoming width, vertical (date over late count) otherwise.
+          // Same fit-measure as the F2 pricing rows (same library).
           if (order.readyToShipBy != null) ...[
             const SizedBox(height: 12),
-            Row(
-              children: [
-                Icon(
-                  Icons.event,
-                  size: AppIconSize.inlineGlyph,
-                  color: colorScheme.onSurfaceVariant,
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  'Target siap kirim: ${AppFormatters.formatShortDate(order.readyToShipBy!)}',
-                  style: context.typeRoles.labelMicro.copyWith(
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                ),
-                if (daysOverdue > 0) ...[
-                  const Spacer(),
-                  Text(
-                    'Telat $daysOverdue hari',
-                    style: context.typeRoles.labelMicro.copyWith(
+            LayoutBuilder(
+              builder: (BuildContext context, BoxConstraints constraints) {
+                final TextStyle dateStyle = context.typeRoles.labelMicro
+                    .copyWith(color: colorScheme.onSurfaceVariant);
+                final TextStyle lateStyle = context.typeRoles.labelMicro
+                    .copyWith(
                       fontWeight: FontWeight.w600,
                       color: getBadgeColor(),
+                    );
+                final String dateText =
+                    'Target siap kirim: ${AppFormatters.formatShortDate(order.readyToShipBy!)}';
+                final String lateText = 'Telat $daysOverdue hari';
+                final bool showLate = daysOverdue > 0;
+                final bool fits =
+                    !showLate ||
+                    _fitsOrderLabelValueSingleLine(
+                      context: context,
+                      maxWidth: constraints.maxWidth,
+                      label: dateText,
+                      value: lateText,
+                      labelStyle: dateStyle,
+                      valueStyle: lateStyle,
+                      fixedExtrasWidth: AppIconSize.inlineGlyph + 6,
+                    );
+                if (fits) {
+                  // Exact original composition: proven single-line fit, so
+                  // both ends render intrinsically with the Spacer pushing
+                  // the late count to the edge.
+                  return Row(
+                    children: [
+                      Icon(
+                        Icons.event,
+                        size: AppIconSize.inlineGlyph,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(dateText, style: dateStyle),
+                      if (showLate) ...[
+                        const Spacer(),
+                        Flexible(
+                          child: Text(
+                            lateText,
+                            style: lateStyle,
+                            softWrap: true,
+                          ),
+                        ),
+                      ],
+                    ],
+                  );
+                }
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.event,
+                          size: AppIconSize.inlineGlyph,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(dateText, style: dateStyle, softWrap: true),
+                        ),
+                      ],
                     ),
-                  ),
-                ],
-              ],
+                    if (showLate) ...[
+                      const SizedBox(height: 4),
+                      Text(lateText, style: lateStyle, softWrap: true),
+                    ],
+                  ],
+                );
+              },
             ),
           ],
         ],

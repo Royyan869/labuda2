@@ -188,9 +188,12 @@ func (l *ForSale) ReduceQuantity(amount int) error {
 	l.QuantityAvailable -= amount
 	l.UpdatedAt = time.Now()
 
-	// Auto transition to sold when quantity exhausted
+	// Auto transition to sold when quantity exhausted.
+	// SoldAt is stamped atomically with the terminal transition.
 	if l.QuantityAvailable == 0 {
 		l.Status = ForSaleStatusSold
+		now := time.Now()
+		l.SoldAt = &now
 		l.UpdatedAt = time.Now()
 	}
 
@@ -211,9 +214,12 @@ func (l *ForSale) RestoreQuantity(amount int) error {
 	l.QuantityAvailable += amount
 	l.UpdatedAt = time.Now()
 
-	// If we were in sold state and now have quantity, revert to active
+	// If we were in sold state and now have quantity, revert to active.
+	// SoldAt is cleared: a re-activated sale has no terminal transition, so a
+	// stale sold timestamp must not anchor future grace-period computations.
 	if l.Status == ForSaleStatusSold && l.QuantityAvailable > 0 {
 		l.Status = ForSaleStatusActive
+		l.SoldAt = nil
 		l.UpdatedAt = time.Now()
 	}
 
@@ -229,7 +235,7 @@ func (l *ForSale) RestoreQuantity(amount int) error {
 // NOTE: Visibility check is redundant because ACTIVE = PUBLIC ONLY (enforced
 // by the constructor) This is the authoritative buyability check used by:
 // - Order creation
-// - Shortlist operations
+// - Saved item creation
 // - Purchase validation
 func (l *ForSale) IsAvailable() bool {
 	return l.Status == ForSaleStatusActive && l.QuantityAvailable > 0

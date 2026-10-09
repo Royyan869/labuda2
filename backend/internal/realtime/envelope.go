@@ -12,6 +12,21 @@ const wsServerSender = "server"
 const (
 	EventTypeChatRoomCreated = "chat.room.created"
 	EventTypeChatRoomUpdated = "chat.room.updated"
+
+	// EventTypeNotificationCreated is the user-targeted realtime signal that a
+	// notification row was committed for the recipient (TASK_5). The database
+	// remains the notification authority; this event is a delivery mechanism
+	// only. The payload carries the canonical post-insert unread_count so the
+	// client can reconcile its badge without treating the WS frame as truth.
+	EventTypeNotificationCreated = "notification.created"
+
+	// EventTypeNotificationUpdated is the user-targeted realtime signal that
+	// a committed mutation CHANGED the recipient's notification state
+	// (TASK_4.2): mark-read, mark-all-read, delete, or the chat-room-read
+	// notification sync. One event represents the whole user-level state
+	// change — never one event per affected row. The database remains the
+	// authority; consumers invalidate their canonical providers and re-read.
+	EventTypeNotificationUpdated = "notification.updated"
 )
 
 // WSEnvelope is the canonical outbound WS contract for Labuda.
@@ -89,6 +104,30 @@ func marshalChatRoomCreated(payload ChatRoomSummaryPayload) []byte {
 
 func marshalChatRoomUpdated(payload ChatRoomSummaryPayload) []byte {
 	return marshalWSEnvelope(EventTypeChatRoomUpdated, payload.toMap())
+}
+
+// marshalNotificationCreated builds the canonical WS frame for a committed
+// notification. Minimal by design (ADR-005): the frame carries only what the
+// client needs to reconcile — the created notification's id/type and the
+// canonical unread_count measured in the creation transaction. The client
+// re-fetches the list over REST; the frame is never notification truth.
+func marshalNotificationCreated(notificationID uuid.UUID, notifyType string, unreadCount int) []byte {
+	return marshalWSEnvelope(EventTypeNotificationCreated, map[string]any{
+		"notification_id": notificationID.String(),
+		"type":            notifyType,
+		"unread_count":    unreadCount,
+	})
+}
+
+// marshalNotificationUpdated builds the canonical WS frame for a committed
+// notification-state mutation (TASK_4.2). Deliberately minimal: one frame per
+// user-level state change with no per-row semantics — the client treats it
+// as an invalidation signal and re-reads the canonical count/list. The
+// unread_count is a supplemental hint, never truth.
+func marshalNotificationUpdated(unreadCount int) []byte {
+	return marshalWSEnvelope(EventTypeNotificationUpdated, map[string]any{
+		"unread_count": unreadCount,
+	})
 }
 
 func marshalWSError(messageID, code, action string) []byte {

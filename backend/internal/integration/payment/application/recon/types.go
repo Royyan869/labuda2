@@ -17,9 +17,13 @@
 //   - Emit alerts / outbox observability events.
 //   - Route operator action requests.
 //
-// Drift classes D1–D14 are derived from the approved forensic audit + owner
-// decisions (2026-05-11). Severity values reflect owner overrides: D8 and D13
-// upgraded to HIGH; D14 introduced as HIGH.
+// Drift classes D1–D15 are derived from the approved forensic audit + owner
+// decisions (2026-05-11), restructured for the canonical escrow model
+// (escrows table = sole escrow authority; orders carry no escrow projection):
+//   - D8 (projection-vs-row mismatch) and D13 (projection-none-but-escrow)
+//     compared two representations of the same state and are PURGED.
+//   - D15 is redefined as the settlement-consistency invariant: an escrow row
+//     must never exist without a settled payment.
 package recon
 
 import (
@@ -41,14 +45,16 @@ const (
 	DriftD5DuplicateSettlement             DriftClass = "D5_duplicate_settlement"
 	DriftD6MissingWebhookDelivery          DriftClass = "D6_missing_webhook_delivery"
 	DriftD7WebhookProcessedLedgerAbsent    DriftClass = "D7_webhook_processed_ledger_absent"
-	DriftD8EscrowStateMismatch             DriftClass = "D8_escrow_state_mismatch"
 	DriftD9RefundFullCoinsNotRefunded      DriftClass = "D9_refund_full_coins_not_refunded"
 	DriftD10OrderCompletedReleaseAbsent    DriftClass = "D10_order_completed_release_absent"
 	DriftD11StuckPendingRefund             DriftClass = "D11_stuck_pending_refund"
 	DriftD12PendingPaymentPastExpiry       DriftClass = "D12_pending_payment_past_expiry"
-	DriftD13ProjectionNoneEscrowExists     DriftClass = "D13_projection_none_escrow_exists"
 	DriftD14LedgerEntryOutboxMissing       DriftClass = "D14_ledger_entry_outbox_missing"
-	DriftD15EscrowPresentPaymentAbsent     DriftClass = "D15_escrow_present_payment_absent"
+	// DriftD15EscrowWithoutSettledPayment: an escrow row exists for an order
+	// whose payment is absent or not settled. Under the canonical model
+	// (escrow created ONLY inside the settlement transaction) this is a
+	// real settlement-consistency violation.
+	DriftD15EscrowWithoutSettledPayment DriftClass = "D15_escrow_without_settled_payment"
 )
 
 // Severity is the alert-routing band. Values match AlertService /
@@ -98,14 +104,6 @@ const (
 	EscrowStatusHolding  = "holding"
 	EscrowStatusReleased = "released"
 	EscrowStatusRefunded = "refunded"
-)
-
-// orders.escrow_status projection values.
-const (
-	OrderEscrowStatusNone     = "none"
-	OrderEscrowStatusHolding  = "holding"
-	OrderEscrowStatusReleased = "released"
-	OrderEscrowStatusRefunded = "refunded"
 )
 
 // Local order.status values the classifier names. Other values pass through.
@@ -191,11 +189,12 @@ type PaymentRow struct {
 	CreatedAt       time.Time
 }
 
-// OrderRow is the canonical projection of one row from orders.
+// OrderRow is the canonical projection of one row from orders. Orders carry
+// NO escrow projection — escrow existence/state lives only in the escrows
+// table (EscrowRow).
 type OrderRow struct {
-	ID           uuid.UUID
-	Status       string
-	EscrowStatus string // denormalized projection (orders.escrow_status)
+	ID     uuid.UUID
+	Status string
 	// GrossAmount is the canonical buyer-funded escrow base
 	// (orders.total_before_coins_amount = PD + S). orders.escrow_amount is
 	// NOT authoritative (never persisted).

@@ -8,11 +8,10 @@ import (
 	"github.com/labuda/backend/internal/identity/auth"
 )
 
-func TestEnforceAppDisputeFinality_BlocksCompletedReleasedForAppCaller(t *testing.T) {
+func TestEnforceAppDisputeFinality_BlocksCompletedForAppCaller(t *testing.T) {
 	svc := &DisputeService{}
 	order := &orderEntity.Order{
-		Status:       orderEntity.StatusCompleted,
-		EscrowStatus: orderEntity.EscrowStatusReleased,
+		Status: orderEntity.StatusCompleted,
 	}
 
 	err := svc.enforceAppDisputeFinality(order, uuid.New())
@@ -27,8 +26,7 @@ func TestEnforceAppDisputeFinality_BlocksCompletedReleasedForAppCaller(t *testin
 func TestEnforceAppDisputeFinality_BlocksSystemCaller(t *testing.T) {
 	svc := &DisputeService{}
 	order := &orderEntity.Order{
-		Status:       orderEntity.StatusCompleted,
-		EscrowStatus: orderEntity.EscrowStatusReleased,
+		Status: orderEntity.StatusCompleted,
 	}
 
 	err := svc.enforceAppDisputeFinality(order, auth.SystemCallerID)
@@ -40,15 +38,14 @@ func TestEnforceAppDisputeFinality_BlocksSystemCaller(t *testing.T) {
 	}
 }
 
-func TestEnforceAppDisputeFinality_AllowsPreReleaseAppCaller(t *testing.T) {
+func TestEnforceAppDisputeFinality_AllowsPreCompletionAppCaller(t *testing.T) {
 	svc := &DisputeService{}
 	order := &orderEntity.Order{
-		Status:       orderEntity.StatusShipped,
-		EscrowStatus: orderEntity.EscrowStatusHolding,
+		Status: orderEntity.StatusShipped,
 	}
 
 	if err := svc.enforceAppDisputeFinality(order, uuid.New()); err != nil {
-		t.Fatalf("expected pre-release dispute to pass finality guard, got %v", err)
+		t.Fatalf("expected pre-completion dispute to pass finality guard, got %v", err)
 	}
 }
 

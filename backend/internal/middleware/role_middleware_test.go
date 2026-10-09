@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -20,6 +21,13 @@ type mockRoleChecker struct {
 	adminErr            error
 	capabilityErr       error
 	sellerProfileErr    error
+
+	// Optional seller-subscription status reader (RF-02 residual). When
+	// subscriptionStatusSet is false, the mock does NOT implement the reader
+	// interface, exercising the fail-closed activation copy path.
+	subscriptionStatusSet bool
+	subscriptionStatus    string
+	subscriptionStatusErr error
 }
 
 func (m *mockRoleChecker) IsAdmin(ctx context.Context, userID uuid.UUID) (bool, error) {
@@ -33,6 +41,10 @@ func (m *mockRoleChecker) HasActiveSellerCapability(ctx context.Context, userID 
 func (m *mockRoleChecker) HasSellerProfile(ctx context.Context, userID uuid.UUID) (bool, error) {
 	return m.hasSellerProfileVal, m.sellerProfileErr
 }
+
+// GetSellerSubscriptionStatus is only promoted onto the concrete type when the
+// test opts in via subscriptionStatusSet, so type-assertion fail-closed is
+// still exercised by the default mock.
 
 // setupTestContext creates a test gin context with user_id set
 func setupTestContext() (*gin.Context, *httptest.ResponseRecorder) {
@@ -243,4 +255,108 @@ func TestRequireSellerMiddleware_Success_ActiveSeller(t *testing.T) {
 	assert.True(t, val.(bool), "market authority key must be true")
 	_, sellerKeyExists := c.Get("is_seller")
 	assert.False(t, sellerKeyExists, "legacy ambiguous is_seller key must not be emitted")
+}
+
+// ============================================================================
+// RF-02 residual — market-authority denial message must distinguish
+// never-paid ('none') from ended ('expired'). Never-paid must never be
+// told to renew.
+// ============================================================================
+
+// statusReportingRoleChecker wraps mockRoleChecker and promotes the optional
+// GetSellerSubscriptionStatus reader so type-assertion succeeds.
+type statusReportingRoleChecker struct {
+	*mockRoleChecker
+	status    string
+	statusErr error
+}
+
+func (r *statusReportingRoleChecker) GetSellerSubscriptionStatus(_ context.Context, _ uuid.UUID) (string, error) {
+	return r.status, r.statusErr
+}
+
+func TestRequireSellerMiddleware_NeverPaid_IsToldToActivateNotRenew(t *testing.T) {
+	c, w := setupTestContext()
+	userID := uuid.New()
+	c.Set("user_id", userID)
+
+	// Freshly onboarded seller: profile exists, no subscription row → 'none'.
+	roleChecker := &statusReportingRoleChecker{
+		mockRoleChecker: &mockRoleChecker{
+			hasSellerProfileVal: true,
+			hasSellerCapability: false,
+		},
+		status: "none",
+	}
+	mw := RequireSellerMiddleware(roleChecker)
+	mw(c)
+
+	assert.True(t, c.IsAborted(), "Market gate must reject never-paid seller")
+	assert.Equal(t, http.StatusForbidden, w.Code)
+
+	body := w.Body.String()
+	assert.Contains(t, body, "activate", "never-paid seller must be told to ACTIVATE")
+	assert.NotContains(t, body, "renew", "never-paid seller must NEVER be told to RENEW")
+	assert.NotContains(t, body, "Renew", "never-paid seller must NEVER be told to RENEW")
+}
+
+func TestRequireSellerMiddleware_ExpiredSeller_IsToldToRenew(t *testing.T) {
+	c, w := setupTestContext()
+	userID := uuid.New()
+	c.Set("user_id", userID)
+
+	// Previously active then expired seller.
+	roleChecker := &statusReportingRoleChecker{
+		mockRoleChecker: &mockRoleChecker{
+			hasSellerProfileVal: true,
+			hasSellerCapability: false,
+		},
+		status: "expired",
+	}
+	mw := RequireSellerMiddleware(roleChecker)
+	mw(c)
+
+	assert.True(t, c.IsAborted(), "Market gate must reject expired seller")
+	assert.Equal(t, http.StatusForbidden, w.Code)
+
+	body := w.Body.String()
+	assert.Contains(t, body, "renew", "expired seller must still be told to RENEW")
+	assert.NotContains(t, body, "activate your subscription", "expired seller must not be told to activate")
+}
+
+func TestRequireSellerMiddleware_StatusReaderError_FailsClosedToActivate(t *testing.T) {
+	c, w := setupTestContext()
+	userID := uuid.New()
+	c.Set("user_id", userID)
+
+	// Status unreadable → fail closed to activation copy, never renewal.
+	roleChecker := &statusReportingRoleChecker{
+		mockRoleChecker: &mockRoleChecker{
+			hasSellerProfileVal: true,
+			hasSellerCapability: false,
+		},
+		status:    "",
+		statusErr: errors.New("db down"),
+	}
+	mw := RequireSellerMiddleware(roleChecker)
+	mw(c)
+
+	assert.True(t, c.IsAborted())
+	body := w.Body.String()
+	assert.Contains(t, body, "activate")
+	assert.False(t, strings.Contains(body, "renew"), "unreadable status must never say renew")
+}
+
+func TestMarketAuthorityDenialMessage(t *testing.T) {
+	assert.Contains(t, marketAuthorityDenialMessage("expired"), "renew")
+	assert.NotContains(t, marketAuthorityDenialMessage("expired"), "activate your subscription")
+
+	assert.Contains(t, marketAuthorityDenialMessage("none"), "activate")
+	assert.NotContains(t, marketAuthorityDenialMessage("none"), "renew")
+
+	assert.Contains(t, marketAuthorityDenialMessage("active"), "activate")
+	assert.NotContains(t, marketAuthorityDenialMessage("active"), "renew")
+
+	assert.Contains(t, marketAuthorityDenialMessage(""), "activate")
+	assert.NotContains(t, marketAuthorityDenialMessage(""), "renew")
 }

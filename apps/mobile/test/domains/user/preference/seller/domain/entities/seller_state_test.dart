@@ -52,7 +52,6 @@ void main() {
 
       expect(state.type, SellerStateType.pendingActivation);
       expect(state.isSeller, isTrue, reason: 'workspace identity exists');
-      expect(state.canCreateContent, isFalse, reason: 'no market authority');
       expect(state.isExpired, isFalse);
       expect(state.needsRenewal, isFalse);
     });
@@ -81,7 +80,6 @@ void main() {
       );
 
       expect(state.type, SellerStateType.active);
-      expect(state.canCreateContent, isTrue);
       expect(state.isExpired, isFalse);
     });
 

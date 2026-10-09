@@ -15,17 +15,17 @@ import 'package:labuda/shared/widgets/page_error_state.dart';
 const _uid = 'u1';
 
 /// Scripted repository: the screen runs the REAL [notificationListProvider]
-/// (canonical authority), so every subscription (initial, refresh, retry) is
+/// (canonical authority), so every request (initial, refresh, retry) is
 /// observable at the producer boundary.
 class _ScriptedNotificationRepository implements INotificationRepository {
   _ScriptedNotificationRepository({required this.onGetNotifications});
 
-  Stream<Result<List<NotificationEntity>>> Function(int call)
+  Future<Result<List<NotificationEntity>>> Function(int call)
   onGetNotifications;
   int listCalls = 0;
 
   @override
-  Stream<Result<List<NotificationEntity>>> getNotifications({
+  Future<Result<List<NotificationEntity>>> getNotifications({
     required String userId,
     int limit = 20,
   }) {
@@ -34,8 +34,8 @@ class _ScriptedNotificationRepository implements INotificationRepository {
   }
 
   @override
-  Future<Result<void>> markAsRead({required String notificationId}) async =>
-      Result.success(null);
+  Future<Result<int>> markAsRead({required String notificationId}) async =>
+      Result.success(0);
 
   @override
   Future<Result<void>> markAsReadByEntity({
@@ -45,12 +45,12 @@ class _ScriptedNotificationRepository implements INotificationRepository {
   }) async => Result.success(null);
 
   @override
-  Future<Result<void>> markAllAsRead({required String userId}) async =>
-      Result.success(null);
+  Future<Result<int>> markAllAsRead({required String userId}) async =>
+      Result.success(0);
 
   @override
-  Stream<Result<int>> getUnreadCount({required String userId}) =>
-      const Stream.empty();
+  Future<Result<int>> getUnreadCount({required String userId}) async =>
+      Result.success(0);
 
   @override
   Future<Result<NotificationPreferenceEntity>> getPreferences({
@@ -63,9 +63,9 @@ class _ScriptedNotificationRepository implements INotificationRepository {
   }) => throw UnimplementedError();
 
   @override
-  Future<Result<void>> deleteNotification({
+  Future<Result<int>> deleteNotification({
     required String notificationId,
-  }) async => Result.success(null);
+  }) async => Result.success(0);
 
   @override
   Future<Result<void>> deleteAllNotifications({required String userId}) async =>
@@ -117,9 +117,9 @@ void main() {
     ) async {
       final gate = Completer<void>();
       final repository = _ScriptedNotificationRepository(
-        onGetNotifications: (_) async* {
+        onGetNotifications: (_) async {
           await gate.future;
-          yield Result.success([_n('n1')]);
+          return Result.success([_n('n1')]);
         },
       );
       await _pump(tester, repository, settle: false);
@@ -138,8 +138,8 @@ void main() {
 
     testWidgets('initial success with data renders the list', (tester) async {
       final repository = _ScriptedNotificationRepository(
-        onGetNotifications: (_) =>
-            Stream.value(Result.success([_n('n1'), _n('n2')])),
+        onGetNotifications: (_) async =>
+            Result.success([_n('n1'), _n('n2')]),
       );
       await _pump(tester, repository);
 
@@ -151,8 +151,8 @@ void main() {
 
     testWidgets('successful zero-result shows EmptyState', (tester) async {
       final repository = _ScriptedNotificationRepository(
-        onGetNotifications: (_) =>
-            Stream.value(Result.success(const <NotificationEntity>[])),
+        onGetNotifications: (_) async =>
+            Result.success(const <NotificationEntity>[]),
       );
       await _pump(tester, repository);
 
@@ -168,8 +168,8 @@ void main() {
       tester,
     ) async {
       final repository = _ScriptedNotificationRepository(
-        onGetNotifications: (_) =>
-            Stream.value(Result.error('INTERNAL_SERVER_ERROR: sql: no rows')),
+        onGetNotifications: (_) async =>
+            Result.error('INTERNAL_SERVER_ERROR: sql: no rows'),
       );
       await _pump(tester, repository);
 
@@ -190,9 +190,9 @@ void main() {
 
     testWidgets('retry re-executes the canonical request', (tester) async {
       final repository = _ScriptedNotificationRepository(
-        onGetNotifications: (call) => call == 1
-            ? Stream.value(Result.error('boom-initial'))
-            : Stream.value(Result.success([_n('n1')])),
+        onGetNotifications: (call) async => call == 1
+            ? Result.error('boom-initial')
+            : Result.success([_n('n1')]),
       );
       await _pump(tester, repository);
       expect(find.byType(PageErrorState), findsOneWidget);
@@ -213,12 +213,11 @@ void main() {
     ) async {
       final gate = Completer<void>();
       final repository = _ScriptedNotificationRepository(
-        onGetNotifications: (call) => call == 1
-            ? Stream.value(Result.success([_n('n1')]))
-            : (() async* {
-                await gate.future;
-                yield Result.success([_n('n2')]);
-              })(),
+        onGetNotifications: (call) async {
+          if (call == 1) return Result.success([_n('n1')]);
+          await gate.future;
+          return Result.success([_n('n2')]);
+        },
       );
       await _pump(tester, repository);
       expect(find.text('Title n1'), findsOneWidget);
@@ -247,12 +246,12 @@ void main() {
       'refresh failure keeps data with inline banner, retry recovers',
       (tester) async {
         final repository = _ScriptedNotificationRepository(
-          onGetNotifications: (call) {
-            if (call == 1) return Stream.value(Result.success([_n('n1')]));
+          onGetNotifications: (call) async {
+            if (call == 1) return Result.success([_n('n1')]);
             if (call == 2) {
-              return Stream.value(Result.error('HTTP 500: boom-refresh'));
+              return Result.error('HTTP 500: boom-refresh');
             }
-            return Stream.value(Result.success([_n('n2')]));
+            return Result.success([_n('n2')]);
           },
         );
         await _pump(tester, repository);

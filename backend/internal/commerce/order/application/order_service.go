@@ -84,7 +84,7 @@ func NewOrderService(
 		coinsService,
 		shippingQuoteService, // HARD FIX: Shipping quote reactivation
 		nil,                  // disputeRepo - will be set later
-		escrowService,        // Used to derive Order.EscrowStatus from Escrow state
+		escrowService,        // Canonical escrow authority (settlement assertion + lifecycle guards)
 		zap.NewNop(),         // Logger is required but not used in this facade
 	)
 
@@ -352,7 +352,8 @@ func (s *OrderService) PartialRefundFromDispute(
 }
 
 // SyncRefundSettlementFromGatewayAck is the order-domain authority hook used
-// by refund webhook ack handling to sync order.status and order.escrow_status.
+// by refund webhook ack handling to sync order.status (the escrow flip is
+// performed by the refund pipeline on the escrows table — sole authority).
 // refundID is accepted for trace parity with caller context.
 func (s *OrderService) SyncRefundSettlementFromGatewayAck(
 	ctx context.Context,

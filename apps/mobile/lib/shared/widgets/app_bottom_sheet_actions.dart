@@ -31,7 +31,7 @@ class BottomSheetAction<T> {
   });
 }
 
-/// AppBottomSheet for action-based bottom sheets
+/// Canonical action-based bottom sheet (short action menus).
 class AppBottomSheetActions {
   /// Show action-based bottom sheet
   static Future<T?> showActions<T>({

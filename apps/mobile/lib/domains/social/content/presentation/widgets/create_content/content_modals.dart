@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/shared/widgets/app_bottom_sheet.dart';
+import 'package:labuda/shared/widgets/app_bottom_sheet_base.dart';
 
 /// Collection of modal dialogs used in create post screen
 class ContentModals {
@@ -12,7 +12,7 @@ class ContentModals {
   }) {
     String inputText = '';
 
-    AppBottomSheet.show(
+    AppBottomSheetBase.show(
       context: context,
       title: title,
       showSaveButton: true,

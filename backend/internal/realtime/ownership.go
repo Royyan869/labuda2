@@ -20,4 +20,6 @@ var OwnedOutboxEventTypes = []string{
 	EventTypeChatMessageSent,
 	EventTypeChatRoomCreated,
 	EventTypeChatRoomUpdated,
+	EventTypeNotificationCreated,
+	EventTypeNotificationUpdated,
 }

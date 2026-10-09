@@ -260,10 +260,6 @@ extension AuthUserRoleExtension on AuthUser {
   /// - Returns false if hasMarketAuthority is null or false
   bool get isSeller => hasMarketAuthority ?? false;
 
-  /// Check if seller has an active subscription
-  bool get isSellerWithActiveSubscription =>
-      sellerSubscriptionStatus == 'active';
-
   /// Check if seller has created a seller profile
   bool get hasCreatedSellerProfile => hasSellerProfile ?? false;
 

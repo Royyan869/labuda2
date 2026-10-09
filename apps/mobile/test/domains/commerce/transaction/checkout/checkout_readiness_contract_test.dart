@@ -9,6 +9,9 @@
 //   ready ⟺ product identity + address + shipping selection (when required)
 //             + an applied preview that is CURRENT for the inputs
 //             + an unexpired, usable pricing token
+//             + a selected payment method WHEN this checkout binds one at
+//               creation (auction bid-win does NOT — its method is chosen at
+//               Order Detail and the first payment binds it)
 //
 // A local price (`forSale.price`) is not an input: it can never make checkout
 // ready.
@@ -31,6 +34,7 @@ CheckoutReadinessInputs _inputs({
   bool isLoadingPaymentMethods = false,
   bool hasPaymentMethodsError = false,
   bool hasSelectedPaymentMethod = true,
+  bool requiresPaymentMethodSelection = true,
 }) {
   return CheckoutReadinessInputs(
     hasProductId: hasProductId,
@@ -46,6 +50,7 @@ CheckoutReadinessInputs _inputs({
     isLoadingPaymentMethods: isLoadingPaymentMethods,
     hasPaymentMethodsError: hasPaymentMethodsError,
     hasSelectedPaymentMethod: hasSelectedPaymentMethod,
+    requiresPaymentMethodSelection: requiresPaymentMethodSelection,
   );
 }
 
@@ -104,6 +109,54 @@ void main() {
       expect(
         evaluateCheckoutReadiness(_inputs(hasPaymentMethodsError: true)),
         CheckoutReadiness.paymentMethodsError,
+      );
+    });
+  });
+
+  group('CheckoutReadiness — auction bid-win binds no method at creation', () {
+    test('bid-win is ready without any payment-method state', () {
+      // Owner canonical: the winner chooses the method at Order Detail; the
+      // first POST /payments binds it. Checkout must not gate on it.
+      expect(
+        evaluateCheckoutReadiness(
+          _inputs(
+            requiresPaymentMethodSelection: false,
+            hasSelectedPaymentMethod: false,
+            isLoadingPaymentMethods: false,
+            hasPaymentMethodsError: false,
+          ),
+        ),
+        CheckoutReadiness.ready,
+      );
+    });
+
+    test('bid-win still gates on every non-method prerequisite', () {
+      expect(
+        evaluateCheckoutReadiness(
+          _inputs(
+            requiresPaymentMethodSelection: false,
+            hasAddress: false,
+            hasSelectedPaymentMethod: false,
+          ),
+        ),
+        CheckoutReadiness.missingAddress,
+      );
+      expect(
+        evaluateCheckoutReadiness(
+          _inputs(
+            requiresPaymentMethodSelection: false,
+            isPreviewExpired: true,
+            hasSelectedPaymentMethod: false,
+          ),
+        ),
+        CheckoutReadiness.expired,
+      );
+    });
+
+    test('method-binding checkouts are unchanged (missing method gates)', () {
+      expect(
+        evaluateCheckoutReadiness(_inputs(hasSelectedPaymentMethod: false)),
+        CheckoutReadiness.missingPaymentMethod,
       );
     });
   });

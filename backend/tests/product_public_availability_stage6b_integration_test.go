@@ -395,7 +395,7 @@ func TestStage6B_AuctionBrowse_AnonymousRestricted_OwnerStatusScoped(t *testing.
 	auctionActive := seedStage6BAuction(t, ctx, tdb, seller, "active")
 
 	handler := auctionhttp.NewAuctionHandler(
-		auctionApp.NewAuctionService(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, zap.NewNop()),
+		auctionApp.NewAuctionService(nil, nil, nil, nil, nil, nil, nil, nil, nil, zap.NewNop()),
 		nil,
 		nil,
 		db.NewFromPool(tdb.Pool()),

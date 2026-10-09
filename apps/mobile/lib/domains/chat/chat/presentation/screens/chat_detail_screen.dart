@@ -28,8 +28,7 @@ import 'package:labuda/domains/commerce/catalog/for_sale/presentation/checkout_i
 import 'package:labuda/domains/commerce/catalog/for_sale/presentation/providers/for_sale_providers.dart';
 import 'package:labuda/domains/social/comment/presentation/widgets/commerce_resource_picker.dart';
 import 'package:labuda/domains/social/comment/presentation/widgets/resource_identity.dart';
-import 'package:labuda/domains/commerce/catalog/auction/presentation/providers/auction_providers.dart';
-import 'package:labuda/domains/commerce/catalog/auction/presentation/widgets/detail/auction_claim_shipping_modal.dart';
+import 'package:labuda/domains/commerce/catalog/auction/presentation/checkout_intent.dart';
 import 'package:labuda/domains/commerce/transaction/shipping/presentation/shipping_quote_intent.dart';
 import 'package:labuda/domains/commerce/negotiation/negotiation/presentation/providers/negotiation_providers.dart';
 import 'package:labuda/domains/commerce/negotiation/negotiation/presentation/widgets/negotiation_offer_sheet.dart';
@@ -52,9 +51,10 @@ class ShippingQuoteCheckoutTarget {
 /// Resolves the shipping-quote host SURFACE only: which commerce entry chat
 /// must forward. Everything beyond the surface id — product id resolution,
 /// seller trust gate, route construction — is Commerce's job, never chat's:
-/// the for-sale path forwards to [openForSaleCheckout]; the auction winner path
-/// forwards to the canonical winner CLAIM flow
-/// (`AuctionClaimShippingModal` → `claimAuction`, `POST /auctions/:id/claim`).
+/// the for-sale path forwards to [openForSaleCheckout]; the auction winner
+/// path forwards to the SAME shared Checkout via the bid-win auction intent
+/// (`openAuctionCheckout` + `AuctionCheckoutIntent(bidWin: true)`), carrying
+/// the quote + conversation provenance.
 @visibleForTesting
 Future<ShippingQuoteCheckoutTarget?> resolveShippingQuoteCheckoutTarget({
   required ShippingQuoteAttachment shippingQuote,
@@ -1038,50 +1038,22 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
     }
 
     if (target.auctionId != null) {
-      // Auction shipping quote: the canonical winner order path is the auction
-      // CLAIM flow (POST /auctions/:id/claim), not the buy-now /orders path.
-      // Chat forwards the explicit claim intent WITH the quote + conversation;
-      // the Commerce claim authority resolves shipping, consumes the quote via
-      // the ONE ShippingQuote authority, and creates the order.
-      final auction = await ref.read(
-        auctionDetailProvider(target.auctionId!).future,
+      // Auction shipping quote (settlement context): the canonical winner
+      // path is the SAME shared Checkout with the bid-win intent. Chat
+      // forwards the intent WITH the quote + conversation provenance; the
+      // commerce authority resolves the auction, product id and trust gate,
+      // and POST /orders consumes the quote via the ONE ShippingQuote
+      // authority inside order creation.
+      await openAuctionCheckout(
+        this.context,
+        ref,
+        AuctionCheckoutIntent(
+          auctionId: target.auctionId!,
+          bidWin: true,
+          shippingQuoteId: shippingQuote.offerId,
+          chatId: widget.chatId,
+        ),
       );
-      if (!mounted) return;
-      if (auction == null) {
-        AppSnackBar.showError(this.context, 'Gagal membuka checkout');
-        return;
-      }
-
-      final orderId = await AuctionClaimShippingModal.show(
-        context: this.context,
-        auction: auction,
-        shippingQuoteId: shippingQuote.offerId,
-        chatId: widget.chatId,
-        onClaim:
-            ({
-              required addressId,
-              String? shippingSetupId,
-              String? shippingQuoteId,
-              String? chatId,
-              String? discountCode,
-              bool useCoins = false,
-            }) async {
-              final notifier = ref.read(auctionNotifierProvider.notifier);
-              return notifier.claimAuction(
-                auctionId: target.auctionId!,
-                addressId: addressId,
-                shippingSetupId: shippingSetupId,
-                shippingQuoteId: shippingQuoteId,
-                chatId: chatId,
-                discountCode: discountCode,
-                useCoins: useCoins,
-              );
-            },
-      );
-      if (!mounted) return;
-      if (orderId != null) {
-        this.context.push(RoutePaths.paymentResultPath(orderId));
-      }
       return;
     }
 

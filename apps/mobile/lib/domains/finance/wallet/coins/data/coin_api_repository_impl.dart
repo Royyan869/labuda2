@@ -31,13 +31,6 @@ class CoinApiRepositoryImpl implements CoinRepository {
     );
   }
 
-  @override
-  Stream<Result<CoinBalance>> watchCoinBalance(String userId) {
-    return _datasource
-        .watchBalance(userId)
-        .map((dto) => Result.success(CoinMapper.balanceToEntity(dto)));
-  }
-
   // ============================================================
   // Transactions
   // ============================================================
@@ -57,16 +50,6 @@ class CoinApiRepositoryImpl implements CoinRepository {
       (error) => Result.error(error),
       (dtos) => Result.success(CoinMapper.transactionsToEntities(dtos)),
     );
-  }
-
-  @override
-  Stream<Result<List<CoinTransaction>>> watchTransactions({
-    required String userId,
-    int limit = 50,
-  }) {
-    return _datasource
-        .watchTransactions(userId: userId, limit: limit)
-        .map((dtos) => Result.success(CoinMapper.transactionsToEntities(dtos)));
   }
 
   // ============================================================

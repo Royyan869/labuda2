@@ -48,7 +48,8 @@ func GetIntentTypeForTarget(targetType TargetType) IntentType {
 	}
 }
 
-// SavedItem represents a user's saved item (unified shortlist + auction watch)
+// SavedItem represents a user's saved item (for_sale with bookmark intent,
+// auction with watch intent)
 // This is a SINGLE SOURCE OF TRUTH for all user-saved items
 type SavedItem struct {
 	ID         uuid.UUID  `json:"id"`

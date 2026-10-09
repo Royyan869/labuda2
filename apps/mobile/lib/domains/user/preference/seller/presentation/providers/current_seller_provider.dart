@@ -87,17 +87,6 @@ final sellerSubscriptionStatusProvider = Provider<String?>((ref) {
   return user?.sellerSubscriptionStatus;
 });
 
-/// Provider to check if seller has an active subscription
-///
-/// **REALIGNED:** Previously in shared/providers/authenticated_account_provider.dart
-/// **SOURCE:** Now canonical definition is in seller domain
-///
-/// This is the canonical check for seller feature access.
-/// Returns true only when seller has active subscription.
-final isSellerSubscriptionActiveProvider = Provider<bool>((ref) {
-  return ref.watch(hasMarketAuthorityProvider);
-});
-
 /// Provider to check if seller subscription has expired
 ///
 /// **REALIGNED:** Previously in shared/providers/authenticated_account_provider.dart

@@ -12,7 +12,7 @@ import (
 // TestOrderDetailResponse_ExposesBoundPaymentMethod proves the order-detail
 // response carries the EXACT bound payment method (orders.payment_method_code)
 // so the post-order retry UI can use it instead of offering invalid
-// alternatives. Nil for unbound (auction-claim) orders.
+// alternatives. Nil for unbound (auction bid-win) orders.
 func TestOrderDetailResponse_ExposesBoundPaymentMethod(t *testing.T) {
 	method := "bank_transfer"
 	order := &entity.Order{
@@ -20,7 +20,6 @@ func TestOrderDetailResponse_ExposesBoundPaymentMethod(t *testing.T) {
 		BuyerID:           uuid.New(),
 		SellerID:          uuid.New(),
 		Status:            entity.StatusPending,
-		EscrowStatus:      entity.EscrowStatusHolding,
 		PaymentMethodCode: &method,
 		CreatedAt:         time.Now().Add(-time.Hour),
 		UpdatedAt:         time.Now(),
@@ -43,13 +42,12 @@ func TestOrderDetailResponse_ExposesBoundPaymentMethod(t *testing.T) {
 // distinguish the legitimate first-selection lifecycle.
 func TestOrderDetailResponse_UnboundOrderHasNilPaymentMethod(t *testing.T) {
 	order := &entity.Order{
-		ID:           uuid.New(),
-		BuyerID:      uuid.New(),
-		SellerID:     uuid.New(),
-		Status:       entity.StatusPending,
-		EscrowStatus: entity.EscrowStatusHolding,
-		CreatedAt:    time.Now().Add(-time.Hour),
-		UpdatedAt:    time.Now(),
+		ID:        uuid.New(),
+		BuyerID:   uuid.New(),
+		SellerID:  uuid.New(),
+		Status:    entity.StatusPending,
+		CreatedAt: time.Now().Add(-time.Hour),
+		UpdatedAt: time.Now(),
 	}
 
 	resp := OrderToDetailResponseWithIdentity(

@@ -17,7 +17,8 @@ class MarkAsReadUseCase {
   /// Execute use case
   ///
   /// Marks notification dengan ID tertentu sebagai read.
-  Future<Result<void>> call({required String notificationId}) {
+  /// Returns the canonical post-mutation `unread_count` from the backend.
+  Future<Result<int>> call({required String notificationId}) {
     return repository.markAsRead(notificationId: notificationId);
   }
 }

@@ -27,7 +27,11 @@ final sellerSubscriptionFutureProvider =
       if (result.isSuccess && result.data != null) {
         return result.data!;
       }
-      return SellerSubscription.empty();
+      // Do NOT fabricate a SellerSubscription here. An API/network failure
+      // (or a 403/404 from the market-gated endpoint) must not become a fake
+      // "subscription expiring now" business state downstream. Surface the
+      // failure as an AsyncError so consumers see null data instead.
+      throw Exception(result.error ?? 'Failed to load seller subscription');
     });
 
 // ============================================

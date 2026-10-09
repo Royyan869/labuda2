@@ -7,14 +7,13 @@ import 'package:labuda/core/src/router/modules/base_module.dart';
 ///
 /// SAVED ITEM DOMAIN:
 ///
-/// This module handles routing for the unified Saved Items (shortlist + auction watches).
+/// This module handles routing for Saved Items (for_sale with bookmark intent,
+/// auction with watch intent).
 ///
 /// Purpose: Unified stream of saved items (forSales + auctions)
 /// Screen: SavedItemScreen
 /// Icon: Bookmark
 /// Tooltip: "Disimpan" (Saved)
-///
-/// REPLACES: ShortlistModule + WatchlistModule (NO DUAL SYSTEM)
 class SavedItemModule extends BaseModule {
   @override
   String get moduleName => 'SavedItemModule';

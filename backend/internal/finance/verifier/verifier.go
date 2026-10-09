@@ -62,7 +62,7 @@ type Order struct {
 	BuyerID                uuid.UUID
 	SellerID               uuid.UUID
 	Status                 string
-	EscrowStatus           string
+	EscrowStatus           string // LIVE view of the canonical escrow row ("" = no escrow)
 	Subtotal               int64
 	ShippingTotal          int64
 	CommissionAmount       int64
@@ -499,6 +499,8 @@ func (v *verifier) checkSettlementReleaseInvariants() SectionResult {
 	}
 
 	for _, o := range v.snapshot.Orders {
+		// A completed order, OR an order whose canonical escrow row is
+		// released, must have exactly one order_release ledger transaction.
 		if o.Status == "completed" || o.EscrowStatus == "released" {
 			if orderReleaseByOrder[o.ID] != 1 {
 				v.addFinding(&res, "real_invariant_bug", "order_release_count", fmt.Sprintf("order=%s status=%s escrow_status=%s release_tx_count=%d", o.ID, o.Status, o.EscrowStatus, orderReleaseByOrder[o.ID]))
@@ -1426,13 +1428,15 @@ func loadOrders(ctx context.Context, pool *pgxpool.Pool) ([]Order, error) {
 	// NOTE: orders.refunded_amount is NOT loaded — it was a never-written column
 	// and has been purged. Refund truth is derived from the refunds domain
 	// (LoadSnapshot/refunds) by the refund invariant sections below.
-	query := `SELECT id, buyer_id, seller_id, status::text, escrow_status::text, subtotal, shipping_total, commission_amount, total_before_coins_amount`
+	// escrow_status is a READ-TIME view of the canonical escrow row (LEFT JOIN
+	// escrows) — orders no longer persist an escrow projection.
+	query := `SELECT o.id, o.buyer_id, o.seller_id, o.status::text, COALESCE(e.status, '')::text, o.subtotal, o.shipping_total, o.commission_amount, o.total_before_coins_amount`
 	if hasPaymentID {
-		query += `, payment_id`
+		query += `, o.payment_id`
 	} else {
 		query += `, NULL::uuid AS payment_id`
 	}
-	query += ` FROM orders`
+	query += ` FROM orders o LEFT JOIN escrows e ON e.order_id = o.id`
 	rows, err := pool.Query(ctx, query)
 	if err != nil {
 		return nil, fmt.Errorf("load orders: %w", err)

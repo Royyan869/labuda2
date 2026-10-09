@@ -148,6 +148,31 @@ func (rc *RoleCheckerDB) HasSellerProfile(ctx context.Context, userID uuid.UUID)
 	return hasProfile, nil
 }
 
+// GetSellerSubscriptionStatus returns the user's most recent seller_subscriptions
+// row status ('active' | 'expired' | 'none'). 'none' means no row exists —
+// the seller has never successfully paid.
+//
+// This is a READ of existing canonical state used only for denial-message copy
+// (market-authority 403). It is NOT an authorization check and must never
+// grant or revoke market authority. Authorization remains HasActiveSellerCapability.
+func (rc *RoleCheckerDB) GetSellerSubscriptionStatus(ctx context.Context, userID uuid.UUID) (string, error) {
+	var status string
+	err := rc.db.Pool().QueryRow(ctx, `
+		SELECT status
+		FROM seller_subscriptions
+		WHERE user_id = $1
+		ORDER BY created_at DESC
+		LIMIT 1
+	`, userID).Scan(&status)
+	if err != nil {
+		if err.Error() == "no rows in result set" {
+			return "none", nil
+		}
+		return "", fmt.Errorf("failed to check seller subscription status: %w", err)
+	}
+	return status, nil
+}
+
 // SetRole updates the user's role in the database.
 // This is used by admin operations to promote/demote users.
 // The callerID is logged for audit purposes.

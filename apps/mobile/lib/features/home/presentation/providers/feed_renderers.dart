@@ -584,9 +584,43 @@ void _recordPromotionImpression(
 }
 
 /// Badge shown on all promoted feed items.
+/// F5-local fit measure: whether a single-line title + badge pair fits the
+/// incoming width. Local copy (no new shared authority).
+bool _fitsTitleBadgeSingleLine({
+  required BuildContext context,
+  required double maxWidth,
+  required String title,
+  required String badge,
+  required TextStyle? titleStyle,
+  required TextStyle? badgeStyle,
+  required double fixedExtrasWidth,
+}) {
+  if (!maxWidth.isFinite) {
+    return false;
+  }
+  final TextDirection direction = Directionality.of(context);
+  final TextScaler scaler = MediaQuery.textScalerOf(context);
+
+  double singleLineWidth(String text, TextStyle? style) {
+    final TextPainter painter = TextPainter(
+      text: TextSpan(text: text, style: style),
+      textDirection: direction,
+      textScaler: scaler,
+      maxLines: 1,
+    )..layout();
+    return painter.width;
+  }
+
+  const double safetyMargin = 2;
+  return singleLineWidth(title, titleStyle) +
+          fixedExtrasWidth +
+          singleLineWidth(badge, badgeStyle) +
+          safetyMargin <=
+      maxWidth;
+}
+
 class _PromotedBadge extends StatelessWidget {
   const _PromotedBadge();
-
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -608,12 +642,17 @@ class _PromotedBadge extends StatelessWidget {
             color: scheme.primary,
           ),
           const SizedBox(width: 4),
+          // F5: single-line chrome marker. Ellipsis only ever engages when
+          // an ancestor bounds this badge (the countdown row below); all
+          // other use sites are unbounded and render identically to before.
           Text(
             'Dipromosikan',
             style: context.typeRoles.labelMicro.copyWith(
               color: scheme.primary,
               fontWeight: FontWeight.w600,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
@@ -909,31 +948,101 @@ class PromotedAuctionCard extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      const _PromotedBadge(),
-                      const Spacer(),
-                      if (timeRemaining.isNotEmpty)
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppMetrics.p8,
-                            vertical: AppMetrics.p4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: context.statusColors.warning.withValues(
-                              alpha: 0.1,
+                  // F5 header (adaptive): promo marker + live countdown share
+                  // one row when the single-line pair fits, else the marker
+                  // stacks over the fully-readable countdown.
+                  LayoutBuilder(
+                    builder:
+                        (BuildContext context, BoxConstraints constraints) {
+                      final TextStyle badgeStyle = context
+                          .typeRoles
+                          .labelMicro
+                          .copyWith(
+                            color: scheme.primary,
+                            fontWeight: FontWeight.w600,
+                          );
+                      final TextStyle countdownStyle = context
+                          .typeRoles
+                          .labelMicro
+                          .copyWith(
+                            color: context.statusColors.warning,
+                            fontWeight: FontWeight.w600,
+                          );
+                      final bool fits = timeRemaining.isEmpty ||
+                          _fitsTitleBadgeSingleLine(
+                            context: context,
+                            maxWidth: constraints.maxWidth,
+                            title: 'Dipromosikan',
+                            badge: timeRemaining,
+                            titleStyle: badgeStyle,
+                            badgeStyle: countdownStyle,
+                            fixedExtrasWidth:
+                                AppIconSize.inlineGlyph +
+                                4 +
+                                AppMetrics.p8 * 2 +
+                                AppMetrics.p8 * 2,
+                          );
+                      if (fits) {
+                        return Row(
+                          children: [
+                            const _PromotedBadge(),
+                            const Spacer(),
+                            if (timeRemaining.isNotEmpty)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: AppMetrics.p8,
+                                  vertical: AppMetrics.p4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: context.statusColors.warning
+                                      .withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(
+                                    AppShape.r4,
+                                  ),
+                                ),
+                                child: Text(
+                                  timeRemaining,
+                                  style: context.typeRoles.labelMicro.copyWith(
+                                    color: context.statusColors.warning,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        );
+                      }
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const _PromotedBadge(),
+                          if (timeRemaining.isNotEmpty) ...[
+                            const SizedBox(height: 4),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: AppMetrics.p8,
+                                vertical: AppMetrics.p4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: context.statusColors.warning.withValues(
+                                  alpha: 0.1,
+                                ),
+                                borderRadius: BorderRadius.circular(
+                                  AppShape.r4,
+                                ),
+                              ),
+                              child: Text(
+                                timeRemaining,
+                                style: context.typeRoles.labelMicro.copyWith(
+                                  color: context.statusColors.warning,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                softWrap: true,
+                              ),
                             ),
-                            borderRadius: BorderRadius.circular(AppShape.r4),
-                          ),
-                          child: Text(
-                            timeRemaining,
-                            style: context.typeRoles.labelMicro.copyWith(
-                              color: context.statusColors.warning,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                    ],
+                          ],
+                        ],
+                      );
+                    },
                   ),
                   const SizedBox(height: CommerceMarketplaceMetrics.contentGap),
                   Text(

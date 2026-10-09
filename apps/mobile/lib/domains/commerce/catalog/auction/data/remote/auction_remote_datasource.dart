@@ -5,6 +5,7 @@ library;
 import 'package:labuda/core/api/api.dart';
 import 'package:labuda/core/common/result.dart';
 import 'package:labuda/domains/commerce/catalog/auction/data/dto/auction_dto.dart';
+import 'package:labuda/domains/commerce/catalog/auction/data/dto/bidding_item_dto.dart';
 
 /// Auction Remote Datasource
 ///
@@ -13,7 +14,9 @@ import 'package:labuda/domains/commerce/catalog/auction/data/dto/auction_dto.dar
 /// - GET/PUT /api/v1/auctions/:id - Read/Update operations
 /// - POST /api/v1/auctions/:id/bid - Place bid
 /// - POST /api/v1/auctions/:id/cancel - Cancel auction
-/// - POST /api/v1/auctions/:id/claim - Winner claim
+///
+/// NO claim endpoint exists: bid-win settlement is the shared Checkout
+/// (POST /pricing/preview → POST /orders).
 class AuctionRemoteDatasource extends BaseApiRepository {
   AuctionRemoteDatasource(super.apiClient, {super.logger});
 
@@ -45,11 +48,14 @@ class AuctionRemoteDatasource extends BaseApiRepository {
         final candidates = [map['data'], map['auctions'], map['for_sales']];
         for (final c in candidates) {
           if (c is List) {
-            return c.map((e) => AuctionDto.fromJson(e as Map<String, dynamic>)).toList();
+            return c
+                .map((e) => AuctionDto.fromJson(e as Map<String, dynamic>))
+                .toList();
           }
         }
         // Nested data.data (when apiResponse.data = {"data": [...]})
-        if (map['data'] is Map<String, dynamic> && (map['data'] as Map)['data'] is List) {
+        if (map['data'] is Map<String, dynamic> &&
+            (map['data'] as Map)['data'] is List) {
           return ((map['data'] as Map)['data'] as List)
               .map((e) => AuctionDto.fromJson(e as Map<String, dynamic>))
               .toList();
@@ -146,10 +152,7 @@ class AuctionRemoteDatasource extends BaseApiRepository {
   /// Returns a [Result] so the call site can read the API error
   /// code via `result.errorCode` (e.g. `EMAIL_VERIFICATION_REQUIRED`)
   /// instead of pattern-matching on the error string.
-  Future<Result<BidDto>> placeBid(
-    String auctionId,
-    PlaceBidDto request,
-  ) async {
+  Future<Result<BidDto>> placeBid(String auctionId, PlaceBidDto request) async {
     final result = await executeRequest(
       () => apiClient.post('/auctions/$auctionId/bid', data: request.toJson()),
       parser: (data) => BidDto.fromJson(data as Map<String, dynamic>),
@@ -182,60 +185,21 @@ class AuctionRemoteDatasource extends BaseApiRepository {
     return result.fold((error) => throw Exception(error), (data) => data);
   }
 
-  // ========== Claim Operations ==========
-
-  /// Claim auction - creates order for auction winner
-  ///
-  /// POST /api/v1/auctions/:id/claim
-  ///
-  /// This is the SINGLE SOURCE OF TRUTH for creating orders from won auctions.
-  /// The backend validates:
-  /// - Caller is the winner
-  /// - Auction is in waiting_settlement status
-  /// - Claim deadline has not passed
-  /// - Creates order atomically with order_id set on auction
-  ///
-  /// Returns order_id on success
-  Future<String> claimAuction(
-    String auctionId, {
-    required String addressId,
-    String? shippingSetupId,
-    String? shippingQuoteId,
-    String? chatId,
-    String? discountCode,
-    bool useCoins = false,
-  }) async {
+  Future<List<BiddingItemDto>> getMyBidding() async {
     final result = await executeRequest(
-      () => apiClient.post(
-        '/auctions/$auctionId/claim',
-        data: {
-          'address_id': addressId,
-          // Exactly one shipping source: a normal option OR a conversation-scoped
-          // manual shipping quote (which also carries the originating chat).
-          if (shippingQuoteId != null) ...{
-            'shipping_quote_id': shippingQuoteId,
-            if (chatId != null) 'chat_id': chatId,
-          } else if (shippingSetupId != null)
-            'shipping_option_id': shippingSetupId,
-          if (discountCode != null) 'discount_code': discountCode,
-          if (useCoins) 'use_coins': true,
-        },
-      ),
+      () => apiClient.get('/bidding'),
       parser: (data) {
-        // Response: {"message": "...", "data": {"order_id": "..."}}
-        final responseData = data['data'] as Map<String, dynamic>?;
-        return responseData?['order_id'] as String? ??
-            (data['order_id'] as String?);
+        final map = data as Map<String, dynamic>;
+        final items = map['items'];
+        if (items is! List) return <BiddingItemDto>[];
+        return items
+            .map(
+              (item) => BiddingItemDto.fromJson(item as Map<String, dynamic>),
+            )
+            .toList();
       },
     );
-
-    if (result.isError) {
-      throw StructuredApiException(
-        message: result.error ?? 'Failed to claim auction',
-        code: result.errorCode,
-        details: result.errorDetails,
-      );
-    }
-    return result.data ?? '';
+    return result.fold((error) => throw Exception(error), (data) => data);
   }
+
 }

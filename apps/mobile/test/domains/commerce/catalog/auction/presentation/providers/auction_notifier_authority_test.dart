@@ -175,17 +175,6 @@ class _FakeAuctionRepository implements AuctionRepository {
   }) async => throw UnimplementedError();
 
   @override
-  Future<Result<String>> claimAuction({
-    required String auctionId,
-    required String addressId,
-    String? shippingSetupId,
-    String? shippingQuoteId,
-    String? chatId,
-    String? discountCode,
-    bool useCoins = false,
-  }) async => throw UnimplementedError();
-
-  @override
   Stream<List<AuctionBid>> watchAuctionBids(
     String auctionId, {
     int limit = 50,

@@ -1,7 +1,93 @@
 part of '../screens/checkout_screen_impl.dart';
 
+/// Display facts the order summary renders for the purchased product.
+///
+/// Sourced from the sale surface authority of the checkout context: ForSale
+/// for for_sale/negotiation, Auction for auction buy-now/bid-win. Checkout
+/// never derives product identity itself — it only forwards what the
+/// authoritative detail provider returns.
+class _SummaryProductDisplay {
+  final String title;
+  final String? imageUrl;
+  final String koiDetailsDisplay;
+
+  const _SummaryProductDisplay({
+    required this.title,
+    this.imageUrl,
+    this.koiDetailsDisplay = '',
+  });
+}
+
+_SummaryProductDisplay _summaryDisplayFromForSale(ForSale forSale) {
+  String koiDetailsDisplay = '';
+  if (forSale.variety != null || forSale.sizeCm != null) {
+    final variety = forSale.variety ?? 'Koi';
+    final size = forSale.sizeCm != null ? '${forSale.sizeCm!.toInt()} cm' : '';
+    koiDetailsDisplay = size.isNotEmpty ? '$variety - $size' : variety;
+  }
+  return _SummaryProductDisplay(
+    title: forSale.title,
+    imageUrl: forSale.media.isNotEmpty ? forSale.media.first.originalUrl : null,
+    koiDetailsDisplay: koiDetailsDisplay,
+  );
+}
+
+_SummaryProductDisplay _summaryDisplayFromAuction(Auction auction) {
+  final koi = auction.koiDetails;
+  String koiDetailsDisplay = '';
+  if (koi.variety.isNotEmpty || koi.sizeInCm > 0) {
+    final size = koi.sizeInCm > 0 ? '${koi.sizeInCm.toInt()} cm' : '';
+    koiDetailsDisplay = size.isNotEmpty ? '${koi.variety} - $size' : koi.variety;
+  }
+  return _SummaryProductDisplay(
+    title: auction.title,
+    imageUrl: auction.media.isNotEmpty
+        ? auction.media.first.originalUrl
+        : null,
+    koiDetailsDisplay: koiDetailsDisplay,
+  );
+}
+
+/// F5-local fit measure: whether a single-line title + chip pair fits the
+/// incoming width. Local copy (no new shared authority).
+bool _fitsTitleBadgeSingleLine({
+  required BuildContext context,
+  required double maxWidth,
+  required String title,
+  required String badge,
+  required TextStyle? titleStyle,
+  required TextStyle? badgeStyle,
+  required double fixedExtrasWidth,
+}) {
+  if (!maxWidth.isFinite) {
+    return false;
+  }
+  final TextDirection direction = Directionality.of(context);
+  final TextScaler scaler = MediaQuery.textScalerOf(context);
+
+  double singleLineWidth(String text, TextStyle? style) {
+    final TextPainter painter = TextPainter(
+      text: TextSpan(text: text, style: style),
+      textDirection: direction,
+      textScaler: scaler,
+      maxLines: 1,
+    )..layout();
+    return painter.width;
+  }
+
+  const double safetyMargin = 2;
+  return singleLineWidth(title, titleStyle) +
+          fixedExtrasWidth +
+          singleLineWidth(badge, badgeStyle) +
+          safetyMargin <=
+      maxWidth;
+}
+
 /// Order Summary Section
 class _OrderSummarySection extends ConsumerWidget {
+  /// Sale-surface id of this checkout context: the for-sale id for for_sale /
+  /// negotiation, the AUCTION id for auction buy-now/bid-win (the route's
+  /// :id path slot).
   final String forSaleId;
 
   /// The applied backend preview — non-null ONLY while it is current.
@@ -11,7 +97,8 @@ class _OrderSummarySection extends ConsumerWidget {
   final bool isAuctionCheckout;
 
   /// Canonical pre-order payment pricing + the buyer's selected method, used to
-  /// show the final payable amount. Null until the methods are loaded.
+  /// show the final payable amount. Null until the methods are loaded (always
+  /// null for bid-win, which binds no method at creation).
   final PreOrderPaymentPricing? preOrderPricing;
   final String? selectedMethodCode;
 
@@ -27,35 +114,58 @@ class _OrderSummarySection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final forSaleAsync = ref.watch(forSaleDetailProvider(forSaleId));
+    // AUCTION CONTEXT: the sale-surface id is the AUCTION id — resolving
+    // forSaleDetailProvider with it always yields null and (previously)
+    // collapsed the ENTIRE summary, including the readiness indicator. Auction
+    // display data comes from the auction authority instead.
+    final Widget child;
+    if (isAuctionCheckout) {
+      final auctionAsync = ref.watch(auctionDetailProvider(forSaleId));
+      child = auctionAsync.when(
+        data: (auction) {
+          if (auction == null) {
+            return const SizedBox.shrink();
+          }
+          return _buildBody(context, _summaryDisplayFromAuction(auction));
+        },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, stackTrace) => const SizedBox.shrink(),
+      );
+    } else {
+      final forSaleAsync = ref.watch(forSaleDetailProvider(forSaleId));
+      child = forSaleAsync.when(
+        data: (forSale) {
+          if (forSale == null) {
+            return const SizedBox.shrink();
+          }
+          return _buildBody(context, _summaryDisplayFromForSale(forSale));
+        },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, stackTrace) => const SizedBox.shrink(),
+      );
+    }
+    return child;
+  }
 
-    return forSaleAsync.when(
-      data: (forSale) {
-        if (forSale == null) {
-          return const SizedBox.shrink();
-        }
-        return Column(
-          children: [
-            // Pricing readiness indicator — the ONLY place that explains why
-            // checkout is or is not ready, so it can never disagree with the
-            // action bar or the create-order guard.
-            _TokenValidityIndicator(
-              readiness: readiness,
-              onRefresh: onRefreshPricing,
-            ),
-            const SizedBox(height: 16),
-            _OrderSummaryContent(
-              forSale: forSale,
-              previewResult: previewResult,
-              isAuctionCheckout: isAuctionCheckout,
-              preOrderPricing: preOrderPricing,
-              selectedMethodCode: selectedMethodCode,
-            ),
-          ],
-        );
-      },
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, stackTrace) => const SizedBox.shrink(),
+  Widget _buildBody(BuildContext context, _SummaryProductDisplay product) {
+    return Column(
+      children: [
+        // Pricing readiness indicator — the ONLY place that explains why
+        // checkout is or is not ready, so it can never disagree with the
+        // action bar or the create-order guard.
+        _TokenValidityIndicator(
+          readiness: readiness,
+          onRefresh: onRefreshPricing,
+        ),
+        const SizedBox(height: 16),
+        _OrderSummaryContent(
+          product: product,
+          previewResult: previewResult,
+          isAuctionCheckout: isAuctionCheckout,
+          preOrderPricing: preOrderPricing,
+          selectedMethodCode: selectedMethodCode,
+        ),
+      ],
     );
   }
 }
@@ -230,14 +340,14 @@ class _TokenValidityIndicator extends StatelessWidget {
 }
 
 class _OrderSummaryContent extends StatelessWidget {
-  final ForSale forSale;
+  final _SummaryProductDisplay product;
   final PreviewOrderResult? previewResult;
   final bool isAuctionCheckout;
   final PreOrderPaymentPricing? preOrderPricing;
   final String? selectedMethodCode;
 
   const _OrderSummaryContent({
-    required this.forSale,
+    required this.product,
     this.previewResult,
     this.isAuctionCheckout = false,
     this.preOrderPricing,
@@ -248,15 +358,7 @@ class _OrderSummaryContent extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    // Build koi details display string
-    String koiDetailsDisplay = '';
-    if (forSale.variety != null || forSale.sizeCm != null) {
-      final variety = forSale.variety ?? 'Koi';
-      final size = forSale.sizeCm != null
-          ? '${forSale.sizeCm!.toInt()} cm'
-          : '';
-      koiDetailsDisplay = size.isNotEmpty ? '$variety - $size' : variety;
-    }
+    final koiDetailsDisplay = product.koiDetailsDisplay;
 
     // All money is BACKEND AUTHORITY. The escrow base comes from the applied
     // preview; the buyer fee and FINAL payable come from the selected method in
@@ -310,52 +412,136 @@ class _OrderSummaryContent extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Text(
-                'Ringkasan Pesanan',
-                style: context.typeRoles.titleSection.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(width: 8),
-              // Auction badge - shows this is an auction-derived order
-              if (isAuctionCheckout)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppMetrics.p8,
-                    vertical: AppMetrics.p4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: context.statusColors.success.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(AppShape.r4),
-                    border: Border.all(
-                      color: context.statusColors.success.withValues(
-                        alpha: 0.4,
+          // F5 header (adaptive): section title + auction chip share one row
+          // when the single-line pair fits, else the title stacks over the
+          // intact chip.
+          LayoutBuilder(
+            builder: (BuildContext context, BoxConstraints constraints) {
+              final TextStyle titleStyle = context.typeRoles.titleSection
+                  .copyWith(fontWeight: FontWeight.bold);
+              final TextStyle chipStyle = context.typeRoles.labelMicro
+                  .copyWith(fontWeight: FontWeight.bold);
+              final bool fits =
+                  !isAuctionCheckout ||
+                  _fitsTitleBadgeSingleLine(
+                    context: context,
+                    maxWidth: constraints.maxWidth,
+                    title: 'Ringkasan Pesanan',
+                    badge: 'Lelang',
+                    titleStyle: titleStyle,
+                    badgeStyle: chipStyle,
+                    fixedExtrasWidth:
+                        8 +
+                        AppMetrics.p8 * 2 +
+                        AppIconSize.inlineGlyph +
+                        3,
+                  );
+              if (fits) {
+                return Row(
+                  children: [
+                    Text(
+                      'Ringkasan Pesanan',
+                      style: context.typeRoles.titleSection.copyWith(
+                        fontWeight: FontWeight.bold,
                       ),
-                      width: 1,
                     ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.emoji_events,
-                        size: AppIconSize.inlineGlyph,
-                        color: context.statusColors.success,
-                      ),
-                      const SizedBox(width: 3),
-                      Text(
-                        'Lelang',
-                        style: context.typeRoles.labelMicro.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: context.statusColors.success,
+                    const SizedBox(width: 8),
+                    // Auction badge - shows this is an auction-derived order
+                    if (isAuctionCheckout)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppMetrics.p8,
+                          vertical: AppMetrics.p4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: context.statusColors.success.withValues(
+                            alpha: 0.15,
+                          ),
+                          borderRadius: BorderRadius.circular(AppShape.r4),
+                          border: Border.all(
+                            color: context.statusColors.success.withValues(
+                              alpha: 0.4,
+                            ),
+                            width: 1,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.emoji_events,
+                              size: AppIconSize.inlineGlyph,
+                              color: context.statusColors.success,
+                            ),
+                            const SizedBox(width: 3),
+                            Text(
+                              'Lelang',
+                              style: context.typeRoles.labelMicro.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: context.statusColors.success,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ],
+                  ],
+                );
+              }
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Ringkasan Pesanan',
+                    style: context.typeRoles.titleSection.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                ),
-            ],
+                  // Auction badge - shows this is an auction-derived order
+                  if (isAuctionCheckout) ...[
+                    const SizedBox(height: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppMetrics.p8,
+                        vertical: AppMetrics.p4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: context.statusColors.success.withValues(
+                          alpha: 0.15,
+                        ),
+                        borderRadius: BorderRadius.circular(AppShape.r4),
+                        border: Border.all(
+                          color: context.statusColors.success.withValues(
+                            alpha: 0.4,
+                          ),
+                          width: 1,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.emoji_events,
+                            size: AppIconSize.inlineGlyph,
+                            color: context.statusColors.success,
+                          ),
+                          const SizedBox(width: 3),
+                          Text(
+                            'Lelang',
+                            style: context.typeRoles.labelMicro.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: context.statusColors.success,
+                            ),
+                            softWrap: true,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
+              );
+            },
           ),
           const SizedBox(height: 12),
 
@@ -363,11 +549,11 @@ class _OrderSummaryContent extends StatelessWidget {
           Row(
             children: [
               // Product Image
-              if (forSale.media.isNotEmpty)
+              if (product.imageUrl != null)
                 ClipRRect(
                   borderRadius: BorderRadius.circular(AppShape.r8),
                   child: AppImage(
-                    imageUrl: forSale.media.first.originalUrl,
+                    imageUrl: product.imageUrl!,
                     width: 60,
                     height: 60,
                     fit: BoxFit.cover,
@@ -388,7 +574,7 @@ class _OrderSummaryContent extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      forSale.title,
+                      product.title,
                       style: context.typeRoles.titleCompact.copyWith(
                         fontWeight: FontWeight.w600,
                       ),

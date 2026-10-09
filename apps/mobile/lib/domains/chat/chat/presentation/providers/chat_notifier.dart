@@ -13,7 +13,7 @@ import 'package:labuda/domains/chat/chat/domain/entities/chat_entities.dart';
 import 'package:labuda/domains/chat/chat/domain/repositories/chat_repository.dart';
 import 'package:labuda/domains/chat/chat/presentation/providers/chat_providers.dart';
 import 'package:labuda/domains/chat/chat/domain/usecases/chat_usecases.dart';
-import 'package:labuda/domains/system/notification/data/notification_providers.dart';
+import 'package:labuda/domains/system/notification/presentation/providers/notification_list_provider.dart';
 import 'package:labuda/domains/commerce/negotiation/negotiation/presentation/providers/negotiation_providers.dart';
 import 'package:labuda/shared/providers/auth_status_providers.dart'
     show currentUserIdProvider;
@@ -744,20 +744,18 @@ class ChatDetail extends _$ChatDetail {
   Future<void> markAsRead(String userId) async {
     await _markMessagesReadUseCase(chatId: chatId, userId: userId);
 
-    // CHAT-NOTIFICATION SYNC: Mark chat notifications as read when chat is read
-    // This syncs notification read state without merging ownership - notification
-    // system remains owner of notification read truth, chat remains owner of message read truth
-    try {
-      final notificationRepo = ref.read(notificationRepositoryProvider);
-      await notificationRepo.markAsReadByEntity(
-        userId: userId,
-        entityType: 'chat',
-        entityId: chatId,
-      );
-    } catch (e) {
-      // Non-fatal error - chat read sync should not break chat functionality
-      // If notification sync fails, the chat read action still succeeds
-    }
+    // CHAT READ COMPLETES CHAT NOTIFICATIONS SERVER-SIDE (Task 3).
+    //
+    // The backend marks this room's chat notifications read in the SAME
+    // transaction as the chat read cursor (POST /chat/rooms/:id/read), so
+    // there is NO second /notifications/read-by-entity mutation from the
+    // client. Notification read truth stays with the notification domain;
+    // chat stays with chat. After the single successful read, converge via
+    // THE canonical notification reconciliation path (Phase 4.3).
+    reconcileNotificationState(
+      invalidate: (provider) => ref.invalidate(provider),
+      userId: userId,
+    );
   }
 
   void updateMessage(Message updatedMessage) {

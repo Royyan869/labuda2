@@ -261,33 +261,17 @@ func (w *AuctionEndWorker) findEndingAuctionIDs(
 // Phase 2: Each auction is processed in a separate transaction.
 //
 // For auctions with no bids: simply ends the auction.
-// For auctions with bids: ends the auction, order creation is deferred to claim flow.
-//
-// The claim flow (winner claims auction) will handle:
-// 1. Collecting shipping details from winner
-// 2. Creating the order
-//
-// This is a two-phase approach to avoid needing shipping details at end time.
+// For auctions with bids: transitions to waiting_settlement — order creation
+// is the winner's job via the shared Checkout (POST /orders bid-win), which
+// runs inside the settlement window (end_at + 24h). The worker collects no
+// shipping details.
 func (w *AuctionEndWorker) endAuction(
 	ctx context.Context,
 	auctionID uuid.UUID,
 ) error {
 	return w.db.WithTx(ctx, func(tx db.Tx) error {
-		// Call EndAuctionInternal with empty shipping details
-		// The service will:
-		// 1. End the auction
-		// 2. If there's a winner, defer order creation to claim flow
-		//
-		// For this MVP, we're not implementing the full claim flow
-		// Instead, the winner will need to manually initiate checkout
-
-		// Use placeholder values for the service call
-		// In production, this would be replaced by proper claim flow
 		return w.auctionService.EndAuctionInternal(ctx, tx, auctionApp.EndAuctionInput{
-			AuctionID:        auctionID,
-			ShippingSetupID: uuid.Nil, // Will be provided in claim flow
-			ProvinceCode:     "",       // Will be provided in claim flow
-			CityCode:         "",       // Will be provided in claim flow
+			AuctionID: auctionID,
 		})
 	})
 }

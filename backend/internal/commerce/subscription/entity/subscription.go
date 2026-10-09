@@ -9,14 +9,13 @@ import (
 )
 
 // Status represents the subscription state machine.
-// Transitions: inactive -> active -> expired.
-// Renewal from expired creates a new active period.
+// Live transitions are enforced by UpdateStatusTx (active -> expired);
+// renewal inserts a new immutable active period.
 type Status string
 
 const (
-	StatusInactive Status = "inactive"
-	StatusActive   Status = "active"
-	StatusExpired  Status = "expired"
+	StatusActive  Status = "active"
+	StatusExpired Status = "expired"
 )
 
 // SellerSubscription represents a seller's subscription record.
@@ -45,16 +44,6 @@ type SellerSubscription struct {
 
 // Domain Errors
 
-// ErrInvalidStatusTransition is returned when attempting an invalid status transition.
-type ErrInvalidStatusTransition struct {
-	From Status
-	To   Status
-}
-
-func (e *ErrInvalidStatusTransition) Error() string {
-	return fmt.Sprintf("invalid status transition: %s -> %s", e.From, e.To)
-}
-
 // ErrDuplicateActiveSubscription is returned when attempting to create a new active
 // subscription for a user who already has an active subscription.
 type ErrDuplicateActiveSubscription struct {
@@ -79,36 +68,6 @@ func (e *ErrTransitionGuardFailed) Error() string {
 		e.ID, e.ExpectedFrom, e.ActualFrom, e.ExpectedFrom, e.To)
 }
 
-// ValidateTransition checks if the status transition is valid.
-//
-// Valid transitions:
-// - inactive -> active
-// - active -> expired
-// - expired -> active (renewal only, creates new record)
-//
-// Returns nil for valid transitions, ErrInvalidStatusTransition otherwise.
-func (s *SellerSubscription) ValidateTransition(to Status) error {
-	// Define valid transitions
-	validTransitions := map[Status][]Status{
-		StatusInactive: {StatusActive},
-		StatusActive:   {StatusExpired},
-		StatusExpired:  {}, // Terminal until renewal (new record)
-	}
-
-	allowed, exists := validTransitions[s.Status]
-	if !exists {
-		return &ErrInvalidStatusTransition{From: s.Status, To: to}
-	}
-
-	for _, allowedStatus := range allowed {
-		if allowedStatus == to {
-			return nil
-		}
-	}
-
-	return &ErrInvalidStatusTransition{From: s.Status, To: to}
-}
-
 // IsActive returns true if the subscription status is active.
 func (s *SellerSubscription) IsActive() bool {
 	return s.Status == StatusActive
@@ -117,17 +76,6 @@ func (s *SellerSubscription) IsActive() bool {
 // IsExpired returns true if the subscription status is expired.
 func (s *SellerSubscription) IsExpired() bool {
 	return s.Status == StatusExpired
-}
-
-// IsInactive returns true if the subscription status is inactive.
-func (s *SellerSubscription) IsInactive() bool {
-	return s.Status == StatusInactive
-}
-
-// HasMarketAuthority returns true if the user has active seller market authority.
-// Authority is derived from subscription status, not a stored role flag.
-func (s *SellerSubscription) HasMarketAuthority() bool {
-	return s.IsActive()
 }
 
 // IsExpiredByTime returns true if the subscription has passed expiration.

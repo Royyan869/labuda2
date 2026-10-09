@@ -34,10 +34,8 @@ type projectionLister interface {
 // OrderQueryService handles read-side queries for orders.
 // This is a CQRS query service that reads from the projection tables.
 //
-// HARDENING: Projection reads may have stale EscrowStatus if:
-// - Projection worker hasn't processed latest escrow event
-// - Order.EscrowStatus update failed silently
-// - Event propagation delay
+// Escrow state is NOT projected onto orders; it lives only in the escrows
+// table (sole authority) and is read live where needed.
 type OrderQueryService struct {
 	projection        projectionLister
 	projectionEnabled bool
@@ -57,7 +55,7 @@ func NewOrderQueryService(projection projectionLister, projectionEnabled bool) *
 // OrderListItem represents a single order in a list response.
 //
 // ARCHITECTURAL NOTES:
-// - EscrowStatus is the canonical operational state (projection may be stale)
+// - Escrow state is NOT carried here — it lives only in the escrows table
 // - EscrowAmount and RefundedAmount removed - financial truth is in Ledger service
 // - Contains only snapshot fields for display (Subtotal, ShippingTotal, CommissionAmount)
 // - For financial amounts, query the Ledger service
@@ -80,7 +78,6 @@ type OrderListItem struct {
 	SellerFarmName     string     `json:"seller_farm_name"`
 	SellerAvatarURL    string     `json:"seller_avatar_url"`
 	Status             string     `json:"status"`
-	EscrowStatus       string     `json:"escrow_status"`     // Canonical escrow state (projection may lag)
 	HasActiveRefund    bool       `json:"has_active_refund"` // true if order has active (non-terminal) refund
 	DisputeStatus      *string    `json:"dispute_status,omitempty"`
 	Subtotal           int64      `json:"subtotal"`
@@ -128,9 +125,6 @@ type ListMyOrdersInput struct {
 }
 
 // ListMyOrders retrieves orders for the authenticated user based on their role.
-//
-// HARDENING: This reads from CQRS projection which may have stale EscrowStatus.
-// Critical business logic should validate against live escrow state.
 //
 // Rules:
 // - roleParam must be "buyer" or "seller"
@@ -315,7 +309,6 @@ func (s *OrderQueryService) convertToListItem(
 		BuyerAvatar:        nil, // TODO: Add user avatar to projection
 		SellerAvatar:       nil, // TODO: Add user avatar to projection
 		Status:             summary.Status,
-		EscrowStatus:       summary.EscrowStatus,
 		HasActiveRefund:    false, // TODO: Query from refund service
 		DisputeStatus:      summary.DisputeStatus,
 		Subtotal:           summary.Subtotal,
@@ -522,7 +515,6 @@ type AdminOrderSummary struct {
 	SourceType         string     `json:"source_type"`
 	SourceID           uuid.UUID  `json:"source_id"`
 	Status             string     `json:"status"`
-	EscrowStatus       string     `json:"escrow_status"`
 	HasDispute         bool       `json:"has_dispute"`
 	DisputeStatus      *string    `json:"dispute_status,omitempty"`
 	Subtotal           int64      `json:"subtotal"`
@@ -628,7 +620,6 @@ func (s *OrderQueryService) ListAllOrdersForAdmin(
 			SourceType:         s.SourceType,
 			SourceID:           sourceID,
 			Status:             s.Status,
-			EscrowStatus:       s.EscrowStatus,
 			HasDispute:         s.HasDispute,
 			DisputeStatus:      s.DisputeStatus,
 			Subtotal:           s.Subtotal,
@@ -807,7 +798,7 @@ func (s *OrderQueryService) listByBuyerFromWriteModel(
 ) ([]*projection.OrderSummary, error) {
 	query := `
 		SELECT id, buyer_id, seller_id, source_type::text, source_id,
-		       status::text, escrow_status::text, has_dispute,
+		       status::text, has_dispute,
 	       subtotal, shipping_total, commission_amount, service_fee_amount, total_payable_amount,
 	       total_before_coins_amount,
 	       COALESCE(shipping_option_name, ''), COALESCE(shipping_transport_type, ''),
@@ -863,7 +854,7 @@ func (s *OrderQueryService) listBySellerFromWriteModel(
 ) ([]*projection.OrderSummary, error) {
 	query := `
 		SELECT id, buyer_id, seller_id, source_type::text, source_id,
-		       status::text, escrow_status::text, has_dispute,
+		       status::text, has_dispute,
 	       subtotal, shipping_total, commission_amount, service_fee_amount, total_payable_amount,
 	       total_before_coins_amount,
 	       COALESCE(shipping_option_name, ''), COALESCE(shipping_transport_type, ''),
@@ -1015,7 +1006,7 @@ func (s *OrderQueryService) listAllFromWriteModel(
 	dataArgs := append(args, filters.PageSize, offset)
 	dataQuery := `
 		SELECT id, buyer_id, seller_id, source_type::text, source_id,
-		       status::text, escrow_status::text, has_dispute,	       subtotal, shipping_total, commission_amount, service_fee_amount, total_payable_amount,
+		       status::text, has_dispute,	       subtotal, shipping_total, commission_amount, service_fee_amount, total_payable_amount,
 	       total_before_coins_amount,
 	       COALESCE(shipping_option_name, ''), COALESCE(shipping_transport_type, ''),
 	       auto_release_at, created_at, updated_at,
@@ -1049,10 +1040,10 @@ func (s *OrderQueryService) listAllFromWriteModel(
 }
 
 // scanWriteModelOrders scans rows from the orders table into []*projection.OrderSummary.
-// The SELECT list must be exactly (20 columns):
+// The SELECT list must be exactly (19 columns):
 //
 //	id, buyer_id, seller_id, source_type::text, source_id,
-//	status::text, escrow_status::text, has_dispute,
+//	status::text, has_dispute,
 //	subtotal, shipping_total, commission_amount, service_fee_amount, total_payable_amount,
 //	total_before_coins_amount,
 //	COALESCE(shipping_option_name,''), COALESCE(shipping_transport_type,''),
@@ -1071,7 +1062,7 @@ func scanWriteModelOrders(rows interface {
 		var sourceID uuid.UUID
 		if err := rows.Scan(
 			&s.ID, &s.BuyerID, &s.SellerID, &s.SourceType, &sourceID,
-			&s.Status, &s.EscrowStatus, &s.HasDispute,
+			&s.Status, &s.HasDispute,
 			&s.Subtotal, &s.ShippingTotal, &s.CommissionAmount, &s.ServiceFeeAmount, &s.TotalPayableAmount,
 			&s.TotalBeforeCoinsAmount,
 			&s.ShippingSetupName, &s.ShippingTransportType,

@@ -30,7 +30,6 @@ class AuctionNotifier extends Notifier<AuctionNotifierState> {
 
   // Synchronous double-submit guards for financial operations
   bool _isPlacingBid = false;
-  bool _isClaiming = false;
 
   @override
   AuctionNotifierState build() {
@@ -235,81 +234,16 @@ class AuctionNotifier extends Notifier<AuctionNotifierState> {
             error: null,
             successMessage: 'Bid berhasil ditempatkan',
           );
-          // Reload auction details
-          loadAuctionDetails(auctionId);
-          loadAuctionBids(auctionId);
+          await loadAuctionDetails(auctionId);
+          await loadAuctionBids(auctionId);
+          ref.invalidate(auctionStreamProvider(auctionId));
+          ref.invalidate(auctionBidsStreamProvider(auctionId));
           return true;
         },
       );
     } finally {
       // Always reset guard in finally
       _isPlacingBid = false;
-    }
-  }
-
-  /// Claim auction - creates order for auction winner
-  ///
-  /// SINGLE SOURCE OF TRUTH: This is the ONLY way to create orders from won auctions.
-  /// The backend validates:
-  /// - Caller is the winner
-  /// - Auction is in waiting_settlement status
-  /// - Claim deadline has not passed
-  /// - Creates order atomically with order_id set on auction
-  ///
-  /// Returns order_id on success, null on failure
-  Future<String?> claimAuction({
-    required String auctionId,
-    required String addressId,
-    String? shippingSetupId,
-    String? shippingQuoteId,
-    String? chatId,
-    String? discountCode,
-    bool useCoins = false,
-  }) async {
-    // Synchronous guard - prevent double-tap
-    if (_isClaiming) return null;
-    _isClaiming = true;
-
-    try {
-      state = state.copyWith(isLoading: true, clearError: true);
-
-      // Execute claim
-      final result = await _auctionRepository.claimAuction(
-        auctionId: auctionId,
-        addressId: addressId,
-        shippingSetupId: shippingSetupId,
-        shippingQuoteId: shippingQuoteId,
-        chatId: chatId,
-        discountCode: discountCode,
-        useCoins: useCoins,
-      );
-
-      if (result.isError) {
-        // Preserve errorCode/errorDetails so the UI can branch on
-        // COMMERCE_RESTRICTED, EMAIL_VERIFICATION_REQUIRED, etc.
-        state = state.copyWith(
-          isLoading: false,
-          error: result.error ?? 'Gagal mengklaim lelang',
-          errorCode: result.errorCode,
-          errorDetails: result.errorDetails,
-        );
-        return null;
-      }
-
-      final orderId = result.data;
-      state = state.copyWith(
-        isLoading: false,
-        error: null,
-        successMessage: 'Klaim berhasil! Pesanan telah dibuat',
-      );
-
-      // Reload auction details to get updated order_id
-      loadAuctionDetails(auctionId);
-
-      return orderId;
-    } finally {
-      // Always reset guard in finally
-      _isClaiming = false;
     }
   }
 

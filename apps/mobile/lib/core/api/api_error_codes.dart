@@ -38,6 +38,15 @@ const String invalidPaymentStatus = 'INVALID_PAYMENT_STATUS';
 /// HTTP 400 — backend `REFERENCE_REQUIRED` (`paymentrepo.ErrReferenceIDRequired`).
 const String referenceRequired = 'REFERENCE_REQUIRED';
 
+/// The requested availability window has ended.
+///
+/// HTTP 410 — backend `response.Gone(...)` sends code `GONE`. Its only
+/// current producer is the CreatePayment payment-window guard
+/// (`now >= orders.payment_expires_at` → 410 "Payment window has expired
+/// for this order"). The payment-initiation flow maps this code to the
+/// Indonesian business copy for an expired payment window.
+const String gone = 'GONE';
+
 // ============================================================================
 // TRANSPORT-LEVEL CODES
 //

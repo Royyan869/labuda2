@@ -23,7 +23,7 @@ import (
 //  1. Uses paymentService.ReleaseGatewayEscrowToSeller (the canonical
 //     gateway-funded release path; there is no balance-hold release method
 //     was demolished).
-//  2. Sets order.Status=completed, order.EscrowStatus=released,
+//  2. Sets order.Status=completed,
 //     order.CompletedAt=now, order.UpdatedAt=now and persists via UpdateStatusTx.
 //  3. Emits order.completed and money.released (with gross/commission/seller_net/
 //     newly_released/released_at).
@@ -68,12 +68,11 @@ func (s *stubOrderRepo) UpdateStatusTx(ctx context.Context, tx db.Tx, order *ent
 // dispute state.
 func newOrderForDisputeRelease() *entity.Order {
 	return &entity.Order{
-		ID:           uuid.New(),
-		BuyerID:      uuid.New(),
-		SellerID:     uuid.New(),
-		Status:       entity.StatusDisputeOpen,
-		EscrowStatus: entity.EscrowStatusHolding,
-		HasDispute:   true,
+		ID:         uuid.New(),
+		BuyerID:    uuid.New(),
+		SellerID:   uuid.New(),
+		Status:     entity.StatusDisputeOpen,
+		HasDispute: true,
 	}
 }
 
@@ -137,7 +136,7 @@ func TestReleaseFromDispute_RejectsWrongStatus(t *testing.T) {
 //   - paymentService.ReleaseGatewayEscrowToSeller is invoked exactly once,
 //     flipping escrow to "released" and writing the finance ledger
 //     (idempotency_key="order_release_<order_id>").
-//   - order.Status=completed, order.EscrowStatus=released,
+//   - order.Status=completed,
 //     order.CompletedAt!=nil, order.UpdatedAt!=nil are persisted via UpdateStatusTx.
 //   - One outbox row with event_type="order.completed".
 //   - One outbox row with event_type="money.released" whose payload includes

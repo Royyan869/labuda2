@@ -24,6 +24,11 @@ func NewSavedItemRepository(database *db.DB) repository.SavedItemRepository {
 	}
 }
 
+const (
+	forSaleSavedPredicate = `fps.id IS NOT NULL AND fps.status = 'active' AND fps.quantity_available > 0`
+	auctionSavedPredicate = `a.id IS NOT NULL AND a.status = 'active'`
+)
+
 // Create creates a new saved item
 func (r *savedItemRepositoryImpl) Create(ctx context.Context, item *entity.SavedItem) error {
 	query := `
@@ -47,42 +52,6 @@ func (r *savedItemRepositoryImpl) Create(ctx context.Context, item *entity.Saved
 	}
 
 	return nil
-}
-
-// GetByUser retrieves all saved items for a user
-func (r *savedItemRepositoryImpl) GetByUser(ctx context.Context, userID uuid.UUID) ([]*entity.SavedItem, error) {
-	query := `
-		SELECT id, user_id, target_type, target_id, intent_type, seller_id, created_at
-		FROM saved_items
-		WHERE user_id = $1
-		ORDER BY created_at DESC
-	`
-
-	rows, err := r.db.Pool().Query(ctx, query, userID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get saved items: %w", err)
-	}
-	defer rows.Close()
-
-	var items []*entity.SavedItem
-	for rows.Next() {
-		item := &entity.SavedItem{}
-		err := rows.Scan(
-			&item.ID,
-			&item.UserID,
-			&item.TargetType,
-			&item.TargetID,
-			&item.IntentType,
-			&item.SellerID,
-			&item.CreatedAt,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("failed to scan saved item: %w", err)
-		}
-		items = append(items, item)
-	}
-
-	return items, nil
 }
 
 // GetByUserAndTarget retrieves a specific saved item
@@ -156,9 +125,17 @@ func (r *savedItemRepositoryImpl) DeleteAll(ctx context.Context, userID uuid.UUI
 	return nil
 }
 
-// Count returns the number of saved items for a user
+// Count returns the number of saved items visible in Saved for a user
 func (r *savedItemRepositoryImpl) Count(ctx context.Context, userID uuid.UUID) (int, error) {
-	query := `SELECT COUNT(*) FROM saved_items WHERE user_id = $1`
+	query := `SELECT COUNT(*)
+		FROM saved_items si
+		LEFT JOIN for_sales fps ON si.target_id = fps.id AND si.target_type = 'for_sale'
+		LEFT JOIN auctions a ON si.target_id = a.id AND si.target_type = 'auction'
+		WHERE si.user_id = $1
+		AND (
+			(si.target_type = 'for_sale' AND ` + forSaleSavedPredicate + `)
+			OR (si.target_type = 'auction' AND ` + auctionSavedPredicate + `)
+		)`
 
 	var count int
 	err := r.db.Pool().QueryRow(ctx, query, userID).Scan(&count)
@@ -169,12 +146,28 @@ func (r *savedItemRepositoryImpl) Count(ctx context.Context, userID uuid.UUID) (
 	return count, nil
 }
 
-// CountByType returns the number of saved items by type
+// CountByType returns the number of saved items visible in Saved by type
 func (r *savedItemRepositoryImpl) CountByType(ctx context.Context, userID uuid.UUID, targetType entity.TargetType) (int, error) {
-	query := `SELECT COUNT(*) FROM saved_items WHERE user_id = $1 AND target_type = $2`
+	var query string
+	switch targetType {
+	case entity.TargetTypeForSale:
+		query = `SELECT COUNT(*)
+			FROM saved_items si
+			LEFT JOIN for_sales fps ON si.target_id = fps.id
+			WHERE si.user_id = $1 AND si.target_type = 'for_sale'
+			AND ` + forSaleSavedPredicate
+	case entity.TargetTypeAuction:
+		query = `SELECT COUNT(*)
+			FROM saved_items si
+			LEFT JOIN auctions a ON si.target_id = a.id
+			WHERE si.user_id = $1 AND si.target_type = 'auction'
+			AND ` + auctionSavedPredicate
+	default:
+		return 0, fmt.Errorf("unknown saved item target type: %s", targetType)
+	}
 
 	var count int
-	err := r.db.Pool().QueryRow(ctx, query, userID, targetType).Scan(&count)
+	err := r.db.Pool().QueryRow(ctx, query, userID).Scan(&count)
 	if err != nil {
 		return 0, fmt.Errorf("failed to count saved items by type: %w", err)
 	}
@@ -207,6 +200,7 @@ func (r *savedItemRepositoryImpl) GetByUserWithForSales(ctx context.Context, use
 		LEFT JOIN for_sales fps ON si.target_id = fps.id
 		LEFT JOIN products p ON p.id = fps.product_id
 		WHERE si.user_id = $1 AND si.target_type = 'for_sale'
+		AND ` + forSaleSavedPredicate + `
 		ORDER BY si.created_at DESC
 	`
 
@@ -264,6 +258,7 @@ func (r *savedItemRepositoryImpl) GetByUserWithAuctions(ctx context.Context, use
 		LEFT JOIN auctions a ON si.target_id = a.id
 		LEFT JOIN products p ON p.id = a.product_id
 		WHERE si.user_id = $1 AND si.target_type = 'auction'
+		AND ` + auctionSavedPredicate + `
 		ORDER BY si.created_at DESC
 	`
 
@@ -298,5 +293,3 @@ func (r *savedItemRepositoryImpl) GetByUserWithAuctions(ctx context.Context, use
 
 	return items, nil
 }
-
-

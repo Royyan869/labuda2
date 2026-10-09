@@ -262,6 +262,104 @@ void main() {
     });
   });
 
+  group('MyForSalesScreen — tab swipe synchronization', () {
+    // The [TabBar] and [TabBarView] share one controller, so its index is the
+    // authoritative selected-tab observable for these assertions.
+    TabController controllerOf(WidgetTester tester) =>
+        tester.widget<TabBar>(find.byType(TabBar)).controller!;
+
+    // Drag past half the page width so the PageView snaps exactly one page.
+    Future<void> swipe(WidgetTester tester, {required bool forward}) async {
+      final width = tester.getSize(find.byType(TabBarView)).width;
+      final dx = width * 0.75 * (forward ? -1 : 1);
+      await tester.drag(find.byType(TabBarView), Offset(dx, 0));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('swipe changes indicator and content, and back again', (
+      tester,
+    ) async {
+      await pumpScreen(tester, repoOf(_allStates()));
+
+      // Default is Active (index 1).
+      expect(controllerOf(tester).index, 1);
+      expect(find.text('Koi active-1'), findsOneWidget);
+      expect(find.text('Koi sold-1'), findsNothing);
+
+      // Swipe forward → Sold (index 2).
+      await swipe(tester, forward: true);
+      expect(controllerOf(tester).index, 2);
+      expect(find.text('Koi sold-1'), findsOneWidget);
+      expect(find.text('Koi active-1'), findsNothing);
+
+      // Swipe back → Active (index 1).
+      await swipe(tester, forward: false);
+      expect(controllerOf(tester).index, 1);
+      expect(find.text('Koi active-1'), findsOneWidget);
+      expect(find.text('Koi sold-1'), findsNothing);
+    });
+
+    testWidgets('tap then swipe then tap keeps indicator and content in sync', (
+      tester,
+    ) async {
+      await pumpScreen(tester, repoOf(_allStates()));
+
+      // Tap → Semua Status (index 0).
+      await selectTab(tester, 'Semua Status');
+      expect(controllerOf(tester).index, 0);
+      expect(find.text('Koi withdrawn-1'), findsOneWidget);
+
+      // Swipe → Active (index 1).
+      await swipe(tester, forward: true);
+      expect(controllerOf(tester).index, 1);
+      expect(find.text('Koi active-1'), findsOneWidget);
+      expect(find.text('Koi withdrawn-1'), findsNothing);
+
+      // Tap → Withdrawn (index 3).
+      await selectTab(tester, 'Withdrawn');
+      expect(controllerOf(tester).index, 3);
+      expect(find.text('Koi withdrawn-1'), findsOneWidget);
+      expect(find.text('Koi active-1'), findsNothing);
+    });
+
+    testWidgets('swipe does not refetch the owner collection', (tester) async {
+      final repo = repoOf(_allStates());
+      await pumpScreen(tester, repo);
+      expect(repo.fetchCalls, 1);
+
+      await swipe(tester, forward: true);
+      await swipe(tester, forward: true);
+      await swipe(tester, forward: false);
+
+      expect(
+        repo.fetchCalls,
+        1,
+        reason: 'the watched provider key is filter-independent',
+      );
+    });
+
+    testWidgets('reset after a swiped filter restores Semua Status content', (
+      tester,
+    ) async {
+      await pumpScreen(
+        tester,
+        repoOf([_forSale('active-1', ForSaleStatus.active)]),
+      );
+
+      // Active (1) → Sold (2), which has no rows → filter-empty state.
+      await swipe(tester, forward: true);
+      expect(controllerOf(tester).index, 2);
+      expect(find.text('Tidak Ada Hasil'), findsOneWidget);
+
+      await tester.tap(find.widgetWithText(FilledButton, 'Atur Ulang'));
+      await tester.pumpAndSettle();
+
+      expect(controllerOf(tester).index, 0);
+      expect(find.text('Tidak Ada Hasil'), findsNothing);
+      expect(find.text('Koi active-1'), findsOneWidget);
+    });
+  });
+
   group('MyForSalesScreen — initial state', () {
     testWidgets('first request shows LoadingIndicator, never empty/error', (
       tester,

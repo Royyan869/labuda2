@@ -81,8 +81,9 @@ class RoutePaths {
   // Report routes
   static const String report = '/report';
 
-  // Saved Items routes (unified shortlist + auction watch)
+  // Saved Items routes (for_sale + auction)
   static const String savedItems = '/saved-items';
+  static const String myBids = '/my-bids';
 
   // Coins routes (loyalty points - NOT wallet/payment)
   static const String coins = '/coins';
@@ -173,11 +174,10 @@ class RoutePaths {
       '/seller/discounts/$discountId/edit';
 
   /// Follow graph of a user profile: `?type=followers|following`.
-  static String followListPath(String userId, {bool following = false}) =>
-      Uri(
-        path: '/user/$userId/follows',
-        queryParameters: {'type': following ? 'following' : 'followers'},
-      ).toString();
+  static String followListPath(String userId, {bool following = false}) => Uri(
+    path: '/user/$userId/follows',
+    queryParameters: {'type': following ? 'following' : 'followers'},
+  ).toString();
 
   /// Help center category browsing surface (canonical category name).
   static String helpCategoryPath(String category) => '/help/category/$category';
@@ -256,6 +256,7 @@ class RouteNames {
 
   // Saved Items route names
   static const String savedItems = 'savedItems';
+  static const String myBids = 'myBids';
 
   // Seller route names
   static const String sellerDashboard = 'sellerDashboard';

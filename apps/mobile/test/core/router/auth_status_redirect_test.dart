@@ -237,13 +237,22 @@ void main() {
       expect(result, equals('/home'));
     });
 
-    test('/auth/complete-profile is exempt (no redirect)', () {
+    test('/auth/complete-profile → redirects to /home after completion', () {
       final result = handleAuthRedirectForTest(
         authedPlaceholder,
         AppAuthStatus.authenticated,
         '/auth/complete-profile',
       );
-      expect(result, isNull);
+      expect(result, equals('/home'));
+    });
+
+    test('/auth/verify-email → redirects to /home after verification', () {
+      final result = handleAuthRedirectForTest(
+        authedPlaceholder,
+        AppAuthStatus.authenticated,
+        '/auth/verify-email',
+      );
+      expect(result, equals('/home'));
     });
   });
 

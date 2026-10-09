@@ -55,19 +55,19 @@ const double _topInset = 24;
 
 enum _Branch { populated, loading, empty, error }
 
-/// Static repository on the geometry path only: the list stream and the
-/// unread-count stream are scripted; everything else fails loudly via
-/// noSuchMethod instead of being masked.
+/// Static repository on the geometry path only: the list and unread-count
+/// reads are scripted; everything else fails loudly via noSuchMethod
+/// instead of being masked.
 class _StaticNotificationRepository implements INotificationRepository {
   _StaticNotificationRepository({required this.onGetNotifications});
 
-  final Stream<Result<List<NotificationEntity>>> Function(int call)
+  final Future<Result<List<NotificationEntity>>> Function(int call)
   onGetNotifications;
 
   int listCalls = 0;
 
   @override
-  Stream<Result<List<NotificationEntity>>> getNotifications({
+  Future<Result<List<NotificationEntity>>> getNotifications({
     required String userId,
     int limit = 20,
   }) {
@@ -76,8 +76,8 @@ class _StaticNotificationRepository implements INotificationRepository {
   }
 
   @override
-  Stream<Result<int>> getUnreadCount({required String userId}) =>
-      const Stream.empty();
+  Future<Result<int>> getUnreadCount({required String userId}) async =>
+      Result.success(0);
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
@@ -124,25 +124,25 @@ Future<void> _pump(
   switch (branch) {
     case _Branch.populated:
       repository = _StaticNotificationRepository(
-        onGetNotifications: (_) =>
-            Stream.value(Result.success(_notifications(10))),
+        onGetNotifications: (_) async =>
+            Result.success(_notifications(10)),
       );
     case _Branch.empty:
       repository = _StaticNotificationRepository(
-        onGetNotifications: (_) =>
-            Stream.value(Result.success(const <NotificationEntity>[])),
+        onGetNotifications: (_) async =>
+            Result.success(const <NotificationEntity>[]),
       );
     case _Branch.error:
       repository = _StaticNotificationRepository(
-        onGetNotifications: (_) =>
-            Stream.value(Result.error('INTERNAL_SERVER_ERROR: boom')),
+        onGetNotifications: (_) async =>
+            Result.error('INTERNAL_SERVER_ERROR: boom'),
       );
     case _Branch.loading:
-      // Never emits: the screen stays on the canonical initial loading.
+      // Never completes: the screen stays on the canonical initial loading.
       repository = _StaticNotificationRepository(
-        onGetNotifications: (_) async* {
+        onGetNotifications: (_) async {
           await gate.future;
-          yield Result.success(_notifications(1));
+          return Result.success(_notifications(1));
         },
       );
   }

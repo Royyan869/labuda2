@@ -14,15 +14,14 @@ import (
 
 func TestDecisionBuilder_HasActiveRefund_HidesRefundCTA(t *testing.T) {
 	order := &entity.Order{
-		ID:           uuid.New(),
-		BuyerID:      uuid.New(),
-		SellerID:     uuid.New(),
-		Status:       entity.StatusShipped,
-		EscrowStatus: entity.EscrowStatusHolding,
+		ID:       uuid.New(),
+		BuyerID:  uuid.New(),
+		SellerID: uuid.New(),
+		Status:   entity.StatusShipped,
 	}
 
 	pendingStatus := "pending_seller_review"
-	decision := buildDecisionV2ForOrder(order, "buyer", true, &pendingStatus, nil, nil)
+	decision := buildDecisionV2ForOrder(order, "buyer", true, &pendingStatus, nil, true)
 
 	for _, action := range decision.SecondaryActions {
 		assert.NotEqual(t, ActionRequestRefund, action.Type,
@@ -32,14 +31,13 @@ func TestDecisionBuilder_HasActiveRefund_HidesRefundCTA(t *testing.T) {
 
 func TestDecisionBuilder_NoActiveRefund_ShowsRefundCTA(t *testing.T) {
 	order := &entity.Order{
-		ID:           uuid.New(),
-		BuyerID:      uuid.New(),
-		SellerID:     uuid.New(),
-		Status:       entity.StatusShipped,
-		EscrowStatus: entity.EscrowStatusHolding,
+		ID:       uuid.New(),
+		BuyerID:  uuid.New(),
+		SellerID: uuid.New(),
+		Status:   entity.StatusShipped,
 	}
 
-	decision := buildDecisionV2ForOrder(order, "buyer", false, nil, nil, nil)
+	decision := buildDecisionV2ForOrder(order, "buyer", false, nil, nil, true)
 
 	hasRefundAction := false
 	for _, action := range decision.SecondaryActions {
@@ -53,15 +51,14 @@ func TestDecisionBuilder_NoActiveRefund_ShowsRefundCTA(t *testing.T) {
 
 func TestDecisionBuilder_ActiveRefundPending_HidesDisputeCTA(t *testing.T) {
 	order := &entity.Order{
-		ID:           uuid.New(),
-		BuyerID:      uuid.New(),
-		SellerID:     uuid.New(),
-		Status:       entity.StatusShipped,
-		EscrowStatus: entity.EscrowStatusHolding,
+		ID:       uuid.New(),
+		BuyerID:  uuid.New(),
+		SellerID: uuid.New(),
+		Status:   entity.StatusShipped,
 	}
 
 	pendingStatus := "pending_seller_review"
-	decision := buildDecisionV2ForOrder(order, "buyer", true, &pendingStatus, nil, nil)
+	decision := buildDecisionV2ForOrder(order, "buyer", true, &pendingStatus, nil, true)
 
 	for _, action := range decision.SecondaryActions {
 		assert.NotEqual(t, ActionOpenDispute, action.Type,
@@ -71,15 +68,14 @@ func TestDecisionBuilder_ActiveRefundPending_HidesDisputeCTA(t *testing.T) {
 
 func TestDecisionBuilder_ActiveRefundRejected_ShowsDisputeCTA(t *testing.T) {
 	order := &entity.Order{
-		ID:           uuid.New(),
-		BuyerID:      uuid.New(),
-		SellerID:     uuid.New(),
-		Status:       entity.StatusShipped,
-		EscrowStatus: entity.EscrowStatusHolding,
+		ID:       uuid.New(),
+		BuyerID:  uuid.New(),
+		SellerID: uuid.New(),
+		Status:   entity.StatusShipped,
 	}
 
 	rejectedStatus := "seller_rejected"
-	decision := buildDecisionV2ForOrder(order, "buyer", true, &rejectedStatus, nil, nil)
+	decision := buildDecisionV2ForOrder(order, "buyer", true, &rejectedStatus, nil, true)
 
 	hasDisputeAction := false
 	for _, action := range decision.SecondaryActions {
@@ -93,15 +89,14 @@ func TestDecisionBuilder_ActiveRefundRejected_ShowsDisputeCTA(t *testing.T) {
 
 func TestDecisionBuilder_ActiveRefundEscalated_HidesDisputeCTA(t *testing.T) {
 	order := &entity.Order{
-		ID:           uuid.New(),
-		BuyerID:      uuid.New(),
-		SellerID:     uuid.New(),
-		Status:       entity.StatusShipped,
-		EscrowStatus: entity.EscrowStatusHolding,
+		ID:       uuid.New(),
+		BuyerID:  uuid.New(),
+		SellerID: uuid.New(),
+		Status:   entity.StatusShipped,
 	}
 
 	escalatedStatus := "escalated_to_admin"
-	decision := buildDecisionV2ForOrder(order, "buyer", true, &escalatedStatus, nil, nil)
+	decision := buildDecisionV2ForOrder(order, "buyer", true, &escalatedStatus, nil, true)
 
 	for _, action := range decision.SecondaryActions {
 		assert.NotEqual(t, ActionOpenDispute, action.Type,
@@ -111,14 +106,13 @@ func TestDecisionBuilder_ActiveRefundEscalated_HidesDisputeCTA(t *testing.T) {
 
 func TestDecisionBuilder_NoActiveRefund_ShowsDisputeCTA(t *testing.T) {
 	order := &entity.Order{
-		ID:           uuid.New(),
-		BuyerID:      uuid.New(),
-		SellerID:     uuid.New(),
-		Status:       entity.StatusShipped,
-		EscrowStatus: entity.EscrowStatusHolding,
+		ID:       uuid.New(),
+		BuyerID:  uuid.New(),
+		SellerID: uuid.New(),
+		Status:   entity.StatusShipped,
 	}
 
-	decision := buildDecisionV2ForOrder(order, "buyer", false, nil, nil, nil)
+	decision := buildDecisionV2ForOrder(order, "buyer", false, nil, nil, true)
 
 	hasDisputeAction := false
 	for _, action := range decision.SecondaryActions {

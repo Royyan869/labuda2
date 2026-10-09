@@ -46,7 +46,7 @@ func TestCanonicalPricingSnapshot_DiscountedOrder_RoundTrip(t *testing.T) {
 				commission_percent, commission_amount,
 				service_fee_amount, total_payable_amount,
 				total_before_coins_amount,
-				status, escrow_status, has_dispute,
+				status, has_dispute,
 				payment_expires_at, preparation_time_snapshot,
 				order_number, created_at, updated_at
 			) VALUES (
@@ -55,7 +55,7 @@ func TestCanonicalPricingSnapshot_DiscountedOrder_RoundTrip(t *testing.T) {
 				5, 4500,
 				0, $5,
 				$6,
-				'pending_payment', 'none', false,
+				'pending_payment', false,
 				$7, '1_3_days',
 				'ORD-20260808-TEST01', $8, $8
 			)
@@ -127,7 +127,7 @@ func TestCanonicalPricingSnapshot_NoDiscountOrder_RoundTrip(t *testing.T) {
 				commission_percent, commission_amount,
 				service_fee_amount, total_payable_amount,
 				total_before_coins_amount,
-				status, escrow_status, has_dispute,
+				status, has_dispute,
 				payment_expires_at, preparation_time_snapshot,
 				order_number, created_at, updated_at
 			) VALUES (
@@ -136,7 +136,7 @@ func TestCanonicalPricingSnapshot_NoDiscountOrder_RoundTrip(t *testing.T) {
 				5, 5000,
 				0, $5,
 				$6,
-				'pending_payment', 'none', false,
+				'pending_payment', false,
 				$7, '1_3_days',
 				'ORD-20260808-TEST02', $8, $8
 			)
@@ -193,7 +193,7 @@ func TestCanonicalPricingSnapshot_DiscountMetadataNotOnOrderRow(t *testing.T) {
 				commission_percent, commission_amount,
 				service_fee_amount, total_payable_amount,
 				total_before_coins_amount,
-				status, escrow_status, has_dispute,
+				status, has_dispute,
 				payment_expires_at, preparation_time_snapshot,
 				order_number, created_at, updated_at
 			) VALUES (
@@ -201,7 +201,7 @@ func TestCanonicalPricingSnapshot_DiscountMetadataNotOnOrderRow(t *testing.T) {
 				1, 100000, 100000, 20000, 5, 5000,
 				0, $5,
 				$6,
-				'pending_payment', 'none', false,
+				'pending_payment', false,
 				$7, '1_3_days',
 				'ORD-20260808-TEST03', $8, $8
 			)
@@ -276,7 +276,7 @@ func TestCanonicalPricingSnapshot_CommissionNotInBuyerPath(t *testing.T) {
 				commission_percent, commission_amount,
 				service_fee_amount, total_payable_amount,
 				total_before_coins_amount,
-				status, escrow_status, has_dispute,
+				status, has_dispute,
 				payment_expires_at, preparation_time_snapshot,
 				order_number, created_at, updated_at
 			) VALUES (
@@ -285,7 +285,7 @@ func TestCanonicalPricingSnapshot_CommissionNotInBuyerPath(t *testing.T) {
 				5, 5000,
 				0, $5,
 				$6,
-				'pending_payment', 'none', false,
+				'pending_payment', false,
 				$7, '1_3_days',
 				'ORD-20260808-TEST04', $8, $8
 			)

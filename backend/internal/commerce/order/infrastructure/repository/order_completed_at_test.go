@@ -23,16 +23,16 @@ func TestUpdateStatusTx_IncludesCompletedAt(t *testing.T) {
 	source := string(src)
 
 	// The UpdateStatusTx function must contain completed_at in its SET clause
-	if !strings.Contains(source, "completed_at = $12") {
-		t.Fatal("UpdateStatusTx SET clause must include 'completed_at = $12'. " +
+	if !strings.Contains(source, "completed_at = $11") {
+		t.Fatal("UpdateStatusTx SET clause must include 'completed_at = $11'. " +
 			"Without this, order.CompletedAt set in order_completion_service.go " +
 			"is never persisted — completed_at remains NULL in DB after completion.")
 	}
 
-	// updated_at must have shifted to $13 (accounting for the new $12 slot)
-	if !strings.Contains(source, "updated_at = $13") {
-		t.Fatal("UpdateStatusTx must have 'updated_at = $13' after completed_at was inserted " +
-			"as $12. Param numbering mismatch would cause SQL bind errors.")
+	// updated_at must have shifted to $12 (accounting for the new $11 slot)
+	if !strings.Contains(source, "updated_at = $12") {
+		t.Fatal("UpdateStatusTx must have 'updated_at = $12' after completed_at was inserted " +
+			"as $11. Param numbering mismatch would cause SQL bind errors.")
 	}
 
 	// order.CompletedAt must be passed as a parameter
@@ -42,8 +42,8 @@ func TestUpdateStatusTx_IncludesCompletedAt(t *testing.T) {
 	}
 }
 
-// TestUpdateStatusTx_ParamCount proves UpdateStatusTx passes exactly 13
-// positional parameters (WHERE $1 + 12 SET params) to prevent bind errors.
+// TestUpdateStatusTx_ParamCount proves UpdateStatusTx passes exactly 12
+// positional parameters (WHERE $1 + 11 SET params) to prevent bind errors.
 func TestUpdateStatusTx_ParamCount(t *testing.T) {
 	src, err := os.ReadFile("order_repository.go")
 	if err != nil {
@@ -57,14 +57,15 @@ func TestUpdateStatusTx_ParamCount(t *testing.T) {
 	}
 	body := string(src)[funcStart:]
 
-	// $13 must exist (updated_at after completed_at inserted as $12)
-	if !strings.Contains(body, "$13") {
-		t.Fatal("UpdateStatusTx must reference $13 — updated_at shifted from $12 " +
-			"after completed_at was added as $12")
+	// $12 must exist (updated_at after completed_at inserted as $11)
+	if !strings.Contains(body, "$12") {
+		t.Fatal("UpdateStatusTx must reference $12 — updated_at shifted to $12 " +
+			"after completed_at was added as $11")
 	}
 
-	// $14 must NOT exist (would indicate extra unintended params)
-	if strings.Contains(body, "$14") {
-		t.Fatal("UpdateStatusTx must NOT reference $14 — only 13 positional params expected")
+	// $13 must NOT exist (would indicate extra unintended params — the old
+	// escrow_status slot was removed with the order-side escrow projection)
+	if strings.Contains(body, "$13") {
+		t.Fatal("UpdateStatusTx must NOT reference $13 — only 12 positional params expected")
 	}
 }

@@ -22,9 +22,6 @@ abstract class CoinRepository {
   /// the backend identifies the caller from the auth token.
   Future<Result<CoinBalance>> getCoinBalance(String userId);
 
-  /// Stream of balance updates (polling-based, 30-second interval).
-  Stream<Result<CoinBalance>> watchCoinBalance(String userId);
-
   // ============================================================
   // Transaction Operations
   // ============================================================
@@ -34,12 +31,6 @@ abstract class CoinRepository {
     required String userId,
     int limit = 50,
     int offset = 0,
-  });
-
-  /// Stream of transaction history (polling-based, 30-second interval).
-  Stream<Result<List<CoinTransaction>>> watchTransactions({
-    required String userId,
-    int limit = 50,
   });
 
   // ============================================================

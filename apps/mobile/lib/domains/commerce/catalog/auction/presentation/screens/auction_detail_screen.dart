@@ -28,7 +28,6 @@ import 'package:labuda/domains/commerce/catalog/auction/presentation/widgets/det
 import 'package:labuda/domains/commerce/catalog/auction/presentation/widgets/detail/auction_recommendations_section.dart';
 import 'package:labuda/domains/commerce/catalog/auction/presentation/widgets/detail/auction_seller_card.dart';
 import 'package:labuda/domains/commerce/catalog/auction/presentation/widgets/detail/auction_seller_settlement_monitor.dart';
-import 'package:labuda/domains/commerce/catalog/auction/presentation/widgets/detail/auction_claim_shipping_modal.dart';
 import 'package:labuda/domains/chat/chat/presentation/utils/commerce_chat_navigation.dart';
 import 'package:labuda/domains/chat/chat/presentation/models/pending_commerce_attachment.dart';
 import 'package:labuda/domains/social/share/share.dart';
@@ -193,7 +192,9 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
         showBackButton: true,
         actions: [
           // Save button — non-owners only.
-          if (!_isCurrentUserTheCreator(auction) && currentUserId.isNotEmpty)
+          if (!_isCurrentUserTheCreator(auction) &&
+              currentUserId.isNotEmpty &&
+              auction.status == AuctionStatus.active)
             CommerceSavedItemActionButton(
               targetType: 'auction',
               targetId: auction.id,
@@ -202,9 +203,8 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
               icon: Icons.bookmark_border,
               activeIcon: Icons.bookmark,
             ),
-          // Share button — authenticated users only; anonymous viewers
-          // cannot post to feed and have no interaction authority.
-          if (currentUserId.isNotEmpty)
+          if (currentUserId.isNotEmpty &&
+              auction.status == AuctionStatus.active)
             IconButton(
               onPressed: () => _handleShareAuction(context, auction),
               icon: const Icon(Icons.share_outlined),
@@ -228,7 +228,6 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
         ],
       ),
       body: SafeArea(
-        bottom: false,
         child: RefreshIndicator(
           onRefresh: () async => _loadAuctionData(),
           child: CustomScrollView(
@@ -293,8 +292,9 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
                           .where((bid) => bid.bidderId == currentUserId)
                           .toList(),
                       currentUserId: currentUserId,
-                      onBidAgain: () =>
-                          _showUnifiedActionModal(context, auction),
+                       onBidAgain: auction.viewerCapabilities?.canBid == true
+                           ? () => _showUnifiedActionModal(context, auction)
+                           : null,
                     ),
                   ),
                 ),
@@ -321,18 +321,35 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
           ),
         ),
       ),
-      bottomNavigationBar: AuctionDetailBottomBar(
-        auction: auction,
-        currentUserId: currentUserId,
-        currentUserName: currentUserName,
-        onChat: () => _handleChat(auction),
-        onAction: () => _showUnifiedActionModal(context, auction),
-        onWinnerCheckout: _shouldShowWinnerCheckout(auction, currentUserId)
-            ? () => _handleWinnerCheckout(context, auction)
-            : null,
-        // TRANSACTION CLARITY: No dead-end - provide next action for terminal states
-        onBrowseOtherAuctions: () => Navigator.pop(context),
-      ),
+      // BUSINESS TRUTH (Owner): identical to the ForSale detail — the
+      // author/owner gets NO viewer-directed bottom surface. The slot
+      // mirrors the surface exactly: NULL for the author, never a
+      // zero-height stand-in (a non-null slot makes the Scaffold strip the
+      // body's bottom system padding while reserving no region).
+      //
+      // ONE body law for both states (same spelling as the ForSale
+      // detail): the body SafeArea above is unconditional. With a bar the
+      // framework strips the body's bottom padding (`removeBottomPadding:
+      // widget.bottomNavigationBar != null` in Scaffold) so the SafeArea
+      // contributes NOTHING and BottomActionBar owns the live system
+      // inset; with the slot null the SafeArea IS the sole bottom-inset
+      // authority. No `if author` layout branch, no fixed clearance, no
+      // manual inset arithmetic.
+      bottomNavigationBar: _isCurrentUserTheCreator(auction)
+          ? null
+          : AuctionDetailBottomBar(
+              auction: auction,
+              currentUserId: currentUserId,
+              currentUserName: currentUserName,
+              onChat: () => _handleChat(auction),
+              onAction: () => _showUnifiedActionModal(context, auction),
+              onWinnerCheckout:
+                  _shouldShowWinnerCheckout(auction, currentUserId)
+                  ? () => _handleWinnerCheckout(context, auction)
+                  : null,
+              // TRANSACTION CLARITY: No dead-end - provide next action for terminal states
+              onBrowseOtherAuctions: () => Navigator.pop(context),
+            ),
     );
   }
 
@@ -560,6 +577,12 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
       return;
     }
 
+    if (!(auction.viewerCapabilities?.canBuyNow ?? false)) {
+      if (!mounted) return;
+      AppSnackBar.showError(this.context, 'Buy Now tidak tersedia');
+      return;
+    }
+
     // SELLER TRUST GATE: Block BuyNow when seller subscription expired.
     // Auction bottom bar already disables the button, but this is defense-in-depth.
     if (auction.sellerTrustLifecycle != ContentLifecycle.active) {
@@ -573,7 +596,10 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
 
     if (currentUser.id == auction.sellerId) {
       if (!mounted) return;
-      AppSnackBar.showError(this.context, 'Anda tidak dapat membeli lelang Anda sendiri');
+      AppSnackBar.showError(
+        this.context,
+        'Anda tidak dapat membeli lelang Anda sendiri',
+      );
       return;
     }
 
@@ -619,24 +645,27 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
         auction.status == AuctionStatus.waitingSettlement;
   }
 
-  // ========== Claim Flow ==========
+  // ========== Bid-Win Checkout ==========
 
-  /// Handle auction winner claim flow
+  /// Handle the auction winner's checkout entry.
   ///
-  /// NEW FLOW (per spec):
-  /// 1. Tap "Klaim Sekarang"
-  /// 2. Show shipping selection dialog
-  /// 3. CALL /auctions/:id/claim (creates order, returns order_id)
-  /// 4. Navigate to payment result with order_id
+  /// ONE PURCHASE FUNNEL (Owner canonical):
+  /// 1. Tap "Klaim Sekarang" (winner CTA)
+  /// 2. Open the SAME shared CheckoutScreen with the bid-win intent —
+  ///    address, shipping, pricing preview and order creation all live there.
+  /// 3. Checkout creates the Order (POST /orders bid-win, no payment method)
+  ///    and hands off to Order Detail, where the PaymentMethodPicker binds the
+  ///    first payment's method.
   ///
-  /// SINGLE SOURCE OF TRUTH: claim API creates the order
-  /// Checkout is only for payment, NOT order creation for claimed auctions
+  /// The settlement window (auction end + 24h) is enforced by the backend at
+  /// preview and again under lock at order creation.
   Future<void> _handleWinnerCheckout(
     BuildContext context,
     Auction auction,
   ) async {
-    // SELLER TRUST GATE: Block winner claim when seller subscription expired.
-    // Bottom bar already disables the button, but this is defense-in-depth.
+    // SELLER TRUST GATE: Block winner checkout when seller subscription
+    // expired. Bottom bar already disables the button, but this is
+    // defense-in-depth.
     if (auction.sellerTrustLifecycle != ContentLifecycle.active) {
       if (!mounted) return;
       AppSnackBar.showError(
@@ -659,10 +688,7 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
     // Verify user is the winner
     if (!_isUserWinner(auction, currentUser.id)) {
       if (!mounted) return;
-      AppSnackBar.showError(
-        this.context,
-        'Anda bukan pemenang lelang ini',
-      );
+      AppSnackBar.showError(this.context, 'Anda bukan pemenang lelang ini');
       return;
     }
 
@@ -678,80 +704,12 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
 
     if (!mounted) return;
 
-    // STEP 1: Show shipping selection dialog
-    // (AuctionClaimShippingModal handles address + delivery option pickers.)
-    final claimResult = await _showClaimDialog(this.context, auction);
-
-    if (!mounted) return;
-
-    if (claimResult == null) {
-      // User cancelled or error occurred
-      return;
-    }
-
-    // STEP 2: Claim succeeded - navigate to payment result
-    // The order has been created by the claim API, so the winner goes
-    // directly to the canonical payment-result destination. The auction
-    // detail page is replaced (not stacked) so back never returns to it.
-    context.pushReplacement(RoutePaths.paymentResultPath(claimResult));
-  }
-
-  /// Show claim dialog and execute claim API call
-  ///
-  /// Returns order_id on success, null on failure/cancel
-  Future<String?> _showClaimDialog(
-    BuildContext context,
-    Auction auction,
-  ) async {
-    // Show shipping selection modal with real address and delivery option selection
-    return AuctionClaimShippingModal.show(
-      context: context,
-      auction: auction,
-      onClaim:
-          ({
-            required addressId,
-            String? shippingSetupId,
-            String? shippingQuoteId,
-            String? chatId,
-            String? discountCode,
-            bool useCoins = false,
-          }) async {
-            // Call claim API via notifier
-            final notifier = ref.read(auctionNotifierProvider.notifier);
-            final orderId = await notifier.claimAuction(
-              auctionId: auction.id,
-              addressId: addressId,
-              shippingSetupId: shippingSetupId,
-              shippingQuoteId: shippingQuoteId,
-              chatId: chatId,
-              discountCode: discountCode,
-              useCoins: useCoins,
-            );
-
-            // Check result
-            if (orderId != null) {
-              return orderId;
-            } else {
-              if (!mounted) return null;
-              final state = ref.read(auctionNotifierProvider);
-              // Commerce restriction family — canonical dispatch by error
-              // CODE: COMMERCE_RESTRICTED → restriction snackbar,
-              // MARKET_AUTHORITY_REQUIRED → canonical seller renewal.
-              // Returning null keeps the callback contract intact (modal stays
-              // open, no second presentation) and never double-navigates.
-              if (CommerceRestrictionPresenter.handle(
-                this.context,
-                errorCode: state.errorCode,
-                actionDescription: 'mengklaim lelang',
-              )) {
-                return null;
-              }
-              // Generic error fallback
-              final error = state.error ?? 'Gagal mengklaim lelang';
-              AppSnackBar.showError(this.context, error);
-              return null;
-            }
-          },
+    // ONE FUNNEL: the commerce intent resolves product id + trust gate and
+    // builds the canonical checkout route with the bid-win discriminator.
+    await openAuctionCheckout(
+      context,
+      ref,
+      AuctionCheckoutIntent(auctionId: auction.id, bidWin: true),
     );
   }
 }

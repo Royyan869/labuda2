@@ -13,17 +13,16 @@ func cancelledTimeoutOrder() *entity.Order {
 		ID:           uuid.New(),
 		BuyerID:      uuid.New(),
 		SellerID:     uuid.New(),
-		Status:       entity.StatusCancelledTimeout,
-		EscrowStatus: entity.EscrowStatusReleased,
-		CreatedAt:    time.Now().Add(-72 * time.Hour),
-		UpdatedAt:    time.Now().Add(-1 * time.Hour),
+		Status:    entity.StatusCancelledTimeout,
+		CreatedAt: time.Now().Add(-72 * time.Hour),
+		UpdatedAt: time.Now().Add(-1 * time.Hour),
 	}
 }
 
 // TestCancelledTimeout_DisplayHints verifies badge and hint are populated.
 func TestCancelledTimeout_DisplayHints_HasBadge(t *testing.T) {
 	order := cancelledTimeoutOrder()
-	hints := buildDisplayHintsForOrder(order, "buyer", nil, nil)
+	hints := buildDisplayHintsForOrder(order, "buyer", nil)
 	if hints.Badge == nil || *hints.Badge != "Dibatalkan (Timeout)" {
 		t.Errorf("expected badge 'Dibatalkan (Timeout)', got %+v", hints.Badge)
 	}
@@ -35,7 +34,7 @@ func TestCancelledTimeout_DisplayHints_HasBadge(t *testing.T) {
 // TestCancelledTimeout_DisplayHints_HasInfo verifies the seller-timeout info text.
 func TestCancelledTimeout_DisplayHints_HasInfo(t *testing.T) {
 	order := cancelledTimeoutOrder()
-	hints := buildDisplayHintsForOrder(order, "buyer", nil, nil)
+	hints := buildDisplayHintsForOrder(order, "buyer", nil)
 	if hints.Info == nil || *hints.Info != "Penjual tidak mengirim dalam batas waktu" {
 		t.Errorf("expected info text about seller timeout, got %v", hints.Info)
 	}
@@ -44,7 +43,7 @@ func TestCancelledTimeout_DisplayHints_HasInfo(t *testing.T) {
 // TestCancelledTimeout_DecisionV2_NoPrimaryAction verifies terminal status has no action.
 func TestCancelledTimeout_DecisionV2_NoPrimaryAction(t *testing.T) {
 	order := cancelledTimeoutOrder()
-	decision := buildDecisionV2ForOrder(order, "buyer", false, nil, nil, nil)
+	decision := buildDecisionV2ForOrder(order, "buyer", false, nil, nil, false)
 	if decision == nil {
 		t.Fatal("expected non-nil decision")
 	}
@@ -56,7 +55,7 @@ func TestCancelledTimeout_DecisionV2_NoPrimaryAction(t *testing.T) {
 // TestCancelledTimeout_DecisionV2_NoSecondaryActions
 func TestCancelledTimeout_DecisionV2_NoSecondaryActions(t *testing.T) {
 	order := cancelledTimeoutOrder()
-	decision := buildDecisionV2ForOrder(order, "buyer", false, nil, nil, nil)
+	decision := buildDecisionV2ForOrder(order, "buyer", false, nil, nil, false)
 	if len(decision.SecondaryActions) != 0 {
 		t.Errorf("expected no secondary actions for cancelled_timeout, got %d", len(decision.SecondaryActions))
 	}
@@ -79,7 +78,7 @@ func TestCancelledTimeout_DetailResponse_PaymentStatusWired(t *testing.T) {
 		nil,
 		&ps,
 		nil, // no payment ID in test
-		nil, // no payment expiry in test
+		nil, // no escrow row for this test order
 	)
 	if resp.PaymentStatus == nil || *resp.PaymentStatus != "paid" {
 		t.Errorf("expected canonical PaymentStatus='paid' for a raw settled row, got %v", resp.PaymentStatus)
@@ -100,7 +99,7 @@ func TestDetailResponse_PaymentStatusNil_WhenNotProvided(t *testing.T) {
 		nil,
 		nil, // no payment status in test
 		nil, // no payment ID in test
-		nil, // no payment expiry in test
+		nil, // no escrow row for this test order
 	)
 	if resp.PaymentStatus != nil {
 		t.Errorf("expected nil PaymentStatus, got %v", resp.PaymentStatus)
@@ -131,7 +130,7 @@ func TestTerminalOrders_NoPayNowAction(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			order := cancelledTimeoutOrder()
 			order.Status = tc.status
-			decision := buildDecisionV2ForOrder(order, "buyer", false, nil, nil, nil)
+			decision := buildDecisionV2ForOrder(order, "buyer", false, nil, nil, false)
 			if decision == nil {
 				t.Fatal("expected non-nil decision")
 			}

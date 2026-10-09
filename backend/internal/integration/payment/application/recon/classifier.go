@@ -25,12 +25,10 @@ func Classify(s Snapshot) []Finding {
 	findings = appendAll(findings, detectD5(s))
 	findings = appendAll(findings, detectD6(s))
 	findings = appendAll(findings, detectD7(s))
-	findings = appendAll(findings, detectD8(s))
 	findings = appendAll(findings, detectD9(s))
 	findings = appendAll(findings, detectD10(s))
 	findings = appendAll(findings, detectD11(s))
 	findings = appendAll(findings, detectD12(s))
-	findings = appendAll(findings, detectD13(s))
 	findings = appendAll(findings, detectD14(s))
 	findings = appendAll(findings, detectD15(s))
 
@@ -254,25 +252,10 @@ func detectD7(s Snapshot) []Finding {
 	}
 }
 
-// D8: escrow row exists, orders.escrow_status projection is non-'none' but
-// disagrees with escrows.status. The 'none' projection case is D13.
-func detectD8(s Snapshot) []Finding {
-	if s.Escrow == nil || s.Order == nil {
-		return nil
-	}
-	if s.Order.EscrowStatus == OrderEscrowStatusNone {
-		return nil
-	}
-	if s.Escrow.Status == s.Order.EscrowStatus {
-		return nil
-	}
-	return []Finding{
-		buildFinding(s, DriftD8EscrowStateMismatch, SeverityHigh,
-			"investigate the HandleGatewayRefundAck projection sync; consider /admin/orders/{order_id}/repair-projection (projection only)",
-			fmt.Sprintf("escrows.status=%s vs orders.escrow_status=%s", s.Escrow.Status, s.Order.EscrowStatus),
-			0, 0, nil),
-	}
-}
+// D8 (orders.escrow_status projection vs escrows.status) and D13
+// (projection='none' while an escrow row exists) are PURGED: orders no longer
+// persist an escrow projection — the escrows table is the sole authority and
+// there is no second representation left to disagree with.
 
 // D9: cumulative successful refund equals or exceeds order gross, but the
 // coins.refund_required outbox event for this order is absent or dead.
@@ -380,23 +363,6 @@ func detectD12(s Snapshot) []Finding {
 	}
 }
 
-// D13: orders.escrow_status='none' projection while an escrow row exists for
-// the same order.
-func detectD13(s Snapshot) []Finding {
-	if s.Escrow == nil || s.Order == nil {
-		return nil
-	}
-	if s.Order.EscrowStatus != OrderEscrowStatusNone {
-		return nil
-	}
-	return []Finding{
-		buildFinding(s, DriftD13ProjectionNoneEscrowExists, SeverityHigh,
-			"re-run projection sync via /admin/orders/{order_id}/repair-projection (projection column only)",
-			fmt.Sprintf("escrow exists with status=%s but orders.escrow_status='none'", s.Escrow.Status),
-			0, s.Escrow.Amount, nil),
-	}
-}
-
 // D14: a canonical ledger entry exists but the required outbox observability
 // event is absent or dead-letter. Two sub-cases:
 //  1. order release ledger booked but money.released outbox missing.
@@ -427,32 +393,38 @@ func detectD14(s Snapshot) []Finding {
 	return out
 }
 
-// D15: order has downstream money state (an escrow row exists, OR
-// orders.total_before_coins_amount > 0 (canonical buyer-funded escrow base),
-// OR orders.escrow_status is not 'none') but the canonical payment authority
-// — the payments row — is missing. Every other D-class gates on s.Payment !=
-// nil and would silently ignore this state; D15 closes that blind spot.
+// D15 (CANONICAL settlement consistency): an escrow row exists but the
+// canonical payment authority — the payments row — is absent, or the payment
+// is not in a settled state (settlement/capture).
+//
+// Under the canonical model an escrow row is created ONLY inside the
+// settlement transaction (CanonicalFinalizationService), so an escrow without
+// a settled payment is a real invariant violation — never an in-flight
+// intermediate state. The previous implementation also triggered on
+// total_before_coins_amount > 0 and on a persisted order escrow projection;
+// both vectors are gone (orders carry no escrow state, and every order has a
+// positive buyer base).
 func detectD15(s Snapshot) []Finding {
-	if s.Order == nil {
+	if s.Escrow == nil {
 		return nil
 	}
-	if s.Payment != nil {
-		return nil
+	if s.Payment == nil {
+		return []Finding{
+			buildFinding(s, DriftD15EscrowWithoutSettledPayment, SeverityCritical,
+				"investigate the settlement transaction; escrow exists with no payments row for the order",
+				fmt.Sprintf("escrow row present (status=%s amount=%d) but payment row absent", s.Escrow.Status, s.Escrow.Amount),
+				0, s.Escrow.Amount, nil),
+		}
 	}
-	escrowRowPresent := s.Escrow != nil
-	nonZeroEscrowAmount := s.Order.GrossAmount > 0
-	nonNoneProjection := s.Order.EscrowStatus != "" &&
-		s.Order.EscrowStatus != OrderEscrowStatusNone
-	if !escrowRowPresent && !nonZeroEscrowAmount && !nonNoneProjection {
-		return nil
+	if !isLocalPaymentSettled(s.Payment.Status) {
+		return []Finding{
+			buildFinding(s, DriftD15EscrowWithoutSettledPayment, SeverityCritical,
+				"investigate the settlement transaction; escrow was created without a settled payment",
+				fmt.Sprintf("escrow row present (status=%s amount=%d) but payment status=%s is not settled", s.Escrow.Status, s.Escrow.Amount, s.Payment.Status),
+				0, s.Escrow.Amount, nil),
+		}
 	}
-	return []Finding{
-		buildFinding(s, DriftD15EscrowPresentPaymentAbsent, SeverityHigh,
-			"investigate order creation path; payment row should be co-created with the order",
-			fmt.Sprintf("payment row absent but escrow_row_present=%v escrow_amount=%d escrow_status=%s",
-				escrowRowPresent, s.Order.GrossAmount, s.Order.EscrowStatus),
-			0, s.Order.GrossAmount, nil),
-	}
+	return nil
 }
 
 // ---------------------------------------------------------------------------

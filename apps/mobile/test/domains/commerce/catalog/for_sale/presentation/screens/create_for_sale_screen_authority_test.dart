@@ -135,35 +135,33 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // Entry blocked: the form never renders.
         expect(find.text('Langganan Belum Aktif'), findsOneWidget);
         expect(find.text('Aktifkan Langganan'), findsOneWidget);
         expect(find.text('Informasi Dasar'), findsNothing);
       },
     );
 
-    testWidgets(
-      'expired-subscription seller gets the renewal gate',
-      (tester) async {
-        await tester.pumpWidget(
-          _wrap(
-            AuthState.authenticated(
-              _seller(
-                hasSellerProfile: true,
-                hasMarketAuthority: false,
-                sellerSubscriptionStatus: 'expired',
-              ),
-              emailVerified: true,
+    testWidgets('expired-subscription seller gets the renewal gate', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _wrap(
+          AuthState.authenticated(
+            _seller(
+              hasSellerProfile: true,
+              hasMarketAuthority: false,
+              sellerSubscriptionStatus: 'expired',
             ),
+            emailVerified: true,
           ),
-        );
-        await tester.pumpAndSettle();
+        ),
+      );
+      await tester.pumpAndSettle();
 
-        expect(find.text('Langganan Seller Habis'), findsOneWidget);
-        expect(find.text('Perpanjang Langganan'), findsOneWidget);
-        expect(find.text('Informasi Dasar'), findsNothing);
-      },
-    );
+      expect(find.text('Langganan Seller Habis'), findsOneWidget);
+      expect(find.text('Perpanjang Langganan'), findsOneWidget);
+      expect(find.text('Informasi Dasar'), findsNothing);
+    });
 
     testWidgets('active seller still reaches the create form', (tester) async {
       await tester.pumpWidget(
@@ -185,6 +183,39 @@ void main() {
       expect(find.text('Langganan Seller Habis'), findsNothing);
       expect(find.text('Langganan Belum Aktif'), findsNothing);
       expect(find.text('Perpanjang Langganan'), findsNothing);
+    });
+
+    testWidgets('stock input is hidden until seller enables stock', (
+      tester,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(800, 2000));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        _wrap(
+          AuthState.authenticated(
+            _seller(
+              hasSellerProfile: true,
+              hasMarketAuthority: true,
+              sellerSubscriptionStatus: 'active',
+            ),
+            emailVerified: true,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Produk punya stock'), findsOneWidget);
+      final fieldsWithoutStock = tester
+          .widgetList<TextFormField>(find.byType(TextFormField))
+          .length;
+
+      await tester.tap(find.text('Produk punya stock'));
+      await tester.pump();
+
+      final fieldsWithStock = tester
+          .widgetList<TextFormField>(find.byType(TextFormField))
+          .length;
+      expect(fieldsWithStock, fieldsWithoutStock + 1);
     });
   });
 }

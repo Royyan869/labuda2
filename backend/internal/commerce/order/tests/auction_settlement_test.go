@@ -402,7 +402,7 @@ func TestAuctionOrderExpire_ReleasesBinding(t *testing.T) {
 		}
 		auctionID = auction.ID
 
-		// Bid-win claim path: WaitingSettlement -> Ended via Settle().
+		// Bid-win path: WaitingSettlement -> Ended via Settle().
 		require.NoError(t, auction.TransitionToWaitingSettlement())
 		if err := auctionRepo.UpdateTx(ctx, tx, auction); err != nil {
 			return err

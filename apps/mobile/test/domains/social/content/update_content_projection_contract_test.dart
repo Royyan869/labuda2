@@ -70,7 +70,6 @@ Map<String, dynamic> _contentJson({
     'created_at': '2026-07-23T00:00:00.000Z',
     'updated_at': '2026-07-23T00:00:00.000Z',
     'is_liked': null,
-    'is_saved': null,
     'original_author_id': null,
     'resource_projection': resourceProjection,
     'card': <String, dynamic>{

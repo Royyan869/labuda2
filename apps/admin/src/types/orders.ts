@@ -65,7 +65,6 @@ export interface OrderListItem {
   seller_id: string
   source_type: SourceType
   status: OrderStatus
-  escrow_status: EscrowStatus
   subtotal: number
   shipping_total: number
   commission_amount: number
@@ -182,7 +181,9 @@ export interface OrderDetail {
   // at query time (read-only). Nil for negotiation orders.
   source_status?: string | null
   status: OrderStatus
-  escrow_status: EscrowStatus
+  // Live view of the canonical escrow row (escrows table — sole authority).
+  // Absent/empty for unpaid orders (they never have an escrow row).
+  escrow_status?: EscrowStatus | null
   has_dispute: boolean
   dispute_status?: string | null
   subtotal: number

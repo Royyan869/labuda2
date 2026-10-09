@@ -10,6 +10,11 @@
 ///   the auction id — never conflated);
 /// - constructs the canonical checkout route shape.
 /// No caller may re-implement any of these rules.
+///
+/// ONE PURCHASE FUNNEL: auction buy-now AND auction bid-win both open the
+/// SAME shared CheckoutScreen. [AuctionCheckoutIntent.bidWin] is the only
+/// discriminator: bid-win orders are created WITHOUT a payment method (the
+/// winner picks one at Order Detail; the first payment binds it).
 library;
 
 import 'package:flutter/material.dart';
@@ -20,14 +25,30 @@ import 'package:labuda/domains/commerce/catalog/auction/presentation/providers/a
 import 'package:labuda/shared/governance/content_lifecycle.dart';
 import 'package:labuda/shared/widgets/app_snackbar.dart';
 
-/// What a host carries per CTA: the auction id. Auction shipping quotes do NOT
-/// flow through this buy-now intent — they use the canonical winner CLAIM flow
-/// (AuctionClaimShippingModal -> POST /auctions/:id/claim), which carries the
-/// quote + conversation.
+/// What a host carries per CTA. Seller manual shipping quotes (auction
+/// settlement context) ride the SAME bid-win intent via [shippingQuoteId] +
+/// [chatId] — checkout forwards them to the canonical preview/order contract.
 class AuctionCheckoutIntent {
   final String auctionId;
 
-  const AuctionCheckoutIntent({required this.auctionId});
+  /// True when the caller is the auction WINNER completing the settlement
+  /// window (bid-win). False for buy-now (an active-auction purchase).
+  final bool bidWin;
+
+  /// Seller's manual shipping quote (auction settlement context). Required
+  /// together with [chatId]; mutually exclusive with the buyer-selected
+  /// shipping option inside checkout.
+  final String? shippingQuoteId;
+
+  /// Conversation that produced [shippingQuoteId] (quote provenance).
+  final String? chatId;
+
+  const AuctionCheckoutIntent({
+    required this.auctionId,
+    this.bidWin = false,
+    this.shippingQuoteId,
+    this.chatId,
+  });
 }
 
 /// Opens checkout for [intent] from any host screen and returns when done.
@@ -73,6 +94,13 @@ Future<void> openAuctionCheckout(
   final queryParams = <String, String>{
     'product_id': productId,
     'auction_id': intent.auctionId,
+    if (intent.bidWin) 'bid_win': '1',
+    if (intent.shippingQuoteId != null &&
+        intent.shippingQuoteId!.isNotEmpty) ...{
+      'shipping_quote_id': intent.shippingQuoteId!,
+      if (intent.chatId != null && intent.chatId!.isNotEmpty)
+        'chat_id': intent.chatId!,
+    },
   };
 
   if (!context.mounted) return;

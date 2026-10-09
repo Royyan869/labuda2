@@ -10,55 +10,52 @@ import (
 
 func strPtr(s string) *string { return &s }
 
-func timePtr(t time.Time) *time.Time { return &t }
-
 // TestSelectPayActionLabelKey_AllPaymentStates locks the canonical label_key
 // selection for every payment state the pending-buyer pay CTA can encounter.
-// Phase 2B-1: CTA wording must vary by payment state instead of always
-// saying "Bayar Sekarang" (action.pay_now).
+// The pay action itself is only exposed while the order's payment window is
+// open (see buildDecisionV2ForOrder) — this function maps payment-row state
+// to wording within that open window. The old "pending row past its
+// payments.expired_at" branch is gone: a closed window offers NO pay action
+// at all (canonical expiry source: orders.payment_expires_at).
 func TestSelectPayActionLabelKey_AllPaymentStates(t *testing.T) {
-	future := time.Now().Add(24 * time.Hour)
-	past := time.Now().Add(-24 * time.Hour)
-
 	cases := []struct {
-		name             string
-		paymentStatus    *string
-		paymentExpiredAt *time.Time
-		want             string
+		name          string
+		paymentStatus *string
+		want          string
 	}{
-		{"no payment row", nil, nil, "action.pay_now"},
-		{"active pending payment", strPtr("pending"), timePtr(future), "action.payment_continue"},
-		{"pending payment expired", strPtr("pending"), timePtr(past), "action.pay_again"},
-		{"pending with no expiry known", strPtr("pending"), nil, "action.payment_continue"},
-		{"challenge", strPtr("challenge"), timePtr(future), "action.payment_check_status"},
-		{"settlement while order pending", strPtr("settlement"), timePtr(future), "action.payment_check_status"},
-		{"capture while order pending", strPtr("capture"), timePtr(future), "action.payment_check_status"},
-		{"deny", strPtr("deny"), timePtr(future), "action.pay_again"},
-		{"cancel", strPtr("cancel"), timePtr(future), "action.pay_again"},
-		{"expire", strPtr("expire"), timePtr(future), "action.pay_again"},
-		{"unrecognized status falls back safely", strPtr("unknown_status"), timePtr(future), "action.pay_now"},
+		{"no payment row", nil, "action.pay_now"},
+		{"active pending payment", strPtr("pending"), "action.payment_continue"},
+		{"challenge", strPtr("challenge"), "action.payment_check_status"},
+		{"settlement while order pending", strPtr("settlement"), "action.payment_check_status"},
+		{"capture while order pending", strPtr("capture"), "action.payment_check_status"},
+		{"deny", strPtr("deny"), "action.pay_again"},
+		{"cancel", strPtr("cancel"), "action.pay_again"},
+		{"expire", strPtr("expire"), "action.pay_again"},
+		{"unrecognized status falls back safely", strPtr("unknown_status"), "action.pay_now"},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			got := selectPayActionLabelKey(tc.paymentStatus, tc.paymentExpiredAt)
+			got := selectPayActionLabelKey(tc.paymentStatus)
 			if got != tc.want {
-				t.Errorf("selectPayActionLabelKey(%v, %v) = %q, want %q",
-					tc.paymentStatus, tc.paymentExpiredAt, got, tc.want)
+				t.Errorf("selectPayActionLabelKey(%v) = %q, want %q",
+					tc.paymentStatus, got, tc.want)
 			}
 		})
 	}
 }
 
+// pendingBuyerOrder returns a pending order whose payment window is still
+// open — the canonical precondition for any pay-action exposure.
 func pendingBuyerOrder() *entity.Order {
 	return &entity.Order{
-		ID:           uuid.New(),
-		BuyerID:      uuid.New(),
-		SellerID:     uuid.New(),
-		Status:       entity.StatusPending,
-		EscrowStatus: entity.EscrowStatusHolding,
-		CreatedAt:    time.Now().Add(-1 * time.Hour),
-		UpdatedAt:    time.Now().Add(-1 * time.Hour),
+		ID:               uuid.New(),
+		BuyerID:          uuid.New(),
+		SellerID:         uuid.New(),
+		Status:           entity.StatusPending,
+		PaymentExpiresAt: time.Now().Add(30 * time.Minute),
+		CreatedAt:        time.Now().Add(-1 * time.Hour),
+		UpdatedAt:        time.Now().Add(-1 * time.Hour),
 	}
 }
 
@@ -67,25 +64,23 @@ func pendingBuyerOrder() *entity.Order {
 // while the action type, endpoint, and order_id input stay constant.
 func TestBuildDecisionV2ForOrder_PendingBuyer_LabelVariesByPaymentState(t *testing.T) {
 	order := pendingBuyerOrder()
-	future := time.Now().Add(24 * time.Hour)
 
 	cases := []struct {
 		name          string
 		paymentStatus *string
-		expiredAt     *time.Time
 		wantLabel     string
 	}{
-		{"no payment", nil, nil, "action.pay_now"},
-		{"active pending", strPtr("pending"), timePtr(future), "action.payment_continue"},
-		{"settlement lag", strPtr("settlement"), timePtr(future), "action.payment_check_status"},
+		{"no payment", nil, "action.pay_now"},
+		{"active pending", strPtr("pending"), "action.payment_continue"},
+		{"settlement lag", strPtr("settlement"), "action.payment_check_status"},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			decision := buildDecisionV2ForOrder(order, "buyer", false, nil, tc.paymentStatus, tc.expiredAt)
+			decision := buildDecisionV2ForOrder(order, "buyer", false, nil, tc.paymentStatus, false)
 
 			if decision.PrimaryAction == nil {
-				t.Fatal("expected a primary action for pending buyer order")
+				t.Fatal("expected a primary action for pending buyer order with open payment window")
 			}
 			if decision.PrimaryAction.Type != ActionPay {
 				t.Errorf("expected action type %q, got %q", ActionPay, decision.PrimaryAction.Type)
@@ -99,6 +94,9 @@ func TestBuildDecisionV2ForOrder_PendingBuyer_LabelVariesByPaymentState(t *testi
 			if decision.PrimaryAction.Method != "POST" {
 				t.Errorf("expected method POST, got %q", decision.PrimaryAction.Method)
 			}
+			if !decision.PrimaryAction.Enabled {
+				t.Error("expected pay action enabled while the payment window is open")
+			}
 			foundOrderID := false
 			if decision.PrimaryAction.InputSchema != nil {
 				for _, f := range decision.PrimaryAction.InputSchema.Fields {
@@ -111,6 +109,74 @@ func TestBuildDecisionV2ForOrder_PendingBuyer_LabelVariesByPaymentState(t *testi
 				t.Error("expected order_id in primary action input schema")
 			}
 		})
+	}
+}
+
+// TestBuildDecisionV2ForOrder_PendingBuyer_ExpiredWindow_NoPayAction is the
+// mandatory canonical-window regression: a pending order whose
+// PaymentExpiresAt has passed must expose NO pay action (CreatePayment would
+// reject every request with 410). The cancel action stays available.
+func TestBuildDecisionV2ForOrder_PendingBuyer_ExpiredWindow_NoPayAction(t *testing.T) {
+	order := &entity.Order{
+		ID:               uuid.New(),
+		BuyerID:          uuid.New(),
+		SellerID:         uuid.New(),
+		Status:           entity.StatusPending,
+		PaymentExpiresAt: time.Now().Add(-time.Second), // window closed
+		CreatedAt:        time.Now().Add(-1 * time.Hour),
+		UpdatedAt:        time.Now().Add(-1 * time.Hour),
+	}
+	pending := strPtr("pending")
+
+	decision := buildDecisionV2ForOrder(order, "buyer", false, nil, pending, false)
+
+	if decision.PrimaryAction != nil && decision.PrimaryAction.Type == ActionPay {
+		t.Fatalf("pending order past PaymentExpiresAt must not expose a pay action, got %q",
+			decision.PrimaryAction.Type)
+	}
+	for _, a := range decision.SecondaryActions {
+		if a.Type == ActionPay {
+			t.Fatal("pending order past PaymentExpiresAt must not expose pay in secondary actions")
+		}
+	}
+
+	// Display hint must not promise pay either.
+	if decision.Display != nil && decision.Display.NextAction != nil {
+		if decision.Display.NextAction.Type == ActionPay {
+			t.Fatal("display hint must not promise pay past the payment window")
+		}
+	}
+
+	// Cancel remains available for the pending lifecycle.
+	foundCancel := false
+	for _, a := range decision.SecondaryActions {
+		if a.Type == ActionCancel {
+			foundCancel = true
+		}
+	}
+	if !foundCancel {
+		t.Error("cancel action must remain available on a pending order past the payment window")
+	}
+}
+
+// TestBuildDecisionV2ForOrder_ZeroPaymentExpiresAt_NoPayAction locks the
+// fail-closed edge: a pending order without a payment window (zero
+// time.Time — corrupt/legacy row) is never payable.
+func TestBuildDecisionV2ForOrder_ZeroPaymentExpiresAt_NoPayAction(t *testing.T) {
+	order := &entity.Order{
+		ID:        uuid.New(),
+		BuyerID:   uuid.New(),
+		SellerID:  uuid.New(),
+		Status:    entity.StatusPending,
+		CreatedAt: time.Now().Add(-1 * time.Hour),
+		UpdatedAt: time.Now().Add(-1 * time.Hour),
+		// PaymentExpiresAt left as zero value
+	}
+
+	decision := buildDecisionV2ForOrder(order, "buyer", false, nil, nil, false)
+
+	if decision.PrimaryAction != nil && decision.PrimaryAction.Type == ActionPay {
+		t.Fatal("pending order without a payment window must not expose a pay action (fail closed)")
 	}
 }
 
@@ -134,15 +200,15 @@ func TestBuildDecisionV2ForOrder_TerminalStates_NoPayAction(t *testing.T) {
 	for _, status := range statuses {
 		t.Run(string(status), func(t *testing.T) {
 			order := &entity.Order{
-				ID:           uuid.New(),
-				BuyerID:      uuid.New(),
-				SellerID:     uuid.New(),
-				Status:       status,
-				EscrowStatus: entity.EscrowStatusHolding,
-				CreatedAt:    time.Now().Add(-1 * time.Hour),
-				UpdatedAt:    time.Now().Add(-1 * time.Hour),
+				ID:               uuid.New(),
+				BuyerID:          uuid.New(),
+				SellerID:         uuid.New(),
+				Status:           status,
+				PaymentExpiresAt: time.Now().Add(30 * time.Minute),
+				CreatedAt:        time.Now().Add(-1 * time.Hour),
+				UpdatedAt:        time.Now().Add(-1 * time.Hour),
 			}
-			decision := buildDecisionV2ForOrder(order, "buyer", false, nil, &settled, nil)
+			decision := buildDecisionV2ForOrder(order, "buyer", false, nil, &settled, false)
 
 			if decision.PrimaryAction != nil && decision.PrimaryAction.Type == ActionPay {
 				t.Errorf("status %q must not expose a pay action, got primary action type %q",
@@ -154,5 +220,16 @@ func TestBuildDecisionV2ForOrder_TerminalStates_NoPayAction(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// TestBuildDecisionV2ForOrder_PendingSeller_NoPayAction verifies authorization:
+// the seller perspective never receives the buyer's pay action.
+func TestBuildDecisionV2ForOrder_PendingSeller_NoPayAction(t *testing.T) {
+	order := pendingBuyerOrder()
+	decision := buildDecisionV2ForOrder(order, "seller", false, nil, nil, false)
+
+	if decision.PrimaryAction != nil && decision.PrimaryAction.Type == ActionPay {
+		t.Fatal("seller perspective must not expose the buyer pay action")
 	}
 }

@@ -37,7 +37,12 @@ class CheckoutRequest extends Equatable {
   /// creation (from GET /payments/pre-order-methods). The backend computes the
   /// buyer fee from this method and binds the final amount onto the order, so
   /// the pre-order total the buyer saw cannot silently change.
-  final String paymentMethodCode;
+  ///
+  /// NULL for auction bid-win orders (Owner canonical): the winner chooses the
+  /// method at Order Detail and the first POST /payments binds it. The backend
+  /// REJECTS a method on bid-win order creation — there is no default or
+  /// fallback method.
+  final String? paymentMethodCode;
 
   /// AUCTION ID: Optional auction context for auction checkout (winning bid or buy now)
   final String? auctionId;
@@ -63,7 +68,7 @@ class CheckoutRequest extends Equatable {
     this.notes,
     required this.addressId,
     required this.pricingToken,
-    required this.paymentMethodCode,
+    this.paymentMethodCode,
     this.auctionId,
     this.negotiationId,
     this.shippingQuoteId,

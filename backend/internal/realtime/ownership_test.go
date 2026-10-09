@@ -46,6 +46,16 @@ func TestOwnedOutboxEventTypes_AreDeliverable(t *testing.T) {
 			"updated_at":      "2026-06-14T00:01:00Z",
 			"last_message_at": "2026-06-14T00:01:00Z",
 		}),
+		EventTypeNotificationCreated: mustRoomEventPayload(t, map[string]any{
+			"recipient_id":    recipientID.String(),
+			"notification_id": uuid.NewString(),
+			"type":            "chat_message",
+			"unread_count":    1,
+		}),
+		EventTypeNotificationUpdated: mustRoomEventPayload(t, map[string]any{
+			"recipient_id": recipientID.String(),
+			"unread_count": 0,
+		}),
 	}
 
 	for _, eventType := range OwnedOutboxEventTypes {

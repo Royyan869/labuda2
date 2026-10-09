@@ -265,13 +265,19 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
     // Standard NON-DRAGGABLE modal sheet (owner decision B): the surface and
     // top-r20 shape come from `bottomSheetTheme`; the form content scrolls
     // internally. No `DraggableScrollableSheet`, no local surface/radius.
-    // The finite ceiling reads the canonical usable height
-    // ([AppBottomSheetBase.availableHeight]: window minus keyboard minus
-    // system top inset) so it agrees with the base sheet's own ceiling; a
-    // raw screen-height fraction would go stale when the keyboard opens.
+    //
+    // The body bound is the sheet's LIVE content allocation
+    // ([AppBottomSheetBase.contentAllocationOf]): the ceiling and everything
+    // spent around the content region (handle, content wrap, system spacer)
+    // belong to the base alone. Re-spelling the sheet's `0.9` ceiling here
+    // instead gave the form the WHOLE body height while its region is
+    // `handle + wrap + spacer` smaller — the footer/bar rode 72+N px past
+    // the allocation and the CTA parked 36 px below the content clip
+    // (geometry-proven: BOTTOMSHEET-02-FIT-GAP). The form owns NO ceiling:
+    // it fills exactly what the sheet allocates to it.
     return ConstrainedBox(
       constraints: BoxConstraints(
-        maxHeight: AppBottomSheetBase.availableHeight(context) * 0.9,
+        maxHeight: AppBottomSheetBase.contentAllocationOf(context),
       ),
       child: Column(
         children: [
@@ -316,12 +322,14 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
             child: Form(
               key: _formKey,
               child: ListView(
-                padding: EdgeInsets.fromLTRB(
-                  AppMetrics.p24,
-                  AppMetrics.p24,
-                  AppMetrics.p24,
-                  AppMetrics.p24 + MediaQuery.of(context).viewInsets.bottom,
-                ),
+                // Tail = design spacing only (BOTTOMSHEET-02). The ONE
+                // keyboard lift lives in `AppBottomSheetBase` — the whole
+                // sheet already sits above the keyboard — so a `+
+                // viewInsets.bottom` here would be a SECOND reservation:
+                // it grows the tail by the keyboard height and parks the
+                // last field out of reach (geometry-proven: 324 px tail at
+                // keyboard 300 vs the canonical p24).
+                padding: EdgeInsets.all(AppMetrics.p24),
                 children: [
                   // Label (recognition only)
                   _buildNicknameDropdown(scheme),
@@ -476,9 +484,10 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
 
           // Footer actions ride the canonical bar presentation (embedded in
           // dialog content, not a viewport bar — the foundation still owns
-          // chrome and Safe Area here). The sheet itself is already lifted
-          // above the keyboard by `AppBottomSheetBase`, so the embedded mode
-          // suppresses the bar's own keyboard rise (no second lift).
+          // the chrome). The sheet itself is already lifted above the
+          // keyboard by `AppBottomSheetBase`, so the embedded mode suppresses
+          // the bar's own keyboard rise (no second lift) and its system-bottom
+          // reservation (the base spacer owns that inset — BOTTOMSHEET-03).
           BottomActionBar(
             embeddedInLiftedSheet: true,
             primary: BottomBarAction(

@@ -831,7 +831,7 @@ func isNonRetryableRestoreError(err error) bool {
 // restarted because:
 //   - Auction timing is deterministic (scheduled start/end times must be reset)
 //   - Bid state cannot be safely reconstructed
-//   - Claim/settlement windows may have passed
+//   - Settlement windows may have passed
 //
 // Seller action required: create a new auction after the appeal is resolved.
 //

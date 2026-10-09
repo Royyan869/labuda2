@@ -23,6 +23,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	auctionentity "github.com/labuda/backend/internal/commerce/auction/entity"
@@ -85,7 +86,7 @@ import (
 // - Private agreement prices are used instead of forSale prices
 //
 // AUCTION EXTENSION:
-// - Supports token generation from auctions (buy-now and winner claim)
+// - Supports token generation from auctions (buy-now and bid-win checkout)
 // - Auction prices are authoritative (buy-now price or winning bid)
 type PricingTokenService struct {
 	tokenRepo       pricingtokenrepo.PricingTokenRepository
@@ -670,7 +671,7 @@ func calculateCommission(subtotal money.Money, percent decimal.Decimal) money.Mo
 //	Commission     = f(PD, C%)
 //	CommissionSafe = PD + S >= Commission (rejection if false)
 //	Escrow         = PD + S
-//	CoinCap        = 20% × PD
+//	CoinCap        = 20% Ã— PD
 //	OrderValueForCoins = PD
 //
 // This function is the SINGLE authority for post-discount money calculations.
@@ -712,7 +713,7 @@ func calculatePostDiscountMoneyFlow(
 	serviceFeeAmount := money.Zero()
 	totalPayableAmount := escrowAmount.Add(serviceFeeAmount)
 
-	// Coins = 20% × PD
+	// Coins = 20% Ã— PD
 	orderValueForCoins := PD
 	maxCoinsAllowed := coinsapp.MaxCoinsAllowedForDiscountedProduct(orderValueForCoins)
 
@@ -1226,10 +1227,11 @@ func (s *PricingTokenService) GenerateForAuction(
 	// ============================================================
 	// Auction checkout can happen via two paths:
 	// - Buy-now: User clicks buy-now while auction is active
-	// - Winner claim: Auction ended, winner claims their item
+	// - Bid-win: Auction ended with this user as winner; the winner completes
+	//   the shared Checkout inside the settlement window (end_at + 24h)
 	//
 	// For buy-now: auction must be active, have buy_now_price set
-	// For winner claim: auction must be ended, caller must be the winner
+	// For bid-win: auction must be ended/waiting_settlement, caller must be the winner
 	var settlementType orderentity.AuctionSettlementType
 	var unitPrice int64
 
@@ -1246,12 +1248,19 @@ func (s *PricingTokenService) GenerateForAuction(
 		// Buy-now flow: discounts and coins are allowed
 
 	} else if (auction.Status == auctionentity.StatusEnded || auction.Status == auctionentity.StatusWaitingSettlement) && auction.HasWinner() {
-		// WINNER CLAIM FLOW
+		// WINNER CLAIM FLOW (bid-win checkout via the shared Checkout surface)
 		settlementType = orderentity.AuctionSettlementBidWin
 
 		// Validate caller is the winner
 		if auction.WinnerID() == nil || *auction.WinnerID() != req.UserID {
 			return nil, fmt.Errorf("caller is not the auction winner")
+		}
+
+		// Auction settlement window (end_at + 24h): preview fails early and
+		// honestly once it has passed. Authoritative enforcement remains at
+		// POST /orders (re-checked under the auction row lock).
+		if auction.SettlementDeadlinePassed(time.Now()) {
+			return nil, fmt.Errorf("auction settlement deadline has passed")
 		}
 
 		// Get winning bid amount
@@ -1281,7 +1290,7 @@ func (s *PricingTokenService) GenerateForAuction(
 	// STEP 4: VALIDATE AUCTION ELIGIBILITY
 	// ============================================================
 	// Auction products do not have a corresponding ForSale record.
-	// For bid-win claims, validate directly against the auction entity:
+	// For bid-win checkout, validate directly against the auction entity:
 	// - Prevent self-purchase (buyer == seller)
 	// Quantity and active status are guaranteed by the auction lifecycle (step 2).
 

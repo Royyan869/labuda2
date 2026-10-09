@@ -1,9 +1,6 @@
 // Notification Repository API Implementation
 // Implements INotificationRepository using HTTP API
 
-// Dart
-import 'dart:async';
-
 // External
 import 'package:dio/dio.dart';
 import 'package:labuda/core/core.dart' hide NotificationEntity;
@@ -26,37 +23,38 @@ class NotificationRepositoryApi implements INotificationRepository {
   // ============================================================================
 
   @override
-  Stream<Result<List<NotificationEntity>>> getNotifications({
+  Future<Result<List<NotificationEntity>>> getNotifications({
     required String userId,
     int limit = 20,
-  }) async* {
-    // Polling implementation (10s interval)
-    // WebSocket will be implemented in Phase 3D
-    while (true) {
-      try {
-        final response = await _datasource.listNotifications(
-          perPage: limit,
-          unreadOnly: false,
-        );
-        final entities = NotificationApiMapper.toEntityList(
-          response.notifications,
-        );
-        yield Result.success(entities);
-      } on DioException catch (e) {
-        final exception = _apiClient.extractException(e);
-        yield Result.error(exception.message);
-      } catch (e) {
-        yield Result.error('Failed to get notifications: $e');
-      }
-      await Future.delayed(const Duration(seconds: 10));
+  }) async {
+    // ONE-SHOT canonical read (Phase 5). The old inline 10s `while (true)`
+    // polling loop is gone: periodic refresh is owned by the ONE
+    // reconciliation cadence in NotificationInitializer, which re-runs this
+    // read by invalidating the canonical providers.
+    try {
+      final response = await _datasource.listNotifications(
+        perPage: limit,
+        unreadOnly: false,
+      );
+      final entities = NotificationApiMapper.toEntityList(
+        response.notifications,
+      );
+      return Result.success(entities);
+    } on DioException catch (e) {
+      final exception = _apiClient.extractException(e);
+      return Result.error(exception.message);
+    } catch (e) {
+      return Result.error('Failed to get notifications: $e');
     }
   }
 
   @override
-  Future<Result<void>> markAsRead({required String notificationId}) async {
+  Future<Result<int>> markAsRead({required String notificationId}) async {
     try {
-      await _datasource.markNotificationsAsRead([notificationId]);
-      return Result.success(null);
+      final unreadCount = await _datasource.markNotificationsAsRead([
+        notificationId,
+      ]);
+      return Result.success(unreadCount);
     } on DioException catch (e) {
       final exception = _apiClient.extractException(e);
       return Result.error(exception.message);
@@ -66,10 +64,10 @@ class NotificationRepositoryApi implements INotificationRepository {
   }
 
   @override
-  Future<Result<void>> markAllAsRead({required String userId}) async {
+  Future<Result<int>> markAllAsRead({required String userId}) async {
     try {
-      await _datasource.markAllNotificationsAsRead();
-      return Result.success(null);
+      final unreadCount = await _datasource.markAllNotificationsAsRead();
+      return Result.success(unreadCount);
     } on DioException catch (e) {
       final exception = _apiClient.extractException(e);
       return Result.error(exception.message);
@@ -99,20 +97,16 @@ class NotificationRepositoryApi implements INotificationRepository {
   }
 
   @override
-  Stream<Result<int>> getUnreadCount({required String userId}) async* {
-    // Polling implementation (10s interval)
-    // WebSocket will be implemented in Phase 3D
-    while (true) {
-      try {
-        final unread = await _datasource.getUnreadCount();
-        yield Result.success(unread.count);
-      } on DioException catch (e) {
-        final exception = _apiClient.extractException(e);
-        yield Result.error(exception.message);
-      } catch (e) {
-        yield Result.error('Failed to get unread count: $e');
-      }
-      await Future.delayed(const Duration(seconds: 10));
+  Future<Result<int>> getUnreadCount({required String userId}) async {
+    // ONE-SHOT canonical read (Phase 5) — see getNotifications above.
+    try {
+      final unread = await _datasource.getUnreadCount();
+      return Result.success(unread.count);
+    } on DioException catch (e) {
+      final exception = _apiClient.extractException(e);
+      return Result.error(exception.message);
+    } catch (e) {
+      return Result.error('Failed to get unread count: $e');
     }
   }
 
@@ -157,12 +151,12 @@ class NotificationRepositoryApi implements INotificationRepository {
   // ============================================================================
 
   @override
-  Future<Result<void>> deleteNotification({
+  Future<Result<int>> deleteNotification({
     required String notificationId,
   }) async {
     try {
-      await _datasource.deleteNotification(notificationId);
-      return Result.success(null);
+      final unreadCount = await _datasource.deleteNotification(notificationId);
+      return Result.success(unreadCount);
     } on DioException catch (e) {
       final exception = _apiClient.extractException(e);
       return Result.error(exception.message);

@@ -154,6 +154,22 @@ class UnreadCountResponse {
   }
 }
 
+/// Canonical post-mutation unread count carried by the mutation responses of
+/// POST /notifications/:id/read, POST /notifications/read-all and
+/// DELETE /notifications/:id (`data.unread_count`). This is the same
+/// authority as GET /notifications/unread-count, measured AFTER the mutation.
+class MutationUnreadCountResponse {
+  final int unreadCount;
+
+  const MutationUnreadCountResponse({required this.unreadCount});
+
+  factory MutationUnreadCountResponse.fromJson(Map<String, dynamic> json) {
+    return MutationUnreadCountResponse(
+      unreadCount: json['unread_count'] as int? ?? json['unreadCount'] as int? ?? 0,
+    );
+  }
+}
+
 // ============================================================================
 // FCM Token DTOs
 // ============================================================================

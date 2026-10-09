@@ -65,12 +65,13 @@ type OrderRepository interface {
 
 	// FindOrdersForAutoComplete returns IDs of orders that are due for auto-completion.
 	// Uses FOR UPDATE SKIP LOCKED to support concurrent workers.
-	// Query conditions: status IN ('shipped', 'delivered'), escrow_status = 'holding', auto_release_at <= NOW()
+	// Query conditions: status IN ('shipped', 'delivered'), a holding escrow row
+	// exists (canonical escrow authority), auto_release_at <= NOW()
 	FindOrdersForAutoComplete(ctx context.Context, tx db.Tx, limit int) ([]uuid.UUID, error)
 
 	// FindOverdueOrdersForCancel returns IDs of orders that are overdue for shipment.
 	// Uses FOR UPDATE SKIP LOCKED to support concurrent workers.
-	// Query conditions: status = 'paid', escrow_status = 'holding', ready_to_ship_by + grace_period < NOW()
+	// Query conditions: status = 'paid', a holding escrow row exists, ready_to_ship_by + grace_period < NOW()
 	FindOverdueOrdersForCancel(ctx context.Context, tx db.Tx, limit int) ([]uuid.UUID, error)
 
 	// CreateShippingProofTx creates a shipping proof within a transaction.

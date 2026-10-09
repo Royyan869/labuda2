@@ -45,7 +45,6 @@ class FeatureFlags {
   static bool get report => useGoBackend;
   static bool get verification => useGoBackend;
   static bool get seller => useGoBackend;
-  static bool get shortlist => useGoBackend;
   static bool get orderConfirmation => useGoBackend;
   static bool get discount => useGoBackend;
   static bool get coins => useGoBackend;
@@ -87,7 +86,6 @@ class FeatureFlags {
       'report': report,
       'verification': verification,
       'seller': seller,
-      'shortlist': shortlist,
       'orderConfirmation': orderConfirmation,
       'discount': discount,
       'coins': coins,

@@ -175,6 +175,14 @@ var knownProducedEvents = []string{
 	// "chat.message.notification" is the notification effect of the same sent
 	// message, owned by the outbox worker.
 	"chat.message.notification",
+	// "notification.created" is the realtime delivery signal emitted in the
+	// same transaction as a committed notification INSERT (TASK_5) — owned by
+	// the realtime worker.
+	"notification.created",
+	// "notification.updated" is the user-targeted realtime state-change
+	// signal emitted in the same transaction as a committed notification
+	// mutation (TASK_4.2) — owned by the realtime worker.
+	"notification.updated",
 
 	// Presence events
 	"presence.last_seen_record",

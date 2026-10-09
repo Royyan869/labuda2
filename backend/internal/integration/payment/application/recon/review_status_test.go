@@ -72,7 +72,7 @@ func TestBuildFindingUsesOrderIDWhenPresent(t *testing.T) {
 		},
 	}
 
-	f := buildFinding(s, DriftD8EscrowStateMismatch, SeverityHigh, "action", "notes", 0, 0, nil)
+	f := buildFinding(s, DriftD10OrderCompletedReleaseAbsent, SeverityHigh, "action", "notes", 0, 0, nil)
 	assert.NotNil(t, f.OrderID)
 	assert.Equal(t, orderID, *f.OrderID)
 	assert.Contains(t, f.IdempotencyKey, orderID.String())

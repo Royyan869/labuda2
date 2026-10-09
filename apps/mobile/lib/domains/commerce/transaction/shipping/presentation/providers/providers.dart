@@ -59,5 +59,5 @@ final shippingNotifierProvider =
 // Phase 3 cleanup: deliveryCheckNotifierProvider and shippingProofNotifierProvider
 // removed. Both had zero ref.watch / ref.read call sites. The underlying
 // shippingRepositoryProvider and shippingProofRepositoryProvider remain for
-// direct use (e.g. auction_claim_shipping_modal.dart calls
+// direct use (e.g. checkout_screen_impl.dart calls
 // shippingRepository.checkDeliveryAvailability directly).

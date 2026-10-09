@@ -118,10 +118,7 @@ class _CanonicalPromotionQueueScreenState
     setState(() => _busy = true);
     final result = await ref
         .read(promotionContractRepositoryProvider)
-        .removeTarget(
-          contractId: widget.contractId,
-          targetId: target.targetId,
-        );
+        .removeTarget(contractId: widget.contractId, targetId: target.targetId);
     if (!mounted) return;
     setState(() => _busy = false);
     if (result.isSuccess) {
@@ -150,52 +147,67 @@ class _CanonicalPromotionQueueScreenState
         icon: const Icon(Icons.add),
         label: Text(full ? 'Antrian penuh' : 'Tambah Produk'),
       ),
-      body: async.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => _messageState(
-          context,
-          title: 'Gagal Memuat Antrian',
-          message: error.toString(),
-        ),
-        data: (result) {
-          if (result.isError || result.data == null) {
-            return _messageState(
-              context,
-              title: 'Gagal Memuat Antrian',
-              message: result.error ?? 'Gagal memuat antrian',
-            );
-          }
-          final list = result.data!.targets;
-          if (list.isEmpty) {
-            return _messageState(
-              context,
-              title: 'Antrian kosong',
-              message: 'Tambahkan minimal satu produk untuk promosi ini.',
-            );
-          }
-          return ListView.separated(
-            padding: const EdgeInsets.all(AppMetrics.p16),
-            itemCount: list.length,
-            separatorBuilder: (_, _) => const Divider(height: 1),
-            itemBuilder: (context, index) {
-              final t = list[index];
-              return ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: CircleAvatar(radius: 12, child: Text('${index + 1}')),
-                title: Text(_typeLabel(t.targetType)),
-                subtitle: Text(
-                  t.targetId,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                trailing: IconButton(
-                  icon: const Icon(Icons.delete_outline),
-                  onPressed: _busy ? null : () => _removeTarget(t),
-                ),
+      // SAFE-AREA-38: the body owns the LIVE system bottom inset exactly
+      // once — /seller/canonical-promotions/:contractId/queue is a FLAT
+      // top-level GoRoute (SellerModule), so no shell bar owns it. The
+      // queue uses an EXPLICIT `ListView.padding` (design p16), which
+      // disables BoxScrollView's window-padding auto-consumption, so no
+      // other widget in the body can own the bottom region. `top: false`:
+      // the Scaffold AppBar owns the status-bar region (the body slot's
+      // top is already below the bar). The extended FAB is positioned by
+      // the Scaffold endFloat layout — an authority outside this wrapper.
+      body: SafeArea(
+        top: false,
+        child: async.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (error, _) => _messageState(
+            context,
+            title: 'Gagal Memuat Antrian',
+            message: error.toString(),
+          ),
+          data: (result) {
+            if (result.isError || result.data == null) {
+              return _messageState(
+                context,
+                title: 'Gagal Memuat Antrian',
+                message: result.error ?? 'Gagal memuat antrian',
               );
-            },
-          );
-        },
+            }
+            final list = result.data!.targets;
+            if (list.isEmpty) {
+              return _messageState(
+                context,
+                title: 'Antrian kosong',
+                message: 'Tambahkan minimal satu produk untuk promosi ini.',
+              );
+            }
+            return ListView.separated(
+              padding: const EdgeInsets.all(AppMetrics.p16),
+              itemCount: list.length,
+              separatorBuilder: (_, _) => const Divider(height: 1),
+              itemBuilder: (context, index) {
+                final t = list[index];
+                return ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: CircleAvatar(
+                    radius: 12,
+                    child: Text('${index + 1}'),
+                  ),
+                  title: Text(_typeLabel(t.targetType)),
+                  subtitle: Text(
+                    t.targetId,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.delete_outline),
+                    onPressed: _busy ? null : () => _removeTarget(t),
+                  ),
+                );
+              },
+            );
+          },
+        ),
       ),
     );
   }

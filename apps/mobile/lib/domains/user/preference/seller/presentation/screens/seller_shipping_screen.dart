@@ -158,32 +158,20 @@ class _SellerShippingScreenState extends ConsumerState<SellerShippingScreen> {
   }
 
   Future<void> _confirmDelete(ShippingSetup opt) async {
-    final confirmed = await showDialog<bool>(
+    // F9(a) convergence: pure destructive yes/no decision consumes the
+    // canonical AppDialog.confirm grammar (same order, tone, bool contract).
+    final confirmed = await AppDialog.confirm(
       context: context,
-      builder: (dialogCtx) => AlertDialog(
-        title: const Text('Hapus Opsi Pengiriman'),
-        content: Text(
+      title: 'Hapus Opsi Pengiriman',
+      message:
           'Hapus "${opt.displayName}" dari daftar opsi pengiriman Anda? '
           'Jika opsi ini masih dipakai di ForSale atau Auction, penghapusan '
           'akan ditolak — matikan lewat tombol aktif sebagai gantinya.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogCtx).pop(false),
-            child: const Text('Batal'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(dialogCtx).pop(true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.error,
-              foregroundColor: Theme.of(context).colorScheme.onError,
-            ),
-            child: const Text('Hapus'),
-          ),
-        ],
-      ),
+      confirmLabel: 'Hapus',
+      cancelLabel: 'Batal',
+      intent: AppDialogIntent.destructive,
     );
-    if (confirmed != true || !mounted) return;
+    if (!confirmed || !mounted) return;
     final ok = await ref
         .read(shippingNotifierProvider.notifier)
         .deleteShippingSetup(opt.id);

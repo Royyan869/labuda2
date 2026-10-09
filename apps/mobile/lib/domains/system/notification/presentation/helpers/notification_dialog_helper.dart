@@ -43,8 +43,9 @@ class NotificationDialogHelper {
       if (!confirmed) return;
       try {
         final deleteAll = ref.read(deleteAllNotificationsProvider);
+        // The closure converges the unread-count badge and the list from the
+        // backend's canonical post-deletion state on success.
         await deleteAll(userId);
-        ref.invalidate(notificationListProvider(userId));
         if (context.mounted) {
           AppSnackBar.showSuccess(context, 'Semua notifikasi dihapus');
         }
@@ -82,8 +83,9 @@ class NotificationDialogHelper {
       if (!confirmed) return;
       try {
         final deleteRead = ref.read(deleteReadNotificationsProvider);
+        // The closure converges the unread-count badge and the list from the
+        // backend's canonical post-deletion state on success.
         await deleteRead(userId);
-        ref.invalidate(notificationListProvider(userId));
         if (context.mounted) {
           AppSnackBar.showSuccess(context, '$readCount notifikasi dihapus');
         }

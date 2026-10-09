@@ -24,7 +24,10 @@ class _CheckoutBottomBar extends StatelessWidget {
   /// no method is selected yet.
   final int? finalPayableAmount;
   final VoidCallback onCreateOrder;
-  final bool isAuctionWinner;
+
+  /// Auction bid-win: winner framing on the CTA. Buy-now uses the regular
+  /// purchase label.
+  final bool isBidWin;
 
   const _CheckoutBottomBar({
     required this.isCreatingOrder,
@@ -33,24 +36,24 @@ class _CheckoutBottomBar extends StatelessWidget {
     this.disabledReason = '',
     this.finalPayableAmount,
     required this.onCreateOrder,
-    this.isAuctionWinner = false,
+    this.isBidWin = false,
   });
 
-  /// Builds the button text based on auction winner context.
+  /// Builds the button text based on auction bid-win context.
   String _buildButtonText(BuildContext context) {
     if (finalPayableAmount != null) {
       // The label owns the 'Rp ' prefix so no caller can interpolate a bare
       // number behind it (money authority: formatGroupedAmount).
       final total = 'Rp ${formatGroupedAmount(finalPayableAmount!)}';
 
-      if (isAuctionWinner) {
+      if (isBidWin) {
         // Winner framing: "Secure Your Victory - Rp X"
         return 'Amankan Kemenangan - $total';
       }
       // Regular purchase: "Create Order - Rp X"
       return 'Buat Pesanan - $total';
     }
-    return isAuctionWinner ? 'Amankan Kemenangan' : 'Buat Pesanan';
+    return isBidWin ? 'Amankan Kemenangan' : 'Buat Pesanan';
   }
 
   @override

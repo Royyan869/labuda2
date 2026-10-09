@@ -412,7 +412,24 @@ void main() {
       final String source = _read(
         'lib/shared/widgets/user_search_bottom_sheet.dart',
       );
-      expect(source, contains('AppBottomSheetBase.availableHeight(context)'));
+      expect(
+        source,
+        contains('AppBottomSheetBase.contentAllocationOf(context)'),
+        reason:
+            'the tag-people body must take its slot from the live content '
+            'allocation — a share of the ceiling shared the budget with the '
+            'sheet chrome and outgrew the region at larger insets '
+            '(BOTTOMSHEET-04)',
+      );
+      final String code = source.replaceAll(RegExp(r'//[^\n\r]*'), '');
+      expect(
+        code,
+        isNot(contains('availableHeight')),
+        reason:
+            'the body re-derives sheet sizing from the ceiling — a second '
+            'fit authority beside the allocation (prose may name the '
+            'purged API while explaining why it is gone)',
+      );
       expect(
         source,
         isNot(contains('mediaQuery.size.height')),

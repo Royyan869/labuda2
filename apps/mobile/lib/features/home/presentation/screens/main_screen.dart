@@ -67,7 +67,8 @@ class _MainScreenState extends ConsumerState<MainScreen> {
             'Marketplace',
             navigationRegistry,
           );
-          if (marketplaceTabIndex >= 0) setState(() => _currentIndex = marketplaceTabIndex);
+          if (marketplaceTabIndex >= 0)
+            setState(() => _currentIndex = marketplaceTabIndex);
           // NOT cleared here: MarketplaceScreen still has to read the sub-tab.
           // One consumer clears per target — clearing from both sides is what
           // made the sub-tab switch a race.
@@ -117,17 +118,6 @@ class _MainScreenState extends ConsumerState<MainScreen> {
       _currentIndex = 0;
     }
 
-    final currentTab = tabs.isNotEmpty && _currentIndex < tabs.length
-        ? tabs[_currentIndex]
-        : tabs.isNotEmpty
-        ? tabs[0]
-        : MainTab(
-            label: l10n.home,
-            icon: Icons.home_outlined,
-            selectedIcon: Icons.home,
-            page: const HomeScreen(),
-          );
-
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
@@ -147,7 +137,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
         }
       },
       child: Scaffold(
-        appBar: MainAppBar(currentTab: currentTab),
+        appBar: const MainAppBar(),
         drawer: _buildDrawer(context),
         body: IndexedStack(
           index: _currentIndex,
@@ -174,17 +164,15 @@ class _MainScreenState extends ConsumerState<MainScreen> {
     );
   }
 
-  Widget _buildBottomNavigation(
-    BuildContext context,
-    List<MainTab> tabs,
-  ) {
+  Widget _buildBottomNavigation(BuildContext context, List<MainTab> tabs) {
     return MainBottomNavigation(
       currentIndex: _currentIndex,
       showMultiFAB: false,
       tabs: tabs,
       onTap: (index) {
         final navigation = ref.read(navigationHandlerProvider);
-        final isGuest = ref.read(authControllerProvider) is! AuthStateAuthenticated;
+        final isGuest =
+            ref.read(authControllerProvider) is! AuthStateAuthenticated;
 
         // GUEST POLICY (Owner canonical): auth-required affordances
         // (Create/Orders/Settings) use an explicit Sign In gate instead of

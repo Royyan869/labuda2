@@ -77,10 +77,11 @@ class NotificationDismissibleItem extends ConsumerWidget {
 
   Future<void> _handleDismiss(BuildContext context, WidgetRef ref) async {
     try {
+      // The closure converges the unread-count badge and the list from the
+      // backend's canonical post-mutation count on success; on failure it
+      // throws and nothing changes.
       final deleteNotification = ref.read(deleteNotificationProvider);
-      await deleteNotification(notification.id);
-      // Refresh list after successful deletion
-      ref.invalidate(notificationListProvider(userId));
+      await deleteNotification(notification.id, userId);
     } catch (e) {
       if (context.mounted) {
         AppSnackBar.showError(context, 'Gagal menghapus. Coba lagi.');

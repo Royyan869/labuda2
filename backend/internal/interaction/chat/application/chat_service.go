@@ -56,6 +56,20 @@ type OrderOwnershipReader interface {
 	GetOrderParticipants(ctx context.Context, tx db.Tx, orderID uuid.UUID) (buyerID, sellerID uuid.UUID, err error)
 }
 
+// ChatNotificationReadSyncer is the minimal notification-domain contract
+// needed so marking a room read ALSO completes the chat notifications that
+// represent unread chat activity for that room — in the SAME transaction as
+// the chat read-state upsert.
+//
+// SCOPE INVARIANT: the implementation must only affect chat-message
+// notifications belonging to (recipient, room). It must never touch other
+// notification types or other rooms. Chat and Notification keep their
+// separate unread authorities; this sync only makes one user action
+// (reading a room) converge both domains atomically.
+type ChatNotificationReadSyncer interface {
+	MarkChatRoomNotificationsRead(ctx context.Context, tx db.Tx, recipientID, roomID uuid.UUID) error
+}
+
 // Service handles chat domain business logic.
 //
 // STRICT BOUNDARY RULES:
@@ -80,6 +94,10 @@ type Service struct {
 	// persisted alongside a message resource occurrence. It is a
 	// communication-surface representation only — never business authority.
 	occurrenceFallbacks *OccurrenceFallbackBuilders
+	// chatNotificationReadSyncer completes the room's chat notifications
+	// inside the MarkAsRead transaction (optional; nil keeps chat-only
+	// behavior for tests that do not exercise notification sync).
+	chatNotificationReadSyncer ChatNotificationReadSyncer
 }
 
 // OutboxInserter defines the interface for inserting outbox events.
@@ -129,6 +147,14 @@ func (s *Service) SetCommerceReferenceValidator(v commerceResponse.Validator) {
 // produce communication-surface snapshots only — no Commerce business state.
 func (s *Service) SetOccurrenceFallbackBuilders(b *OccurrenceFallbackBuilders) {
 	s.occurrenceFallbacks = b
+}
+
+// SetChatNotificationReadSyncer injects the notification-domain sync used by
+// MarkAsRead so one room-read action atomically completes the room's chat
+// notifications. Must be called during boot wiring (production); tests that
+// do not exercise notification sync may leave it nil.
+func (s *Service) SetChatNotificationReadSyncer(syncer ChatNotificationReadSyncer) {
+	s.chatNotificationReadSyncer = syncer
 }
 
 // NewServiceWithDefaults creates a chat service with the default repository.
@@ -1433,6 +1459,23 @@ func (s *Service) MarkAsRead(
 		readState := chatEntity.NewChatReadStateWithTimestamp(roomID, userID, timestamp)
 		if err := s.repo.UpsertReadState(ctx, tx, readState); err != nil {
 			return fmt.Errorf("failed to upsert read state: %w", err)
+		}
+
+		// CHAT READ COMPLETES CHAT NOTIFICATIONS (one transaction).
+		//
+		// Reading a room is ONE user action; the chat notifications that
+		// represent unread chat activity for this room complete with it —
+		// atomically. Failure here rolls back the chat read-state upsert too,
+		// so a successful request never leaves chat read but its chat
+		// notifications still unread.
+		//
+		// SCOPE: the syncer only touches chat-message notifications for
+		// (recipient, room) — other rooms and non-chat notifications are
+		// unaffected (separate unread authorities remain untouched).
+		if s.chatNotificationReadSyncer != nil {
+			if err := s.chatNotificationReadSyncer.MarkChatRoomNotificationsRead(ctx, tx, userID, roomID); err != nil {
+				return fmt.Errorf("failed to mark chat notifications as read: %w", err)
+			}
 		}
 
 		afterUnreadCount, err := s.repo.GetUnreadCountByRoomAndUser(ctx, tx, roomID, userID)

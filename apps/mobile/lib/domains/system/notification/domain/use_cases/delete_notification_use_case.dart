@@ -16,8 +16,9 @@ class DeleteNotificationUseCase {
 
   /// Execute use case
   ///
-  /// Returns `Result<void>` indicating success or failure
-  Future<Result<void>> call({required String notificationId}) async {
+  /// Returns `Result<int>` carrying the canonical post-mutation
+  /// `unread_count` from the backend.
+  Future<Result<int>> call({required String notificationId}) async {
     return await repository.deleteNotification(notificationId: notificationId);
   }
 }

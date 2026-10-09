@@ -19,7 +19,7 @@
 //   * keyboard                  → N/A: the screen owns no text input.
 //
 // Geometry is measured on the REAL screen (populated, transactions-empty,
-// balance-empty, balance-loading and balance-error states) with injected
+// balance-zero, balance-loading and balance-error states) with injected
 // window metrics.
 import 'dart:async';
 import 'dart:io';
@@ -32,6 +32,7 @@ import 'package:labuda/core/common/result.dart';
 import 'package:labuda/core/src/auth/app_role.dart';
 import 'package:labuda/domains/finance/wallet/coins/coins_di.dart';
 import 'package:labuda/domains/finance/wallet/coins/presentation/screens/coin_balance_screen.dart';
+import 'package:labuda/domains/finance/wallet/coins/presentation/widgets/coin_balance_card.dart';
 import 'package:labuda/domains/user/identity/authentication/authentication.dart';
 import 'package:labuda/domains/user/identity/authentication/domain/entities/account_status.dart';
 import 'package:labuda/generated/app_localizations.dart';
@@ -83,27 +84,26 @@ List<CoinTransaction> _txs(int count) => [
   for (var i = 0; i < count; i++) _tx('tx-$i'),
 ];
 
-/// Fake repository: only the TWO stream reads are on the geometry path;
-/// everything else fails loudly via noSuchMethod instead of being masked.
 class _FakeCoinRepository implements CoinRepository {
   _FakeCoinRepository({
-    required this.onWatchBalance,
-    required this.onWatchTransactions,
+    required this.onGetBalance,
+    required this.onGetTransactions,
   });
 
-  final Stream<Result<CoinBalance>> Function(String userId) onWatchBalance;
-  final Stream<Result<List<CoinTransaction>>> Function(String userId, int limit)
-  onWatchTransactions;
+  final Future<Result<CoinBalance>> Function(String userId) onGetBalance;
+  final Future<Result<List<CoinTransaction>>> Function(String userId, int limit)
+  onGetTransactions;
 
   @override
-  Stream<Result<CoinBalance>> watchCoinBalance(String userId) =>
-      onWatchBalance(userId);
+  Future<Result<CoinBalance>> getCoinBalance(String userId) =>
+      onGetBalance(userId);
 
   @override
-  Stream<Result<List<CoinTransaction>>> watchTransactions({
+  Future<Result<List<CoinTransaction>>> getTransactions({
     required String userId,
     int limit = 50,
-  }) => onWatchTransactions(userId, limit);
+    int offset = 0,
+  }) => onGetTransactions(userId, limit);
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
@@ -111,30 +111,40 @@ class _FakeCoinRepository implements CoinRepository {
 
 /// Populated: balance + a full page of transactions.
 _FakeCoinRepository _loaded({int transactions = 16}) => _FakeCoinRepository(
-  onWatchBalance: (_) => Stream.value(Result.success(_balance())),
-  onWatchTransactions: (_, _) =>
-      Stream.value(Result.success(_txs(transactions))),
+  onGetBalance: (_) => Future.value(Result.success(_balance())),
+  onGetTransactions: (_, _) => Future.value(Result.success(_txs(transactions))),
 );
 
 /// Transactions empty: the populated tree with the empty transactions tail.
 _FakeCoinRepository _txEmpty() => _FakeCoinRepository(
-  onWatchBalance: (_) => Stream.value(Result.success(_balance())),
-  onWatchTransactions: (_, _) => Stream.value(Result.success(const [])),
+  onGetBalance: (_) => Future.value(Result.success(_balance())),
+  onGetTransactions: (_, _) => Future.value(Result.success(const [])),
 );
 
-/// Balance EMPTY state: a failed RESULT is mapped to `null` by the screen's
-/// canonical stream mapping, which renders `_buildEmptyState`.
+CoinBalance _zeroBalance() => CoinBalance(
+  userId: _uid,
+  balance: 0,
+  lifetimeEarned: 0,
+  lifetimeSpent: 0,
+  createdAt: null,
+  updatedAt: DateTime.utc(2026, 1, 1),
+  lastTransactionAt: null,
+);
+
 _FakeCoinRepository _balanceEmpty() => _FakeCoinRepository(
-  onWatchBalance: (_) => Stream.value(Result.error('no balance')),
-  onWatchTransactions: (_, _) => Stream.value(Result.success(const [])),
+  onGetBalance: (_) => Future.value(Result.success(_zeroBalance())),
+  onGetTransactions: (_, _) => Future.value(Result.success(const [])),
 );
 
-/// Balance ERROR state: the stream itself throws, so `balanceAsync.error`
-/// renders `_buildError`.
+_FakeCoinRepository _zeroLoaded() => _FakeCoinRepository(
+  onGetBalance: (_) => Future.value(Result.success(_zeroBalance())),
+  onGetTransactions: (_, _) => Future.value(Result.success(_txs(16))),
+);
+
+/// Balance ERROR state renders `_buildError`.
 _FakeCoinRepository _balanceError() => _FakeCoinRepository(
-  onWatchBalance: (_) =>
-      Stream<Result<CoinBalance>>.error(Exception('balance stream boom')),
-  onWatchTransactions: (_, _) => Stream.value(Result.success(const [])),
+  onGetBalance: (_) => Future.error(Exception('balance request boom')),
+  onGetTransactions: (_, _) => Future.value(Result.success(const [])),
 );
 
 /// Injects window metrics on the TEST VIEW (same idiom as
@@ -459,37 +469,27 @@ void main() {
       );
     });
 
-    testWidgets('balance-empty state at inset 0', (tester) async {
-      await _pump(tester, inset: 0, repository: _balanceEmpty());
-      expect(find.text('Belum ada Coins'), findsOneWidget);
-      _expectFillGeometry(
-        tester,
-        inset: 0,
-        state: 'balance-empty',
-        marker: find.text('Belum ada Coins'),
-      );
+    testWidgets('zero-balance state at inset 0', (tester) async {
+      await _pump(tester, inset: 0, repository: _zeroLoaded());
+      expect(find.byType(CoinBalanceCard), findsOneWidget);
+      expect(find.text('0 Coins'), findsOneWidget);
+      await _expectLoadedGeometry(tester, inset: 0);
     });
 
-    testWidgets('balance-empty state at inset 34', (tester) async {
-      await _pump(tester, inset: 34, repository: _balanceEmpty());
-      expect(find.text('Belum ada Coins'), findsOneWidget);
-      _expectFillGeometry(
-        tester,
-        inset: 34,
-        state: 'balance-empty',
-        marker: find.text('Belum ada Coins'),
-      );
+    testWidgets('zero-balance state at inset 34', (tester) async {
+      await _pump(tester, inset: 34, repository: _zeroLoaded());
+      expect(find.byType(CoinBalanceCard), findsOneWidget);
+      expect(find.text('0 Coins'), findsOneWidget);
+      await _expectLoadedGeometry(tester, inset: 34);
     });
 
     testWidgets('balance-loading state at inset 0', (tester) async {
-      final controller = StreamController<Result<CoinBalance>>();
-      addTearDown(controller.close);
       await _pump(
         tester,
         inset: 0,
         repository: _FakeCoinRepository(
-          onWatchBalance: (_) => controller.stream,
-          onWatchTransactions: (_, _) => Stream.value(Result.success(const [])),
+          onGetBalance: (_) => Completer<Result<CoinBalance>>().future,
+          onGetTransactions: (_, _) => Future.value(Result.success(const [])),
         ),
         settle: false,
       );
@@ -505,14 +505,12 @@ void main() {
     });
 
     testWidgets('balance-loading state at inset 34', (tester) async {
-      final controller = StreamController<Result<CoinBalance>>();
-      addTearDown(controller.close);
       await _pump(
         tester,
         inset: 34,
         repository: _FakeCoinRepository(
-          onWatchBalance: (_) => controller.stream,
-          onWatchTransactions: (_, _) => Stream.value(Result.success(const [])),
+          onGetBalance: (_) => Completer<Result<CoinBalance>>().future,
+          onGetTransactions: (_, _) => Future.value(Result.success(const [])),
         ),
         settle: false,
       );

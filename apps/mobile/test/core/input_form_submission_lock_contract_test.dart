@@ -97,12 +97,20 @@ void main() {
 
     test('Checkout uses one payment-method snapshot for order and payment', () {
       final src = _code(_checkout);
+      // The snapshot is taken ONCE before the first await. Bid-win snapshots
+      // null (method chosen at Order Detail); method-binding checkouts
+      // snapshot the force-unwrapped selection.
       expect(
-        src.contains('final submittedPaymentMethodCode = state._selectedPaymentMethodCode!'),
+        src.contains(
+          'final submittedPaymentMethodCode = state._isBidWin',
+        ),
+        isTrue,
+      );
+      expect(
+        src.contains(': state._selectedPaymentMethodCode!;'),
         isTrue,
       );
       expect(src.contains('paymentMethodCode: submittedPaymentMethodCode,'), isTrue);
-      expect(src.contains('final selectedMethodCode = submittedPaymentMethodCode;'), isTrue);
       expect(_occurrences(src, 'selectedMethodCode = state._selectedPaymentMethodCode!'), 0);
     });
 

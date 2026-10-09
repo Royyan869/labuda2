@@ -80,13 +80,42 @@ void main() {
       expect(forSaleDetail, isNot(contains("'/checkout/")));
     });
 
-    test('auction detail CTA forwards the auction id through the intent', () {
+    test('auction detail forwards BOTH purchase modes through the one intent', () {
       expect(auctionDetail, contains('openAuctionCheckout('));
+      // Buy-now: active-auction purchase via the same shared checkout.
       expect(
         auctionDetail,
         contains('AuctionCheckoutIntent(auctionId: auction.id)'),
       );
+      // Bid-win: the winner completing the settlement window — SAME checkout,
+      // bid_win discriminator. No claim flow exists.
+      expect(
+        auctionDetail,
+        contains('AuctionCheckoutIntent(auctionId: auction.id, bidWin: true)'),
+      );
       expect(auctionDetail, isNot(contains("'/checkout/")));
+      expect(auctionDetail, isNot(contains('AuctionClaimShippingModal')));
+      expect(auctionDetail, isNot(contains('claimAuction')));
+    });
+
+    test('the claim design is dead across the whole catalog', () {
+      final offenders = catalogFiles
+          .where((f) {
+            final src = f.readAsStringSync();
+            return src.contains('AuctionClaimShippingModal') ||
+                src.contains('claimAuction') ||
+                src.contains('/auctions/') && src.contains('/claim');
+          })
+          .map((f) => _norm(f.path))
+          .toList();
+      expect(
+        offenders,
+        isEmpty,
+        reason:
+            'bid-win settlement is POST /orders via the shared Checkout — '
+            'no claim modal, claim RPC or claim route may exist in the '
+            'catalog domain.',
+      );
     });
   });
 }

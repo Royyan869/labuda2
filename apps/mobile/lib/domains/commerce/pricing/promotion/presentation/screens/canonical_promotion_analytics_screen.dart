@@ -38,20 +38,32 @@ class CanonicalPromotionAnalyticsScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Promotion Analytics')),
-      body: analyticsAsync.when(
-        data: (result) {
-          if (result.isSuccess) {
-            return _buildAnalyticsContent(context, result.data!);
-          } else {
-            return _buildErrorState(
-              context,
-              ref,
-              result.error ?? 'Failed to load analytics',
-            );
-          }
-        },
-        loading: () => _buildLoadingState(),
-        error: (error, _) => _buildErrorState(context, ref, error.toString()),
+      // SAFE-AREA-39: the body owns the LIVE system bottom inset exactly
+      // once — /seller/promotions/:contractId/analytics is a FLAT
+      // top-level GoRoute (SellerModule), so no shell bar owns it. The
+      // populated branch is a `SingleChildScrollView` with an EXPLICIT
+      // `padding` (design p16); the generic ScrollView performs NO
+      // automatic window-padding consumption, so no other widget in the
+      // body can own the bottom region. `top: false`: the Scaffold AppBar
+      // owns the status-bar region (the body slot's top is already below the
+      // bar). The screen owns no FAB/bottom bar — no sibling inset authority.
+      body: SafeArea(
+        top: false,
+        child: analyticsAsync.when(
+          data: (result) {
+            if (result.isSuccess) {
+              return _buildAnalyticsContent(context, result.data!);
+            } else {
+              return _buildErrorState(
+                context,
+                ref,
+                result.error ?? 'Failed to load analytics',
+              );
+            }
+          },
+          loading: () => _buildLoadingState(),
+          error: (error, _) => _buildErrorState(context, ref, error.toString()),
+        ),
       ),
     );
   }

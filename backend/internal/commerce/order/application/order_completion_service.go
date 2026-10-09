@@ -1,4 +1,4 @@
-// ⚠️ FINANCIAL RULE:
+// âš ï¸ FINANCIAL RULE:
 // All escrow lifecycle operations MUST go through EscrowService.
 // Direct state mutation is forbidden.
 //
@@ -25,6 +25,7 @@ import (
 	ratingApp "github.com/labuda/backend/internal/commerce/order/rating/application"
 	orderrepository "github.com/labuda/backend/internal/commerce/order/repository"
 	escrowApp "github.com/labuda/backend/internal/core/escrow/application"
+	escrowEntity "github.com/labuda/backend/internal/core/escrow/entity"
 	disputeEntity "github.com/labuda/backend/internal/governance/dispute/entity"
 	disputerepo "github.com/labuda/backend/internal/governance/dispute/repository"
 	supportRepoImpl "github.com/labuda/backend/internal/governance/support/infrastructure/repository"
@@ -55,34 +56,11 @@ var ErrRefundReleaseGuardNotConfigured = fmt.Errorf(
 	"order: refund release guard not configured; cannot complete order safely")
 
 // ============================================================================
-// ESCROW STATUS DERIVATION
+// ESCROW AUTHORITY
 // ============================================================================
-
-// mapEscrowToOrderEscrow maps Escrow.Status to Order.EscrowStatus.
-//
-// CRITICAL: This is the ONLY valid way to set Order.EscrowStatus.
-// Order.EscrowStatus MUST always be derived from Escrow.Status.
-//
-// Escrow.Status values (from escrow/entity/escrow.go):
-// - "holding": Funds held for pending order
-// - "released": Released to seller (order complete)
-// - "refunded": Refunded to buyer (order cancelled)
-//
-// This function ensures Order.EscrowStatus is a READ-ONLY projection of Escrow state.
-func mapEscrowToOrderEscrow(escrowStatus string) entity.EscrowStatus {
-	switch escrowStatus {
-	case "holding":
-		return entity.EscrowStatusHolding
-	case "released":
-		return entity.EscrowStatusReleased
-	case "refunded":
-		return entity.EscrowStatusRefunded
-	default:
-		// If no escrow row exists or unknown state, default to holding
-		// This should not happen in practice, but provides safe fallback
-		return entity.EscrowStatusHolding
-	}
-}
+// The escrows table is the SOLE authority for escrow existence/amount/state.
+// Order.EscrowStatus (the old persisted projection) has been purged; every
+// escrow question is answered by reading the canonical escrow row.
 
 // OrderCompletionService handles order state transitions and completion operations.
 //
@@ -92,8 +70,7 @@ func mapEscrowToOrderEscrow(escrowStatus string) entity.EscrowStatus {
 // - Enforces clear separation between order and rating domains
 //
 // ESCROW INTEGRATION:
-// - Uses EscrowService to fetch escrow state for deriving Order.EscrowStatus
-// - Order.EscrowStatus is ALWAYS derived from Escrow.Status
+// - Uses EscrowService to read/flip the canonical escrow row (sole authority)
 type OrderCompletionService struct {
 	repo                  orderrepository.OrderRepository
 	forSaleRepo           forSalerepo.ForSaleRepository
@@ -110,7 +87,7 @@ type OrderCompletionService struct {
 	supportRepo           supportrepo.Repository
 	shippingQuoteService  ShippingQuoteService
 	disputeRepo           disputerepo.DisputeRepository // Entry point guard: check dispute status
-	escrowService         *escrowApp.EscrowService      // Used to derive Order.EscrowStatus from Escrow state
+	escrowService         *escrowApp.EscrowService      // Canonical escrow authority (existence/state reads + lifecycle flips)
 	refundReleaseGuard    RefundReleaseGuard            // Canonical: block release while a refund must be respected
 	refundDecisionAuth    RefundDecisionAuthority       // Canonical: record the admin's final refund decision on the refund process row
 	logger                *zap.Logger
@@ -221,7 +198,7 @@ func NewOrderCompletionService(
 		supportRepo:          supportRepoImpl.NewSupportRepository(),
 		shippingQuoteService: shippingQuoteService,
 		disputeRepo:          disputeRepo,   // Entry point guard: check dispute status before resolution
-		escrowService:        escrowService, // Used to derive Order.EscrowStatus from Escrow state
+		escrowService:        escrowService, // Canonical escrow authority
 		logger:               logger,
 	}
 }
@@ -249,12 +226,13 @@ func (s *OrderCompletionService) SetCoinsService(coinsService *coinsApp.CoinsSer
 // Locks the row, validates transition, and persists the status update.
 //
 // UNIFIED SETTLEMENT MODEL V2:
-// - ESCROW funding is handled by PaymentSettlementService (payment layer)
+// - ESCROW funding is handled by the canonical finalization service (payment layer)
 // - This method ONLY manages order state transitions
 // - No ledger entries created here (prevents double escrow posting)
 //
-// CRITICAL: Order.EscrowStatus is DERIVED from Escrow.Status
-// This ensures Order.EscrowStatus is ALWAYS a projection of Escrow state.
+// CANONICAL ESCROW ASSERTION: the settlement transaction creates the escrow
+// row BEFORE calling this method (same tx). A missing escrow row fails the
+// whole settlement — state is never fabricated.
 //
 // IDEMPOTENCY: If order is already in paid status, returns success immediately.
 // This prevents duplicate state transitions on retry.
@@ -263,10 +241,9 @@ func (s *OrderCompletionService) SetCoinsService(coinsService *coinsApp.CoinsSer
 // 1. Lock order and validate transition
 // 2. CRITICAL: Check if order is expired (PHASE 6 DEFENSIVE GUARD)
 // 3. Check idempotency (already paid -> return success)
-// 4. Fetch escrow state
-// 5. Derive Order.EscrowStatus from escrow state
-// 6. Update order status (pending -> paid)
-// 7. Emit outbox event
+// 4. Assert the canonical escrow row exists (fail-closed)
+// 5. Update order status (pending -> paid)
+// 6. Emit outbox event
 //
 // This ensures that if the state update succeeds but outbox fails,
 // the outbox worker can still reconcile from the order status.
@@ -296,38 +273,23 @@ func (s *OrderCompletionService) MarkPaid(
 		return nil
 	}
 
-	// Step 4: CRITICAL - Fetch escrow state to derive Order.EscrowStatus
-	// This ensures Order.EscrowStatus is ALWAYS a projection of Escrow state
+	// Step 4: CANONICAL ESCROW ASSERTION (fail-closed).
+	// MarkPaid only runs inside the canonical settlement transaction, after
+	// CreateEscrowFromGatewaySettlement has inserted the escrow row in the
+	// same tx. A missing escrow row here means the settlement invariant is
+	// broken — never fabricate state, fail the whole transaction.
 	escrowRow, err := s.escrowService.GetEscrowForOrder(ctx, tx, orderID)
 	if err != nil {
-		s.logger.Error("failed_to_fetch_escrow",
-			zap.String("order_id", orderID.String()),
-			zap.Error(err),
-		)
 		return fmt.Errorf("failed to fetch escrow for order: %w", err)
 	}
-
-	// Step 5: Derive Order.EscrowStatus from Escrow state
-	// If escrow doesn't exist yet (edge case), default to holding
-	// This should not happen in normal flow since SettlePaymentByID creates escrow first
-	var derivedEscrowStatus entity.EscrowStatus
 	if escrowRow == nil {
-		s.logger.Warn("escrow_not_found_for_paid_order",
-			zap.String("order_id", orderID.String()),
-			zap.String("reason", "escrow_should_exist_after_payment"),
-		)
-		derivedEscrowStatus = entity.EscrowStatusHolding // Default for paid orders
-	} else {
-		derivedEscrowStatus = mapEscrowToOrderEscrow(escrowRow.Status.String())
+		return fmt.Errorf("CRITICAL: settled order has no escrow row — settlement invariant broken (order_id=%s)", orderID)
 	}
 
-	// Step 6: Update order state
+	// Step 5: Update order state
 	if err := order.MarkPaid(); err != nil {
 		return err
 	}
-
-	// CRITICAL: Set EscrowStatus from escrow row, not from business logic
-	order.EscrowStatus = derivedEscrowStatus
 
 	// No ledger entries here - escrow already funded by PaymentSettlementService
 	if err := s.repo.UpdateStatusTx(ctx, tx, order); err != nil {
@@ -335,7 +297,7 @@ func (s *OrderCompletionService) MarkPaid(
 	}
 
 	// Settlement success: when this is an auction-sourced order and the auction
-	// is still in waiting_settlement (bid-win claim flow), settle the auction
+	// is still in waiting_settlement (bid-win checkout), settle the auction
 	// to ended atomically with payment success. Buy-now auctions are already
 	// ended at order creation; no-winner/for-sale orders are untouched.
 	if order.SourceType == entity.OrderSourceAuction {
@@ -477,7 +439,7 @@ func (s *OrderCompletionService) MarkShipped(
 // 2. LAYER 2 - Service check: Returns success if already completed (no-op)
 // 3. LAYER 3 - Ledger idempotency: Uses key "order_release_<order_id>"
 // 4. LAYER 4 - Service guard: HasDispute check immediately after GetForUpdate (RACE PREVENTION)
-// 5. LAYER 5 - Entity guards: order.ValidateComplete() checks HasDispute and EscrowStatus
+// 5. LAYER 5 - Entity guards: order.ValidateComplete() checks HasDispute
 //
 // MULTI-LAYER SAFETY (prevents auto-completing disputed orders):
 // - Query layer: has_dispute = false excludes disputed orders from worker
@@ -518,7 +480,7 @@ func (s *OrderCompletionService) Complete(
 
 	// IDEMPOTENCY CHECK: If already completed, return success immediately
 	// This makes the completion operation safe to retry without side effects
-	if order.Status == entity.StatusCompleted && order.EscrowStatus == entity.EscrowStatusReleased {
+	if order.Status == entity.StatusCompleted {
 		// Already in target state - idempotent operation
 		return nil
 	}
@@ -624,12 +586,12 @@ func (s *OrderCompletionService) Complete(
 	// ============================================================
 	// STEP 3: UPDATE ORDER STATE (reflect financial state)
 	// ============================================================
-	// NOW update Order.EscrowStatus to match escrow state
-	// Order domain follows escrow domain (escrow-first operational state)
+	// The escrow flip (holding → released) already happened inside
+	// ReleaseGatewayEscrowToSeller in this same transaction — the escrows
+	// table is the sole escrow authority. Order status follows.
 	order.Status = entity.StatusCompleted
 	now := time.Now()
 	order.CompletedAt = &now
-	order.EscrowStatus = entity.EscrowStatusReleased
 	order.UpdatedAt = now
 
 	// ========================================================================
@@ -928,7 +890,7 @@ func (s *OrderCompletionService) Cancel(
 
 // CancelOverdue allows buyer to cancel an order that is overdue for shipment.
 //
-// 🔥 PHASE 3: BUYER FORCE ACTION
+// ðŸ”¥ PHASE 3: BUYER FORCE ACTION
 //
 // This method allows buyers to cancel orders when the seller has not shipped
 // within the ReadyToShipBy + grace period deadline.
@@ -1028,20 +990,13 @@ func (s *OrderCompletionService) CancelOverdue(
 		return fmt.Errorf("failed to refund escrow: %w", err)
 	}
 
-	escrowRow, err := s.escrowService.GetEscrowForOrder(ctx, tx, order.ID)
-	if err != nil {
-		return fmt.Errorf("failed to fetch escrow after refund: %w", err)
-	}
-	derivedEscrowStatus := mapEscrowToOrderEscrow(escrowRow.Status.String())
-
 	// ============================================================
 	// STEP 7: UPDATE ORDER STATE (reflect financial state)
 	// ============================================================
-	// NOW update Order.EscrowStatus to match escrow state
-	// Order domain follows escrow domain (escrow-first operational state)
+	// The escrow flip (holding → refunded) already happened inside
+	// RefundToBuyer in this same transaction — the escrows table is the
+	// sole escrow authority. Order status follows.
 	order.Status = entity.StatusCancelledTimeout
-	// CRITICAL: Set Order.EscrowStatus from escrow state (not independent)
-	order.EscrowStatus = derivedEscrowStatus
 	order.UpdatedAt = time.Now()
 
 	// Coins are NOT refunded from the order domain here. A paid order cancelled
@@ -1138,34 +1093,20 @@ func (s *OrderCompletionService) Expire(
 	}
 
 	// ============================================================
-	// STEP 3.5: RELEASE ESCROW IF ANY WAS HELD (PHASE 1: BLOCKING REFUND)
+	// STEP 3.5: REFUND ESCROW IF ONE EXISTS (CANONICAL GATEWAY-FUNDED MODEL)
 	// ============================================================
-	// 🔥 CRITICAL: ESCROW REFUND MUST BE BLOCKING
-	// - Orders now hold escrow on creation (WALLET PHASE 1)
-	// - When orders expire, we MUST refund the escrow to the buyer
-	// - This calls RefundService which reverses:
-	//   Escrow refund via gateway refund pipeline
+	// CANONICAL MODEL: escrow is created ONLY when the gateway settles a
+	// payment (exactly one escrow row, status=holding). Unpaid orders have
+	// NO escrow — expiry of an unpaid order is a pure status transition.
 	//
-	// ❌ OLD BEHAVIOR (NON-BLOCKING):
-	//   - Log error and continue with expiry
-	//   - Result: order expires + escrow stuck (MONEY LEAK!)
-	//
-	// ✔️ NEW BEHAVIOR (BLOCKING):
-	//   - If refund fails → entire expiry transaction FAILS
-	//   - No state: expired + escrow held
-	//   - Transaction rollback ensures atomicity
+	// Paid expiry-with-escrow MUST refund the buyer:
+	//   - dispatch the canonical gateway refund BEFORE the local escrow flip
+	//   - if refund fails → entire expiry transaction FAILS (blocking)
+	//   - no state: expired + escrow held (money leak is impossible)
 	//
 	// SAFETY: RefundGatewayEscrow is idempotent
 	// - Safe to call multiple times (only succeeds once)
 	// - If no escrow exists, returns success (no-op)
-	//
-	// 🔥 ZERO LOOPHOLE: Expiry cannot complete without refund success
-	//
-	// CANONICAL REFUND CONVERGENCE: distinguish unpaid expiry from paid
-	// expiry-with-escrow. Unpaid orders never funded the gateway clearing
-	// account, so there is no gateway refund and no escrow to flip. Paid
-	// orders (escrow exists in holding) must dispatch the canonical gateway
-	// refund before the local escrow flip, mirroring the buyer-overdue path.
 	escrowForExpiry, escrowErr := s.escrowService.GetEscrowForOrder(ctx, tx, order.ID)
 	if escrowErr != nil {
 		return fmt.Errorf("CRITICAL: failed to load escrow for expiry: order_id=%s, error=%w", orderID, escrowErr)
@@ -1229,9 +1170,10 @@ func (s *OrderCompletionService) Expire(
 	return nil
 }
 
-// MarkDisputeOpen marks the order as dispute_open and freezes escrow.
+// MarkDisputeOpen marks the order as dispute_open.
 // This is called when a dispute is opened for the order.
-// Transitions both order.status to dispute_open and escrow_status to frozen.
+// Transitions order.status to dispute_open; the escrow row is untouched
+// (disputes are tracked by HasDispute; escrow flips only at resolution).
 func (s *OrderCompletionService) MarkDisputeOpen(
 	ctx context.Context,
 	tx db.Tx,
@@ -1271,11 +1213,11 @@ func (s *OrderCompletionService) MarkDisputeOpen(
 // gateway webhook ack (FinanceService.RecordRefundReversal), never here.
 //
 // Refund amount is the canonical buyer-funded base
-// (total_before_coins_amount = (P − D) + S).
+// (total_before_coins_amount = (P âˆ’ D) + S).
 // Commission C is seller/platform-side and NEVER part of buyer refund cash.
 //
 // GOVERNANCE BOUNDARY:
-// - ONLY allows escrow_status = "holding"
+// - ONLY allows refund while the canonical escrow row is holding (live read)
 // - EXPLICITLY REJECTS orders with active disputes (status = dispute_open)
 // - For dispute resolution refunds, use RefundFromDispute instead
 //
@@ -1283,7 +1225,7 @@ func (s *OrderCompletionService) MarkDisputeOpen(
 // Even if called multiple times, the refund will only execute once.
 //
 // STATE UPDATES:
-// - escrow_status = derived from the escrow row after the refund
+// - escrow row flips to refunded inside RefundToBuyer (sole authority)
 // - status = "refunded"
 //
 // The refund amount is never stored on the order; the refund row and the
@@ -1304,11 +1246,19 @@ func (s *OrderCompletionService) RefundOrder(
 		return errors.New("cannot refund directly: active dispute exists, use DisputeService.ResolveApproved()")
 	}
 
-	// GOVERNANCE GUARD 2: Only allow refund from "holding" state
-	if order.EscrowStatus != entity.EscrowStatusHolding {
+	// GOVERNANCE GUARD 2: Only allow refund while the canonical escrow row is
+	// holding. Read the LIVE escrow state — never a persisted order projection.
+	escrowBefore, err := s.escrowService.GetEscrowForOrder(ctx, tx, order.ID)
+	if err != nil {
+		return fmt.Errorf("failed to fetch escrow for refund guard: %w", err)
+	}
+	if escrowBefore == nil {
+		return errors.New("cannot refund: order has no escrow row")
+	}
+	if escrowBefore.Status != escrowEntity.EscrowStatusHolding {
 		return &entity.InvalidEscrowStatusError{
-			CurrentStatus:  order.EscrowStatus,
-			RequiredStatus: entity.EscrowStatusHolding,
+			CurrentStatus:  escrowBefore.Status.String(),
+			RequiredStatus: escrowEntity.EscrowStatusHolding.String(),
 		}
 	}
 
@@ -1329,12 +1279,6 @@ func (s *OrderCompletionService) RefundOrder(
 	if err := s.paymentService.RefundToBuyer(ctx, tx, order); err != nil {
 		return err
 	}
-
-	escrowRow, err := s.escrowService.GetEscrowForOrder(ctx, tx, order.ID)
-	if err != nil {
-		return fmt.Errorf("failed to fetch escrow after refund: %w", err)
-	}
-	derivedEscrowStatus := mapEscrowToOrderEscrow(escrowRow.Status.String())
 
 	// ============================================================
 	// RATING INVALIDATION - EVENTUAL CONSISTENCY
@@ -1371,8 +1315,9 @@ func (s *OrderCompletionService) RefundOrder(
 	// Auction orders excluded — quote isolation.
 	s.reactivateShippingQuoteIfEligible(ctx, tx, order)
 
-	// CRITICAL: Set Order.EscrowStatus from escrow state (not independent)
-	order.EscrowStatus = derivedEscrowStatus
+	// The escrow flip (holding → refunded) already happened inside
+	// RefundToBuyer in this same transaction — the escrows table is the
+	// sole escrow authority. Order status follows.
 	order.Status = entity.StatusRefunded
 	// Note: Refund amount is tracked in Ledger, not in Order
 	order.UpdatedAt = time.Now()
@@ -1398,7 +1343,7 @@ func (s *OrderCompletionService) RefundOrder(
 // PUBLIC API: Called by DisputeService for dispute resolution.
 //
 // Refund amount is the canonical buyer-funded base
-// (total_before_coins_amount = (P − D) + S).
+// (total_before_coins_amount = (P âˆ’ D) + S).
 // Commission C is seller/platform-side and NEVER part of buyer refund cash.
 //
 // GOVERNANCE: This is the ONLY path that can refund an order with status = dispute_open.
@@ -1409,7 +1354,7 @@ func (s *OrderCompletionService) RefundOrder(
 // booked at gateway webhook ack, never here.
 //
 // STATE UPDATES:
-// - escrow_status = derived from the escrow row after the refund
+// - escrow row flips to refunded inside RefundGatewayEscrow (sole authority)
 // - status = "refunded"
 func (s *OrderCompletionService) RefundFromDispute(
 	ctx context.Context,
@@ -1427,8 +1372,8 @@ func (s *OrderCompletionService) RefundFromDispute(
 	// CRITICAL: Use Order.HasDispute instead of checking removed "frozen" state
 	if !order.HasDispute {
 		return &entity.InvalidEscrowStatusError{
-			CurrentStatus:  order.EscrowStatus,
-			RequiredStatus: entity.EscrowStatusHolding, // Disputes can only be resolved from holding state
+			CurrentStatus:  "no_active_dispute",
+			RequiredStatus: "active_dispute", // Disputes can only be resolved from an open dispute
 		}
 	}
 
@@ -1442,7 +1387,6 @@ func (s *OrderCompletionService) RefundFromDispute(
 		zap.String("order_id", order.ID.String()),
 		zap.String("buyer_id", order.BuyerID.String()),
 		zap.String("seller_id", order.SellerID.String()),
-		zap.String("escrow_status", string(order.EscrowStatus)),
 		zap.String("trigger", "dispute_resolution"),
 	)
 
@@ -1489,9 +1433,7 @@ func (s *OrderCompletionService) RefundFromDispute(
 		)
 		return fmt.Errorf("failed to refund escrow via escrow service: %w", err)
 	}
-
-	// Derive Order.EscrowStatus from escrow state (CRITICAL: no independent state)
-	derivedEscrowStatus := mapEscrowToOrderEscrow(escrowRow.Status.String())
+	_ = escrowRow // escrow flip recorded in the escrows table (sole authority)
 
 	// ============================================================
 	// RATING INVALIDATION - EVENTUAL CONSISTENCY
@@ -1519,8 +1461,9 @@ func (s *OrderCompletionService) RefundFromDispute(
 	// was used. Auction orders excluded — quote isolation.
 	s.reactivateShippingQuoteIfEligible(ctx, tx, order)
 
-	// CRITICAL: Set Order.EscrowStatus from escrow state (not independent)
-	order.EscrowStatus = derivedEscrowStatus
+	// The escrow flip (holding → refunded) already happened inside
+	// RefundGatewayEscrow in this same transaction — the escrows table is
+	// the sole escrow authority. Order status follows.
 	order.Status = entity.StatusRefunded
 	// Note: Refund amount is tracked in Ledger, not in Order
 	order.UpdatedAt = time.Now()
@@ -1571,7 +1514,7 @@ func (s *OrderCompletionService) recordAdminRefundDecision(
 //  1. Lock order and enforce dispute guards (HasDispute, status == dispute_open).
 //  2. Call paymentService.ReleaseGatewayEscrowToSeller (escrow flip +
 //     finance ledger via idempotency_key="order_release_<order_id>").
-//  3. Update order: status=completed, escrow_status=released, completed_at=now.
+//  3. Update order: status=completed, completed_at=now (escrow flip already done by release).
 //  4. Emit order.completed.
 //  5. Emit money.released describing the financial split.
 //
@@ -1628,7 +1571,6 @@ func (s *OrderCompletionService) ReleaseFromDispute(
 		zap.String("order_id", order.ID.String()),
 		zap.String("buyer_id", order.BuyerID.String()),
 		zap.String("seller_id", order.SellerID.String()),
-		zap.String("escrow_status", string(order.EscrowStatus)),
 		zap.String("trigger", "dispute_resolution"),
 	)
 
@@ -1641,10 +1583,11 @@ func (s *OrderCompletionService) ReleaseFromDispute(
 		return err
 	}
 
-	// Update order status (Order.EscrowStatus mirrors Escrow.Status).
+	// The escrow flip (holding → released) already happened inside
+	// ReleaseGatewayEscrowToSeller in this same transaction — the escrows
+	// table is the sole escrow authority. Order status follows.
 	now := time.Now()
 	order.Status = entity.StatusCompleted
-	order.EscrowStatus = entity.EscrowStatusReleased
 	order.CompletedAt = &now
 	order.UpdatedAt = now
 
@@ -1871,10 +1814,14 @@ func (s *OrderCompletionService) PartialRefundFromDispute(
 // SyncRefundSettlementFromGatewayAck syncs order terminal refund status after
 // gateway ack has been accepted and reversal booked.
 //
-// Authority: order domain owns order.status and order.escrow_status mutation.
+// Authority: order domain owns order.status mutation. The escrow flip
+// (holding → refunded/released) is performed by the refund gateway-ack
+// pipeline in the same transaction (RefundGatewayEscrow /
+// PartialRefundGatewayEscrow) — the escrows table is the sole escrow
+// authority and is never mirrored onto the order.
 // Behavior parity with legacy finance-side SQL:
-// - fullyRefunded=true  -> status=refunded, escrow_status=refunded
-// - fullyRefunded=false -> status=partially_refunded, escrow_status=released
+// - fullyRefunded=true  -> status=refunded
+// - fullyRefunded=false -> status=partially_refunded
 // - idempotent on already-target state
 // - no outbox emission (matches previous behavior)
 func (s *OrderCompletionService) SyncRefundSettlementFromGatewayAck(
@@ -1890,13 +1837,11 @@ func (s *OrderCompletionService) SyncRefundSettlementFromGatewayAck(
 	}
 
 	targetStatus := entity.StatusPartiallyRefunded
-	targetEscrow := entity.EscrowStatusReleased
 	if fullyRefunded {
 		targetStatus = entity.StatusRefunded
-		targetEscrow = entity.EscrowStatusRefunded
 	}
 
-	if order.Status == targetStatus && order.EscrowStatus == targetEscrow {
+	if order.Status == targetStatus {
 		return nil
 	}
 
@@ -1908,7 +1853,6 @@ func (s *OrderCompletionService) SyncRefundSettlementFromGatewayAck(
 		order.Status = entity.StatusRefunded
 		order.UpdatedAt = occurredAt
 	}
-	order.EscrowStatus = targetEscrow
 	order.UpdatedAt = occurredAt
 
 	return s.repo.UpdateStatusTx(ctx, tx, order)
@@ -2008,7 +1952,7 @@ func (s *OrderCompletionService) restoreFixedPriceForSaleStock(
 // releaseAuctionOrderBinding handles an auction-sourced order that is being
 // cancelled or expired before payment succeeded.
 //
-// Bid-win claim flow: the auction stays in waiting_settlement with OrderID
+// Bid-win checkout: the auction stays in waiting_settlement with OrderID
 // bound until payment succeeds. When the bound order is cancelled/expired
 // unpaid, the settlement has FAILED: release the binding, record the buyer's
 // commerce violation (buyer_bnr), apply/extend the buyer restriction, and

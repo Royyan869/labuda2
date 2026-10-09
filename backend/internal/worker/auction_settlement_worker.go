@@ -34,7 +34,7 @@ const (
 // SETTLEMENT DEADLINE LOGIC:
 //  1. Find auctions in waiting_settlement with end_at + 24h <= NOW().
 //  2. Per auction (own transaction, FOR UPDATE):
-//     a. Skip if no longer waiting_settlement (already settled/claimed/cancelled).
+//     a. Skip if no longer waiting_settlement (already settled/cancelled).
 //     b. Skip if shipping_resolved_at IS NOT NULL (shipping phase resolved;
 //     payment phase is handled by the payment-expiry machinery).
 //     c. If seller_action_required = true AND seller_quote_provided = false:
@@ -278,14 +278,14 @@ func (w *AuctionSettlementWorker) processExpiredSettlement(
 	auctionID uuid.UUID,
 ) error {
 	return w.db.WithTx(ctx, func(tx db.Tx) error {
-		// Load the auction FOR UPDATE (serializes against a concurrent claim /
-		// shipping resolution / duplicate worker).
+		// Load the auction FOR UPDATE (serializes against a concurrent
+		// checkout order creation / duplicate worker).
 		auction, err := w.auctionRepo.GetForUpdate(ctx, tx, auctionID)
 		if err != nil {
 			return err
 		}
 
-		// Double-check status (may have been claimed by now).
+		// Double-check status (may have been settled by a checkout order now).
 		if auction.Status != entity.StatusWaitingSettlement {
 			w.log.Info("Auction no longer in waiting_settlement, skipping",
 				zap.String("auction_id", auctionID.String()),
@@ -306,9 +306,9 @@ func (w *AuctionSettlementWorker) processExpiredSettlement(
 		}
 
 		// Verify the canonical deadline has actually passed (belt-and-
-		// suspenders; the phase-1 query already filtered on it).
-		now := time.Now()
-		if now.Before(auction.SettlementDeadline()) {
+		// suspenders; the phase-1 query already filtered on it). Single
+		// deadline predicate shared with the preview + POST /orders checks.
+		if !auction.SettlementDeadlinePassed(time.Now()) {
 			w.log.Info("Auction settlement deadline not yet reached, skipping",
 				zap.String("auction_id", auctionID.String()),
 			)

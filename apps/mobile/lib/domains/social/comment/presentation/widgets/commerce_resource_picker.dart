@@ -88,15 +88,16 @@ class _CommerceResourcePickerState extends ConsumerState<CommerceResourcePicker>
   @override
   Widget build(BuildContext context) {
     // Surface, shape, handle, scroll and safe area come from the base.
-    // Body height — a share of the space the sheet ACTUALLY has, asked of the
-    // sheet authority itself ([AppBottomSheetBase.availableHeight]: window
-    // minus the keyboard minus the system top inset). A fraction of the raw
-    // screen height would ignore the live insets, so this body reads the
-    // canonical ceiling instead. The finite box stays here (not in
-    // `Base.show(height:)`): the base scrolls its content, so the
-    // `Expanded > TabBarView` below needs this bounded slot to lay out.
+    // Body height — a share of the space the sheet ACTUALLY has, asked of
+    // the sheet authority itself ([AppBottomSheetBase.contentAllocationOf]:
+    // the live content region, with the sheet chrome and the system spacer
+    // already spent — a share of the raw CEILING shared the budget with the
+    // sheet chrome and could outgrow the region at larger insets,
+    // BOTTOMSHEET-04, geometry-proven). The finite box stays here: the base
+    // scrolls its content, so the `Expanded > TabBarView` below needs this
+    // bounded slot to lay out.
     return SizedBox(
-      height: AppBottomSheetBase.availableHeight(context) * 0.7,
+      height: AppBottomSheetBase.contentAllocationOf(context) * 0.7,
       child: Column(
         children: [
           const SizedBox(height: 8),

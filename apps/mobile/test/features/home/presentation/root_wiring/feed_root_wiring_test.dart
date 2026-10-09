@@ -355,22 +355,22 @@ class _FakeLocalNotificationService extends Fake implements LocalNotificationSer
 
 class _FakeNotificationRepository extends Fake implements INotificationRepository {
   @override
-  Stream<Result<List<NotificationEntity>>> getNotifications({
+  Future<Result<List<NotificationEntity>>> getNotifications({
     required String userId,
     int limit = 20,
-  }) => Stream.value(Result.success(const <NotificationEntity>[]));
+  }) async => Result.success(const <NotificationEntity>[]);
 
   @override
-  Future<Result<void>> markAsRead({required String notificationId}) async =>
-      Result.success(null);
+  Future<Result<int>> markAsRead({required String notificationId}) async =>
+      Result.success(0);
 
   @override
-  Future<Result<void>> markAllAsRead({required String userId}) async =>
-      Result.success(null);
+  Future<Result<int>> markAllAsRead({required String userId}) async =>
+      Result.success(0);
 
   @override
-  Stream<Result<int>> getUnreadCount({required String userId}) =>
-      Stream.value(Result.success(0));
+  Future<Result<int>> getUnreadCount({required String userId}) async =>
+      Result.success(0);
 
   @override
   Future<Result<NotificationPreferenceEntity>> getPreferences({
@@ -383,8 +383,8 @@ class _FakeNotificationRepository extends Fake implements INotificationRepositor
   }) async => Result.success(null);
 
   @override
-  Future<Result<void>> deleteNotification({required String notificationId}) =>
-      Future.value(Result.success(null));
+  Future<Result<int>> deleteNotification({required String notificationId}) =>
+      Future.value(Result.success(0));
 
   @override
   Future<Result<void>> deleteAllNotifications({required String userId}) =>

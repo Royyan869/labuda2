@@ -250,7 +250,7 @@ type DisplayHints struct {
 //
 // ARCHITECTURAL NOTES:
 //   - EscrowAmount is the canonical buyer base from the pricing-token snapshot
-//     ((P−D)+S); commission C is seller/platform-side and is NOT buyer-funded cash.
+//     ((Pâˆ’D)+S); commission C is seller/platform-side and is NOT buyer-funded cash.
 //   - RefundAmount comes from Ledger service, not stored in Order
 //   - Discount information comes from Ledger service, not stored in Order
 //   - Coins redeemed for the order come from the coins domain
@@ -317,8 +317,11 @@ type OrderDetailResponse struct {
 	ShippingNote       *string `json:"shipping_note,omitempty"`        // Optional shipping note
 
 	// Status
-	Status        string `json:"status"`
-	EscrowStatus  string `json:"escrow_status"` // Canonical escrow state from EscrowService
+	Status string `json:"status"`
+	// EscrowStatus is a READ-TIME view of the canonical escrow row's status
+	// (escrows table — sole authority). Empty/omitted when the order has no
+	// escrow row (unpaid orders never have one).
+	EscrowStatus  string `json:"escrow_status,omitempty"`
 	AutoReleaseAt *int64 `json:"auto_release_at,omitempty"`
 
 	// Confirmation extension
@@ -337,7 +340,7 @@ type OrderDetailResponse struct {
 	// PaymentMethodCode is the EXACT payment method bound to this order at
 	// checkout (orders.payment_method_code). When set, the order-detail retry
 	// flow MUST pay with this method — the backend rejects any other. Nil for
-	// orders created without a checkout selection (auction-claim), which select
+	// orders created without a checkout selection (auction bid-win), which select
 	// a method at first payment.
 	PaymentMethodCode *string `json:"payment_method_code,omitempty"`
 
@@ -609,7 +612,7 @@ func OrderToDetailResponse(
 		false, nil, // No refund state available from legacy caller
 		nil, // No payment status available from legacy caller
 		nil, // No payment ID available from legacy caller
-		nil, // No payment expiry available from legacy caller
+		nil, // No escrow row available from legacy caller
 	)
 }
 
@@ -636,7 +639,7 @@ func OrderToDetailResponseWithIdentity(
 	activeRefundStatus *string, // nil if no active refund; e.g. "pending_seller_review", "seller_rejected"
 	paymentStatus *string, // nil when no payment record exists for the order
 	paymentID *uuid.UUID, // nil when no payment record exists for the order
-	paymentExpiredAt *time.Time, // nil when no payment record exists for the order
+	escrowStatus *string, // nil when the order has no escrow row (unpaid); else the live escrows.status
 ) *OrderDetailResponse {
 	// Determine caller's role
 	role := "buyer"
@@ -644,8 +647,17 @@ func OrderToDetailResponseWithIdentity(
 		role = "seller"
 	}
 
+	// Live escrow state from the canonical escrows table (sole authority).
+	// escrowHolding gates the CTA surfaces that must only appear while funds
+	// are actually held.
+	escrowHolding := escrowStatus != nil && *escrowStatus == "holding"
+	escrowStatusWire := ""
+	if escrowStatus != nil {
+		escrowStatusWire = *escrowStatus
+	}
+
 	// Build V2 decision with actions
-	decision := buildDecisionV2ForOrder(order, role, hasActiveRefund, activeRefundStatus, paymentStatus, paymentExpiredAt)
+	decision := buildDecisionV2ForOrder(order, role, hasActiveRefund, activeRefundStatus, paymentStatus, escrowHolding)
 
 	// Convert timestamps
 	var autoReleaseAt *int64
@@ -770,7 +782,7 @@ func OrderToDetailResponseWithIdentity(
 		ShippingOrigin: order.ShippingOrigin,
 		// Status
 		Status:                    string(order.Status),
-		EscrowStatus:              string(order.EscrowStatus),
+		EscrowStatus:              escrowStatusWire,
 		AutoReleaseAt:             autoReleaseAt,
 		ConfirmationExtensionUsed: order.ConfirmationExtensionUsed,
 		ConfirmationExtendedAt:    confirmationExtendedAt,
@@ -794,13 +806,19 @@ func OrderToDetailResponseWithIdentity(
 // row (if any). The action TYPE and ENDPOINT stay constant (pay,
 // POST /api/v1/payments) - only the label communicates whether this is a
 // fresh payment, a continuation of an active one, a status check on one
-// already settling, or a retry after expiry.
+// already settling, or a retry after a failed attempt.
+//
+// CANONICAL PAY WINDOW: this function is only reachable while the order's
+// payment window is still open — buildDecisionV2ForOrder / the display
+// hints gate exposure on `now < order.PaymentExpiresAt` (the single expiry
+// source, same predicate CreatePayment enforces). A pending payment row
+// therefore always means "continue within the open window"; the old
+// "pending row whose payments.expired_at has lapsed" branch is gone with
+// the closed window: no pay action is offered at all.
 //
 // paymentStatus is the raw gateway status string from the payments table
-// (nil when no payment row exists yet). paymentExpiredAt is that same
-// payment row's expiry, used only to distinguish a still-active pending
-// payment from one whose window has lapsed but hasn't been swept yet.
-func selectPayActionLabelKey(paymentStatus *string, paymentExpiredAt *time.Time) string {
+// (nil when no payment row exists yet).
+func selectPayActionLabelKey(paymentStatus *string) string {
 	if paymentStatus == nil {
 		return "action.pay_now"
 	}
@@ -818,14 +836,12 @@ func selectPayActionLabelKey(paymentStatus *string, paymentExpiredAt *time.Time)
 		// Fraud-review hold - still resolving, not yet actionable either way.
 		return "action.payment_check_status"
 	case "pending":
-		expired := paymentExpiredAt != nil && paymentExpiredAt.Before(time.Now())
-		if expired {
-			return "action.pay_again"
-		}
+		// Window is open (exposure gate) — the row is an active continuation.
 		return "action.payment_continue"
 	case "deny", "cancel", "expire":
 		// Terminal negative outcome on the payment row while the order is
-		// still pending - safest path is a fresh payment attempt.
+		// still pending AND the window is still open - safest path is a
+		// fresh payment attempt.
 		return "action.pay_again"
 	default:
 		return "action.pay_now"
@@ -834,9 +850,14 @@ func selectPayActionLabelKey(paymentStatus *string, paymentExpiredAt *time.Time)
 
 // buildDisplayHintsForOrder creates display hints for a single order.
 // role is either "buyer" or "seller" - determines which user's perspective to use.
-// paymentStatus/paymentExpiredAt are the buyer's currently selected payment
-// row (nil when none exists yet) - see selectPayActionLabelKey.
-func buildDisplayHintsForOrder(order *entity.Order, role string, paymentStatus *string, paymentExpiredAt *time.Time) *DisplayHints {
+// paymentStatus is the buyer's currently selected payment row (nil when none
+// exists yet) - see selectPayActionLabelKey.
+//
+// CANONICAL PAY WINDOW: the buyer pay hint is only offered while
+// `now < order.PaymentExpiresAt` — the same predicate CreatePayment enforces
+// (single expiry source: orders.payment_expires_at). Past the window the
+// hint promises nothing until the lifecycle sweep flips the order to expired.
+func buildDisplayHintsForOrder(order *entity.Order, role string, paymentStatus *string) *DisplayHints {
 	hints := &DisplayHints{}
 
 	now := time.Now()
@@ -846,12 +867,18 @@ func buildDisplayHintsForOrder(order *entity.Order, role string, paymentStatus *
 		badge := "Menunggu Pembayaran"
 		variant := "warning"
 		hints.WithBadge(badge, variant)
-		hints.WithInfo("Selesaikan pembayaran sebelum waktu habis")
-		// Next action: wait for payment
-		if role == "seller" {
-			hints.WithNextAction(ActionNone, "action.wait_payment", false)
+		if now.Before(order.PaymentExpiresAt) {
+			hints.WithInfo("Selesaikan pembayaran sebelum waktu habis")
+			// Next action: wait for payment
+			if role == "seller" {
+				hints.WithNextAction(ActionNone, "action.wait_payment", false)
+			} else {
+				hints.WithNextAction(ActionPay, selectPayActionLabelKey(paymentStatus), true)
+			}
 		} else {
-			hints.WithNextAction(ActionPay, selectPayActionLabelKey(paymentStatus, paymentExpiredAt), true)
+			// Payment window closed: do not promise an action CreatePayment
+			// will reject with 410. The expiry sweep closes the order next.
+			hints.WithNextAction(ActionNone, "action.wait_payment", false)
 		}
 
 	case entity.StatusPaid:
@@ -974,9 +1001,15 @@ func buildDisplayHintsForOrder(order *entity.Order, role string, paymentStatus *
 //   - Active refund (rejected) → hide refund CTA, show dispute CTA (escalation path)
 //   - Active refund (escalated) → hide both (admin reviewing)
 //
-// paymentStatus/paymentExpiredAt are the buyer's currently selected payment
-// row (nil when none exists yet) - see selectPayActionLabelKey.
-func buildDecisionV2ForOrder(order *entity.Order, role string, hasActiveRefund bool, activeRefundStatus *string, paymentStatus *string, paymentExpiredAt *time.Time) *Decision {
+// paymentStatus is the buyer's currently selected payment row (nil when none
+// exists yet) - see selectPayActionLabelKey.
+//
+// CANONICAL PAY WINDOW: the pay action is exposed only while
+// `now < order.PaymentExpiresAt` — the single expiry source and the exact
+// predicate CreatePayment enforces (POST /api/v1/payments returns 410 past
+// the window). The decision contract must never offer an action the
+// enforcement authority will reject.
+func buildDecisionV2ForOrder(order *entity.Order, role string, hasActiveRefund bool, activeRefundStatus *string, paymentStatus *string, escrowHolding bool) *Decision {
 	// Compute decision version from order state and timestamps
 	// This version changes whenever order state changes, enabling optimistic concurrency
 	decisionVersion := order.UpdatedAt.Unix()
@@ -985,7 +1018,7 @@ func buildDecisionV2ForOrder(order *entity.Order, role string, hasActiveRefund b
 	decision := NewDecisionV3(string(order.Status), decisionVersion)
 
 	// Build display hints for UI
-	display := buildDisplayHintsForOrder(order, role, paymentStatus, paymentExpiredAt)
+	display := buildDisplayHintsForOrder(order, role, paymentStatus)
 	decision.WithDisplayV2(display)
 
 	// Build primary and secondary actions
@@ -1058,8 +1091,8 @@ func buildDecisionV2ForOrder(order *entity.Order, role string, hasActiveRefund b
 
 			// Secondary: Extend Confirmation (on day 5, if eligible)
 			// BUSINESS RULE: Only show when within 24 hours of auto_release_at (day 5)
-			// and escrow is still holding and not yet extended
-			if order.EscrowStatus == entity.EscrowStatusHolding &&
+			// and the canonical escrow row is still holding and not yet extended
+			if escrowHolding &&
 				!order.ConfirmationExtensionUsed &&
 				order.AutoReleaseAt != nil {
 				// Show extend button within 24 hours of auto_release_at (day 5)
@@ -1075,8 +1108,8 @@ func buildDecisionV2ForOrder(order *entity.Order, role string, hasActiveRefund b
 				}
 			}
 
-			// Secondary: Request Refund (if escrow holding and no active refund) - FINANCIAL ACTION
-			if order.EscrowStatus == entity.EscrowStatusHolding && !hasActiveRefund {
+			// Secondary: Request Refund (if the canonical escrow row is holding and no active refund) - FINANCIAL ACTION
+			if escrowHolding && !hasActiveRefund {
 				refundAction := NewAction(
 					ActionRequestRefund,
 					"action.request_refund",
@@ -1099,7 +1132,7 @@ func buildDecisionV2ForOrder(order *entity.Order, role string, hasActiveRefund b
 					canOpenDispute = false // pending/approved/escalated → wait
 				}
 			}
-			if order.EscrowStatus == entity.EscrowStatusHolding && canOpenDispute {
+			if escrowHolding && canOpenDispute {
 				disputeAction := NewAction(
 					ActionOpenDispute,
 					"action.open_dispute",
@@ -1129,19 +1162,27 @@ func buildDecisionV2ForOrder(order *entity.Order, role string, hasActiveRefund b
 		).WithInput("evidence_files", "file")
 
 	case entity.StatusPending:
-		if role == "buyer" {
+		if role == "buyer" && time.Now().Before(order.PaymentExpiresAt) {
 			// Buyer: Pay (primary) — always calls POST /api/v1/payments with
 			// order_id; label_key varies by payment state so the CTA reflects
-			// whether this is a fresh payment, a continuation, a status
-			// check, or a retry after expiry (see selectPayActionLabelKey).
+			// whether this is a fresh payment, a continuation of a status
+			// check, or a retry after a failed attempt (see
+			// selectPayActionLabelKey).
+			//
+			// CANONICAL PAY WINDOW (owner-locked): past order.PaymentExpiresAt
+			// no pay action is exposed — CreatePayment would reject every
+			// request with 410. The lifecycle sweep (PaymentExpiryWorker)
+			// closes the order; until then the contract promises nothing.
 			primaryAction = NewAction(
 				ActionPay,
-				selectPayActionLabelKey(paymentStatus, paymentExpiredAt),
+				selectPayActionLabelKey(paymentStatus),
 				"/api/v1/payments",
 				"POST",
 			).WithInputField("order_id", "label.order_id", "hidden", true)
-
-			// Secondary: Cancel Order
+		}
+		if role == "buyer" {
+			// Secondary: Cancel Order (available for the whole pending
+			// lifecycle, independent of the payment window)
 			cancelAction := NewAction(
 				ActionCancel,
 				"action.cancel_order",

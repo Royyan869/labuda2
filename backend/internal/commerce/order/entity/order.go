@@ -110,9 +110,8 @@ type Order struct {
 	// Populated from the seller account's primary address at order creation.
 	ShippingOrigin *addressentity.AddressSnapshot `json:"shipping_origin,omitempty" db:"shipping_origin_snapshot"` // Stored as JSONB in database
 
-	Status                    Status       `json:"status"`
-	EscrowStatus              EscrowStatus `json:"escrow_status"`             // CACHED from Escrow.Status - may be stale, use escrow row for source of truth
-	AutoReleaseAt             *time.Time   `json:"auto_release_at,omitempty"` // Auto-release timestamp for buyer confirmation
+	Status                    Status      `json:"status"`
+	AutoReleaseAt             *time.Time  `json:"auto_release_at,omitempty"` // Auto-release timestamp for buyer confirmation
 	HasDispute                bool         `json:"has_dispute"`
 	ConfirmationExtensionUsed bool         `json:"confirmation_extension_used"`        // Whether buyer has used the one-time confirmation extension (3 days)
 	ConfirmationExtendedAt    *time.Time   `json:"confirmation_extended_at,omitempty"` // When the confirmation period was extended
@@ -142,7 +141,7 @@ type Order struct {
 	// authority: POST /payments MUST request this same method (a different
 	// method is rejected), so the method actually used can never silently differ
 	// from the method the buyer chose. It is NULL only for orders created
-	// without a checkout selection (auction-claim), where the first payment
+	// without a checkout selection (auction bid-win), where the first payment
 	// binds it. payments.payment_method_code records the method actually used
 	// and must equal this value.
 	// ============================================================================
@@ -172,13 +171,12 @@ func (e *DisputeActiveError) Error() string {
 	return fmt.Sprintf("cannot complete order with active dispute: %s", e.OrderID)
 }
 
-// InvalidEscrowStatusError is returned when escrow status is not valid for the operation.
-//
-// HARDENING: This error is used in business logic guards.
-// For critical financial decisions, validate against live escrow state, not cached Order.EscrowStatus.
+// InvalidEscrowStatusError is returned when the canonical escrow row's status
+// is not valid for the operation. The statuses are read from the escrows table
+// (the sole escrow authority) — never from a persisted order projection.
 type InvalidEscrowStatusError struct {
-	CurrentStatus  EscrowStatus
-	RequiredStatus EscrowStatus
+	CurrentStatus  string
+	RequiredStatus string
 }
 
 func (e *InvalidEscrowStatusError) Error() string {
@@ -197,28 +195,6 @@ func (e *ErrInvalidRefundAmount) Error() string {
 		return fmt.Sprintf("invalid refund amount: %s", e.Reason)
 	}
 	return fmt.Sprintf("invalid refund amount: %d (escrow: %d)", e.RefundAmount, e.EscrowAmount)
-}
-
-// ErrAlreadyResolved is returned when order is already in a terminal escrow state.
-type ErrAlreadyResolved struct {
-	OrderID      uuid.UUID
-	EscrowStatus EscrowStatus
-}
-
-func (e *ErrAlreadyResolved) Error() string {
-	return fmt.Sprintf("order already resolved: %s (escrow_status: %s)", e.OrderID, e.EscrowStatus)
-}
-
-// ErrInvalidStateForPartialRefund is returned when order state doesn't allow partial refund.
-type ErrInvalidStateForPartialRefund struct {
-	OrderID      uuid.UUID
-	Status       Status
-	EscrowStatus EscrowStatus
-}
-
-func (e *ErrInvalidStateForPartialRefund) Error() string {
-	return fmt.Sprintf("invalid state for partial refund: order_id=%s, status=%s, escrow_status=%s",
-		e.OrderID, e.Status, e.EscrowStatus)
 }
 
 // ErrSelfPurchase is returned when a buyer attempts to purchase their own listing.
@@ -440,19 +416,15 @@ func (o *Order) validateShippingProofImmutability(
 
 // MarkPaid transitions the order from pending to paid.
 //
-// CRITICAL: EscrowStatus is NOT set here. It must be derived from Escrow.Status
-// AFTER payment settlement creates the escrow row.
+// CANONICAL ESCROW MODEL: escrow existence and state live ONLY in the
+// escrows table. This method never fabricates escrow state. The settlement
+// transaction (CanonicalFinalizationService) creates the escrow row BEFORE
+// calling the order-side MarkPaid service, in the same database transaction.
 //
 // This method ONLY:
 // - Validates order status transition (pending -> paid)
 // - Sets order status to paid
 // - Calculates ready_to_ship_by based on preparation_time_snapshot
-//
-// CALLER MUST:
-// 1. Payment settlement creates the escrow row FIRST
-// 2. Fetch escrow state
-// 3. Set Order.EscrowStatus = mapEscrowToOrderEscrow(escrowRow.Status)
-// 4. THEN call this method
 func (o *Order) MarkPaid() error {
 	// Validate order status transition
 	if !canTransition(o.Status, StatusPaid) {
@@ -461,9 +433,6 @@ func (o *Order) MarkPaid() error {
 			TargetStatus:  StatusPaid,
 		}
 	}
-
-	// CRITICAL: Do NOT set EscrowStatus here - it must be derived from escrow state
-	// This ensures Order.EscrowStatus is ALWAYS a projection of Escrow state
 
 	o.Status = StatusPaid
 
@@ -662,7 +631,7 @@ func (o *Order) MarkShipped(proofType *string, trackingNumber *string, shippingP
 		}
 	}
 
-	// 🔥 PHASE 1: FULFILLMENT DEADLINE ENFORCEMENT (P0)
+	// ðŸ”¥ PHASE 1: FULFILLMENT DEADLINE ENFORCEMENT (P0)
 	// Block late shipments to prevent indefinite buyer waiting
 	if o.ReadyToShipBy != nil {
 		gracePeriodEnd := o.ReadyToShipBy.Add(FulfillmentGracePeriodDays * 24 * time.Hour)
@@ -751,11 +720,12 @@ func (o *Order) MarkShipped(proofType *string, trackingNumber *string, shippingP
 // CRITICAL SAFETY GUARDS (defended in depth):
 // - Can complete from "shipped" OR "delivered" (timer-based auto-complete)
 // - Cannot complete if has_dispute = true (DisputeActiveError)
-// - Cannot complete if escrow_status != "holding" (InvalidEscrowStatusError)
 //
 // These guards are the SECOND LAYER of defense against auto-completing disputed orders.
 // The FIRST LAYER is the database query (has_dispute = false).
 // This defense-in-depth approach prevents race conditions.
+// Escrow release validation (escrow row must exist and be holding) is the
+// escrow service's responsibility and runs inside the release transaction.
 // ValidateComplete validates that an order can be completed without modifying state.
 // This allows validation to happen BEFORE escrow operations.
 func (o *Order) ValidateComplete() error {
@@ -837,7 +807,8 @@ func (o *Order) MarkExpired() error {
 
 // MarkDisputeOpen transitions the order to dispute_open state.
 //
-// CRITICAL: EscrowStatus is NOT modified here. Dispute state is tracked via HasDispute field.
+// Dispute state is tracked via HasDispute; the escrow row is untouched until
+// the dispute is resolved (release/refund via EscrowService).
 //
 // This method ONLY:
 // - Validates order status transition (shipped/delivered -> dispute_open)
@@ -859,10 +830,6 @@ func (o *Order) MarkDisputeOpen() error {
 	o.Status = StatusDisputeOpen
 	o.HasDispute = true
 
-	// CRITICAL: Do NOT modify EscrowStatus here
-	// Escrow domain has no "frozen" state
-	// Dispute presence is tracked by HasDispute field only
-
 	o.UpdatedAt = time.Now()
 	return nil
 }
@@ -870,27 +837,17 @@ func (o *Order) MarkDisputeOpen() error {
 // MarkPartiallyRefunded transitions the order to partially_refunded state.
 // This is called when a partial refund is processed via dispute resolution.
 //
-// CRITICAL: EscrowStatus is set based on what actually happened in escrow:
-// - If buyer refunded: EscrowStatus = "refunded" (full refund to buyer)
-// - If seller released: EscrowStatus = "released" (full release to seller)
-//
-// PARTIAL DISPUTE RESOLUTION:
-// - Partial refunds are tracked via Order.Status = "partially_refunded"
-// - The escrow lifecycle performs SEPARATE operations (release + refund)
-// - Order.EscrowStatus reflects the FINAL escrow state (usually "released" or "refunded")
-// - The "partial" aspect is tracked in Order.Status, NOT in EscrowStatus
+// The escrow row (canonical authority) keeps its own lifecycle: a partial
+// dispute refund flips escrows.status only when the gateway acknowledges the
+// refund; until then the escrow stays holding. Order.Status = "partially_refunded"
+// tracks the order-level outcome; the escrow lifecycle is independent and
+// authoritative in the escrows table.
 //
 // TRANSITIONS: shipped/delivered/dispute_open -> partially_refunded
 //
 // GUARDS:
 // - Can only be called from shipped, delivered, or dispute_open status
 // - Sets order status to partially_refunded
-//
-// CALLER MUST:
-// 1. Execute escrow operations (release + refund for partial split)
-// 2. Fetch FINAL escrow state
-// 3. Set Order.EscrowStatus = mapEscrowToOrderEscrow(escrowRow.Status)
-// 4. THEN call this method
 func (o *Order) MarkPartiallyRefunded() error {
 	// Validate order status transition
 	if !canTransition(o.Status, StatusPartiallyRefunded) {
@@ -899,10 +856,6 @@ func (o *Order) MarkPartiallyRefunded() error {
 			TargetStatus:  StatusPartiallyRefunded,
 		}
 	}
-
-	// CRITICAL: Do NOT set EscrowStatus to "partially_refunded"
-	// Escrow domain has no such state
-	// EscrowStatus should be set to "released" or "refunded" based on escrow state
 
 	o.Status = StatusPartiallyRefunded
 	o.UpdatedAt = time.Now()
@@ -1176,7 +1129,6 @@ func NewOrderFromSource(
 		PreparationTimeSnapshot:   preparationTimeSnapshot,
 		ReadyToShipBy:             nil, // Will be calculated when order is marked as paid
 		Status:                    StatusPending,
-		EscrowStatus:              EscrowStatusHolding,
 		AutoReleaseAt:             nil,
 		HasDispute:                false,
 		ConfirmationExtensionUsed: false,

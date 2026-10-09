@@ -22,17 +22,39 @@ func funcBodyFrom(t *testing.T, src, signature string) string {
 	return body
 }
 
-// TestCreateOrderRequest_BindsPreOrderPaymentMethod proves the order request
-// carries the buyer's pre-order method selection as a REQUIRED canonical field.
-func TestCreateOrderRequest_BindsPreOrderPaymentMethod(t *testing.T) {
+// TestCreateOrderRequest_PaymentMethodSettlementSpecific proves the order
+// request's payment_method_code rule is settlement-specific (Owner canonical):
+//   - for_sale + auction buy-now: REQUIRED at creation (bound via the canonical
+//     fee authority); the DTO tag carries no binding:"required" because
+//   - auction bid-win: the method MUST BE ABSENT at creation — the winner
+//     picks it at Order Detail and the first POST /payments binds it
+//     (orders.payment_method_code stays NULL until then).
+func TestCreateOrderRequest_PaymentMethodSettlementSpecific(t *testing.T) {
 	var req CreateOrderRequest
 	require.NoError(t, json.Unmarshal([]byte(`{"payment_method_code":"bank_transfer"}`), &req))
 	require.Equal(t, "bank_transfer", req.PaymentMethodCode)
 
+	var unbound CreateOrderRequest
+	require.NoError(t, json.Unmarshal([]byte(`{}`), &unbound))
+	require.Empty(t, unbound.PaymentMethodCode,
+		"an omitted payment_method_code must parse (auction bid-win orders are created unbound)")
+
 	src, err := os.ReadFile("order_handler.go")
 	require.NoError(t, err)
-	require.Contains(t, string(src), `json:"payment_method_code" binding:"required"`,
-		"payment_method_code must be a required order-creation field")
+	code := string(src)
+	require.Contains(t, code, `json:"payment_method_code"`,
+		"payment_method_code stays a canonical order-creation field")
+	require.NotContains(t, code, `json:"payment_method_code" binding:"required"`,
+		"the DTO tag must not force a method: bid-win orders are created without one")
+
+	require.Contains(t, code, "payment_method_code must be omitted for auction bid-win orders",
+		"the bid-win branch must reject a client-supplied method (no fallback/default method)")
+	require.Contains(t, code, "PaymentMethodCode: nil,",
+		"the bid-win branch must create the order unbound")
+
+	createBody := funcBodyFrom(t, code, "func (h *OrderHandler) CreateOrder(")
+	require.Contains(t, createBody, "h.applySelectedPaymentMethod(",
+		"for_sale and buy-now must still bind the buyer-selected method at creation")
 }
 
 // TestCreateOrder_BindsSelectedMethodIntoSnapshot proves order creation binds

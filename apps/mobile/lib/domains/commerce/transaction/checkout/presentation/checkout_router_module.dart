@@ -28,8 +28,11 @@ class CheckoutModule extends BaseModule {
         // Chat commerce context - optional query parameters
         final negotiationId = state.uri.queryParameters['negotiation_id'];
 
-        // Auction checkout context - for winning bid or buy now
+        // Auction checkout context — buy-now OR bid-win. `bid_win=1` marks
+        // the winner completing the settlement window: the order is created
+        // WITHOUT a payment method (chosen at Order Detail).
         final auctionId = state.uri.queryParameters['auction_id'];
+        final bidWin = state.uri.queryParameters['bid_win'] == '1';
 
         // **SHIPPING QUOTE FIX:** Shipping quote ID from seller's manual quote
         final shippingQuoteId = state.uri.queryParameters['shipping_quote_id'];
@@ -43,6 +46,7 @@ class CheckoutModule extends BaseModule {
           forSaleId: forSaleId,
           negotiationId: negotiationId,
           auctionId: auctionId,
+          bidWin: bidWin,
           shippingQuoteId: shippingQuoteId,
           chatId: chatId,
         );

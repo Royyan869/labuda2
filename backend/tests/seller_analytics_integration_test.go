@@ -90,8 +90,8 @@ func seedAnalyticsOrderQty(t *testing.T, ctx context.Context, tdb *testdb.TestDB
 	t.Helper()
 	orderID := uuid.New()
 	_, err := tdb.Pool().Exec(ctx, `
-		INSERT INTO orders (id, buyer_id, seller_id, source_type, source_id, quantity, unit_price, subtotal, shipping_total, commission_percent, commission_amount, status, escrow_status, completed_at, created_at, updated_at)
-		VALUES ($1, $2, $3, 'for_sale', $4, $7, 100000, $7 * 100000, 0, 0, 0, $5, 'none', $6, NOW(), NOW())
+		INSERT INTO orders (id, buyer_id, seller_id, source_type, source_id, quantity, unit_price, subtotal, shipping_total, commission_percent, commission_amount, status, completed_at, created_at, updated_at)
+		VALUES ($1, $2, $3, 'for_sale', $4, $7, 100000, $7 * 100000, 0, 0, 0, $5, $6, NOW(), NOW())
 	`, orderID, seedAnalyticsUser(t, ctx, tdb), sellerID, productID, status, completedAt, quantity)
 	require.NoError(t, err)
 	_, err = tdb.Pool().Exec(ctx, `

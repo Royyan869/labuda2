@@ -1,7 +1,8 @@
 /// Get Unread Count Use Case
 ///
-/// Stream-based use case untuk mendapatkan jumlah unread notifications.
-/// Returns real-time count yang auto-update.
+/// One-shot use case untuk mendapatkan jumlah unread notifications
+/// (canonical backend read). Periodic refresh dimiliki oleh NOTIFICATION
+/// RECONCILIATION CADENCE di NotificationInitializer — bukan use case ini.
 ///
 /// Size: < 100 lines (per GUIDELINES)
 library;
@@ -15,10 +16,8 @@ class GetUnreadCountUseCase {
 
   GetUnreadCountUseCase({required this.repository});
 
-  /// Execute use case
-  ///
-  /// Returns stream of unread notification count yang auto-update.
-  Stream<Result<int>> call({required String userId}) {
+  /// Execute use case — ONE-SHOT canonical count read.
+  Future<Result<int>> call({required String userId}) {
     return repository.getUnreadCount(userId: userId);
   }
 }

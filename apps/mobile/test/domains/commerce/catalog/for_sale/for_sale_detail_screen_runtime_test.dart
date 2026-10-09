@@ -2,6 +2,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
+import 'package:labuda/shared/widgets/bottom_action_bar.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/core/common/types/preparation_time.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/domain/domain.dart';
@@ -26,7 +28,8 @@ class _FakeAuthController extends AuthController {
 }
 
 class _FakeSavedItemRepository extends SavedItemRepository {
-  _FakeSavedItemRepository() : super(dio: Dio(BaseOptions(baseUrl: 'http://localhost')));
+  _FakeSavedItemRepository()
+    : super(dio: Dio(BaseOptions(baseUrl: 'http://localhost')));
 
   bool initialSaved = false;
   int isSavedCalls = 0;
@@ -104,6 +107,7 @@ ForSale _listing({
   List<MediaEntity> media = const [],
   bool isNegotiable = true,
   bool stockAvailable = true,
+  ForSaleStatus status = ForSaleStatus.active,
   ContentLifecycle sellerTrustLifecycle = ContentLifecycle.active,
   String? publicOriginLine,
 }) {
@@ -125,8 +129,8 @@ ForSale _listing({
     sellerTier: 'pro',
     viewerCapabilities: capabilities,
     media: media,
-    status: ForSaleStatus.active,
-    visibility: ForSaleVisibility.public,
+     status: status,
+     visibility: ForSaleVisibility.public,
     isNegotiable: isNegotiable,
     createdAt: now,
     updatedAt: now,
@@ -220,20 +224,38 @@ Widget _wrap({
   return ProviderScope(
     overrides: [
       authControllerProvider.overrideWith(() => _FakeAuthController(authState)),
-      savedItemRepositoryProvider.overrideWithValue(
-        _FakeSavedItemRepository(),
-      ),
+      savedItemRepositoryProvider.overrideWithValue(_FakeSavedItemRepository()),
       forSaleDetailProvider(
         forSale.forSaleId,
       ).overrideWith((ref) async => listingLoader?.call() ?? forSale),
-      userDataProvider.overrideWith((ref, userId) async => _authUser(id: userId)),
+      userDataProvider.overrideWith(
+        (ref, userId) async => _authUser(id: userId),
+      ),
       navigationHandlerProvider.overrideWithValue(
         navigationHandler ?? _FakeNavigationHandler(),
       ),
     ],
-    child: MaterialApp(
+    child: MaterialApp.router(
       theme: theme,
-      home: ForSaleDetailScreen(forSaleId: forSale.forSaleId),
+      routerConfig: GoRouter(
+        initialLocation: '/',
+        routes: [
+          GoRoute(
+            path: '/',
+            builder: (context, state) => ForSaleDetailScreen(
+              forSaleId: forSale.forSaleId,
+            ),
+          ),
+          GoRoute(
+            path: '/report',
+            builder: (context, state) => const Scaffold(
+              body: Column(
+                children: [Text('Reporting For Sale'), Text('Submit Report')],
+              ),
+            ),
+          ),
+        ],
+      ),
     ),
   );
 }
@@ -273,33 +295,16 @@ void main() {
       expect(find.text('Detail ForSale'), findsOneWidget);
       expect(find.text('Chat'), findsOneWidget);
       expect(find.text('Nego'), findsOneWidget);
+      expect(find.text('Tawar'), findsOneWidget);
       expect(find.text('Beli Sekarang'), findsOneWidget);
-      // ONE-ROW CONTRACT (auction parity): Chat / Nego / Beli must share a
-      // single Row ancestor. A second CTA row is a forbidden design.
-      final chatRows = tester.widgetList<Row>(
-        find.ancestor(of: find.text('Chat'), matching: find.byType(Row)),
-      );
       expect(
-        chatRows.any(
-          (row) =>
-              find
-                  .descendant(
-                    of: find.byWidget(row),
-                    matching: find.text('Nego'),
-                  )
-                  .evaluate()
-                  .isNotEmpty &&
-              find
-                  .descendant(
-                    of: find.byWidget(row),
-                    matching: find.text('Beli Sekarang'),
-                  )
-                  .evaluate()
-                  .isNotEmpty,
-        ),
-        isTrue,
-        reason: 'Chat/Nego/Beli must render in ONE action row',
+        find.ancestor(of: find.text('Nego'), matching: find.byType(Row)),
+        findsWidgets,
       );
+      final priceRows = tester.widgetList<Row>(
+        find.ancestor(of: find.text('Nego'), matching: find.byType(Row)),
+      );
+      expect(priceRows, isNotEmpty);
       expect(find.text('Penjual tidak aktif'), findsNothing);
       expect(find.text('@seller_user', skipOffstage: false), findsOneWidget);
       expect(find.text('Acme Farm', skipOffstage: false), findsOneWidget);
@@ -399,9 +404,7 @@ void main() {
 
     // The seller card sits below the fold — scroll it into the viewport
     // before tapping (the identity assert above resolves from the full tree).
-    await tester.ensureVisible(
-      find.text('@seller_user', skipOffstage: false),
-    );
+    await tester.ensureVisible(find.text('@seller_user', skipOffstage: false));
     await tester.pump();
     await tester.tap(find.text('@seller_user'));
     await tester.pump();
@@ -422,6 +425,7 @@ void main() {
       id: 'forSale-no-nego',
       sellerId: 'seller-no-nego',
       capabilities: _buyerNoNegotiationCaps,
+      isNegotiable: false,
     );
 
     await tester.pumpWidget(
@@ -443,7 +447,7 @@ void main() {
   });
 
   testWidgets(
-    'seller-trust inactive renders the explanatory banner instead of CTAs',
+    'seller-trust inactive exposes no commerce CTA',
     (tester) async {
       await tester.binding.setSurfaceSize(const Size(320, 640));
       addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -466,14 +470,20 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Penjual tidak aktif'), findsOneWidget);
+      expect(find.text('Penjual tidak aktif'), findsNothing);
       expect(
         find.text('Transaksi baru tidak tersedia untuk seller ini.'),
-        findsOneWidget,
+        findsNothing,
       );
       expect(find.text('Chat'), findsNothing);
       expect(find.text('Beli Sekarang'), findsNothing);
-      expect(find.text('Nego'), findsNothing);
+      expect(
+        find.descendant(
+          of: find.byType(BottomActionBar),
+          matching: find.text('Nego'),
+        ),
+        findsNothing,
+      );
       expect(tester.takeException(), isNull);
     },
   );
@@ -520,6 +530,7 @@ void main() {
       id: 'forSale-owner',
       sellerId: 'seller-owner',
       capabilities: _ownerCaps,
+      isNegotiable: false,
     );
 
     await tester.pumpWidget(
@@ -543,7 +554,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('guest sees buyer affordances with no auth gate hiding the bar', (
+  testWidgets('guest sees no commerce affordance without capability', (
     tester,
   ) async {
     await tester.binding.setSurfaceSize(const Size(320, 640));
@@ -563,13 +574,58 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
 
-    // Model B: affordances visible; tapping routes to the canonical sign-in.
-    expect(find.text('Chat'), findsOneWidget);
-    expect(find.text('Nego'), findsOneWidget);
-    expect(find.text('Beli Sekarang'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(BottomActionBar),
+        matching: find.text('Chat'),
+      ),
+      findsNothing,
+    );
+    expect(
+      find.descendant(
+        of: find.byType(BottomActionBar),
+        matching: find.text('Nego'),
+      ),
+      findsNothing,
+    );
+    expect(
+      find.descendant(
+        of: find.byType(BottomActionBar),
+        matching: find.text('Beli Sekarang'),
+      ),
+      findsNothing,
+    );
     expect(find.text('@seller_user', skipOffstage: false), findsOneWidget);
     expect(find.text('Acme Farm', skipOffstage: false), findsOneWidget);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('terminal For Sale hides Save and commerce Share', (tester) async {
+    for (final status in [ForSaleStatus.sold, ForSaleStatus.withdrawn]) {
+      final listing = _listing(
+        id: 'terminal-${status.name}',
+        sellerId: 'seller-terminal',
+        status: status,
+        capabilities: _buyerNoNegotiationCaps,
+      );
+      await tester.pumpWidget(
+        KeyedSubtree(
+          key: ValueKey('terminal-${status.name}'),
+          child: _wrap(
+            forSale: listing,
+            authState: AuthState.authenticated(
+              _authUser(id: 'buyer-terminal'),
+              emailVerified: true,
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.byTooltip('Bagikan'), findsNothing);
+      expect(find.byIcon(Icons.bookmark_border), findsNothing);
+      expect(find.byIcon(Icons.bookmark), findsNothing);
+    }
   });
 
   testWidgets('Nego opens the offer sheet ON detail — no chat navigation', (
@@ -597,7 +653,7 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
 
-    await tester.tap(find.text('Nego'));
+    await tester.tap(find.text('Tawar'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
 

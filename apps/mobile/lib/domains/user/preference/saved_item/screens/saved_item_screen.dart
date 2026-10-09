@@ -178,6 +178,7 @@ class _SavedItemScreenState extends ConsumerState<SavedItemScreen> {
                 ),
               ),
             ),
+
           ],
         ),
         trailing: IconButton(

@@ -131,9 +131,6 @@ func (r *profileMediaSubRepo) FetchActiveExpiredBatchIDs(context.Context, db.Tx,
 	return nil, nil
 }
 
-func (r *profileMediaSubRepo) ExistsActiveByUserID(context.Context, db.Tx, uuid.UUID) (bool, error) {
-	return false, nil
-}
 
 func (r *profileMediaSubRepo) GetActiveConfig(context.Context, db.Tx) (*subscriptionEntity.SellerSubscriptionConfig, error) {
 	return nil, nil

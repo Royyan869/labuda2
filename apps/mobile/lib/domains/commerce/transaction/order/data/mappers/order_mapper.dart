@@ -53,7 +53,6 @@ class OrderMapper {
       // verbatim so the existing Order Detail action system can render it.
       decision: dto.decision,
       // Escrow state projection (holding/released/refunded), null when absent.
-      escrowStatus: dto.escrowStatus,
     );
   }
 

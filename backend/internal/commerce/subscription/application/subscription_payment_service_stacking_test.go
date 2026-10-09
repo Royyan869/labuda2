@@ -205,10 +205,6 @@ func (r *processSubscriptionRepo) FetchActiveExpiredBatchIDs(context.Context, db
 	return nil, nil
 }
 
-func (r *processSubscriptionRepo) ExistsActiveByUserID(context.Context, db.Tx, uuid.UUID) (bool, error) {
-	return false, nil
-}
-
 func (r *processSubscriptionRepo) GetActiveConfig(context.Context, db.Tx) (*subscriptionEntity.SellerSubscriptionConfig, error) {
 	return nil, nil
 }

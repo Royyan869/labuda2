@@ -122,6 +122,7 @@ class _PreviewEngine {
 
   /// Signatures (shipping option id) of every preview request, in order.
   final List<String> started = [];
+  final List<PreviewOrderParams> requests = [];
 
   /// When true a request completes immediately with the canonical result.
   bool autoComplete = true;
@@ -138,6 +139,7 @@ class _PreviewEngine {
   Future<PreviewOrderResult> request(PreviewOrderParams params) {
     final key = keyOf(params);
     started.add(key);
+    requests.add(params);
     if (failure != null) {
       return Future<PreviewOrderResult>.error(failure!);
     }
@@ -246,13 +248,13 @@ AddressEntity _shippingAddress() => AddressEntity(
   updatedAt: DateTime.utc(2026, 8, 1),
 );
 
-ForSale _listing() => ForSale(
+ForSale _listing({int stock = 3}) => ForSale(
   forSaleId: 'sale-1',
   productId: 'product-1',
   title: 'Ikan Koi Test',
   description: 'Deskripsi test',
   price: 1250000,
-  stock: 3,
+  stock: stock,
   media: const [],
   sellerId: 'seller-1',
   status: ForSaleStatus.active,
@@ -296,6 +298,8 @@ Future<_Harness> _pumpCheckout(
   WidgetTester tester, {
   required _PreviewEngine engine,
   required List<DeliveryOption> options,
+  String? negotiationId,
+  int stock = 3,
   GoRouter? router,
 }) async {
   final repository = _RecordingCheckoutRepository();
@@ -318,7 +322,7 @@ Future<_Harness> _pumpCheckout(
           () => _FakeAddressNotifier([_shippingAddress()]),
         ),
         forSaleDetailProvider.overrideWith(
-          (ref, forSaleId) async => _listing(),
+          (ref, forSaleId) async => _listing(stock: stock),
         ),
         shippingRepositoryProvider.overrideWithValue(
           _FakeShippingRepository(options),
@@ -330,8 +334,12 @@ Future<_Harness> _pumpCheckout(
         paymentRepositoryProvider.overrideWithValue(paymentRepository),
       ],
       child: router == null
-          ? const MaterialApp(
-              home: CheckoutScreen(productId: 'product-1', forSaleId: 'sale-1'),
+          ? MaterialApp(
+              home: CheckoutScreen(
+                productId: 'product-1',
+                forSaleId: 'sale-1',
+                negotiationId: negotiationId,
+              ),
             )
           : MaterialApp.router(routerConfig: router),
     ),
@@ -565,6 +573,143 @@ void main() {
       await tester.tap(find.textContaining('Buat Pesanan'));
       await _settle(tester);
       expect(harness.repository.createOrderCalls, 0);
+    });
+  });
+
+  group('quantity selector behavioral proof', () {
+    testWidgets('stock zero blocks selector and purchase', (tester) async {
+      final engine = _PreviewEngine();
+      await _pumpCheckout(tester, engine: engine, options: [_shipA], stock: 0);
+
+      expect(find.text('Tambah jumlah'), findsNothing);
+      expect(find.text('Kurangi jumlah'), findsNothing);
+      expect(_submitButton(tester)?.onPressed, isNull);
+      expect(engine.requests, isEmpty);
+    });
+
+    testWidgets('stock one hides selector and keeps quantity one', (
+      tester,
+    ) async {
+      final engine = _PreviewEngine();
+      final router = GoRouter(
+        initialLocation: '/checkout/sale-1',
+        routes: [
+          GoRoute(
+            path: '/checkout/:forSaleId',
+            builder: (context, state) => const CheckoutScreen(
+              productId: 'product-1',
+              forSaleId: 'sale-1',
+            ),
+          ),
+          GoRoute(
+            path: '/orders/:orderId',
+            builder: (context, state) => const Scaffold(),
+          ),
+        ],
+      );
+      final harness = await _pumpCheckout(
+        tester,
+        engine: engine,
+        options: [_shipA],
+        stock: 1,
+        router: router,
+      );
+
+      expect(find.text('Tambah jumlah'), findsNothing);
+      expect(find.text('Kurangi jumlah'), findsNothing);
+      expect(engine.requests.single.quantity, 1);
+      expect(_submitButton(tester)!.onPressed, isNotNull);
+      await _tap(tester, find.textContaining('Buat Pesanan'));
+      await _settle(tester);
+      expect(harness.repository.lastRequest!.quantity, 1);
+    });
+
+    testWidgets(
+      'direct stock five respects minimum maximum and propagates three',
+      (tester) async {
+        final engine = _PreviewEngine();
+        final router = GoRouter(
+          initialLocation: '/checkout/sale-1',
+          routes: [
+            GoRoute(
+              path: '/checkout/:forSaleId',
+              builder: (context, state) => const CheckoutScreen(
+                productId: 'product-1',
+                forSaleId: 'sale-1',
+              ),
+            ),
+            GoRoute(
+              path: '/orders/:orderId',
+              builder: (context, state) => const Scaffold(),
+            ),
+          ],
+        );
+        final harness = await _pumpCheckout(
+          tester,
+          engine: engine,
+          options: [_shipA],
+          stock: 5,
+          router: router,
+        );
+
+        final minus = find.byTooltip('Kurangi jumlah');
+        final plus = find.byTooltip('Tambah jumlah');
+        expect(find.text('1'), findsWidgets);
+        await _tap(tester, minus);
+        expect(find.text('1'), findsWidgets);
+        for (var i = 0; i < 5; i++) {
+          await _tap(tester, plus);
+        }
+        expect(find.text('5'), findsWidgets);
+        await _tap(tester, minus);
+        await _tap(tester, minus);
+        expect(find.text('3'), findsWidgets);
+        await _settle(tester);
+        expect(engine.requests.last.quantity, 3);
+        await _tap(tester, find.textContaining('Buat Pesanan'));
+        await _settle(tester);
+        expect(harness.repository.lastRequest!.quantity, 3);
+      },
+    );
+
+    testWidgets('accepted negotiation uses same quantity propagation', (
+      tester,
+    ) async {
+      final engine = _PreviewEngine();
+      final router = GoRouter(
+        initialLocation: '/checkout/sale-1',
+        routes: [
+          GoRoute(
+            path: '/checkout/:forSaleId',
+            builder: (context, state) => const CheckoutScreen(
+              productId: 'product-1',
+              forSaleId: 'sale-1',
+              negotiationId: 'accepted-nego-1',
+            ),
+          ),
+          GoRoute(
+            path: '/orders/:orderId',
+            builder: (context, state) => const Scaffold(),
+          ),
+        ],
+      );
+      final harness = await _pumpCheckout(
+        tester,
+        engine: engine,
+        options: [_shipA],
+        stock: 5,
+        negotiationId: 'accepted-nego-1',
+        router: router,
+      );
+      await _tap(tester, find.byTooltip('Tambah jumlah'));
+      await _tap(tester, find.byTooltip('Tambah jumlah'));
+      await _settle(tester);
+      expect(engine.requests.last.quantity, 3);
+      expect(engine.requests.last.negotiationId, 'accepted-nego-1');
+      await _tap(tester, find.textContaining('Buat Pesanan'));
+      await _settle(tester);
+      expect(harness.repository.lastRequest!.quantity, 3);
+      expect(harness.repository.lastRequest!.negotiationId, 'accepted-nego-1');
     });
   });
 

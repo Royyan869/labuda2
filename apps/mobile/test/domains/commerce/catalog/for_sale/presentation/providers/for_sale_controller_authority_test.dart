@@ -245,6 +245,78 @@ void main() {
     );
 
     test(
+      'never-paid seller (status none) is told to ACTIVATE, never RENEW',
+      () async {
+        final repo = _FakeForSaleRepository();
+        final controller = ForSaleController(
+          repository: repo,
+          logger: const _NoopLogger(),
+        );
+
+        final result = await controller.createForSaleIfAuthorized(
+          _request(),
+          AuthState.authenticated(
+            _seller(
+              hasSellerProfile: true,
+              hasMarketAuthority: false,
+              sellerSubscriptionStatus: 'none',
+            ),
+            emailVerified: true,
+          ),
+        );
+
+        expect(result.isError, isTrue);
+        expect(result.errorCode, 'MARKET_AUTHORITY_REQUIRED');
+        expect(
+          result.error,
+          contains('Aktifkan'),
+          reason: 'never-paid seller must be told to activate',
+        );
+        expect(
+          result.error,
+          isNot(contains('Perpanjang')),
+          reason: 'never-paid seller must NEVER be told to renew',
+        );
+      },
+    );
+
+    test(
+      'expired-subscription seller is told to RENEW, not activate',
+      () async {
+        final repo = _FakeForSaleRepository();
+        final controller = ForSaleController(
+          repository: repo,
+          logger: const _NoopLogger(),
+        );
+
+        final result = await controller.createForSaleIfAuthorized(
+          _request(),
+          AuthState.authenticated(
+            _seller(
+              hasSellerProfile: true,
+              hasMarketAuthority: false,
+              sellerSubscriptionStatus: 'expired',
+            ),
+            emailVerified: true,
+          ),
+        );
+
+        expect(result.isError, isTrue);
+        expect(result.errorCode, 'MARKET_AUTHORITY_REQUIRED');
+        expect(
+          result.error,
+          contains('Perpanjang'),
+          reason: 'expired seller must still be told to renew',
+        );
+        expect(
+          result.error,
+          isNot(contains('Aktifkan')),
+          reason: 'expired seller must not be told to activate',
+        );
+      },
+    );
+
+    test(
       'expired-subscription seller is also blocked at create',
       () async {
         final repo = _FakeForSaleRepository();

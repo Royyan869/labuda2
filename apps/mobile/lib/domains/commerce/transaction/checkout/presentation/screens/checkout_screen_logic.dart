@@ -68,6 +68,11 @@ Future<void> _checkoutFetchPreview(
       return;
     }
 
+    state._forSale = forSale;
+    if (state._selectedQuantity > forSale.stock) {
+      state._selectedQuantity = forSale.stock > 0 ? forSale.stock : 1;
+    }
+
     if (!forSale.isAvailable) {
       state._updateState(() {
         state._previewError = 'Produk tidak tersedia';
@@ -197,6 +202,21 @@ Future<void> _checkoutFetchPreview(
 Future<void> _checkoutLoadPreOrderPaymentMethods(
   _CheckoutScreenState state,
 ) async {
+  // BID-WIN: no pre-order method selection exists (Owner canonical — the
+  // winner binds a method at Order Detail via the first payment). Nothing to
+  // load, no fee to fold in.
+  if (state._isBidWin) {
+    if (state.mounted) {
+      state._updateState(() {
+        state._preOrderPricing = null;
+        state._selectedPaymentMethodCode = null;
+        state._paymentMethodsError = null;
+        state._isLoadingPaymentMethods = false;
+      });
+    }
+    return;
+  }
+
   final token = state._previewResult?.pricingToken;
 
   if (token == null || token.isEmpty || !state._hasFreshPreview) {
@@ -385,18 +405,19 @@ Future<void> _checkoutHandleCreateOrder(_CheckoutScreenState state) async {
 
     final notifier = state.ref.read(checkoutNotifierProvider.notifier);
 
-    // SUBMISSION SNAPSHOT: readiness above guarantees a method is selected.
-    // Capture the buyer's financial intent ONCE, before the order is built. The
-    // selected method is BOUND to the order by the backend; Order Detail later
-    // pays with that same bound method. Reading the live controls after an await
-    // could otherwise drift.
+    // SUBMISSION SNAPSHOT: capture the buyer's financial intent ONCE, before
+    // the order is built. Method-binding checkouts guarantee a method is
+    // selected (readiness). Bid-win submits NO method — the backend rejects
+    // one on bid-win creation; Order Detail binds the first payment's method.
     final submittedUseCoins = state._useCoins;
-    final submittedPaymentMethodCode = state._selectedPaymentMethodCode!;
+    final submittedPaymentMethodCode = state._isBidWin
+        ? null
+        : state._selectedPaymentMethodCode!;
 
     final request = CheckoutRequest(
       productId: productId,
       forSaleId: state.widget.forSaleId,
-      quantity: 1,
+      quantity: state._selectedQuantity,
       useCoins: submittedUseCoins ? true : null,
       notes: state._notesController.text.trim().isEmpty
           ? null

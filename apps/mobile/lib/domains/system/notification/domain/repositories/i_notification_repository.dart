@@ -12,17 +12,22 @@ import 'package:labuda/domains/system/notification/domain/entities/notification_
 import 'package:labuda/domains/system/notification/domain/entities/notification_preference_entity.dart';
 
 abstract class INotificationRepository {
-  /// Get notifications untuk user (real-time stream)
+  /// Get notifications untuk user — ONE-SHOT canonical read.
   ///
-  /// Returns stream of notifications yang auto-update dari Firestore.
-  /// Supports pagination dengan limit parameter.
-  Stream<Result<List<NotificationEntity>>> getNotifications({
+  /// Returns a single canonical page from the backend (GET /notifications).
+  /// Periodic refresh is NOT this contract's concern: the ONE notification
+  /// reconciliation cadence (NotificationInitializer) invalidates the
+  /// canonical providers, which re-runs this read.
+  Future<Result<List<NotificationEntity>>> getNotifications({
     required String userId,
     int limit = 20,
   });
 
-  /// Mark single notification as read
-  Future<Result<void>> markAsRead({required String notificationId});
+  /// Mark single notification as read.
+  ///
+  /// Returns `Result<int>` carrying the canonical post-mutation
+  /// `unread_count` from the backend mutation response.
+  Future<Result<int>> markAsRead({required String notificationId});
 
   /// Mark notifications as read by entity type and entity ID
   ///
@@ -34,13 +39,18 @@ abstract class INotificationRepository {
     required String entityId,
   });
 
-  /// Mark all notifications as read untuk user
-  Future<Result<void>> markAllAsRead({required String userId});
-
-  /// Get unread notification count
+  /// Mark all notifications as read untuk user.
   ///
-  /// Returns real-time stream of unread count.
-  Stream<Result<int>> getUnreadCount({required String userId});
+  /// Returns `Result<int>` carrying the canonical post-mutation
+  /// `unread_count` from the backend mutation response (normally 0).
+  Future<Result<int>> markAllAsRead({required String userId});
+
+  /// Get unread notification count — ONE-SHOT canonical read.
+  ///
+  /// Returns a single canonical count from the backend
+  /// (GET /notifications/unread-count). Periodic refresh is owned by the ONE
+  /// notification reconciliation cadence, never by this contract.
+  Future<Result<int>> getUnreadCount({required String userId});
 
   /// Get user notification preferences
   Future<Result<NotificationPreferenceEntity>> getPreferences({
@@ -52,8 +62,11 @@ abstract class INotificationRepository {
     required NotificationPreferenceEntity preferences,
   });
 
-  /// Delete single notification
-  Future<Result<void>> deleteNotification({required String notificationId});
+  /// Delete single notification.
+  ///
+  /// Returns `Result<int>` carrying the canonical post-mutation
+  /// `unread_count` from the backend mutation response.
+  Future<Result<int>> deleteNotification({required String notificationId});
 
   /// Delete all notifications untuk user
   Future<Result<void>> deleteAllNotifications({required String userId});

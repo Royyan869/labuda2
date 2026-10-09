@@ -36,7 +36,6 @@ func TestCancelOverdueAndExpireRefundCanonicalProvesPDplusS(t *testing.T) {
 		CommissionAmount:       money.New(4000),
 		TotalBeforeCoinsAmount: money.New(can),
 		Status:                 orderentity.StatusPaid,
-		EscrowStatus:           orderentity.EscrowStatusHolding,
 	}
 
 	// Canonical full-refund amount is the persisted buyer-funded base.

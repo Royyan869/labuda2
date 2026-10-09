@@ -37,12 +37,10 @@ class _CoinBalanceScreenState extends ConsumerState<CoinBalanceScreen> {
 
     final userId = currentUser.id;
 
-    // Watch balance stream for real-time updates
-    final balanceAsync = ref.watch(coinBalanceStreamProvider(userId));
+    final balanceAsync = ref.watch(coinBalanceProvider(userId));
 
-    // Watch recent transactions stream
     final transactionsAsync = ref.watch(
-      coinTransactionsStreamProvider((userId: userId, limit: 10)),
+      coinTransactionsProvider((userId: userId, limit: 10, offset: 0)),
     );
 
     return Scaffold(
@@ -55,15 +53,15 @@ class _CoinBalanceScreenState extends ConsumerState<CoinBalanceScreen> {
       body: SafeArea(
         child: balanceAsync.when(
           data: (balance) {
-            if (balance == null) {
-              return _buildEmptyState();
-            }
-
             return RefreshIndicator(
               onRefresh: () async {
-                ref.invalidate(coinBalanceStreamProvider(userId));
+                ref.invalidate(coinBalanceProvider(userId));
                 ref.invalidate(
-                  coinTransactionsStreamProvider((userId: userId, limit: 10)),
+                  coinTransactionsProvider((
+                    userId: userId,
+                    limit: 10,
+                    offset: 0,
+                  )),
                 );
               },
               child: CustomScrollView(
@@ -224,33 +222,6 @@ class _CoinBalanceScreenState extends ConsumerState<CoinBalanceScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Coins')),
       body: const Center(child: Text('Silakan login untuk melihat Coins Anda')),
-    );
-  }
-
-  Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(
-            Icons.stars_outlined,
-            size: AppIconSize.display,
-            color: AppColors.coinPrimary,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Belum ada Coins',
-            style: context.typeRoles.titleProminent.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Dapatkan Coins dari berbagai aktivitas di Labuda',
-            style: context.typeRoles.bodyDense,
-          ),
-        ],
-      ),
     );
   }
 

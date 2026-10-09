@@ -49,8 +49,8 @@ func GetCategory(notifyType string) NotificationCategory {
 		strings.HasPrefix(notifyType, "negotiation."),
 		strings.HasPrefix(notifyType, "external_product.review."), // review decision — owner must not miss approval/rejection
 		notifyType == "auction.bid.placed",                        // seller must always receive bid notifications
-		notifyType == "auction.waiting_settlement",                // winner must always receive claim notification
-		notifyType == "auction.seller_has_winner",                 // seller must know their auction has a winner pending claim
+		notifyType == "auction.waiting_settlement",                // winner must always receive the settlement notification
+		notifyType == "auction.seller_has_winner",                 // seller must know their auction has a winner pending checkout
 		notifyType == "auction.ended_no_winner",                   // seller must know their auction closed without a winner
 		notifyType == "auction.settlement_failed.buyer",           // buyer must know their settlement failed (violation/restriction)
 		notifyType == "auction.settlement_failed.seller_default",  // seller must know their quote default caused a reschedule
@@ -200,13 +200,13 @@ func RequiresPushByType(notifyType string) bool {
 		return true
 	}
 
-	// Priority: Auction won — winner must not miss their 24h claim window.
+	// Priority: Auction won — winner must not miss their 24h settlement (checkout) window.
 	if notifyType == "auction.waiting_settlement" {
 		return true
 	}
 
 	// Priority: Auction seller has winner — seller must know their auction has a
-	// pending claim so they can prepare for the incoming order.
+	// pending winner checkout so they can prepare for the incoming order.
 	if notifyType == "auction.seller_has_winner" {
 		return true
 	}

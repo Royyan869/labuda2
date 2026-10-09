@@ -47,7 +47,6 @@ func TestDiscountedOrderPartialRefundGuardProvesCanonicalBase(t *testing.T) {
 		TotalBeforeCoinsAmount: money.New(base),    // PD + S — fee F excluded
 		TotalPayableAmount:     money.New(payable), // base + F
 		Status:                 orderentity.StatusDisputeOpen,
-		EscrowStatus:           orderentity.EscrowStatusHolding,
 		HasDispute:             true,
 	}
 

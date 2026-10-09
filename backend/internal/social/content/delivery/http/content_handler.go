@@ -294,9 +294,8 @@ type ContentResponse struct {
 	// Populated with available data (like count); zeros for untracked metrics.
 	Engagement *EngagementResponse `json:"engagement,omitempty"`
 
-	// C7C — Per-viewer engagement flags (authenticated callers only).
+	// C7C — Per-viewer engagement flag (authenticated callers only).
 	IsLiked *bool `json:"is_liked,omitempty"`
-	IsSaved *bool `json:"is_saved,omitempty"`
 
 	// PUBLICCARD BATCH 2D: Canonical ContentCard exposure (additive).
 	// New clients SHOULD consume the nested card, which is the canonical

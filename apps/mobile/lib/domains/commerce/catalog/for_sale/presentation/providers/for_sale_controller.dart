@@ -154,8 +154,14 @@ class ForSaleController {
     }
 
     if (user.hasMarketAuthority != true) {
+      // Canonical expiry axis (RF-02): capability blocks the mutation, but
+      // only an ENDED subscription may claim expiry / say "Perpanjang".
+      // Status 'none' / never-paid is activation, not renewal.
+      final isExpired = user.isSellerSubscriptionExpired;
       return Result.error(
-        'Langganan seller belum aktif atau sudah berakhir. Perpanjang dulu untuk membuat forSale.',
+        isExpired
+            ? 'Langganan seller sudah berakhir. Perpanjang dulu untuk membuat forSale.'
+            : 'Langganan seller belum aktif. Aktifkan dulu untuk membuat forSale.',
         code: 'MARKET_AUTHORITY_REQUIRED',
       );
     }

@@ -316,7 +316,7 @@ func TestSavedItemHandler_FailClosedOnOwnForSaleAndEndedAuction(t *testing.T) {
 	require.NoError(t, json.Unmarshal(endedAuctionResp.Body.Bytes(), &endedAuctionError))
 	require.False(t, endedAuctionError.Success)
 	require.NotNil(t, endedAuctionError.Error)
-	require.Equal(t, "AUCTION_ENDED", endedAuctionError.Error.Code)
+	require.Equal(t, "BAD_REQUEST", endedAuctionError.Error.Code)
 
 	repo := savedItemRepo.NewSavedItemRepository(db.NewFromPool(tdb.Pool()))
 	count, err := repo.Count(ctx, viewerID)

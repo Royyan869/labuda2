@@ -211,6 +211,7 @@ AuthUser _sellerUser({
   required String username,
   required String bio,
   required String phoneNumber,
+  String? sellerSubscriptionStatus,
 }) {
   final now = DateTime.utc(2026, 1, 1);
   return AuthUser(
@@ -226,7 +227,11 @@ AuthUser _sellerUser({
     roles: const [UserRole.user],
     provider: AuthProvider.email,
     hasSellerProfile: hasSellerProfile,
-    sellerSubscriptionStatus: hasMarketAuthority ? 'active' : 'expired',
+    // Canonical expiry axis: never-paid is 'none', not 'expired'. When the
+    // caller does not pin a status, fall back to the historical fixture rule.
+    sellerSubscriptionStatus:
+        sellerSubscriptionStatus ??
+        (hasMarketAuthority ? 'active' : 'expired'),
     hasMarketAuthority: hasMarketAuthority,
     sellerTier: SellerTier.sellerElite,
     isIdVerified: false,
@@ -421,9 +426,22 @@ AuthUser _expiredSeller() => _sellerUser(
   id: 'expired-seller',
   hasSellerProfile: true,
   hasMarketAuthority: false,
+  sellerSubscriptionStatus: 'expired',
   username: 'expired-seller',
   bio: 'Bio renewal',
   phoneNumber: '+6222222222',
+);
+
+/// Freshly onboarded seller: identity exists, payment never settled.
+/// Canonical state is pendingActivation — must be told to ACTIVATE, never RENEW.
+AuthUser _neverPaidSeller() => _sellerUser(
+  id: 'never-paid-seller',
+  hasSellerProfile: true,
+  hasMarketAuthority: false,
+  sellerSubscriptionStatus: 'none',
+  username: 'never-paid-seller',
+  bio: 'Bio activation',
+  phoneNumber: '+62333333333',
 );
 
 void main() {
@@ -653,6 +671,46 @@ void main() {
           expect(find.text('Lanjut Lengkapi Data'), findsNothing);
           expect(sellerRemoteDatasource.onboardingCalls, 0);
           expect(sellerRemoteDatasource.paymentCalls, 0);
+        },
+      );
+
+      testWidgets(
+        'never-paid seller is offered ACTIVATE, never Perpanjang',
+        (tester) async {
+          // RF-02 residual: hasSellerProfile=true + status 'none' must not be
+          // treated as expired / renewal.
+          final user = _neverPaidSeller();
+          final controller = _FakeAuthController(
+            AuthState.authenticated(user, emailVerified: true),
+          );
+          final authRepository = _FakeAuthRepository();
+          final addressRepository = _FakeAddressRepository([
+            _senderAddressFor(user.id),
+          ]);
+          final sellerRemoteDatasource = _FakeSellerRemoteDatasource();
+
+          await tester.pumpWidget(
+            _wrap(
+              controller,
+              authRepository,
+              addressRepository,
+              sellerRemoteDatasource,
+              authUser: user,
+              farmName: 'Fresh Farm',
+            ),
+          );
+
+          await tester.pumpAndSettle();
+
+          // Identity gate still blocks re-registration.
+          expect(find.text('Seller Terdaftar'), findsOneWidget);
+          expect(find.text('Daftar Seller'), findsNothing);
+
+          // Activation copy, not renewal copy.
+          expect(find.text('Buka Aktifkan Seller'), findsOneWidget);
+          expect(find.text('Buka Perpanjang Seller'), findsNothing);
+          expect(find.textContaining('Aktivasi langganan'), findsOneWidget);
+          expect(find.textContaining('Perpanjangan langganan'), findsNothing);
         },
       );
 

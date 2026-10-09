@@ -242,5 +242,4 @@ class _CoinBalanceCardState extends State<CoinBalanceCard> {
       ),
     );
   }
-
 }

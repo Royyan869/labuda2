@@ -197,13 +197,8 @@ func (h *SavedItemHandler) AddSavedItem(c *gin.Context) {
 				zap.Error(err),
 			)
 
-			// Check for specific errors
-			if contains(err.Error(), "cannot watch ended auction") {
-				response.Error(c, 400, "AUCTION_ENDED", "Cannot watch ended auction")
-				return
-			}
-			if contains(err.Error(), "cannot watch cancelled auction") {
-				response.Error(c, 400, "AUCTION_CANCELLED", "Cannot watch cancelled auction")
+			if contains(err.Error(), "cannot watch auction with status") {
+				response.BadRequest(c, err.Error())
 				return
 			}
 

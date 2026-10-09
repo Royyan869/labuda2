@@ -47,9 +47,7 @@ abstract class AuctionRepository {
   Future<Result<Auction>> getAuctionById(String auctionId);
 
   /// Get multiple auctions by IDs
-  Future<Result<List<Auction>>> getAuctionsByIds(
-    List<String> auctionIds,
-  );
+  Future<Result<List<Auction>>> getAuctionsByIds(List<String> auctionIds);
 
   /// Get active auctions with filters
   Future<Result<List<Auction>>> getActiveAuctions({
@@ -125,27 +123,10 @@ abstract class AuctionRepository {
   // (auction_detail_screen.dart._handleBuyNow) routes through the generic
   // checkout screen instead, same as any other order-creation path.
 
-  // ========== Claim Operations ==========
-
-  /// Claim auction - creates order for auction winner
-  ///
-  /// This is the SINGLE SOURCE OF TRUTH for creating orders from won auctions.
-  /// The backend validates:
-  /// - Caller is the winner
-  /// - Auction is in waiting_settlement status
-  /// - Claim deadline has not passed
-  /// - Creates order atomically with order_id set on auction
-  ///
-  /// Returns order_id on success
-  Future<Result<String>> claimAuction({
-    required String auctionId,
-    required String addressId,
-    String? shippingSetupId,
-    String? shippingQuoteId,
-    String? chatId,
-    String? discountCode,
-    bool useCoins = false,
-  });
+  // ========== Bid-Win Settlement ==========
+  // NO claim RPC exists (purged with the claim flow). The winner completes
+  // the shared Checkout: POST /pricing/preview → POST /orders (bid-win
+  // branch binds the auction settlement + creates the order in one tx).
 
   // ========== Real-time Streams ==========
   // LIST discovery is NOT a stream — one engine (Future) with ForSale lives

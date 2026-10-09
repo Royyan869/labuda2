@@ -44,7 +44,14 @@ class UserSearchBottomSheet extends ConsumerStatefulWidget {
 
 class _UserSearchBottomSheetState extends ConsumerState<UserSearchBottomSheet> {
   final TextEditingController _searchController = TextEditingController();
-  late final SearchApiService _searchService;
+  // One-shot init: `didChangeDependencies` re-fires on ANY inherited
+  // dependency change (keyboard, insets, theme) — assigning a `late final`
+  // there threw a LateInitializationError mid-rebuild and froze/broke the
+  // body (BOTTOMSHEET-04, geometry-proven). The lazy field initializer
+  // runs exactly once, on first use.
+  late final SearchApiService _searchService = ref.read(
+    searchApiServiceProvider,
+  );
   final Set<String> _selectedUserIds = {};
 
   List<UserSearch> _searchResults = [];
@@ -61,13 +68,6 @@ class _UserSearchBottomSheetState extends ConsumerState<UserSearchBottomSheet> {
     super.initState();
     _selectedUserIds.addAll(widget.alreadyTaggedUserIds);
     _searchController.addListener(_onSearchChanged);
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // Initialize service with search domain provider
-    _searchService = ref.read(searchApiServiceProvider);
   }
 
   @override
@@ -151,14 +151,15 @@ class _UserSearchBottomSheetState extends ConsumerState<UserSearchBottomSheet> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
 
-    // Body height — a share of the space the sheet ACTUALLY has, asked of the
-    // sheet authority itself ([AppBottomSheetBase.availableHeight]: window
-    // minus the keyboard minus the system top inset). A fraction of the raw
-    // SCREEN height went stale the moment the keyboard opened — 90% of the
-    // screen plus the keyboard lift was taller than the sheet's own ceiling,
-    // so this body outgrew its slot instead of adapting to the live inset.
+    // Body height — a share of the space the sheet ACTUALLY has, asked of
+    // the sheet authority itself ([AppBottomSheetBase.contentAllocationOf]:
+    // the live content region, with the sheet chrome and the system spacer
+    // already spent). Denominating the share on the raw CEILING
+    // (`availableHeight × share`) re-derived the sheet fit from the wrong
+    // budget: the chrome sharing the ceiling pushed this slot past the
+    // content region at larger insets (BOTTOMSHEET-04, geometry-proven).
     final modalHeight =
-        AppBottomSheetBase.availableHeight(context) * _bodyShare;
+        AppBottomSheetBase.contentAllocationOf(context) * _bodyShare;
 
     // Surface, shape, handle and scroll come from the base.
     return SizedBox(
@@ -207,24 +208,25 @@ class _UserSearchBottomSheetState extends ConsumerState<UserSearchBottomSheet> {
       child: TextField(
         controller: _searchController,
         autofocus: true,
-        decoration: AppTheme.searchDecoration(
-          scheme,
-          hintText: 'Search username...',
-        ).copyWith(
-          prefixIcon: Icon(Icons.search, color: scheme.onSurfaceVariant),
-          suffixIcon: _searchController.text.isNotEmpty
-              ? IconButton(
-                  icon: Icon(
-                    Icons.clear,
-                    color: scheme.onSurfaceVariant,
-                    semanticLabel: 'Bersihkan',
-                  ),
-                  onPressed: () {
-                    _searchController.clear();
-                  },
-                )
-              : null,
-        ),
+        decoration:
+            AppTheme.searchDecoration(
+              scheme,
+              hintText: 'Search username...',
+            ).copyWith(
+              prefixIcon: Icon(Icons.search, color: scheme.onSurfaceVariant),
+              suffixIcon: _searchController.text.isNotEmpty
+                  ? IconButton(
+                      icon: Icon(
+                        Icons.clear,
+                        color: scheme.onSurfaceVariant,
+                        semanticLabel: 'Bersihkan',
+                      ),
+                      onPressed: () {
+                        _searchController.clear();
+                      },
+                    )
+                  : null,
+            ),
       ),
     );
   }

@@ -116,23 +116,23 @@ func runScenarioProjection(deps *serverboot.Dependencies, db *database.DB, log *
 	// ── STEP 7: Sample row integrity ─────────────────────────────────────────
 	if post.OrderCount > 0 {
 		var (
-			id, status, escrowStatus string
-			hasDispute               bool
-			subtotal                 int64
-			createdAt                time.Time
+			id, status string
+			hasDispute bool
+			subtotal   int64
+			createdAt  time.Time
 		)
 		sampleErr := db.Pool().QueryRow(ctx, `
-			SELECT id::text, status::text, escrow_status::text, has_dispute, subtotal, created_at
+			SELECT id::text, status::text, has_dispute, subtotal, created_at
 			FROM order_summaries
 			ORDER BY created_at DESC
 			LIMIT 1
-		`).Scan(&id, &status, &escrowStatus, &hasDispute, &subtotal, &createdAt)
+		`).Scan(&id, &status, &hasDispute, &subtotal, &createdAt)
 		if sampleErr != nil {
 			fail("step7.sample_row", fmt.Sprintf("scan failed: %v", sampleErr))
 		} else {
 			pass("step7.sample_row", fmt.Sprintf(
-				"id=%s…  status=%s  escrow=%s  has_dispute=%v  subtotal=%d",
-				id[:8], status, escrowStatus, hasDispute, subtotal,
+				"id=%s…  status=%s  has_dispute=%v  subtotal=%d",
+				id[:8], status, hasDispute, subtotal,
 			))
 		}
 	} else {

@@ -90,7 +90,7 @@ func TestValidateSaleSurfaceForCheckout_Guard6_AllowsSellerWithMarketAuthority(t
 
 // TestValidateSaleSurfaceForCheckout_Guard6_WonAuctionSettlementAllowsLapsedSeller
 // proves the ONE deliberate Guard 6 exception (owner canonical, Oct 2026):
-// settling an auction the buyer already won (bid_win claim) proceeds even
+// settling an auction the buyer already won (bid_win) proceeds even
 // when the seller's market authority has lapsed — an auction with bids runs
 // to completion. New sales (ForSale checkout, auction buy-now) keep the
 // block, as locked by TestValidateSaleSurfaceForCheckout_Guard6_BlocksSellerWithoutMarketAuthority.

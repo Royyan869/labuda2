@@ -34,16 +34,12 @@ func NewBiddingHandler(
 
 // GetMyBidding handles GET /api/v1/bidding
 //
-// Returns all auctions where the authenticated user has placed bids,
-// aggregated with user's bid information and derived status.
+// Returns the authenticated user's My Bids: auctions with an open bidding
+// process (active + waiting_settlement), aggregated with the user's latest
+// bid and derived status.
 //
-// Response format:
-// {
-//   "items": [...],
-//   "active_count": X,
-//   "won_count": X,
-//   "lost_count": X
-// }
+// Response format: {"items": [...], "active_count": X} where items are
+// BiddingItem structs serialized with snake_case JSON keys.
 func (h *BiddingHandler) GetMyBidding(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -78,11 +74,7 @@ func (h *BiddingHandler) GetMyBidding(c *gin.Context) {
 
 	// Map to response format (snake_case for JSON)
 	response.Success(c, gin.H{
-		"items":       result.Items,
+		"items":        result.Items,
 		"active_count": result.ActiveCount,
-		"won_count":    result.WonCount,
-		"lost_count":   result.LostCount,
 	})
 }
-
-

@@ -1,10 +1,51 @@
 package middleware
 
 import (
+	"context"
+
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/labuda/backend/internal/identity/auth"
 	"github.com/labuda/backend/internal/platform/response"
 )
+
+// sellerSubscriptionStatusReader is an optional capability of RoleChecker
+// implementations that can report the canonical seller subscription state
+// ('active' | 'expired' | 'none').
+//
+// It is a READ of existing canonical state for denial-message copy only —
+// not an authorization grant. Authorization remains HasActiveSellerCapability.
+type sellerSubscriptionStatusReader interface {
+	GetSellerSubscriptionStatus(ctx context.Context, userID uuid.UUID) (string, error)
+}
+
+// marketAuthorityDenialMessage returns the canonical user-facing message for a
+// market-authority denial, distinguished by the seller's subscription state.
+//
+// INVARIANT: a seller who never successfully paid (status 'none' / no row)
+// must never be told to renew. Only an ENDED subscription ('expired') may
+// say "renew". Unknown / unreadable status fails closed to activation copy.
+func marketAuthorityDenialMessage(subscriptionStatus string) string {
+	if subscriptionStatus == "expired" {
+		return "Active seller subscription required. Please renew your subscription to continue selling."
+	}
+	return "Active seller subscription required. Please activate your subscription to start selling."
+}
+
+// readSellerSubscriptionStatus reports the canonical seller subscription state
+// for denial-message copy. Returns "" when the checker cannot report status,
+// so the caller fails closed to activation copy (never-paid never renews).
+func readSellerSubscriptionStatus(ctx context.Context, roleChecker auth.RoleChecker, userID uuid.UUID) string {
+	reader, ok := roleChecker.(sellerSubscriptionStatusReader)
+	if !ok {
+		return ""
+	}
+	status, err := reader.GetSellerSubscriptionStatus(ctx, userID)
+	if err != nil {
+		return ""
+	}
+	return status
+}
 
 // RequireAdminMiddleware creates middleware that requires admin role.
 // This middleware must be used after AuthMiddleware and UserLookupMiddleware.
@@ -55,11 +96,17 @@ func RequireSellerMiddleware(roleChecker auth.RoleChecker) gin.HandlerFunc {
 			return
 		}
 
-	if !hasAuthority {
-		response.MarketAuthorityRequired(c, "Active seller subscription required. Please renew your subscription to continue selling.")
-		c.Abort()
-		return
-	}
+		if !hasAuthority {
+			// Distinguish never-paid ('none') from ended ('expired') using the
+			// canonical subscription state. Never-paid sellers are told to
+			// ACTIVATE, never RENEW (RF-02 residual).
+			msg := marketAuthorityDenialMessage(
+				readSellerSubscriptionStatus(c.Request.Context(), roleChecker, userID),
+			)
+			response.MarketAuthorityRequired(c, msg)
+			c.Abort()
+			return
+		}
 
 		c.Set("has_market_authority", true)
 		c.Next()
@@ -95,4 +142,3 @@ func RequireSellerProfileMiddleware(roleChecker auth.RoleChecker) gin.HandlerFun
 		c.Next()
 	}
 }
-

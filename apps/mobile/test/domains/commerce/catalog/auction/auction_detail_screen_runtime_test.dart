@@ -30,6 +30,7 @@ import 'package:labuda/domains/commerce/catalog/auction/presentation/providers/a
     show ownerOtherAuctionsProvider, similarAuctionsProvider;
 import 'package:labuda/domains/commerce/catalog/auction/presentation/providers/auction_state.dart';
 import 'package:labuda/domains/commerce/catalog/auction/presentation/screens/auction_detail_screen.dart';
+import 'package:labuda/domains/commerce/catalog/auction/presentation/widgets/detail/auction_action_modal.dart';
 import 'package:labuda/domains/commerce/catalog/shared/domain/entities/commerce_viewer_capabilities.dart';
 import 'package:labuda/domains/user/preference/saved_item/data/repositories/saved_item_repository.dart';
 import 'package:labuda/domains/user/preference/saved_item/data/repositories/saved_item_repository_provider.dart';
@@ -190,10 +191,9 @@ Widget _wrap({
   Stream<Auction?>? auctionStream,
   Stream<List<AuctionBid>>? auctionBidsStream,
 }) {
-  final notifier =
-      auctionNotifierState == null
-          ? null
-          : _FakeAuctionNotifier(auctionNotifierState);
+  final notifier = auctionNotifierState == null
+      ? null
+      : _FakeAuctionNotifier(auctionNotifierState);
   return ProviderScope(
     overrides: [
       authControllerProvider.overrideWith(() => _FakeAuthController(authState)),
@@ -217,18 +217,15 @@ Widget _wrap({
         auction.id,
       ).overrideWith((ref) async => const <Auction>[]),
       navigationHandlerProvider.overrideWithValue(_FakeNavigationHandler()),
-      savedItemRepositoryProvider.overrideWithValue(
-        _FakeSavedItemRepository(),
-      ),
+      savedItemRepositoryProvider.overrideWithValue(_FakeSavedItemRepository()),
     ],
     child: MaterialApp(home: AuctionDetailScreen(auctionId: auction.id)),
   );
 }
 
-ElevatedButton _bidButton(WidgetTester tester) =>
-    tester.widget<ElevatedButton>(
-      find.widgetWithText(ElevatedButton, 'Pasang Bid'),
-    );
+ElevatedButton _bidButton(WidgetTester tester) => tester.widget<ElevatedButton>(
+  find.widgetWithText(ElevatedButton, 'Pasang Bid'),
+);
 
 void main() {
   testWidgets('buyer detail renders canonical content and enabled bid CTA', (
@@ -312,7 +309,9 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('owner capability disables bid and hides chat', (tester) async {
+  testWidgets('owner gets no viewer-directed bottom bar (owner truth)', (
+    tester,
+  ) async {
     await tester.binding.setSurfaceSize(const Size(800, 2400));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
@@ -333,18 +332,24 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // Owner has no bid capability → CTA rendered but inert.
-    expect(find.text('Pasang Bid'), findsOneWidget);
-    expect(_bidButton(tester).onPressed, isNull);
-    // can_chat=false for the owner role → chat hidden.
+    // OWNER TRUTH (Owner decision, converged with the ForSale detail):
+    // the author sees their own auction WITHOUT any viewer-directed bottom
+    // surface — the bottom slot is null (no inert "Pasang Bid", no chat),
+    // exactly like the ForSale owner state. The body SafeArea then owns
+    // the bottom system inset.
+    expect(find.text('Pasang Bid'), findsNothing);
     expect(find.text('Chat'), findsNothing);
+    expect(
+      tester.widget<Scaffold>(find.byType(Scaffold)).bottomNavigationBar,
+      isNull,
+    );
     // No promote button on detail screens anymore: promotion is created
     // only from the promote page itself.
     expect(find.byTooltip('Promote'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('guest keeps the bid affordance (routes to sign-in)', (
+  testWidgets('guest bid affordance stays unavailable without capability', (
     tester,
   ) async {
     await tester.binding.setSurfaceSize(const Size(800, 2400));
@@ -357,64 +362,221 @@ void main() {
     );
 
     await tester.pumpWidget(
-      _wrap(
-        auction: auction,
-        authState: const AuthStateUnauthenticated(),
-      ),
+      _wrap(auction: auction, authState: const AuthStateUnauthenticated()),
     );
     await tester.pumpAndSettle();
 
-    // Model B parity with the fixed-price detail bar: the affordance stays
-    // visible on raw facts; the tap routes to the canonical sign-in flow.
     expect(find.text('Pasang Bid'), findsOneWidget);
-    expect(_bidButton(tester).onPressed, isNotNull);
+    expect(_bidButton(tester).onPressed, isNull);
     expect(find.text('Chat'), findsNothing);
     // Share is authenticated-only.
     expect(find.byTooltip('Bagikan'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets(
-    'seller-inactive buyer capability disables bid and hides chat',
-    (tester) async {
-      await tester.binding.setSurfaceSize(const Size(800, 2400));
-      addTearDown(() => tester.binding.setSurfaceSize(null));
-
-      const inactiveBuyer = CommerceViewerCapabilities(
-        role: 'buyer',
-        canManage: false,
-        canEdit: false,
-        canPromote: false,
-        canChat: false,
-        canNegotiate: false,
-        canBuy: false,
-        canBid: false,
-        canBuyNow: false,
-      );
+  testWidgets('auction status matrix keeps commerce CTAs truthful', (
+    tester,
+  ) async {
+    final statuses = <AuctionStatus>[
+      AuctionStatus.scheduled,
+      AuctionStatus.active,
+      AuctionStatus.waitingSettlement,
+      AuctionStatus.ended,
+      AuctionStatus.cancelled,
+      AuctionStatus.lapsed,
+    ];
+    for (final status in statuses) {
+      final canAct = status == AuctionStatus.active;
       final auction = _auction(
-        id: 'auction-inactive',
-        sellerId: 'seller-inactive',
-        capabilities: inactiveBuyer,
-        sellerTrustLifecycle: ContentLifecycle.unavailable,
+        id: 'matrix-${status.name}',
+        sellerId: 'seller-matrix',
+        status: status,
+        capabilities: CommerceViewerCapabilities(
+          role: 'buyer',
+          canManage: false,
+          canEdit: false,
+          canPromote: false,
+          canChat: canAct,
+          canNegotiate: false,
+          canBuy: false,
+          canBid: canAct,
+          canBuyNow: canAct,
+        ),
       );
-
       await tester.pumpWidget(
-        _wrap(
-          auction: auction,
-          authState: AuthState.authenticated(
-            _authUser(id: 'buyer-inactive'),
-            emailVerified: true,
+        KeyedSubtree(
+          key: ValueKey('matrix-${status.name}'),
+          child: _wrap(
+            auction: auction,
+            authState: AuthState.authenticated(
+              _authUser(id: 'buyer-matrix'),
+              emailVerified: true,
+            ),
           ),
         ),
       );
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
 
-      expect(find.text('Pasang Bid'), findsOneWidget);
-      expect(_bidButton(tester).onPressed, isNull);
-      expect(find.text('Chat'), findsNothing);
-      expect(tester.takeException(), isNull);
-    },
-  );
+      expect(find.byTooltip('Bagikan'), canAct ? findsOneWidget : findsNothing);
+      expect(find.byIcon(Icons.bookmark_border), canAct ? findsOneWidget : findsNothing);
+      expect(find.text('Pasang Bid'), canAct ? findsOneWidget : findsNothing);
+      if (canAct) {
+        expect(_bidButton(tester).onPressed, isNotNull);
+      } else {
+        expect(find.text('Pasang Bid'), findsNothing);
+      }
+      if (status == AuctionStatus.scheduled) {
+        expect(find.text('Terjadwal'), findsOneWidget);
+      }
+      if (status == AuctionStatus.waitingSettlement) {
+        expect(find.text('Menunggu Penyelesaian'), findsOneWidget);
+      }
+      if (status == AuctionStatus.ended) {
+        expect(find.textContaining('Lelang'), findsWidgets);
+      }
+      if (status == AuctionStatus.cancelled) {
+        expect(find.text('Lelang Dibatalkan'), findsOneWidget);
+      }
+      if (status == AuctionStatus.lapsed) {
+        expect(find.text('Lelang Kedaluarsa'), findsOneWidget);
+        expect(find.text('Pasang Bid'), findsNothing);
+      }
+    }
+  });
+
+  testWidgets('Buy Now capability is explicit for every auction status', (
+    tester,
+  ) async {
+    final statuses = <AuctionStatus>[
+      AuctionStatus.scheduled,
+      AuctionStatus.active,
+      AuctionStatus.waitingSettlement,
+      AuctionStatus.ended,
+      AuctionStatus.cancelled,
+      AuctionStatus.lapsed,
+    ];
+    for (final status in statuses) {
+      final canBuyNow = status == AuctionStatus.active;
+      final auction = _auction(
+        id: 'modal-${status.name}',
+        sellerId: 'seller-modal',
+        status: status,
+        capabilities: CommerceViewerCapabilities(
+          role: 'buyer',
+          canManage: false,
+          canEdit: false,
+          canPromote: false,
+          canChat: false,
+          canNegotiate: false,
+          canBuy: false,
+          canBid: status == AuctionStatus.active,
+          canBuyNow: canBuyNow,
+        ),
+      );
+      await tester.pumpWidget(
+        KeyedSubtree(
+          key: ValueKey('modal-${status.name}'),
+          child: MaterialApp(
+            home: Scaffold(
+              body: AuctionActionModal(
+                auction: auction,
+                onPlaceBid: (_) {},
+                onBuyNow: () {},
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      expect(
+        find.textContaining('Buy Now -'),
+        canBuyNow ? findsOneWidget : findsNothing,
+        reason: '${status.name} Buy Now must follow canBuyNow',
+      );
+    }
+  });
+
+  testWidgets('Buy Now follows canBuyNow true and false', (tester) async {
+    for (final canBuyNow in [true, false]) {
+      final auction = _auction(
+        id: 'buy-now-$canBuyNow',
+        sellerId: 'seller-buy-now',
+        capabilities: CommerceViewerCapabilities(
+          role: 'buyer',
+          canManage: false,
+          canEdit: false,
+          canPromote: false,
+          canChat: true,
+          canNegotiate: false,
+          canBuy: false,
+          canBid: true,
+          canBuyNow: canBuyNow,
+        ),
+      );
+      await tester.pumpWidget(
+        KeyedSubtree(
+          key: ValueKey('buy-now-$canBuyNow'),
+          child: _wrap(
+            auction: auction,
+            authState: AuthState.authenticated(
+              _authUser(id: 'buyer-buy-now'),
+              emailVerified: true,
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.tap(find.text('Pasang Bid'));
+      await tester.pump();
+      expect(
+        find.textContaining('Buy Now -'),
+        canBuyNow ? findsOneWidget : findsNothing,
+      );
+    }
+  });
+
+  testWidgets('seller-inactive buyer capability disables bid and hides chat', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(800, 2400));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    const inactiveBuyer = CommerceViewerCapabilities(
+      role: 'buyer',
+      canManage: false,
+      canEdit: false,
+      canPromote: false,
+      canChat: false,
+      canNegotiate: false,
+      canBuy: false,
+      canBid: false,
+      canBuyNow: false,
+    );
+    final auction = _auction(
+      id: 'auction-inactive',
+      sellerId: 'seller-inactive',
+      capabilities: inactiveBuyer,
+      sellerTrustLifecycle: ContentLifecycle.unavailable,
+    );
+
+    await tester.pumpWidget(
+      _wrap(
+        auction: auction,
+        authState: AuthState.authenticated(
+          _authUser(id: 'buyer-inactive'),
+          emailVerified: true,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Pasang Bid'), findsOneWidget);
+    expect(_bidButton(tester).onPressed, isNull);
+    expect(find.text('Chat'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets('empty product fields stay hidden on the detail screen', (
     tester,

@@ -1,4 +1,4 @@
-// ⚠️ FINANCIAL RULE:
+// âš ï¸ FINANCIAL RULE:
 // All escrow lifecycle operations MUST go through EscrowService.
 // Direct state mutation is forbidden.
 //
@@ -241,13 +241,13 @@ func (s *OrderCreationService) getOriginRequestTargetID(ctx context.Context, tx 
 // asynchronously and idempotently establishes the buyer↔seller direct room and
 // sets linked_order_id (LATEST ACTIVE ORDER RULE).
 //
-// DOCTRINAL POSITION (RUNTIME-INVARIANTS §1.2 — A transaction MUST NOT span two
+// DOCTRINAL POSITION (RUNTIME-INVARIANTS Â§1.2 — A transaction MUST NOT span two
 // domain authorities):
 //   - chat_rooms is owned by the chat domain (interaction/chat).
 //   - Previously this was an inline cross-domain mutation in the order tx.
 //   - Now it is an outbox handoff: order tx → outbox event → chat consumer.
 //
-// FAILURE SEMANTICS (RUNTIME-INVARIANTS §6.4 — Eventual consistency):
+// FAILURE SEMANTICS (RUNTIME-INVARIANTS Â§6.4 — Eventual consistency):
 //   - Chat-link is a UX convenience, not commerce authority.
 //   - Order is the source of truth; chat linkage failure does NOT roll back the
 //     order. Outbox retries the consumer with exponential backoff; persistent
@@ -258,7 +258,7 @@ func (s *OrderCreationService) getOriginRequestTargetID(ctx context.Context, tx 
 //   - The consumer uses chat's existing UNIQUE (participant_a, participant_b,
 //     room_type) constraint to avoid duplicate rooms.
 //   - Setting linked_order_id to the same orderID twice is a no-op (same value).
-//   - Safe under at-least-once delivery (RUNTIME-INVARIANTS §3.3).
+//   - Safe under at-least-once delivery (RUNTIME-INVARIANTS Â§3.3).
 //
 // COMPENSATION:
 //   - None needed. linked_order_id naturally rolls forward to the next active
@@ -303,7 +303,7 @@ type ValidateSaleSurfaceForCheckoutInput struct {
 	Quantity    int             // Requested quantity
 
 	// WonAuctionSettlement marks this order as the settlement of an auction
-	// the buyer already won (claim with settlement type bid_win). OWNER
+	// the buyer already won (bid-win settlement). OWNER
 	// CANONICAL (Oct 2026): an auction with bids runs to completion even if
 	// the seller's subscription lapsed mid-run — the won order must be
 	// fulfillable. Guard 6 still blocks every NEW sale: ForSale checkout and
@@ -325,15 +325,15 @@ type ValidateSaleSurfaceForCheckoutInput struct {
 // 5. Auction sale surfaces must have quantity = 1
 // 6. Seller must have active market authority (subscription)
 //
-// ⚠️ CRITICAL LOCKING REQUIREMENT ⚠️
+// âš ï¸ CRITICAL LOCKING REQUIREMENT âš ï¸
 // The sale surface passed in MUST already be locked with FOR UPDATE to prevent:
 // 1. Race conditions during validation (status changes between check and use)
 // 2. Double-spending inventory (multiple orders for same sale surface)
 // 3. Price manipulation attacks (price changes after order calculation)
 //
-// ❌ NEVER bypass this lock - it protects the core commerce invariant
-// ✅ ALWAYS use forSaleRepo.GetForUpdate() before calling this method
-// ✅ DB constraints are the FINAL GUARD - never disable them
+// âŒ NEVER bypass this lock - it protects the core commerce invariant
+// âœ… ALWAYS use forSaleRepo.GetForUpdate() before calling this method
+// âœ… DB constraints are the FINAL GUARD - never disable them
 func (s *OrderCreationService) validateSaleSurfaceForCheckout(
 	ctx context.Context,
 	input ValidateSaleSurfaceForCheckoutInput,
@@ -517,19 +517,24 @@ type CreateFromAuctionInput struct {
 	AuctionSettlementType orderentity.AuctionSettlementType // buy_now vs bid_win
 	PricingSnapshot       *PricingSnapshot                  // Pricing snapshot from validated pricing token (pricing authority)
 	IdempotencyKey        *string                           // Optional: HTTP idempotency key for safe retries
-	// ShippingResolvedAt is the canonical payment-deadline anchor for auction
+	// ShippingResolvedAt is the payment-deadline anchor for bid-win auction
 	// orders: payment_expires_at = shipping_resolved_at + 24h (NOT the
-	// method-based expiry used by fixed-price orders).
+	// method-based expiry used by fixed-price orders). For bid-win checkout
+	// this is set in the SAME transaction that creates the order, so it
+	// equals the order-creation time. It is an ORDER-owned payment-window
+	// policy for unbound-method orders — the Auction settlement window
+	// (end_at + 24h) ends when this order is created.
 	ShippingResolvedAt time.Time
 	// PaymentMethodCode is the exact method the buyer selected at checkout. It
 	// is bound to the order and enforced by POST /payments. Nil for the
-	// auction-claim path, which selects a method at payment time.
+	// auction bid-win path, which selects a method at payment time (Order
+	// Detail PaymentMethodPicker; first payment binds).
 	PaymentMethodCode *string
 }
 
 // calculateAuctionPaymentExpiry returns the payment deadline for an
-// auction-sourced order: shipping_resolved_at + 24h. There is no extension
-// and no second payment-deadline authority for auctions. A zero anchor (order
+// unbound-method bid-win auction order: shipping_resolved_at + 24h. There is
+// no extension and no second payment-deadline authority. A zero anchor (order
 // creation racing a missing shipping-resolution marker) falls back to now so
 // the buyer still gets the full 24h window.
 func calculateAuctionPaymentExpiry(shippingResolvedAt time.Time) time.Time {
@@ -542,10 +547,11 @@ func calculateAuctionPaymentExpiry(shippingResolvedAt time.Time) time.Time {
 
 // auctionOrderPaymentExpiry computes the payment deadline for an auction
 // order:
-//   - bid-win (claim flow): shipping_resolved_at + 24h (canonical settlement
-//     payment deadline).
+//   - bid-win: shipping_resolved_at + 24h — the Order-owned payment window
+//     for orders created without a bound payment method (the winner picks the
+//     method at Order Detail).
 //   - buy-now: method-based expiry (the auction ends immediately at buy-now
-//     order creation; there is no shipping-resolution phase).
+//     order creation; the method was bound at creation).
 func auctionOrderPaymentExpiry(input CreateFromAuctionInput, snapshot *PricingSnapshot) time.Time {
 	if input.AuctionSettlementType == orderentity.AuctionSettlementBuyNow {
 		return calculatePaymentExpiry(snapshot.PaymentMethod, time.Now())
@@ -695,7 +701,7 @@ func (s *OrderCreationService) CreateFromAuction(
 		SaleSurface: auctionSurface,
 		BuyerID:     input.BuyerID,
 		Quantity:    1, // Auction orders always have quantity = 1
-		// bid_win = claim of an already-won auction (settlement, allowed for
+		// bid_win = winner settlement of an already-won auction (allowed for
 		// lapsed sellers); buy_now = a NEW sale (still blocked by Guard 6).
 		WonAuctionSettlement: input.AuctionSettlementType == orderentity.AuctionSettlementBidWin,
 	}); err != nil {
@@ -746,7 +752,7 @@ func (s *OrderCreationService) CreateFromAuction(
 	// ============================================================
 	// STEP 9.5: VALIDATE PAYMENT METHOD (PHASE 5: BACKEND-CONTROLLED PAYMENT)
 	// ============================================================
-	// 🔥 CRITICAL: Payment method MUST be validated against allowed values
+	// ðŸ”¥ CRITICAL: Payment method MUST be validated against allowed values
 	// - Prevents client-side manipulation
 	// - Ensures expiry calculation is correct
 	// - No arbitrary payment methods allowed
@@ -829,7 +835,9 @@ func (s *OrderCreationService) CreateFromAuction(
 		auctionOrderPaymentExpiry(input, snapshot), // Canonical auction payment deadline
 	)
 
-	// Bind the buyer's selected payment method (nil for the auction-claim path).
+	// Bind the buyer's selected payment method (nil for the auction bid-win
+	// path — the winner chooses a method at Order Detail and the first payment
+	// binds it).
 	order.PaymentMethodCode = input.PaymentMethodCode
 
 	// Apply shipping destination snapshot
@@ -988,7 +996,7 @@ type PricingSnapshot struct {
 	ShippingTotal         money.Money
 	CommissionPercent     int64
 	CommissionAmount      money.Money
-	EscrowAmount          money.Money // Escrow amount from pricing token ((P−D)+S; commission is never buyer-funded)
+	EscrowAmount          money.Money // Escrow amount from pricing token ((Pâˆ’D)+S; commission is never buyer-funded)
 	ServiceFeeAmount      money.Money // Flat buyer checkout service fee
 	TotalPayableAmount    money.Money // EscrowAmount + ServiceFeeAmount
 	DiscountAmount        money.Money // Discount amount for order value calculation
@@ -1270,7 +1278,7 @@ func (s *OrderCreationService) CreateFromSaleSurface(
 	// STEP 2.6: BNR GUARD - Check if sale surface has auction in waiting_settlement
 	// ============================================================
 	// If the sale surface has an auction in waiting_settlement status, reject direct purchase
-	// The auction winner has priority to claim and create the order
+	// The auction winner has priority to complete checkout and create the order
 	if s.auctionRepo != nil {
 		auctionStatus, err := s.auctionRepo.GetAuctionStatusByProductID(ctx, tx, forSale.ProductID)
 		if err != nil {
@@ -1471,7 +1479,7 @@ func (s *OrderCreationService) CreateFromSaleSurface(
 	// ============================================================
 	// STEP 5.5: VALIDATE PAYMENT METHOD (PHASE 5: BACKEND-CONTROLLED PAYMENT)
 	// ============================================================
-	// 🔥 CRITICAL: Payment method MUST be validated against allowed values
+	// ðŸ”¥ CRITICAL: Payment method MUST be validated against allowed values
 	// - Prevents client-side manipulation
 	// - Ensures expiry calculation is correct
 	// - No arbitrary payment methods allowed
@@ -1663,7 +1671,8 @@ func (s *OrderCreationService) CreateFromSaleSurface(
 // buildOrderPayload creates a JSON-serializable payload for order events.
 // Note: financial amount total_before_coins_amount is intentionally NOT serialized
 // here — projection re-queries the write model and notification handlers only need IDs.
-// The previous escrow_amount payload field was obsolete (no consumer) and has been purged.
+// The previous escrow_amount and escrow_status payload fields were obsolete
+// (no consumer; escrow state lives ONLY in the escrows table) and have been purged.
 func buildOrderPayload(order *orderentity.Order) []byte {
 	payload := map[string]interface{}{
 		"order_id":          order.ID.String(),
@@ -1672,7 +1681,6 @@ func buildOrderPayload(order *orderentity.Order) []byte {
 		"source_type":       order.SourceType,
 		"source_id":         order.SourceID,
 		"status":            order.Status,
-		"escrow_status":     order.EscrowStatus,
 		"subtotal":          order.Subtotal.Int64(),
 		"shipping_total":    order.ShippingTotal.Int64(),
 		"commission_amount": order.CommissionAmount.Int64(),

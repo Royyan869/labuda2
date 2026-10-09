@@ -166,7 +166,7 @@ type OrderDetailResponse struct {
 	// orders or when the source row is not found.
 	SourceStatus       *string    `json:"source_status,omitempty"`
 	Status             string     `json:"status"`
-	EscrowStatus       string     `json:"escrow_status"`
+	EscrowStatus       string     `json:"escrow_status,omitempty"` // Live view of the canonical escrow row (empty = no escrow)
 	HasDispute         bool       `json:"has_dispute"`
 	DisputeStatus      *string    `json:"dispute_status,omitempty"`
 	Subtotal           int64      `json:"subtotal"`
@@ -350,16 +350,18 @@ func (h *AdminOrderHandler) GetOrderDetail(c *gin.Context) {
 		var orderNumber *string
 
 		err := tx.QueryRow(ctx, `
-			SELECT id, buyer_id, seller_id, source_type, source_id,
-		       status, escrow_status, has_dispute,
-	       subtotal, shipping_total, commission_amount, service_fee_amount, total_payable_amount,
-	       total_before_coins_amount,
-		       shipping_option_name, tracking_number,
-			       shipping_source, shipping_origin_snapshot,
-			       address_snapshot,
-			       auto_release_at, created_at, updated_at,
-			       order_number
-			FROM orders WHERE id = $1
+			SELECT o.id, o.buyer_id, o.seller_id, o.source_type, o.source_id,
+		       o.status, COALESCE(e.status, '')::text, o.has_dispute,
+		       o.subtotal, o.shipping_total, o.commission_amount, o.service_fee_amount, o.total_payable_amount,
+		       o.total_before_coins_amount,
+		       o.shipping_option_name, o.tracking_number,
+			       o.shipping_source, o.shipping_origin_snapshot,
+			       o.address_snapshot,
+			       o.auto_release_at, o.created_at, o.updated_at,
+			       o.order_number
+			FROM orders o
+			LEFT JOIN escrows e ON e.order_id = o.id
+			WHERE o.id = $1
 		`, orderID).Scan(
 			&id, &buyerID, &sellerID, &sourceType, &sourceID,
 			&status, &escrowStatus, &hasDispute,

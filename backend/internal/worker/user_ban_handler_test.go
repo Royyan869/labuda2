@@ -19,21 +19,20 @@ func newTestBanHandler() *UserBanEventHandler {
 	return &UserBanEventHandler{log: zap.NewNop()}
 }
 
-// orderWithState builds a minimal Order for branch-routing tests.
+// orderWithState builds a minimal Order for branch-routing tests. Escrow state
+// is NOT an order field — it is threaded into the gates as escrowHolding.
 func orderWithState(
 	buyerID, sellerID uuid.UUID,
 	status orderEntity.Status,
-	escrow orderEntity.EscrowStatus,
 	trackingNumber string,
 	hasDispute bool,
 ) *orderEntity.Order {
 	o := &orderEntity.Order{
-		ID:           uuid.New(),
-		BuyerID:      buyerID,
-		SellerID:     sellerID,
-		Status:       status,
-		EscrowStatus: escrow,
-		HasDispute:   hasDispute,
+		ID:         uuid.New(),
+		BuyerID:    buyerID,
+		SellerID:   sellerID,
+		Status:     status,
+		HasDispute: hasDispute,
 	}
 	if trackingNumber != "" {
 		o.TrackingNumber = &trackingNumber
@@ -50,25 +49,25 @@ func TestUserBanHandler_HasShipmentEvidence_TrackingNumber(t *testing.T) {
 	buyerID := uuid.New()
 	sellerID := uuid.New()
 
-	o := orderWithState(buyerID, sellerID, orderEntity.StatusPaid, orderEntity.EscrowStatusHolding, "JNE123", false)
+	o := orderWithState(buyerID, sellerID, orderEntity.StatusPaid, "JNE123", false)
 	assert.True(t, h.hasShipmentEvidence(o), "tracking number present → evidence")
 }
 
 func TestUserBanHandler_HasShipmentEvidence_StatusShipped(t *testing.T) {
 	h := newTestBanHandler()
-	o := orderWithState(uuid.New(), uuid.New(), orderEntity.StatusShipped, orderEntity.EscrowStatusHolding, "", false)
+	o := orderWithState(uuid.New(), uuid.New(), orderEntity.StatusShipped, "", false)
 	assert.True(t, h.hasShipmentEvidence(o), "status=shipped → evidence")
 }
 
 func TestUserBanHandler_HasShipmentEvidence_StatusDelivered(t *testing.T) {
 	h := newTestBanHandler()
-	o := orderWithState(uuid.New(), uuid.New(), orderEntity.StatusDelivered, orderEntity.EscrowStatusHolding, "", false)
+	o := orderWithState(uuid.New(), uuid.New(), orderEntity.StatusDelivered, "", false)
 	assert.True(t, h.hasShipmentEvidence(o), "status=delivered → evidence")
 }
 
 func TestUserBanHandler_HasShipmentEvidence_NonePresent(t *testing.T) {
 	h := newTestBanHandler()
-	o := orderWithState(uuid.New(), uuid.New(), orderEntity.StatusPaid, orderEntity.EscrowStatusHolding, "", false)
+	o := orderWithState(uuid.New(), uuid.New(), orderEntity.StatusPaid, "", false)
 	assert.False(t, h.hasShipmentEvidence(o), "paid, no tracking → no evidence")
 }
 
@@ -78,20 +77,20 @@ func TestUserBanHandler_HasShipmentEvidence_NonePresent(t *testing.T) {
 
 func TestUserBanHandler_ShouldRefundDirectly_NoEvidence_Holding(t *testing.T) {
 	h := newTestBanHandler()
-	o := orderWithState(uuid.New(), uuid.New(), orderEntity.StatusPaid, orderEntity.EscrowStatusHolding, "", false)
-	assert.True(t, h.shouldRefundDirectly(o), "paid + holding + no evidence → refund")
+	o := orderWithState(uuid.New(), uuid.New(), orderEntity.StatusPaid, "", false)
+	assert.True(t, h.shouldRefundDirectly(o, true), "paid + escrow holding + no evidence → refund")
 }
 
 func TestUserBanHandler_ShouldRefundDirectly_EscrowNotHolding(t *testing.T) {
 	h := newTestBanHandler()
-	o := orderWithState(uuid.New(), uuid.New(), orderEntity.StatusPaid, orderEntity.EscrowStatusReleased, "", false)
-	assert.False(t, h.shouldRefundDirectly(o), "escrow released → no refund")
+	o := orderWithState(uuid.New(), uuid.New(), orderEntity.StatusPaid, "", false)
+	assert.False(t, h.shouldRefundDirectly(o, false), "escrow not holding → no refund")
 }
 
 func TestUserBanHandler_ShouldRefundDirectly_HasEvidence(t *testing.T) {
 	h := newTestBanHandler()
-	o := orderWithState(uuid.New(), uuid.New(), orderEntity.StatusPaid, orderEntity.EscrowStatusHolding, "JNE123", false)
-	assert.False(t, h.shouldRefundDirectly(o), "has tracking → not direct refund")
+	o := orderWithState(uuid.New(), uuid.New(), orderEntity.StatusPaid, "JNE123", false)
+	assert.False(t, h.shouldRefundDirectly(o, true), "has tracking → not direct refund")
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -101,41 +100,49 @@ func TestUserBanHandler_ShouldRefundDirectly_HasEvidence(t *testing.T) {
 func TestUserBanHandler_AutoComplete_BuyerBanned_Shipped(t *testing.T) {
 	h := newTestBanHandler()
 	buyerID := uuid.New()
-	o := orderWithState(buyerID, uuid.New(), orderEntity.StatusShipped, orderEntity.EscrowStatusHolding, "JNE123", false)
-	assert.True(t, h.shouldAutoCompleteForBannedBuyer(buyerID, o),
-		"buyer banned + shipped + holding + no dispute → auto-complete")
+	o := orderWithState(buyerID, uuid.New(), orderEntity.StatusShipped, "JNE123", false)
+	assert.True(t, h.shouldAutoCompleteForBannedBuyer(buyerID, o, true),
+		"buyer banned + shipped + escrow holding + no dispute → auto-complete")
 }
 
 func TestUserBanHandler_AutoComplete_BuyerBanned_Delivered(t *testing.T) {
 	h := newTestBanHandler()
 	buyerID := uuid.New()
-	o := orderWithState(buyerID, uuid.New(), orderEntity.StatusDelivered, orderEntity.EscrowStatusHolding, "", false)
-	assert.True(t, h.shouldAutoCompleteForBannedBuyer(buyerID, o),
-		"buyer banned + delivered + holding + no dispute → auto-complete")
+	o := orderWithState(buyerID, uuid.New(), orderEntity.StatusDelivered, "", false)
+	assert.True(t, h.shouldAutoCompleteForBannedBuyer(buyerID, o, true),
+		"buyer banned + delivered + escrow holding + no dispute → auto-complete")
 }
 
 func TestUserBanHandler_AutoComplete_SellerBanned_Shipped(t *testing.T) {
 	h := newTestBanHandler()
 	sellerID := uuid.New()
-	o := orderWithState(uuid.New(), sellerID, orderEntity.StatusShipped, orderEntity.EscrowStatusHolding, "JNE123", false)
-	assert.False(t, h.shouldAutoCompleteForBannedBuyer(sellerID, o),
+	o := orderWithState(uuid.New(), sellerID, orderEntity.StatusShipped, "JNE123", false)
+	assert.False(t, h.shouldAutoCompleteForBannedBuyer(sellerID, o, true),
 		"seller banned + shipped → NOT auto-complete (buyer is not the banned user)")
 }
 
 func TestUserBanHandler_AutoComplete_BuyerBanned_Shipped_HasDispute(t *testing.T) {
 	h := newTestBanHandler()
 	buyerID := uuid.New()
-	o := orderWithState(buyerID, uuid.New(), orderEntity.StatusShipped, orderEntity.EscrowStatusHolding, "JNE123", true)
-	assert.False(t, h.shouldAutoCompleteForBannedBuyer(buyerID, o),
+	o := orderWithState(buyerID, uuid.New(), orderEntity.StatusShipped, "JNE123", true)
+	assert.False(t, h.shouldAutoCompleteForBannedBuyer(buyerID, o, true),
 		"active dispute → no auto-complete")
 }
 
 func TestUserBanHandler_AutoComplete_BuyerBanned_Paid(t *testing.T) {
 	h := newTestBanHandler()
 	buyerID := uuid.New()
-	o := orderWithState(buyerID, uuid.New(), orderEntity.StatusPaid, orderEntity.EscrowStatusHolding, "", false)
-	assert.False(t, h.shouldAutoCompleteForBannedBuyer(buyerID, o),
+	o := orderWithState(buyerID, uuid.New(), orderEntity.StatusPaid, "", false)
+	assert.False(t, h.shouldAutoCompleteForBannedBuyer(buyerID, o, true),
 		"status=paid (not shipped/delivered) → no auto-complete")
+}
+
+func TestUserBanHandler_AutoComplete_BuyerBanned_Shipped_EscrowNotHolding(t *testing.T) {
+	h := newTestBanHandler()
+	buyerID := uuid.New()
+	o := orderWithState(buyerID, uuid.New(), orderEntity.StatusShipped, "JNE123", false)
+	assert.False(t, h.shouldAutoCompleteForBannedBuyer(buyerID, o, false),
+		"escrow not holding → no auto-complete (nothing to release)")
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -145,8 +152,8 @@ func TestUserBanHandler_AutoComplete_BuyerBanned_Paid(t *testing.T) {
 func TestUserBanHandler_ForceDispute_SellerBanned_Shipped_WithTracking(t *testing.T) {
 	h := newTestBanHandler()
 	sellerID := uuid.New()
-	o := orderWithState(uuid.New(), sellerID, orderEntity.StatusShipped, orderEntity.EscrowStatusHolding, "JNE123", false)
-	assert.True(t, h.shouldForceDispute(sellerID, o),
+	o := orderWithState(uuid.New(), sellerID, orderEntity.StatusShipped, "JNE123", false)
+	assert.True(t, h.shouldForceDispute(sellerID, o, true),
 		"seller banned + shipped + tracking → dispute (seller trust compromised)")
 }
 
@@ -154,49 +161,49 @@ func TestUserBanHandler_ForceDispute_SellerBanned_Delivered_NoTracking(t *testin
 	h := newTestBanHandler()
 	sellerID := uuid.New()
 	// status=delivered is itself shipment evidence
-	o := orderWithState(uuid.New(), sellerID, orderEntity.StatusDelivered, orderEntity.EscrowStatusHolding, "", false)
-	assert.True(t, h.shouldForceDispute(sellerID, o),
+	o := orderWithState(uuid.New(), sellerID, orderEntity.StatusDelivered, "", false)
+	assert.True(t, h.shouldForceDispute(sellerID, o, true),
 		"seller banned + delivered (status-based evidence) → dispute")
 }
 
 func TestUserBanHandler_ForceDispute_BuyerBanned_Shipped(t *testing.T) {
 	h := newTestBanHandler()
 	buyerID := uuid.New()
-	o := orderWithState(buyerID, uuid.New(), orderEntity.StatusShipped, orderEntity.EscrowStatusHolding, "JNE123", false)
+	o := orderWithState(buyerID, uuid.New(), orderEntity.StatusShipped, "JNE123", false)
 	// buyer-ban + shipped → shouldAutoCompleteForBannedBuyer owns this, NOT dispute
-	assert.False(t, h.shouldForceDispute(buyerID, o),
+	assert.False(t, h.shouldForceDispute(buyerID, o, true),
 		"buyer banned + shipped → false (auto-complete path owns this)")
 }
 
 func TestUserBanHandler_ForceDispute_BuyerBanned_Delivered(t *testing.T) {
 	h := newTestBanHandler()
 	buyerID := uuid.New()
-	o := orderWithState(buyerID, uuid.New(), orderEntity.StatusDelivered, orderEntity.EscrowStatusHolding, "", false)
-	assert.False(t, h.shouldForceDispute(buyerID, o),
+	o := orderWithState(buyerID, uuid.New(), orderEntity.StatusDelivered, "", false)
+	assert.False(t, h.shouldForceDispute(buyerID, o, true),
 		"buyer banned + delivered → false (auto-complete path owns this)")
 }
 
 func TestUserBanHandler_ForceDispute_SellerBanned_Paid_WithTracking(t *testing.T) {
 	h := newTestBanHandler()
 	sellerID := uuid.New()
-	o := orderWithState(uuid.New(), sellerID, orderEntity.StatusPaid, orderEntity.EscrowStatusHolding, "JNE123", false)
-	assert.True(t, h.shouldForceDispute(sellerID, o),
+	o := orderWithState(uuid.New(), sellerID, orderEntity.StatusPaid, "JNE123", false)
+	assert.True(t, h.shouldForceDispute(sellerID, o, true),
 		"seller banned + paid + tracking → dispute")
 }
 
 func TestUserBanHandler_ForceDispute_EscrowNotHolding(t *testing.T) {
 	h := newTestBanHandler()
 	sellerID := uuid.New()
-	o := orderWithState(uuid.New(), sellerID, orderEntity.StatusShipped, orderEntity.EscrowStatusReleased, "JNE123", false)
-	assert.False(t, h.shouldForceDispute(sellerID, o),
+	o := orderWithState(uuid.New(), sellerID, orderEntity.StatusShipped, "JNE123", false)
+	assert.False(t, h.shouldForceDispute(sellerID, o, false),
 		"escrow not holding → no dispute")
 }
 
 func TestUserBanHandler_ForceDispute_NoEvidence_NotShipped(t *testing.T) {
 	h := newTestBanHandler()
 	sellerID := uuid.New()
-	o := orderWithState(uuid.New(), sellerID, orderEntity.StatusPaid, orderEntity.EscrowStatusHolding, "", false)
-	assert.False(t, h.shouldForceDispute(sellerID, o),
+	o := orderWithState(uuid.New(), sellerID, orderEntity.StatusPaid, "", false)
+	assert.False(t, h.shouldForceDispute(sellerID, o, true),
 		"paid + no tracking → no dispute (refund path)")
 }
 
@@ -214,13 +221,13 @@ const (
 	routeNoAction
 )
 
-func routeForOrder(h *UserBanEventHandler, bannedUserID uuid.UUID, o *orderEntity.Order) banRoute {
+func routeForOrder(h *UserBanEventHandler, bannedUserID uuid.UUID, o *orderEntity.Order, escrowHolding bool) banRoute {
 	switch {
-	case h.shouldAutoCompleteForBannedBuyer(bannedUserID, o):
+	case h.shouldAutoCompleteForBannedBuyer(bannedUserID, o, escrowHolding):
 		return routeAutoComplete
-	case h.shouldRefundDirectly(o):
+	case h.shouldRefundDirectly(o, escrowHolding):
 		return routeRefund
-	case h.shouldForceDispute(bannedUserID, o):
+	case h.shouldForceDispute(bannedUserID, o, escrowHolding):
 		return routeDispute
 	default:
 		return routeNoAction
@@ -234,77 +241,91 @@ func TestUserBanHandler_RoutingMatrix(t *testing.T) {
 	sellerID := uuid.New()
 
 	cases := []struct {
-		name      string
-		bannedUID uuid.UUID
-		order     *orderEntity.Order
-		want      banRoute
+		name          string
+		bannedUID     uuid.UUID
+		order         *orderEntity.Order
+		escrowHolding bool
+		want          banRoute
 	}{
 		{
-			name:      "buyer banned + pending_payment (no escrow holding)",
+			name:      "buyer banned + pending_payment (no escrow)",
 			bannedUID: buyerID,
-			// StatusPending = "pending_payment"; escrow not holding (payment not made)
-			order: orderWithState(buyerID, sellerID, orderEntity.StatusPending, orderEntity.EscrowStatusReleased, "", false),
-			want:  routeNoAction,
+			// StatusPending = "pending_payment"; no escrow row exists pre-payment
+			order:         orderWithState(buyerID, sellerID, orderEntity.StatusPending, "", false),
+			escrowHolding: false,
+			want:          routeNoAction,
 		},
 		{
-			name:      "buyer banned + paid + no tracking",
-			bannedUID: buyerID,
-			order:     orderWithState(buyerID, sellerID, orderEntity.StatusPaid, orderEntity.EscrowStatusHolding, "", false),
-			want:      routeRefund,
+			name:          "buyer banned + paid + no tracking",
+			bannedUID:     buyerID,
+			order:         orderWithState(buyerID, sellerID, orderEntity.StatusPaid, "", false),
+			escrowHolding: true,
+			want:          routeRefund,
 		},
 		{
-			name:      "buyer banned + shipped",
-			bannedUID: buyerID,
-			order:     orderWithState(buyerID, sellerID, orderEntity.StatusShipped, orderEntity.EscrowStatusHolding, "JNE123", false),
-			want:      routeAutoComplete,
+			name:          "buyer banned + shipped",
+			bannedUID:     buyerID,
+			order:         orderWithState(buyerID, sellerID, orderEntity.StatusShipped, "JNE123", false),
+			escrowHolding: true,
+			want:          routeAutoComplete,
 		},
 		{
-			name:      "buyer banned + delivered",
-			bannedUID: buyerID,
-			order:     orderWithState(buyerID, sellerID, orderEntity.StatusDelivered, orderEntity.EscrowStatusHolding, "", false),
-			want:      routeAutoComplete,
+			name:          "buyer banned + delivered",
+			bannedUID:     buyerID,
+			order:         orderWithState(buyerID, sellerID, orderEntity.StatusDelivered, "", false),
+			escrowHolding: true,
+			want:          routeAutoComplete,
 		},
 		{
 			name:      "buyer banned + dispute_open (escrow frozen)",
 			bannedUID: buyerID,
-			order:     orderWithState(buyerID, sellerID, orderEntity.StatusDisputeOpen, orderEntity.EscrowStatusReleased, "JNE123", true),
-			want:      routeNoAction,
+			// dispute_open orders reach the handler with the canonical escrow
+			// no longer holding (release/refund deferred); no action fires.
+			order:         orderWithState(buyerID, sellerID, orderEntity.StatusDisputeOpen, "JNE123", true),
+			escrowHolding: false,
+			want:          routeNoAction,
 		},
 		{
-			name:      "seller banned + paid + no tracking",
-			bannedUID: sellerID,
-			order:     orderWithState(buyerID, sellerID, orderEntity.StatusPaid, orderEntity.EscrowStatusHolding, "", false),
-			want:      routeRefund,
+			name:          "seller banned + paid + no tracking",
+			bannedUID:     sellerID,
+			order:         orderWithState(buyerID, sellerID, orderEntity.StatusPaid, "", false),
+			escrowHolding: true,
+			want:          routeRefund,
 		},
 		{
-			name:      "seller banned + paid + tracking",
-			bannedUID: sellerID,
-			order:     orderWithState(buyerID, sellerID, orderEntity.StatusPaid, orderEntity.EscrowStatusHolding, "JNE123", false),
-			want:      routeDispute,
+			name:          "seller banned + paid + tracking",
+			bannedUID:     sellerID,
+			order:         orderWithState(buyerID, sellerID, orderEntity.StatusPaid, "JNE123", false),
+			escrowHolding: true,
+			want:          routeDispute,
 		},
 		{
-			name:      "seller banned + shipped + tracking",
-			bannedUID: sellerID,
-			order:     orderWithState(buyerID, sellerID, orderEntity.StatusShipped, orderEntity.EscrowStatusHolding, "JNE123", false),
-			want:      routeDispute,
+			name:          "seller banned + shipped + tracking",
+			bannedUID:     sellerID,
+			order:         orderWithState(buyerID, sellerID, orderEntity.StatusShipped, "JNE123", false),
+			escrowHolding: true,
+			want:          routeDispute,
 		},
 		{
-			name:      "seller banned + delivered",
-			bannedUID: sellerID,
-			order:     orderWithState(buyerID, sellerID, orderEntity.StatusDelivered, orderEntity.EscrowStatusHolding, "", false),
-			want:      routeDispute,
+			name:          "seller banned + delivered",
+			bannedUID:     sellerID,
+			order:         orderWithState(buyerID, sellerID, orderEntity.StatusDelivered, "", false),
+			escrowHolding: true,
+			want:          routeDispute,
 		},
 		{
 			name:      "seller banned + dispute_open (escrow frozen)",
 			bannedUID: sellerID,
-			order:     orderWithState(buyerID, sellerID, orderEntity.StatusDisputeOpen, orderEntity.EscrowStatusReleased, "JNE123", true),
-			want:      routeNoAction,
+			order:     orderWithState(buyerID, sellerID, orderEntity.StatusDisputeOpen, "JNE123", true),
+			// escrow no longer holding on a dispute-frozen order
+			escrowHolding: false,
+			want:          routeNoAction,
 		},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			got := routeForOrder(h, tc.bannedUID, tc.order)
+			got := routeForOrder(h, tc.bannedUID, tc.order, tc.escrowHolding)
 			assert.Equal(t, tc.want, got,
 				"unexpected route for: %s", tc.name)
 		})
@@ -320,17 +341,17 @@ func TestUserBanHandler_RoutingMatrix(t *testing.T) {
 //
 // HISTORY: The original query referenced 3 ghost columns (paid_at, shipped_at,
 // shipping_reference) that do not exist in the orders schema. This test locks
-// the column list to prevent regression.
+// the column list to prevent regression. Escrow state is NOT selected here —
+// it is read via a separate `SELECT status FROM escrows` helper.
 func TestUserBanHandler_QueryColumnsMatchSchema(t *testing.T) {
 	// These are the columns that EXIST in the orders table (from
-	// legacy_do_not_run/000_init/110 + 000113).
+	// legacy_do_not_run/000_init/110 + 000113 + 000132 drop of escrow_status).
 	// Any column referenced in getActiveOrdersForUser must be in this set.
 	schemaColumns := map[string]bool{
 		"id":                          true,
 		"buyer_id":                    true,
 		"seller_id":                   true,
 		"status":                      true,
-		"escrow_status":               true,
 		"has_dispute":                 true,
 		"subtotal":                    true,
 		"platform_fee":                true,
@@ -368,14 +389,15 @@ func TestUserBanHandler_QueryColumnsMatchSchema(t *testing.T) {
 
 	// Columns actually used in the getActiveOrdersForUser query.
 	// This must stay in sync with the SQL in user_ban_handler.go.
+	// escrow_status is intentionally absent (dropped by migration 000132).
 	queryColumns := []string{
-		"id", "buyer_id", "seller_id", "status", "escrow_status",
+		"id", "buyer_id", "seller_id", "status",
 		"proof_type", "tracking_number", "shipping_proof_media",
 		"has_dispute", "created_at",
 	}
 
-	// Ghost columns that must NEVER appear (regression lock).
-	ghostColumns := []string{"paid_at", "shipped_at", "shipping_reference"}
+	// Dropped columns that must NEVER appear (regression lock).
+	ghostColumns := []string{"paid_at", "shipped_at", "shipping_reference", "escrow_status"}
 
 	for _, col := range queryColumns {
 		assert.True(t, schemaColumns[col],
@@ -384,15 +406,15 @@ func TestUserBanHandler_QueryColumnsMatchSchema(t *testing.T) {
 
 	for _, col := range ghostColumns {
 		assert.False(t, schemaColumns[col],
-			"ghost column %q must not be in schema set", col)
+			"dropped column %q must not be in schema set", col)
 		for _, qc := range queryColumns {
 			assert.False(t, strings.EqualFold(qc, col),
-				"ghost column %q must not appear in query columns", col)
+				"dropped column %q must not appear in query columns", col)
 		}
 	}
 
-	// Verify column count matches scan targets (10 SELECT, 10 Scan)
-	assert.Equal(t, 10, len(queryColumns),
+	// Verify column count matches scan targets (9 SELECT, 9 Scan)
+	assert.Equal(t, 9, len(queryColumns),
 		"SELECT column count must match Scan target count")
 }
 
@@ -459,7 +481,7 @@ func TestUserBanHandler_ActiveRefundGuardFailureIsRetryableAndUnprocessed(t *tes
 	src := string(srcBytes)
 
 	// Route proof: buyer-banned shipped/delivered branch goes through auto-complete.
-	assert.Contains(t, src, "case h.shouldAutoCompleteForBannedBuyer(bannedUserID, order):")
+	assert.Contains(t, src, "case h.shouldAutoCompleteForBannedBuyer(bannedUserID, order, escrowHolding):")
 	assert.Contains(t, src, "return h.completeOrderForBan(ctx, order, bannedUserID, eventID)")
 
 	// Guard/failure proof: completeOrderForBan returns on complete() failure first.
@@ -494,5 +516,3 @@ func TestUserBanHandler_TerminalStatusesExcludedFromDiscoveryQuery(t *testing.T)
 	assert.Contains(t, src, "status NOT IN ('completed', 'cancelled', 'expired', 'refunded', 'partially_refunded')",
 		"terminal statuses must remain excluded from discovery query")
 }
-
-

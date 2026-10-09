@@ -50,7 +50,6 @@ Map<String, dynamic> _baseContentJson({
     'created_at': '2026-01-01T00:00:00.000Z',
     'updated_at': '2026-01-01T00:00:00.000Z',
     'is_liked': null,
-    'is_saved': null,
     'original_author_id': null,
     'share_reference': null,
     if (card != null) 'card': card,

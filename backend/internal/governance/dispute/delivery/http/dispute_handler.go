@@ -582,16 +582,20 @@ func (h *DisputeHandler) GetDisputeDetail(c *gin.Context) {
 		// Get evidence
 		evidence, _ := h.disputeService.GetDisputeMedia(ctx, tx, disputeID)
 
-		// Get order context — canonical buyer base total_before_coins_amount (PD+S)
+		// Get order context — canonical buyer base total_before_coins_amount (PD+S).
+		// order_escrow_status is a READ-TIME view of the canonical escrow row
+		// (omitted when the order has no escrow).
 		var orderStatus, orderEscrow *string
 		var totalBeforeCoinsAmount *int64
 		var shippingReference, shippingCarrier *string
 
 		err = tx.QueryRow(ctx, `
-			SELECT status, escrow_status,
-			       total_before_coins_amount,
-			       tracking_number, shipping_option_name
-			FROM orders WHERE id = $1
+			SELECT o.status, e.status::text,
+			       o.total_before_coins_amount,
+			       o.tracking_number, o.shipping_option_name
+			FROM orders o
+			LEFT JOIN escrows e ON e.order_id = o.id
+			WHERE o.id = $1
 		`, dispute.OrderID).Scan(&orderStatus, &orderEscrow, &totalBeforeCoinsAmount, &shippingReference, &shippingCarrier)
 
 		if err != nil {

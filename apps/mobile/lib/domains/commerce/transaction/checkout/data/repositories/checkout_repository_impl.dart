@@ -94,7 +94,11 @@ class CheckoutRepositoryImpl implements CheckoutRepository {
           'quantity': request.quantity,
           'address_id': request.addressId,
           'pricing_token': request.pricingToken,
-          'payment_method_code': request.paymentMethodCode,
+          // Omitted for auction bid-win orders: the winner binds the method
+          // at Order Detail (first POST /payments). The backend rejects a
+          // method on bid-win creation — no default, no fallback.
+          if (request.paymentMethodCode != null)
+            'payment_method_code': request.paymentMethodCode,
           if (request.useCoins != null) 'use_coins': request.useCoins,
           if (request.notes != null) 'notes': request.notes,
           // Commerce context - pass through for backend validation

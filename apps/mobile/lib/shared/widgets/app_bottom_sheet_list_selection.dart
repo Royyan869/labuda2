@@ -31,7 +31,7 @@ class ListSelectionItem<T> {
   });
 }
 
-/// AppBottomSheet for list selection.
+/// Canonical list-selection bottom sheet.
 ///
 /// The canonical selection builder: item rows are laid out in a plain [Column]
 /// and the WHOLE sheet content scrolls (via the base's scroll area) — no

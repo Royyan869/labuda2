@@ -41,7 +41,9 @@ class SettingsMarketingSection extends ConsumerWidget {
         ),
         _buildSettingsTile(
           context,
-          icon: Icons.local_offer_outlined,
+          // Canonical Promotion icon (same as the Promotion feature,
+          // wizard, feed badge, and NotificationDisplayIcon.campaign).
+          icon: Icons.campaign_outlined,
           title: 'Promosi',
           subtitle: 'Buat dan kelola promosi & iklan toko',
           onTap: () => onNavigate('promotion'),

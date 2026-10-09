@@ -1,7 +1,8 @@
 /// Get Notifications Use Case
 ///
-/// Stream-based use case untuk mendapatkan daftar notifications.
-/// Supports real-time updates dari Firestore dengan pagination.
+/// One-shot use case untuk mendapatkan daftar notifications (canonical
+/// backend read). Periodic refresh dimiliki oleh NOTIFICATION
+/// RECONCILIATION CADENCE di NotificationInitializer — bukan use case ini.
 ///
 /// Size: < 150 lines (per GUIDELINES)
 library;
@@ -16,11 +17,10 @@ class GetNotificationsUseCase {
 
   GetNotificationsUseCase({required this.repository});
 
-  /// Execute use case
+  /// Execute use case — ONE-SHOT canonical page read.
   ///
-  /// Returns stream of notifications yang auto-update.
   /// Gunakan limit untuk pagination (default 20).
-  Stream<Result<List<NotificationEntity>>> call({
+  Future<Result<List<NotificationEntity>>> call({
     required String userId,
     int limit = 20,
   }) {
