@@ -4,10 +4,10 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/governance/viewercontext"
-	"github.com/labuda/backend/internal/pkg/mediaref"
-	"github.com/labuda/backend/internal/pkg/publiccard"
-	"github.com/labuda/backend/internal/platform/mediaresolve"
+	"github.com/hishumi/backend/internal/governance/viewercontext"
+	"github.com/hishumi/backend/internal/pkg/mediaref"
+	"github.com/hishumi/backend/internal/pkg/publiccard"
+	"github.com/hishumi/backend/internal/platform/mediaresolve"
 )
 
 // buildPublicUserCard builds a public-safe user card from raw truth.

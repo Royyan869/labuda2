@@ -19,10 +19,10 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
-	bankaccountEntity "github.com/labuda/backend/internal/finance/bankaccount/entity"
-	"github.com/labuda/backend/internal/governance/verification/entity"
-	"github.com/labuda/backend/internal/governance/verification/infrastructure/repository"
-	"github.com/labuda/backend/pkg/db"
+	bankaccountEntity "github.com/hishumi/backend/internal/finance/bankaccount/entity"
+	"github.com/hishumi/backend/internal/governance/verification/entity"
+	"github.com/hishumi/backend/internal/governance/verification/infrastructure/repository"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // ---------------------------------------------------------------------------

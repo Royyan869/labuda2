@@ -18,11 +18,11 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/domains/system/report/domain/entities/entities.dart';
-import 'package:labuda/domains/system/report/domain/repositories/report_repository.dart';
-import 'package:labuda/domains/system/report/presentation/providers/report_providers.dart';
-import 'package:labuda/domains/system/report/presentation/screens/my_reports_screen.dart';
-import 'package:labuda/generated/app_localizations.dart';
+import 'package:hishumi/domains/system/report/domain/entities/entities.dart';
+import 'package:hishumi/domains/system/report/domain/repositories/report_repository.dart';
+import 'package:hishumi/domains/system/report/presentation/providers/report_providers.dart';
+import 'package:hishumi/domains/system/report/presentation/screens/my_reports_screen.dart';
+import 'package:hishumi/generated/app_localizations.dart';
 
 /// Static repository: the screen runs the REAL ReportListNotifier against
 /// this list, so the loaded state is the production render path.

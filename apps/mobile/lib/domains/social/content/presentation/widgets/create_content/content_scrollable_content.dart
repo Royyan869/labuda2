@@ -1,10 +1,10 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:labuda/shared/entities/post_location.dart' as loc;
-import 'package:labuda/domains/social/content/presentation/widgets/content_metadata_sections.dart';
-import 'package:labuda/domains/social/content/presentation/widgets/create_content/content_content_input.dart';
-import 'package:labuda/domains/social/content/presentation/widgets/create_content/content_media_section.dart';
-import 'package:labuda/core/src/theme/app_theme.dart';
+import 'package:hishumi/shared/entities/post_location.dart' as loc;
+import 'package:hishumi/domains/social/content/presentation/widgets/content_metadata_sections.dart';
+import 'package:hishumi/domains/social/content/presentation/widgets/create_content/content_content_input.dart';
+import 'package:hishumi/domains/social/content/presentation/widgets/create_content/content_media_section.dart';
+import 'package:hishumi/core/src/theme/app_theme.dart';
 
 /// Scrollable content section for create post screen
 class ContentScrollableContent extends StatelessWidget {

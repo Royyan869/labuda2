@@ -21,11 +21,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/user/profile/profile.dart'
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/user/profile/profile.dart'
     show ProfileAboutData, profileAboutDataProvider;
-import 'package:labuda/domains/user/profile/presentation/screens/profile_screen/profile_about_tab.dart';
-import 'package:labuda/shared/shared.dart';
+import 'package:hishumi/domains/user/profile/presentation/screens/profile_screen/profile_about_tab.dart';
+import 'package:hishumi/shared/shared.dart';
 
 const List<double> _widths = <double>[320, 360, 412, 500];
 const List<double> _scales = <double>[1.0, 1.3, 2.0];

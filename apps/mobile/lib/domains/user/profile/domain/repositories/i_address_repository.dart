@@ -1,5 +1,5 @@
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/user/profile/domain/entities/address_entity.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/user/profile/domain/entities/address_entity.dart';
 
 /// Address Repository Interface
 /// Handles CRUD operations for the account's single address book.

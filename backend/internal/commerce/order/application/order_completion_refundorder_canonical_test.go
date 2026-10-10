@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	orderentity "github.com/labuda/backend/internal/commerce/order/entity"
-	"github.com/labuda/backend/pkg/money"
+	orderentity "github.com/hishumi/backend/internal/commerce/order/entity"
+	"github.com/hishumi/backend/pkg/money"
 )
 
 func canonicalFullRefundAmount(order *orderentity.Order) int64 {

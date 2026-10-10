@@ -7,10 +7,10 @@ import 'package:share_plus/share_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'dart:io';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/social/share/domain/entities/share_target.dart'
-    show kPublicProfileBaseUrl;
-import 'package:labuda/shared/shared.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/social/share/domain/entities/share_target.dart'
+    show kPublicBaseUrl;
+import 'package:hishumi/shared/shared.dart';
 
 /// Profile QR Code Screen
 ///
@@ -30,7 +30,7 @@ class _ProfileQrScreenState extends ConsumerState<ProfileQrScreen> {
   String get _profileUrl {
     final authState = ref.read(authControllerProvider);
     if (authState is! AuthStateAuthenticated) return '';
-    return '$kPublicProfileBaseUrl/profile/${authState.user.id}';
+    return '$kPublicBaseUrl/profile/${authState.user.id}';
   }
 
   @override
@@ -257,11 +257,11 @@ class _ProfileQrScreenState extends ConsumerState<ProfileQrScreen> {
       // Get proper download directory
       final directory = await _getDownloadDirectory();
       final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final file = File('${directory.path}/labuda_qr_$timestamp.png');
+      final file = File('${directory.path}/hishumi_qr_$timestamp.png');
       await file.writeAsBytes(bytes);
 
       if (mounted) {
-        final location = Platform.isAndroid ? 'Downloads/Labuda' : 'Files';
+        final location = Platform.isAndroid ? 'Downloads/HiShumi' : 'Files';
         AppSnackBar.showSuccess(context, 'QR Code saved to $location');
       }
     } catch (e) {
@@ -283,7 +283,7 @@ class _ProfileQrScreenState extends ConsumerState<ProfileQrScreen> {
         // Navigate from app-specific to public Downloads
         final downloadPath = externalDir.path.replaceAll(
           RegExp(r'/Android/data/[^/]+/files'),
-          '/Download/Labuda',
+          '/Download/HiShumi',
         );
         final dir = Directory(downloadPath);
         if (!await dir.exists()) {
@@ -305,13 +305,13 @@ class _ProfileQrScreenState extends ConsumerState<ProfileQrScreen> {
       final bytes = byteData!.buffer.asUint8List();
 
       final directory = await getTemporaryDirectory();
-      final file = File('${directory.path}/labuda_qr.png');
+      final file = File('${directory.path}/hishumi_qr.png');
       await file.writeAsBytes(bytes);
 
       await SharePlus.instance.share(
         ShareParams(
           files: [XFile(file.path)],
-          text: 'Visit my profile on LABUDA: $_profileUrl',
+          text: 'Visit my profile on HiShumi: $_profileUrl',
         ),
       );
     } catch (e) {

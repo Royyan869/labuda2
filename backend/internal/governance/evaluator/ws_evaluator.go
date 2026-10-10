@@ -1,6 +1,6 @@
 package evaluator
 
-import "github.com/labuda/backend/internal/governance/viewercontext"
+import "github.com/hishumi/backend/internal/governance/viewercontext"
 
 // WSSubscribeDecision is the output of EvaluateWSSubscribe.
 // WebSocket subscribe is fail-CLOSED: DENY on any non-active lifecycle or missing membership.

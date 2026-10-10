@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/finance"
+	"github.com/hishumi/backend/internal/finance"
 )
 
 func newWD(id, seller uuid.UUID, amount, fee int64, status string) Withdrawal {

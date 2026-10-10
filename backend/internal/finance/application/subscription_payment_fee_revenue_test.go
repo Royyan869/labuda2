@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/pkg/money"
+	"github.com/hishumi/backend/pkg/money"
 	"go.uber.org/zap"
 )
 

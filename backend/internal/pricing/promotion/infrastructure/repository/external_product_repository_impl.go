@@ -8,9 +8,9 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/labuda/backend/internal/pricing/promotion/entity"
-	promotionRepo "github.com/labuda/backend/internal/pricing/promotion/repository"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/pricing/promotion/entity"
+	promotionRepo "github.com/hishumi/backend/internal/pricing/promotion/repository"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 type ExternalProductListFilters = promotionRepo.ExternalProductListFilters

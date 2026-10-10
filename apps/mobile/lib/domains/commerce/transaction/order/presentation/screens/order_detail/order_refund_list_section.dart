@@ -3,10 +3,10 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart' as core;
-import 'package:labuda/core/src/theme/app_theme.dart';
-import 'package:labuda/domains/commerce/transaction/order/domain/entities/refund_request.dart';
-import 'package:labuda/shared/utils/app_formatters.dart';
+import 'package:hishumi/core/core.dart' as core;
+import 'package:hishumi/core/src/theme/app_theme.dart';
+import 'package:hishumi/domains/commerce/transaction/order/domain/entities/refund_request.dart';
+import 'package:hishumi/shared/utils/app_formatters.dart';
 import 'dispute_escalation_dialog.dart';
 import 'seller_refund_decision_dialog.dart';
 

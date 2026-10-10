@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:labuda/core/src/theme/app_theme.dart';
+import 'package:hishumi/core/src/theme/app_theme.dart';
 
 /// Avatar Section Widget for Edit Profile
 /// Shows single avatar for buyers, dual avatars (personal + farm) for sellers

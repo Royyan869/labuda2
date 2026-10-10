@@ -1,6 +1,6 @@
 // Share Repository Interface
 
-import 'package:labuda/core/core.dart';
+import 'package:hishumi/core/core.dart';
 
 import '../entities/share_target.dart';
 import '../entities/share_destination.dart';

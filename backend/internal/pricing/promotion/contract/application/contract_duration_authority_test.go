@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/labuda/backend/internal/pricing/promotion/contract/entity"
+	"github.com/hishumi/backend/internal/pricing/promotion/contract/entity"
 	"github.com/stretchr/testify/require"
 )
 

@@ -23,8 +23,8 @@ library;
 import 'dart:async';
 
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:labuda/core/src/interfaces/services/i_logger_service.dart';
-import 'package:labuda/domains/system/notification/data/datasources/notification_remote_datasource.dart';
+import 'package:hishumi/core/src/interfaces/services/i_logger_service.dart';
+import 'package:hishumi/domains/system/notification/data/datasources/notification_remote_datasource.dart';
 
 /// Test seam — returns the current FCM device token. Production wraps
 /// `FirebaseMessaging.getToken()`.

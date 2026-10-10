@@ -5,10 +5,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/governance/viewercontext"
-	capabilityctx "github.com/labuda/backend/internal/platform/capability"
-	feedentity "github.com/labuda/backend/internal/social/feed/entity"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/governance/viewercontext"
+	capabilityctx "github.com/hishumi/backend/internal/platform/capability"
+	feedentity "github.com/hishumi/backend/internal/social/feed/entity"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // F1-W3A — /feed Pattern A handler-boundary ViewerContext construction

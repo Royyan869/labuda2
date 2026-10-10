@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/shared/widgets/mentions/mention_text_field.dart';
+import 'package:hishumi/shared/widgets/mentions/mention_text_field.dart';
 
 /// Widget for post content text input area with mention support
 ///

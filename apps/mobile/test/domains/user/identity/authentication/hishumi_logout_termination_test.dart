@@ -4,20 +4,20 @@ import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/api/interceptors/auth_interceptor.dart';
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/core/src/interfaces/services/i_local_storage_service.dart';
+import 'package:hishumi/core/api/interceptors/auth_interceptor.dart';
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/core/src/interfaces/services/i_local_storage_service.dart';
 
 class FakeStorage implements ILocalStorageService {
   String? access;
   String? refresh;
   int clearCount = 0;
   FakeStorage({this.access, this.refresh});
-  @override Future<Result<bool>> hasLabudaCredential() async => Result.success(access != null && access!.isNotEmpty && refresh != null && refresh!.isNotEmpty);
-  @override Future<Result<String?>> readLabudaAccessToken() async => Result.success(access);
-  @override Future<Result<String?>> readLabudaRefreshToken() async => Result.success(refresh);
-  @override Future<Result<void>> saveLabudaCredential(String a, String r) async { access = a; refresh = r; return Result.success(null); }
-  @override Future<Result<void>> clearLabudaCredential() async { access = null; refresh = null; clearCount++; return Result.success(null); }
+  @override Future<Result<bool>> hasHiShumiCredential() async => Result.success(access != null && access!.isNotEmpty && refresh != null && refresh!.isNotEmpty);
+  @override Future<Result<String?>> readHiShumiAccessToken() async => Result.success(access);
+  @override Future<Result<String?>> readHiShumiRefreshToken() async => Result.success(refresh);
+  @override Future<Result<void>> saveHiShumiCredential(String a, String r) async { access = a; refresh = r; return Result.success(null); }
+  @override Future<Result<void>> clearHiShumiCredential() async { access = null; refresh = null; clearCount++; return Result.success(null); }
   @override dynamic noSuchMethod(Invocation inv) => super.noSuchMethod(inv);
 }
 
@@ -36,7 +36,7 @@ class CaptureLogoutAdapter implements HttpClientAdapter {
       return ResponseBody.fromBytes(utf8.encode(jsonEncode({'success': true, 'data': {'access_token': 'new-a', 'refresh_token': 'new-r', 'expires_at': DateTime.now().toIso8601String(), 'refresh_expires_at': DateTime.now().toIso8601String()}})), 200, headers: {Headers.contentTypeHeader: ['application/json']});
     }
     // original protected
-    if (opts.extra['labuda_retry'] == true) {
+    if (opts.extra['hishumi_retry'] == true) {
       return ResponseBody.fromBytes(utf8.encode(jsonEncode({'success': true, 'data': {'ok': true}})), 200, headers: {Headers.contentTypeHeader: ['application/json']});
     }
     return ResponseBody.fromBytes(utf8.encode(jsonEncode({'success': false})), 401, headers: {Headers.contentTypeHeader: ['application/json']});
@@ -54,17 +54,17 @@ Dio buildDio(FakeStorage storage, HttpClientAdapter adapter) {
 
 void main() {
   group('Phase 3E logout termination', () {
-    test('A. Successful current logout -> POST /auth/logout with Labuda Bearer, then local cleared', () async {
+    test('A. Successful current logout -> POST /auth/logout with HiShumi Bearer, then local cleared', () async {
       final storage = FakeStorage(access: 'old-access', refresh: 'old-refresh');
       final adapter = CaptureLogoutAdapter();
       final dio = buildDio(storage, adapter);
-      // Simulate AuthController.signOut backend call: POST /auth/logout with Labuda JWT
+      // Simulate AuthController.signOut backend call: POST /auth/logout with HiShumi JWT
       final resp = await dio.post('/auth/logout', data: {'refresh_token': 'old-refresh'});
       expect(resp.statusCode, 200);
       expect(adapter.logoutAuth, 'Bearer old-access');
       expect(adapter.logoutRefreshBody, 'old-refresh');
       // Phase 3E local clearing
-      await storage.clearLabudaCredential();
+      await storage.clearHiShumiCredential();
       expect(storage.access, isNull);
       expect(storage.refresh, isNull);
       expect(storage.clearCount, 1);
@@ -72,13 +72,13 @@ void main() {
 
     test('D. Firebase cannot resurrect after logout', () async {
       final storage = FakeStorage(access: null, refresh: null);
-      // Firebase still "signed in" is irrelevant, Labuda missing -> hasLabuda false
-      expect((await storage.hasLabudaCredential()).data, isFalse);
+      // Firebase still "signed in" is irrelevant, HiShumi missing -> hasHiShumi false
+      expect((await storage.hasHiShumiCredential()).data, isFalse);
       // startup would remain unauthenticated, no exchange
       bool exchangeCalled = false;
-      // simulate startup guard: if !hasLabuda, don't call exchange
-      final hasLabuda = (await storage.hasLabudaCredential()).data == true;
-      if (!hasLabuda) exchangeCalled = false;
+      // simulate startup guard: if !hasHiShumi, don't call exchange
+      final hasHiShumi = (await storage.hasHiShumiCredential()).data == true;
+      if (!hasHiShumi) exchangeCalled = false;
       expect(exchangeCalled, isFalse);
     });
 
@@ -86,9 +86,9 @@ void main() {
       final storage = FakeStorage(access: 'old-a', refresh: 'old-r');
       const oldRefresh = 'old-r';
       // Simulate logout clearing storage while refresh in flight (before save)
-      await storage.clearLabudaCredential();
+      await storage.clearHiShumiCredential();
       expect(storage.access, isNull);
-      final cur = await storage.readLabudaRefreshToken();
+      final cur = await storage.readHiShumiRefreshToken();
       expect(cur.data, isNull);
       // Guard in AuthInterceptor._doRefresh checks cur != oldRefresh -> abort save
       expect(cur.data != oldRefresh, isTrue);
@@ -98,19 +98,19 @@ void main() {
       expect(wouldSave, isFalse);
     });
 
-    test('J. Startup after logout: Firebase signed in + Labuda missing -> unauth', () async {
+    test('J. Startup after logout: Firebase signed in + HiShumi missing -> unauth', () async {
       final storage = FakeStorage(access: null, refresh: null);
-      // Firebase signed in simulated as true, but Labuda missing
+      // Firebase signed in simulated as true, but HiShumi missing
       bool firebaseSignedIn = true;
-      bool labudaHas = (await storage.hasLabudaCredential()).data == true;
-      bool shouldBeAuthenticated = labudaHas; // Labuda authority only
+      bool hishumiHas = (await storage.hasHiShumiCredential()).data == true;
+      bool shouldBeAuthenticated = hishumiHas; // HiShumi authority only
       expect(shouldBeAuthenticated, isFalse);
-      expect(firebaseSignedIn && !labudaHas, isTrue); // Firebase alone not enough
+      expect(firebaseSignedIn && !hishumiHas, isTrue); // Firebase alone not enough
     });
 
-    test('Local clearing uses canonical clearLabudaCredential', () async {
+    test('Local clearing uses canonical clearHiShumiCredential', () async {
       final storage = FakeStorage(access: 'a', refresh: 'r');
-      await storage.clearLabudaCredential();
+      await storage.clearHiShumiCredential();
       expect(storage.clearCount, 1);
       expect(storage.access, isNull);
     });

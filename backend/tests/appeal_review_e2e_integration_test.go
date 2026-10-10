@@ -24,14 +24,14 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/labuda/backend/internal/governance/moderation/application"
-	"github.com/labuda/backend/internal/governance/moderation/entity"
-	"github.com/labuda/backend/internal/governance/moderation/infrastructure/repository"
-	outboxRepo "github.com/labuda/backend/internal/platform/outbox/infrastructure/repository"
-	contentRepoImpl "github.com/labuda/backend/internal/social/content/infrastructure/repository"
-	commentRepoImpl "github.com/labuda/backend/internal/social/content/infrastructure/repository"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/testdb"
+	"github.com/hishumi/backend/internal/governance/moderation/application"
+	"github.com/hishumi/backend/internal/governance/moderation/entity"
+	"github.com/hishumi/backend/internal/governance/moderation/infrastructure/repository"
+	outboxRepo "github.com/hishumi/backend/internal/platform/outbox/infrastructure/repository"
+	contentRepoImpl "github.com/hishumi/backend/internal/social/content/infrastructure/repository"
+	commentRepoImpl "github.com/hishumi/backend/internal/social/content/infrastructure/repository"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/testdb"
 )
 
 // ============================================================================

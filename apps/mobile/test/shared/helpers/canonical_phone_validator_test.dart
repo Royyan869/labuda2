@@ -10,7 +10,7 @@
 //   62   -> 2-char prefix, 9-12 digits follow
 //   0    -> 1-char prefix, 9-12 digits follow
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/shared/helpers/canonical_phone_validator.dart';
+import 'package:hishumi/shared/helpers/canonical_phone_validator.dart';
 
 void main() {
   group('CanonicalPhoneValidator.isValid — prefix variants', () {

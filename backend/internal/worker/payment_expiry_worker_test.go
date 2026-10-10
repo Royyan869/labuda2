@@ -14,9 +14,9 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"go.uber.org/zap/zaptest"
 
-	paymentRepo "github.com/labuda/backend/internal/integration/payment/infrastructure/repository"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/money"
+	paymentRepo "github.com/hishumi/backend/internal/integration/payment/infrastructure/repository"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/money"
 )
 
 // paymentExpiryMockTx implements db.Tx for testing.

@@ -18,8 +18,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/testdb"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/testdb"
 )
 
 func TestGetDashboard_CountsRealForSales(t *testing.T) {

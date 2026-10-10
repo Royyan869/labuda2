@@ -7,9 +7,9 @@
 library;
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/user/identity/authentication/domain/entities/account_status.dart';
-import 'package:labuda/domains/user/identity/authentication/domain/entities/sync_outcome.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/user/identity/authentication/domain/entities/account_status.dart';
+import 'package:hishumi/domains/user/identity/authentication/domain/entities/sync_outcome.dart';
 
 void main() {
   group('SyncOutcome — canonical variant coverage', () {

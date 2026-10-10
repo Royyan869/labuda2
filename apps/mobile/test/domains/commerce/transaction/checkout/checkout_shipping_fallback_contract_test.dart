@@ -1,12 +1,12 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/api/api_client.dart';
-import 'package:labuda/core/api/exceptions/api_exception.dart';
-import 'package:labuda/domains/commerce/transaction/checkout/data/repositories/checkout_repository_impl.dart';
-import 'package:labuda/domains/commerce/transaction/checkout/domain/entities/checkout_request.dart';
-import 'package:labuda/domains/commerce/transaction/checkout/domain/entities/checkout_response.dart';
-import 'package:labuda/domains/commerce/transaction/checkout/domain/usecases/create_order_usecase.dart';
-import 'package:labuda/domains/commerce/transaction/shipping/domain/entities/shipping.dart';
+import 'package:hishumi/core/api/api_client.dart';
+import 'package:hishumi/core/api/exceptions/api_exception.dart';
+import 'package:hishumi/domains/commerce/transaction/checkout/data/repositories/checkout_repository_impl.dart';
+import 'package:hishumi/domains/commerce/transaction/checkout/domain/entities/checkout_request.dart';
+import 'package:hishumi/domains/commerce/transaction/checkout/domain/entities/checkout_response.dart';
+import 'package:hishumi/domains/commerce/transaction/checkout/domain/usecases/create_order_usecase.dart';
+import 'package:hishumi/domains/commerce/transaction/shipping/domain/entities/shipping.dart';
 
 class _RecordingApiClient implements ApiClient {
   String? lastPostPath;

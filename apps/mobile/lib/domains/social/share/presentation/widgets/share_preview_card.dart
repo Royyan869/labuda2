@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/shared/widgets/address_location_view.dart';
-import 'package:labuda/shared/widgets/app_image.dart';
-import 'package:labuda/shared/domain/entities/resource_projection.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/shared/widgets/address_location_view.dart';
+import 'package:hishumi/shared/widgets/app_image.dart';
+import 'package:hishumi/shared/domain/entities/resource_projection.dart';
 import '../../domain/entities/share_target.dart';
 
 /// Preview card showing what content will be shared

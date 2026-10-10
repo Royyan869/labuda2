@@ -32,23 +32,23 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction.dart';
-import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction_bid.dart';
-import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction_status.dart';
-import 'package:labuda/domains/commerce/catalog/auction/presentation/providers/auction_notifier.dart';
-import 'package:labuda/domains/commerce/catalog/auction/presentation/providers/auction_recommendation_providers.dart'
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/domain/entities/auction.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/domain/entities/auction_bid.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/domain/entities/auction_status.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/presentation/providers/auction_notifier.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/presentation/providers/auction_recommendation_providers.dart'
     show ownerOtherAuctionsProvider, similarAuctionsProvider;
-import 'package:labuda/domains/commerce/catalog/auction/presentation/providers/auction_state.dart';
-import 'package:labuda/domains/commerce/catalog/auction/presentation/screens/auction_detail_screen.dart';
-import 'package:labuda/domains/commerce/catalog/auction/presentation/widgets/detail/auction_recommendations_section.dart';
-import 'package:labuda/domains/commerce/catalog/shared/domain/entities/commerce_viewer_capabilities.dart';
-import 'package:labuda/domains/social/content/domain/entities/content.dart';
-import 'package:labuda/domains/user/preference/saved_item/data/repositories/saved_item_repository.dart';
-import 'package:labuda/domains/user/preference/saved_item/data/repositories/saved_item_repository_provider.dart';
-import 'package:labuda/generated/app_localizations.dart';
-import 'package:labuda/shared/governance/content_lifecycle.dart';
-import 'package:labuda/shared/widgets/bottom_action_bar.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/presentation/providers/auction_state.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/presentation/screens/auction_detail_screen.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/presentation/widgets/detail/auction_recommendations_section.dart';
+import 'package:hishumi/domains/commerce/catalog/shared/domain/entities/commerce_viewer_capabilities.dart';
+import 'package:hishumi/domains/social/content/domain/entities/content.dart';
+import 'package:hishumi/domains/user/preference/saved_item/data/repositories/saved_item_repository.dart';
+import 'package:hishumi/domains/user/preference/saved_item/data/repositories/saved_item_repository_provider.dart';
+import 'package:hishumi/generated/app_localizations.dart';
+import 'package:hishumi/shared/governance/content_lifecycle.dart';
+import 'package:hishumi/shared/widgets/bottom_action_bar.dart';
 
 const List<double> _insets = <double>[0, 24, 34, 48];
 

@@ -2,12 +2,12 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/domains/commerce/transaction/order/data/mappers/order_mapper.dart';
-import 'package:labuda/domains/commerce/transaction/order/data/models/api/order_api_response_dtos.dart';
-import 'package:labuda/domains/commerce/transaction/order/data/order_providers.dart';
-import 'package:labuda/domains/commerce/transaction/order/domain/domain.dart';
-import 'package:labuda/domains/commerce/transaction/order/domain/entities/shipping_types.dart';
-import 'package:labuda/domains/commerce/transaction/order/presentation/providers/order_providers.dart';
+import 'package:hishumi/domains/commerce/transaction/order/data/mappers/order_mapper.dart';
+import 'package:hishumi/domains/commerce/transaction/order/data/models/api/order_api_response_dtos.dart';
+import 'package:hishumi/domains/commerce/transaction/order/data/order_providers.dart';
+import 'package:hishumi/domains/commerce/transaction/order/domain/domain.dart';
+import 'package:hishumi/domains/commerce/transaction/order/domain/entities/shipping_types.dart';
+import 'package:hishumi/domains/commerce/transaction/order/presentation/providers/order_providers.dart';
 
 class _FakeOrderRepository implements OrderRepository {
   _FakeOrderRepository(this._stream);

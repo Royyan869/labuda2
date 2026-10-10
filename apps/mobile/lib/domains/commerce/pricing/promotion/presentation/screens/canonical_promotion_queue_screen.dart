@@ -2,11 +2,11 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/commerce/pricing/promotion/data/dto/promotion_contract_dto.dart';
-import 'package:labuda/domains/commerce/pricing/promotion/presentation/providers/canonical_promotion_providers.dart';
-import 'package:labuda/shared/widgets/app_dialog.dart';
-import 'package:labuda/shared/widgets/app_snackbar.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/commerce/pricing/promotion/data/dto/promotion_contract_dto.dart';
+import 'package:hishumi/domains/commerce/pricing/promotion/presentation/providers/canonical_promotion_providers.dart';
+import 'package:hishumi/shared/widgets/app_dialog.dart';
+import 'package:hishumi/shared/widgets/app_snackbar.dart';
 
 /// Canonical "Kelola Produk" queue screen for ONE existing promotion contract.
 ///

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/system/notification/notification.dart';
-import 'package:labuda/domains/chat/chat/presentation/widgets/chat_badge_widget.dart';
-import 'package:labuda/domains/user/preference/saved_item/saved_item.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/system/notification/notification.dart';
+import 'package:hishumi/domains/chat/chat/presentation/widgets/chat_badge_widget.dart';
+import 'package:hishumi/domains/user/preference/saved_item/saved_item.dart';
 
 class MainAppBar extends ConsumerWidget implements PreferredSizeWidget {
   const MainAppBar({super.key});
@@ -34,6 +34,12 @@ class MainAppBar extends ConsumerWidget implements PreferredSizeWidget {
     );
 
     return AppBar(
+      // Menu is drawn explicitly as the first title slot; do NOT let AppBar
+      // auto-insert another DrawerButton for the Scaffold drawer. Without this,
+      // a Scaffold with a drawer injects a second hamburger forced into the
+      // zero-width leading slot (leadingWidth: 0), which paints a squeezed,
+      // overlapping glyph at the left edge.
+      automaticallyImplyLeading: false,
       leadingWidth: 0,
       titleSpacing: 0,
       title: SizedBox(

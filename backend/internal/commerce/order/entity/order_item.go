@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/pkg/money"
+	"github.com/hishumi/backend/pkg/money"
 )
 
 // OrderItem represents a line item within an order.

@@ -1,6 +1,6 @@
-# Labuda Backend
+# HiShumi Backend
 
-Go API server for the Labuda marketplace platform. Gin framework, Firebase auth, Midtrans payments, PostgreSQL, Redis.
+Go API server for the HiShumi marketplace platform. Gin framework, Firebase auth, Midtrans payments, PostgreSQL, Redis.
 
 - Production entrypoint: [`cmd/core_server/main.go`](cmd/core_server/main.go)
 - Route registration: [`cmd/core_server/routes_core.go`](cmd/core_server/routes_core.go)
@@ -46,9 +46,9 @@ Key env vars (see [`.env.example`](.env.example) for full list):
 |---|---|---|
 | `DB_HOST` | `localhost` | Yes |
 | `DB_PORT` | `5432` | Yes |
-| `DB_USER` | `postgres` | Yes |
+| `DB_USER` | `hishumi` | Yes |
 | `DB_PASSWORD` | — | Yes |
-| `DB_NAME` | `labuda_db` | Yes |
+| `DB_NAME` | `hishumi` | Yes |
 | `REDIS_HOST` | `localhost` | Yes |
 | `FIREBASE_PROJECT_ID` | — | Yes |
 | `FIREBASE_SERVICE_ACCOUNT_KEY_PATH` | `./configs/firebase-service-account.json` | Yes |
@@ -93,8 +93,8 @@ role and grants that same entire universe.
 
 #### Provision the Firebase identity for the dev admin (Admin dashboard login)
 
-The seeder creates the Labuda **DB** admin identity only. To sign in to the Admin dashboard you
-also need a real **Firebase Auth** account whose email matches that Labuda admin
+The seeder creates the HiShumi **DB** admin identity only. To sign in to the Admin dashboard you
+also need a real **Firebase Auth** account whose email matches that HiShumi admin
 (`admin@test.local`), because `/api/v1/auth/firebase/exchange` resolves an unknown Firebase UID by
 email and links it to the existing DB row. Without it, the normal Firebase login cannot succeed.
 
@@ -107,7 +107,7 @@ printf '%s' "$PW" | go run ./cmd/dev-firebase-admin --email admin@test.local --p
 - **Development only.** The command refuses to run unless `ENV=development` (an unset `ENV`
   defaults to `production`, so it fails closed).
 - **Provisioning only.** It creates (or reports) the Firebase Auth user. It never creates a
-  Labuda DB user, never grants capabilities or roles, never issues session tokens, and never
+  HiShumi DB user, never grants capabilities or roles, never issues session tokens, and never
   bypasses Firebase login or the exchange. Login still goes through the normal Firebase flow.
 - **Idempotent.** If the Firebase user already exists it is left untouched (`already_exists`,
   password preserved). A disabled user is reported (`exists_disabled`), never silently enabled.

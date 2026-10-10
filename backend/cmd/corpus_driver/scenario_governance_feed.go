@@ -233,7 +233,7 @@ func feedCaptureMetrics(ctx context.Context, client *http.Client, cfg governance
 	return stepResult{Step: "metrics:" + filename, Status: "ok", HTTP: res.StatusCode, Artifact: filename}
 }
 
-// sniffFeedEnforcement reads labuda_evaluator_feed_enforce_mode_total
+// sniffFeedEnforcement reads hishumi_evaluator_feed_enforce_mode_total
 // label out of a metrics scrape.
 func sniffFeedEnforcement(metricsPath string) string {
 	b, err := os.ReadFile(metricsPath)
@@ -241,7 +241,7 @@ func sniffFeedEnforcement(metricsPath string) string {
 		return ""
 	}
 	for _, ln := range strings.Split(string(b), "\n") {
-		if !strings.HasPrefix(ln, "labuda_evaluator_feed_enforce_mode_total") {
+		if !strings.HasPrefix(ln, "hishumi_evaluator_feed_enforce_mode_total") {
 			continue
 		}
 		if i := strings.Index(ln, `mode="`); i >= 0 {
@@ -535,12 +535,12 @@ func synthesizeFeedVerdict(sum *feedSummary) string {
 }
 
 // sniffFeedEnforcementApplied compares two metrics scrapes for the
-// labuda_evaluator_feed_enforcement_applied_total counter family.
+// hishumi_evaluator_feed_enforcement_applied_total counter family.
 func sniffFeedEnforcementApplied(beforePath, afterPath string) (bool, string) {
-	beforeMap := readFeedSeries(beforePath, "labuda_evaluator_feed_enforcement_applied_total")
-	afterMap := readFeedSeries(afterPath, "labuda_evaluator_feed_enforcement_applied_total")
+	beforeMap := readFeedSeries(beforePath, "hishumi_evaluator_feed_enforcement_applied_total")
+	afterMap := readFeedSeries(afterPath, "hishumi_evaluator_feed_enforcement_applied_total")
 	if len(afterMap) == 0 {
-		return false, "no labuda_evaluator_feed_enforcement_applied_total series present in the final scrape — counter never incremented; if the legacy SQL projection excluded the row (status='active' gate) this is the expected outcome of the further-restrict-only contract"
+		return false, "no hishumi_evaluator_feed_enforcement_applied_total series present in the final scrape — counter never incremented; if the legacy SQL projection excluded the row (status='active' gate) this is the expected outcome of the further-restrict-only contract"
 	}
 	for labels, after := range afterMap {
 		before := beforeMap[labels]
@@ -589,7 +589,7 @@ func sniffFeedShadowContinuity(activePath, deletedPath string) string {
 	deleted := readFeedShadowRequestTotal(deletedPath)
 	switch {
 	case deleted > active:
-		return fmt.Sprintf("feed shadow continuity confirmed: labuda_evaluator_shadow_request_total{surface=feed} advanced %g → %g", active, deleted)
+		return fmt.Sprintf("feed shadow continuity confirmed: hishumi_evaluator_shadow_request_total{surface=feed} advanced %g → %g", active, deleted)
 	case active > 0 && deleted == active:
 		return fmt.Sprintf("feed shadow request_total observed at %g but did not advance between active and deleted snapshots", active)
 	case active == 0 && deleted == 0:
@@ -606,7 +606,7 @@ func readFeedShadowRequestTotal(path string) float64 {
 	}
 	var total float64
 	for _, ln := range strings.Split(string(b), "\n") {
-		if !strings.HasPrefix(ln, "labuda_evaluator_shadow_request_total{") {
+		if !strings.HasPrefix(ln, "hishumi_evaluator_shadow_request_total{") {
 			continue
 		}
 		if !strings.Contains(ln, `surface="feed"`) {

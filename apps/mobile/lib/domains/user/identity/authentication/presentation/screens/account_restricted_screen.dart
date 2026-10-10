@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/src/theme/app_theme.dart';
+import 'package:hishumi/core/src/theme/app_theme.dart';
 
 import '../../domain/entities/account_status.dart';
 import '../providers/auth_controller.dart';

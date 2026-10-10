@@ -6,10 +6,10 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/platform/admin/repository"
-	"github.com/labuda/backend/internal/platform/capability"
-	"github.com/labuda/backend/internal/platform/capability/entity"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/platform/admin/repository"
+	"github.com/hishumi/backend/internal/platform/capability"
+	"github.com/hishumi/backend/internal/platform/capability/entity"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // ---------------------------------------------------------------------------

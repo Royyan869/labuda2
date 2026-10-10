@@ -50,29 +50,29 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/stretchr/testify/require"
 
-	addressentity "github.com/labuda/backend/internal/identity/address/entity"
-	addressrepo "github.com/labuda/backend/internal/identity/address/repository"
+	addressentity "github.com/hishumi/backend/internal/identity/address/entity"
+	addressrepo "github.com/hishumi/backend/internal/identity/address/repository"
 
-	forsaleentity "github.com/labuda/backend/internal/commerce/forsale/entity"
-	forsalerepo "github.com/labuda/backend/internal/commerce/forsale/repository"
-	orderentity "github.com/labuda/backend/internal/commerce/order/entity"
-	orderrepository "github.com/labuda/backend/internal/commerce/order/repository"
-	productentity "github.com/labuda/backend/internal/commerce/product/entity"
+	forsaleentity "github.com/hishumi/backend/internal/commerce/forsale/entity"
+	forsalerepo "github.com/hishumi/backend/internal/commerce/forsale/repository"
+	orderentity "github.com/hishumi/backend/internal/commerce/order/entity"
+	orderrepository "github.com/hishumi/backend/internal/commerce/order/repository"
+	productentity "github.com/hishumi/backend/internal/commerce/product/entity"
 
-	shippingApp "github.com/labuda/backend/internal/commerce/shipping/application"
-	shippingentity "github.com/labuda/backend/internal/commerce/shipping/entity"
-	shippingrepo "github.com/labuda/backend/internal/commerce/shipping/infrastructure/repository"
+	shippingApp "github.com/hishumi/backend/internal/commerce/shipping/application"
+	shippingentity "github.com/hishumi/backend/internal/commerce/shipping/entity"
+	shippingrepo "github.com/hishumi/backend/internal/commerce/shipping/infrastructure/repository"
 
-	coinsentity "github.com/labuda/backend/internal/incentive/coins/entity"
-	coinsrepo "github.com/labuda/backend/internal/incentive/coins/repository"
+	coinsentity "github.com/hishumi/backend/internal/incentive/coins/entity"
+	coinsrepo "github.com/hishumi/backend/internal/incentive/coins/repository"
 
-	capabilityEntity "github.com/labuda/backend/internal/platform/capability/entity"
-	outboxrepo "github.com/labuda/backend/internal/platform/outbox/infrastructure/repository"
+	capabilityEntity "github.com/hishumi/backend/internal/platform/capability/entity"
+	outboxrepo "github.com/hishumi/backend/internal/platform/outbox/infrastructure/repository"
 
-	contentrepo "github.com/labuda/backend/internal/social/content/repository"
+	contentrepo "github.com/hishumi/backend/internal/social/content/repository"
 
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/money"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/money"
 )
 
 // ============================================================================

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/shared/shared.dart';
-import 'package:labuda/shared/helpers/canonical_email_validator.dart';
-import 'package:labuda/shared/helpers/canonical_password_policy.dart';
-import 'package:labuda/shared/helpers/canonical_password_match.dart';
-import 'package:labuda/domains/user/identity/authentication/presentation/shared/shared.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/shared/shared.dart';
+import 'package:hishumi/shared/helpers/canonical_email_validator.dart';
+import 'package:hishumi/shared/helpers/canonical_password_policy.dart';
+import 'package:hishumi/shared/helpers/canonical_password_match.dart';
+import 'package:hishumi/domains/user/identity/authentication/presentation/shared/shared.dart';
 import '../widgets/username_field.dart';
 
 /// Sign Up Screen - State-Driven Refactor
@@ -242,14 +242,20 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
   /// UI hanya memanggil signUpWithGoogle() dan menunggu.
   /// Router akan menangani redirect secara otomatis ketika state berubah.
   /// Tidak ada check authState manual, tidak ada navigasi manual.
+  ///
+  /// NO SUCCESS CELEBRATION (Owner decision): `signUpWithGoogle` is the same
+  /// canonical flow as the Login screen's Google button, and the OUTCOME is
+  /// not a proof of registration:
+  ///   - Authenticated may be an EXISTING account logging in (not a signup);
+  ///   - RequiresProfileCompletion is a registration still in progress.
+  /// A "registration successful" claim cannot be proven from this surface,
+  /// so none is shown. The router alone moves the user to the correct
+  /// destination (Home or Complete Profile); failures keep their inline
+  /// error feedback below.
   Future<void> _handleGoogleSignUp() async {
     try {
       await ref.read(authControllerProvider.notifier).signUpWithGoogle();
-
-      if (mounted) {
-        AppSnackBar.showSuccess(context, 'Berhasil mendaftar dengan Google!');
-      }
-      // Router akan menangani redirect ketika AuthStateAuthenticated tercapai
+      // Router menangani redirect berdasarkan AuthState hasil flow kanonis.
     } catch (e) {
       if (mounted) {
         _controller.showError('Google sign up failed. Please try again.');

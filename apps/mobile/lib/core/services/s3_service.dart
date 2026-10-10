@@ -3,10 +3,10 @@ import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import 'package:blurhash_dart/blurhash_dart.dart';
 import 'package:image/image.dart' as img;
-import 'package:labuda/core/api/api_client.dart';
-import 'package:labuda/core/api/exceptions/api_exception.dart';
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/domains/social/content/domain/entities/content.dart';
+import 'package:hishumi/core/api/api_client.dart';
+import 'package:hishumi/core/api/exceptions/api_exception.dart';
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/domains/social/content/domain/entities/content.dart';
 import 'blurhash_cache_service.dart';
 
 /// Result of an S3 upload operation containing both the object key and read URL.

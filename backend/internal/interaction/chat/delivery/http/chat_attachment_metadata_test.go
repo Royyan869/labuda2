@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	chatEntity "github.com/labuda/backend/internal/interaction/chat/entity"
+	chatEntity "github.com/hishumi/backend/internal/interaction/chat/entity"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

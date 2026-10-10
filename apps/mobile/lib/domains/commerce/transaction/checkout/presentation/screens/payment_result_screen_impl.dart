@@ -12,15 +12,15 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:labuda/core/src/theme/app_theme.dart';
+import 'package:hishumi/core/src/theme/app_theme.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:labuda/core/core.dart' as core;
-import 'package:labuda/domains/commerce/transaction/checkout/presentation/providers/payment_result_notifier.dart';
-import 'package:labuda/domains/commerce/transaction/checkout/presentation/providers/payment_result_state.dart'
+import 'package:hishumi/core/core.dart' as core;
+import 'package:hishumi/domains/commerce/transaction/checkout/presentation/providers/payment_result_notifier.dart';
+import 'package:hishumi/domains/commerce/transaction/checkout/presentation/providers/payment_result_state.dart'
     show PaymentResultScreenStatus, PaymentResultState;
-import 'package:labuda/domains/system/support/presentation/widgets/pre_chat_form_sheet.dart';
-import 'package:labuda/domains/user/identity/authentication/authentication.dart';
+import 'package:hishumi/domains/system/support/presentation/widgets/pre_chat_form_sheet.dart';
+import 'package:hishumi/domains/user/identity/authentication/authentication.dart';
 // Payment URLs are presented exclusively inside Labuda's internal WebView.
 
 part 'payment_result_screen_sections.dart';

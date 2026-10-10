@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/labuda/backend/internal/platform/logger"
+	"github.com/hishumi/backend/internal/platform/logger"
 	"go.uber.org/zap"
 )
 

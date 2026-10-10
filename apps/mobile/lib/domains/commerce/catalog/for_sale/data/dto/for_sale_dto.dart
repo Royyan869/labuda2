@@ -18,7 +18,7 @@
 library;
 
 import 'package:equatable/equatable.dart';
-import 'package:labuda/domains/commerce/catalog/shared/domain/entities/commerce_viewer_capabilities.dart';
+import 'package:hishumi/domains/commerce/catalog/shared/domain/entities/commerce_viewer_capabilities.dart';
 
 // =============================================================================
 // Response DTOs

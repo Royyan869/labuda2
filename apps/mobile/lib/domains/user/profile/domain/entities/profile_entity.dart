@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:labuda/domains/user/identity/authentication/domain/entities/auth_user.dart';
+import 'package:hishumi/domains/user/identity/authentication/domain/entities/auth_user.dart';
 
 /// User verification info and badges
 ///

@@ -5,9 +5,9 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/identity/auth"
-	"github.com/labuda/backend/internal/social/feed/entity"
-	feedrepo "github.com/labuda/backend/internal/social/feed/infrastructure/repository"
+	"github.com/hishumi/backend/internal/identity/auth"
+	"github.com/hishumi/backend/internal/social/feed/entity"
+	feedrepo "github.com/hishumi/backend/internal/social/feed/infrastructure/repository"
 )
 
 // FeedService handles feed read operations.

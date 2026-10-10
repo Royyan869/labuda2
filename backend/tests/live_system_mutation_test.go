@@ -10,9 +10,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
-	"github.com/labuda/backend/internal/commerce/forsale/entity"
-	auctionEntity "github.com/labuda/backend/internal/commerce/auction/entity"
-	"github.com/labuda/backend/pkg/testdb"
+	"github.com/hishumi/backend/internal/commerce/forsale/entity"
+	auctionEntity "github.com/hishumi/backend/internal/commerce/auction/entity"
+	"github.com/hishumi/backend/pkg/testdb"
 )
 
 func TestSystemMutation_ActiveForSale_ReduceQuantityStillAllowed(t *testing.T) {

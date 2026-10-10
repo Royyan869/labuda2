@@ -7,10 +7,10 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	productEntity "github.com/labuda/backend/internal/commerce/product/entity"
-	addressEntity "github.com/labuda/backend/internal/identity/address/entity"
-	addressRepo "github.com/labuda/backend/internal/identity/address/repository"
-	"github.com/labuda/backend/pkg/db"
+	productEntity "github.com/hishumi/backend/internal/commerce/product/entity"
+	addressEntity "github.com/hishumi/backend/internal/identity/address/entity"
+	addressRepo "github.com/hishumi/backend/internal/identity/address/repository"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // stubTx satisfies db.Tx without a live connection: the fake never touches

@@ -25,8 +25,8 @@ import (
 	"encoding/json"
 
 	"github.com/google/uuid"
-	platformevent "github.com/labuda/backend/internal/platform/event"
-	"github.com/labuda/backend/pkg/db"
+	platformevent "github.com/hishumi/backend/internal/platform/event"
+	"github.com/hishumi/backend/pkg/db"
 	"go.uber.org/zap"
 )
 

@@ -9,8 +9,8 @@
 // production startup step (never intl directly) and then asserts the
 // dependent production formatting behavior end to end.
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/main.dart' show initializeAppDateFormatting;
-import 'package:labuda/shared/utils/app_formatters.dart';
+import 'package:hishumi/main.dart' show initializeAppDateFormatting;
+import 'package:hishumi/shared/utils/app_formatters.dart';
 
 void main() {
   group('bootstrap date-formatting contract', () {

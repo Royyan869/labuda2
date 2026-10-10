@@ -15,9 +15,9 @@ import (
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 
-	"github.com/labuda/backend/internal/middleware"
-	"github.com/labuda/backend/internal/platform/response"
-	"github.com/labuda/backend/internal/platform/s3presign"
+	"github.com/hishumi/backend/internal/middleware"
+	"github.com/hishumi/backend/internal/platform/response"
+	"github.com/hishumi/backend/internal/platform/s3presign"
 )
 
 // MediaUploadTTL is the lifetime of a general presigned PUT URL.

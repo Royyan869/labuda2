@@ -3,32 +3,32 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
-import 'package:labuda/core/config/seller_upgrade_config_entity.dart';
-import 'package:labuda/core/config/seller_upgrade_config_provider.dart'
+import 'package:hishumi/core/config/seller_upgrade_config_entity.dart';
+import 'package:hishumi/core/config/seller_upgrade_config_provider.dart'
     as upgrade_config;
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/user/identity/authentication/data/auth_providers.dart'
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/user/identity/authentication/data/auth_providers.dart'
     as auth_data;
-import 'package:labuda/domains/user/identity/authentication/domain/entities/account_status.dart';
-import 'package:labuda/domains/user/identity/authentication/domain/entities/seller_tier.dart';
-import 'package:labuda/domains/user/identity/authentication/domain/entities/user_profile_patch.dart';
-import 'package:labuda/domains/user/preference/seller/data/dto/seller_dto.dart';
-import 'package:labuda/domains/user/preference/seller/data/remote/seller_remote_datasource.dart';
-import 'package:labuda/domains/user/preference/seller/data/seller_providers.dart'
+import 'package:hishumi/domains/user/identity/authentication/domain/entities/account_status.dart';
+import 'package:hishumi/domains/user/identity/authentication/domain/entities/seller_tier.dart';
+import 'package:hishumi/domains/user/identity/authentication/domain/entities/user_profile_patch.dart';
+import 'package:hishumi/domains/user/preference/seller/data/dto/seller_dto.dart';
+import 'package:hishumi/domains/user/preference/seller/data/remote/seller_remote_datasource.dart';
+import 'package:hishumi/domains/user/preference/seller/data/seller_providers.dart'
     show sellerRemoteDatasourceProvider, sellerRepositoryProvider;
-import 'package:labuda/domains/user/preference/seller/domain/entities/seller_subscription.dart';
-import 'package:labuda/domains/user/preference/seller/domain/repositories/seller_repository.dart';
-import 'package:labuda/domains/user/preference/seller/presentation/screens/seller_renewal_screen.dart';
-import 'package:labuda/domains/user/preference/seller/presentation/screens/seller_upgrade_wizard_screen.dart';
-import 'package:labuda/domains/user/profile/data/profile_providers.dart'
+import 'package:hishumi/domains/user/preference/seller/domain/entities/seller_subscription.dart';
+import 'package:hishumi/domains/user/preference/seller/domain/repositories/seller_repository.dart';
+import 'package:hishumi/domains/user/preference/seller/presentation/screens/seller_renewal_screen.dart';
+import 'package:hishumi/domains/user/preference/seller/presentation/screens/seller_upgrade_wizard_screen.dart';
+import 'package:hishumi/domains/user/profile/data/profile_providers.dart'
     show addressRepositoryProvider;
-import 'package:labuda/domains/user/profile/domain/entities/address_entity.dart';
-import 'package:labuda/domains/user/profile/domain/entities/profile_entity.dart'
+import 'package:hishumi/domains/user/profile/domain/entities/address_entity.dart';
+import 'package:hishumi/domains/user/profile/domain/entities/profile_entity.dart'
     show FarmInfo, ProfileEntity, ProfileStats, UserVerificationInfo;
-import 'package:labuda/domains/user/profile/domain/repositories/i_address_repository.dart';
-import 'package:labuda/domains/user/profile/presentation/providers/profile_stream_provider.dart';
-import 'package:labuda/shared/governance/content_lifecycle.dart';
-import 'package:labuda/shared/shared.dart';
+import 'package:hishumi/domains/user/profile/domain/repositories/i_address_repository.dart';
+import 'package:hishumi/domains/user/profile/presentation/providers/profile_stream_provider.dart';
+import 'package:hishumi/shared/governance/content_lifecycle.dart';
+import 'package:hishumi/shared/shared.dart';
 import 'package:mockito/mockito.dart';
 
 /// SCOPE 3 — canonical lifecycle split contract.

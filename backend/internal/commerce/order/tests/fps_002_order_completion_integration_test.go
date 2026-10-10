@@ -10,15 +10,15 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
-	forsaleentity "github.com/labuda/backend/internal/commerce/forsale/entity"
-	forsalerepo "github.com/labuda/backend/internal/commerce/forsale/infrastructure/repository"
-	orderentity "github.com/labuda/backend/internal/commerce/order/entity"
-	orderrepo "github.com/labuda/backend/internal/commerce/order/infrastructure/repository"
-	productEntity "github.com/labuda/backend/internal/commerce/product/entity"
-	productInfraRepo "github.com/labuda/backend/internal/commerce/product/infrastructure/repository"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/money"
-	"github.com/labuda/backend/pkg/testdb"
+	forsaleentity "github.com/hishumi/backend/internal/commerce/forsale/entity"
+	forsalerepo "github.com/hishumi/backend/internal/commerce/forsale/infrastructure/repository"
+	orderentity "github.com/hishumi/backend/internal/commerce/order/entity"
+	orderrepo "github.com/hishumi/backend/internal/commerce/order/infrastructure/repository"
+	productEntity "github.com/hishumi/backend/internal/commerce/product/entity"
+	productInfraRepo "github.com/hishumi/backend/internal/commerce/product/infrastructure/repository"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/money"
+	"github.com/hishumi/backend/pkg/testdb"
 )
 
 func TestFPS002_OrderCompletionIdempotency(t *testing.T) {

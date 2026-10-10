@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/features/search/search/search.dart'; // R3.1: Full import for providers and extensions
-import 'package:labuda/features/search/search/data/dto/search_dto.dart'; // R3.1: Import for UserSearchResultDto.toUserSearch() extension
-import 'package:labuda/shared/shared.dart';
-import 'package:labuda/core/src/theme/app_theme.dart';
+import 'package:hishumi/features/search/search/search.dart'; // R3.1: Full import for providers and extensions
+import 'package:hishumi/features/search/search/data/dto/search_dto.dart'; // R3.1: Import for UserSearchResultDto.toUserSearch() extension
+import 'package:hishumi/shared/shared.dart';
+import 'package:hishumi/core/src/theme/app_theme.dart';
 
 /// Bottom sheet untuk search dan select users (Instagram style)
 /// Digunakan untuk tag people di create post/request

@@ -3,20 +3,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
-import 'package:labuda/shared/widgets/bottom_action_bar.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/core/common/types/preparation_time.dart';
-import 'package:labuda/domains/commerce/catalog/for_sale/domain/domain.dart';
-import 'package:labuda/domains/commerce/catalog/for_sale/presentation/providers/for_sale_providers.dart'
+import 'package:hishumi/shared/widgets/bottom_action_bar.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/core/common/types/preparation_time.dart';
+import 'package:hishumi/domains/commerce/catalog/for_sale/domain/domain.dart';
+import 'package:hishumi/domains/commerce/catalog/for_sale/presentation/providers/for_sale_providers.dart'
     show forSaleDetailProvider;
-import 'package:labuda/domains/commerce/catalog/for_sale/presentation/screens/for_sale_detail_screen.dart';
-import 'package:labuda/domains/user/profile/presentation/providers/user_data_provider.dart';
-import 'package:labuda/domains/user/preference/saved_item/data/repositories/saved_item_repository.dart';
-import 'package:labuda/domains/user/preference/saved_item/data/repositories/saved_item_repository_provider.dart';
-import 'package:labuda/domains/user/preference/saved_item/models/saved_item_model.dart';
-import 'package:labuda/shared/governance/content_lifecycle.dart';
-import 'package:labuda/domains/social/content/domain/entities/content.dart';
-import 'package:labuda/domains/commerce/catalog/shared/domain/entities/commerce_viewer_capabilities.dart';
+import 'package:hishumi/domains/commerce/catalog/for_sale/presentation/screens/for_sale_detail_screen.dart';
+import 'package:hishumi/domains/user/profile/presentation/providers/user_data_provider.dart';
+import 'package:hishumi/domains/user/preference/saved_item/data/repositories/saved_item_repository.dart';
+import 'package:hishumi/domains/user/preference/saved_item/data/repositories/saved_item_repository_provider.dart';
+import 'package:hishumi/domains/user/preference/saved_item/models/saved_item_model.dart';
+import 'package:hishumi/shared/governance/content_lifecycle.dart';
+import 'package:hishumi/domains/social/content/domain/entities/content.dart';
+import 'package:hishumi/domains/commerce/catalog/shared/domain/entities/commerce_viewer_capabilities.dart';
 
 class _FakeAuthController extends AuthController {
   _FakeAuthController(this._state);

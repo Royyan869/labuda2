@@ -11,12 +11,12 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	auctionRepo "github.com/labuda/backend/internal/commerce/auction/infrastructure/repository"
-	savedItemApp "github.com/labuda/backend/internal/interaction/saved_item/application"
-	savedItemRepo "github.com/labuda/backend/internal/interaction/saved_item/infrastructure/repository"
-	"github.com/labuda/backend/internal/platform/response"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/testdb"
+	auctionRepo "github.com/hishumi/backend/internal/commerce/auction/infrastructure/repository"
+	savedItemApp "github.com/hishumi/backend/internal/interaction/saved_item/application"
+	savedItemRepo "github.com/hishumi/backend/internal/interaction/saved_item/infrastructure/repository"
+	"github.com/hishumi/backend/internal/platform/response"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/testdb"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 )

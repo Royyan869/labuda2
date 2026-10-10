@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/domains/chat/chat/data/dto/chat_resource_occurrence_request.dart';
+import 'package:hishumi/domains/chat/chat/data/dto/chat_resource_occurrence_request.dart';
 
 const _resourceIdA = '33333333-3333-3333-3333-333333333333';
 const _resourceIdB = '44444444-4444-4444-4444-444444444444';

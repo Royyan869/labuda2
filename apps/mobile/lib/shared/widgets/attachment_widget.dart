@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/shared/domain/entities/resource_projection.dart';
-import 'package:labuda/shared/shared.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/shared/domain/entities/resource_projection.dart';
+import 'package:hishumi/shared/shared.dart';
 
 /// Universal Attachment Widget — workflow payload renderer
 ///

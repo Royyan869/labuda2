@@ -3,7 +3,7 @@ import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/api/interceptors/auth_interceptor.dart';
+import 'package:hishumi/core/api/interceptors/auth_interceptor.dart';
 
 class _CaptureAdapter implements HttpClientAdapter {
   String? lastAuth;
@@ -46,13 +46,13 @@ class _OkAdapter implements HttpClientAdapter {
 
 void main() {
   // Phase 3B: Firebase exchange & complete-profile are skipAuth.
-  // No Labuda token should be attached even if a Labuda token exists.
-  test('/auth/firebase/exchange with skipAuth:true must NOT attach Labuda token',
+  // No HiShumi token should be attached even if a HiShumi token exists.
+  test('/auth/firebase/exchange with skipAuth:true must NOT attach HiShumi token',
       () async {
     final adapter = _CaptureAdapter();
     final dio = Dio()..httpClientAdapter = adapter;
     dio.interceptors.add(
-      AuthInterceptor(labudaTokenFetcher: () async => 'labuda-jwt'),
+      AuthInterceptor(hishumiTokenFetcher: () async => 'hishumi-jwt'),
     );
 
     await dio.post<dynamic>(
@@ -65,7 +65,7 @@ void main() {
       adapter.lastAuth,
       isNull,
       reason:
-          'Firebase exchange is skipAuth — AuthInterceptor must not attach Labuda JWT',
+          'Firebase exchange is skipAuth ΓÇö AuthInterceptor must not attach HiShumi JWT',
     );
 
     await dio.post<dynamic>(
@@ -78,7 +78,7 @@ void main() {
     );
 
     // The second request also skipAuth, so interceptor should not overwrite
-    // the explicitly set restricted token nor add Labuda.
+    // the explicitly set restricted token nor add HiShumi.
     // Capture adapter shows the header as set by the caller (if any).
     // Since we passed it via Options.headers, it should be preserved.
     // But interceptor skipAuth path does not touch headers, so it stays.
@@ -86,31 +86,31 @@ void main() {
       adapter.lastAuth,
       equals('Bearer restricted-token'),
       reason:
-          'complete-profile is skipAuth with restricted token — Labuda must NOT overwrite',
+          'complete-profile is skipAuth with restricted token ΓÇö HiShumi must NOT overwrite',
     );
   });
 
-  test('normal authenticated request attaches Labuda token, not Firebase', () async {
+  test('normal authenticated request attaches HiShumi token, not Firebase', () async {
     final adapter = _CaptureAdapter();
     final dio = Dio()..httpClientAdapter = adapter;
     dio.interceptors.add(
-      AuthInterceptor(labudaTokenFetcher: () async => 'labuda-jwt-xyz'),
+      AuthInterceptor(hishumiTokenFetcher: () async => 'hishumi-jwt-xyz'),
     );
 
     await dio.get<dynamic>('/api/v1/users/me');
 
-    expect(adapter.lastAuth, equals('Bearer labuda-jwt-xyz'));
+    expect(adapter.lastAuth, equals('Bearer hishumi-jwt-xyz'));
   });
 
   // Legacy forceRefresh semantics are obsolete: skipAuth routes never
-  // trigger Labuda fetcher.
-  test('skipAuth routes never invoke Labuda fetcher', () async {
+  // trigger HiShumi fetcher.
+  test('skipAuth routes never invoke HiShumi fetcher', () async {
     var fetchCount = 0;
     final dio = Dio()..httpClientAdapter = _OkAdapter();
     dio.interceptors.add(
-      AuthInterceptor(labudaTokenFetcher: () async {
+      AuthInterceptor(hishumiTokenFetcher: () async {
         fetchCount++;
-        return 'labuda';
+        return 'hishumi';
       }),
     );
 
@@ -124,6 +124,6 @@ void main() {
     );
 
     expect(fetchCount, equals(0),
-        reason: 'skipAuth must bypass Labuda token read entirely');
+        reason: 'skipAuth must bypass HiShumi token read entirely');
   });
 }

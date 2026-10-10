@@ -20,12 +20,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/system/support/domain/domain.dart';
-import 'package:labuda/domains/system/support/domain/repositories/support_repository.dart';
-import 'package:labuda/domains/system/support/presentation/presentation.dart';
-import 'package:labuda/generated/app_localizations.dart';
-import 'package:labuda/shared/utils/app_formatters.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/system/support/domain/domain.dart';
+import 'package:hishumi/domains/system/support/domain/repositories/support_repository.dart';
+import 'package:hishumi/domains/system/support/presentation/presentation.dart';
+import 'package:hishumi/generated/app_localizations.dart';
+import 'package:hishumi/shared/utils/app_formatters.dart';
 
 const List<double> _widths = <double>[320, 360, 412, 500];
 const List<double> _scales = <double>[1.0, 1.3, 2.0];

@@ -31,18 +31,18 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/commerce/catalog/auction/presentation/screens/create_auction_screen.dart';
-import 'package:labuda/domains/commerce/catalog/for_sale/presentation/screens/create_for_sale_screen.dart';
-import 'package:labuda/domains/commerce/transaction/shipping/domain/domain.dart';
-import 'package:labuda/domains/commerce/transaction/shipping/presentation/providers/providers.dart';
-import 'package:labuda/domains/user/identity/authentication/domain/entities/account_status.dart';
-import 'package:labuda/domains/user/identity/authentication/domain/entities/seller_tier.dart';
-import 'package:labuda/domains/user/profile/data/profile_providers.dart'
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/presentation/screens/create_auction_screen.dart';
+import 'package:hishumi/domains/commerce/catalog/for_sale/presentation/screens/create_for_sale_screen.dart';
+import 'package:hishumi/domains/commerce/transaction/shipping/domain/domain.dart';
+import 'package:hishumi/domains/commerce/transaction/shipping/presentation/providers/providers.dart';
+import 'package:hishumi/domains/user/identity/authentication/domain/entities/account_status.dart';
+import 'package:hishumi/domains/user/identity/authentication/domain/entities/seller_tier.dart';
+import 'package:hishumi/domains/user/profile/data/profile_providers.dart'
     show addressRepositoryProvider;
-import 'package:labuda/domains/user/profile/domain/entities/address_entity.dart';
-import 'package:labuda/domains/user/profile/domain/repositories/i_address_repository.dart';
-import 'package:labuda/shared/governance/content_lifecycle.dart';
+import 'package:hishumi/domains/user/profile/domain/entities/address_entity.dart';
+import 'package:hishumi/domains/user/profile/domain/repositories/i_address_repository.dart';
+import 'package:hishumi/shared/governance/content_lifecycle.dart';
 
 /// Publish CTA labels (kept exact so the finder binds to the real buttons).
 const String _forSaleCta = 'Publikasikan ForSale';

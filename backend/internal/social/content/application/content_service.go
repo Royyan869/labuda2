@@ -9,15 +9,15 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	commerceResponse "github.com/labuda/backend/internal/commerce/response"
-	"github.com/labuda/backend/internal/identity/auth"
-	"github.com/labuda/backend/internal/pkg/mediaref"
-	"github.com/labuda/backend/internal/platform/events"
-	idempotencyRepo "github.com/labuda/backend/internal/platform/idempotency/repository"
-	"github.com/labuda/backend/internal/social/content/entity"
-	contentrepo "github.com/labuda/backend/internal/social/content/infrastructure/repository"
-	likedomain "github.com/labuda/backend/internal/social/like"
-	"github.com/labuda/backend/pkg/db"
+	commerceResponse "github.com/hishumi/backend/internal/commerce/response"
+	"github.com/hishumi/backend/internal/identity/auth"
+	"github.com/hishumi/backend/internal/pkg/mediaref"
+	"github.com/hishumi/backend/internal/platform/events"
+	idempotencyRepo "github.com/hishumi/backend/internal/platform/idempotency/repository"
+	"github.com/hishumi/backend/internal/social/content/entity"
+	contentrepo "github.com/hishumi/backend/internal/social/content/infrastructure/repository"
+	likedomain "github.com/hishumi/backend/internal/social/like"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // ContentOutboxInserter inserts outbox events for content lifecycle (mention etc.) within the same Tx.

@@ -12,16 +12,16 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/require"
 
-	auctionEntity "github.com/labuda/backend/internal/commerce/auction/entity"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/testdb"
+	auctionEntity "github.com/hishumi/backend/internal/commerce/auction/entity"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/testdb"
 )
 
 // Stage 8 proof: Product is the sole canonical authority for all product
 // identity/content. ForSale and Auction are selling surfaces that
 // read content from Product — they never carry their own authority.
 //
-// These tests run against real Postgres (labuda_test) to prove runtime
+// These tests run against real Postgres (hishumi_test) to prove runtime
 // correctness of the canonical architecture.
 
 // seedStage8Product creates a product with known content fields.

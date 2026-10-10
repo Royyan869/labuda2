@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/user/profile/profile.dart'
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/user/profile/profile.dart'
     show phoneVerificationProvider;
 
 /// OTP Input Field - Handles OTP entry and verification

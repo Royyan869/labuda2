@@ -1,5 +1,5 @@
-import 'package:labuda/domains/system/support/domain/domain.dart';
-import 'package:labuda/generated/app_localizations.dart';
+import 'package:hishumi/domains/system/support/domain/domain.dart';
+import 'package:hishumi/generated/app_localizations.dart';
 
 /// I18N-15 — the ONE canonical Support Status display-label authority.
 ///

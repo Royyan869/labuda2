@@ -1,6 +1,6 @@
 import 'package:go_router/go_router.dart';
 import 'base_module.dart';
-import 'package:labuda/domains/commerce/transaction/order/order.dart';
+import 'package:hishumi/domains/commerce/transaction/order/order.dart';
 
 /// Order Module
 ///

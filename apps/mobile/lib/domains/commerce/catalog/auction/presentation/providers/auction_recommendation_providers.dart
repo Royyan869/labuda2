@@ -4,8 +4,8 @@
 library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction.dart';
-import 'package:labuda/domains/commerce/catalog/auction/domain/repositories/auction_repository.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/domain/entities/auction.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/domain/repositories/auction_repository.dart';
 
 /// Repository provider
 final auctionRepositoryProvider = Provider<AuctionRepository>((ref) {

@@ -1,9 +1,9 @@
-import 'package:labuda/features/search/search/data/dto/search_dto.dart';
-import 'package:labuda/features/search/search/domain/entities/search_history.dart';
-import 'package:labuda/features/search/search/domain/entities/user_search.dart';
-import 'package:labuda/features/search/search/domain/repositories/search_repository.dart'
+import 'package:hishumi/features/search/search/data/dto/search_dto.dart';
+import 'package:hishumi/features/search/search/domain/entities/search_history.dart';
+import 'package:hishumi/features/search/search/domain/entities/user_search.dart';
+import 'package:hishumi/features/search/search/domain/repositories/search_repository.dart'
     show ContentSearchResult, ForSaleSearchResult, UserSearchResult;
-import 'package:labuda/shared/governance/content_lifecycle.dart';
+import 'package:hishumi/shared/governance/content_lifecycle.dart';
 
 /// Extension to convert ContentSearchResultDto to domain entity
 ///

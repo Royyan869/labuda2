@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/common/types/payment_types.dart';
+import 'package:hishumi/core/common/types/payment_types.dart';
 
 void main() {
   group('PaymentStatus.fromString', () {

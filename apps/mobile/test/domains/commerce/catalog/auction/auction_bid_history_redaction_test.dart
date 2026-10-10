@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction_bid.dart';
-import 'package:labuda/domains/commerce/catalog/auction/presentation/widgets/detail/auction_bid_history.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/domain/entities/auction_bid.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/presentation/widgets/detail/auction_bid_history.dart';
 
 Widget _wrap(List<AuctionBid> bids) {
   return MaterialApp(

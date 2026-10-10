@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/projection"
+	"github.com/hishumi/backend/internal/projection"
 )
 
 // ============================================================================

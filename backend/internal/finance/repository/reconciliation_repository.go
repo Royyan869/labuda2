@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/finance/entity"
+	"github.com/hishumi/backend/internal/finance/entity"
 )
 
 // ReconciliationRepository defines the interface for reconciliation result persistence.

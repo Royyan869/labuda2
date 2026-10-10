@@ -4,12 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/user/identity/authentication/data/datasources/auth_api_datasource.dart';
-import 'package:labuda/domains/user/identity/authentication/data/repositories/auth_profile_repository.dart';
-import 'package:labuda/domains/user/identity/authentication/data/repositories/auth_signup_repository.dart';
-import 'package:labuda/domains/user/identity/authentication/domain/entities/user_profile_patch.dart';
-import 'package:labuda/domains/user/profile/presentation/screens/edit_profile/edit_profile_personal_section.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/user/identity/authentication/data/datasources/auth_api_datasource.dart';
+import 'package:hishumi/domains/user/identity/authentication/data/repositories/auth_profile_repository.dart';
+import 'package:hishumi/domains/user/identity/authentication/data/repositories/auth_signup_repository.dart';
+import 'package:hishumi/domains/user/identity/authentication/domain/entities/user_profile_patch.dart';
+import 'package:hishumi/domains/user/profile/data/datasources/user_api_datasource.dart';
+import 'package:hishumi/domains/user/profile/presentation/screens/edit_profile/edit_profile_personal_section.dart';
 
 class _MockFirebaseAuth extends Mock implements FirebaseAuth {
   _MockFirebaseAuth({this.createUserCredential, this.currentUserValue});
@@ -353,6 +354,8 @@ void main() {
       final repository = AuthProfileRepository(
         firebaseAuth: firebaseAuth,
         apiDatasource: datasource,
+        // Canonical /users/me authority (not exercised by updateProfile).
+        userDatasource: UserApiDatasource(const _MockApiClient()),
       );
 
       final result = await repository.updateProfile(

@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/user/identity/authentication/authentication.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/user/identity/authentication/authentication.dart';
 
 /// Provider untuk fetch user data berdasarkan userId
 ///

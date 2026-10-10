@@ -8,8 +8,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
-	"github.com/labuda/backend/internal/social/feed/infrastructure/repository"
-	"github.com/labuda/backend/pkg/testdb"
+	"github.com/hishumi/backend/internal/social/feed/infrastructure/repository"
+	"github.com/hishumi/backend/pkg/testdb"
 )
 
 func TestFeedRepository_CanonicalContentQuerySmoke(t *testing.T) {

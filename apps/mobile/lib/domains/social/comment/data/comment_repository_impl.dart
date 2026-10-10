@@ -1,12 +1,12 @@
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/core/src/interfaces/services/i_logger_service.dart';
-import 'package:labuda/domains/social/comment/data/dto/comment_dto.dart';
-import 'package:labuda/domains/social/comment/data/mappers/comment_mapper.dart';
-import 'package:labuda/domains/social/comment/data/remote/comment_api_datasource.dart';
-import 'package:labuda/domains/social/comment/domain/entities/comment.dart';
-import 'package:labuda/domains/social/comment/domain/repositories/comment_repository.dart';
-import 'package:labuda/core/media/media_upload_orchestrator.dart';
-import 'package:labuda/core/services/blurhash_cache_service.dart';
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/core/src/interfaces/services/i_logger_service.dart';
+import 'package:hishumi/domains/social/comment/data/dto/comment_dto.dart';
+import 'package:hishumi/domains/social/comment/data/mappers/comment_mapper.dart';
+import 'package:hishumi/domains/social/comment/data/remote/comment_api_datasource.dart';
+import 'package:hishumi/domains/social/comment/domain/entities/comment.dart';
+import 'package:hishumi/domains/social/comment/domain/repositories/comment_repository.dart';
+import 'package:hishumi/core/media/media_upload_orchestrator.dart';
+import 'package:hishumi/core/services/blurhash_cache_service.dart';
 import 'package:uuid/uuid.dart';
 
 /// API-based implementation of CommentRepository

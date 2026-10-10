@@ -1,11 +1,11 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/social/share/data/datasources/share_api_datasource.dart';
-import 'package:labuda/domains/social/share/data/remote/native_share_service.dart';
-import 'package:labuda/domains/social/share/data/repositories/share_repository_api.dart';
-import 'package:labuda/domains/social/share/domain/entities/share_destination.dart';
-import 'package:labuda/domains/social/share/domain/entities/share_target.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/social/share/data/datasources/share_api_datasource.dart';
+import 'package:hishumi/domains/social/share/data/remote/native_share_service.dart';
+import 'package:hishumi/domains/social/share/data/repositories/share_repository_api.dart';
+import 'package:hishumi/domains/social/share/domain/entities/share_destination.dart';
+import 'package:hishumi/domains/social/share/domain/entities/share_target.dart';
 
 class _RecordingApiClient implements ApiClient {
   String? lastPostPath;
@@ -226,7 +226,7 @@ void main() {
 
       expect(
         nativeShareService.lastCopiedText,
-        equals('$kPublicProfileBaseUrl/profile/profile-1'),
+        equals('$kPublicBaseUrl/profile/profile-1'),
       );
     });
   });

@@ -101,7 +101,7 @@ abstract class AppLocalizations {
   /// The application name
   ///
   /// In en, this message translates to:
-  /// **'LABUDA'**
+  /// **'HiShumi'**
   String get appName;
 
   /// The application description
@@ -133,12 +133,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'You have been logged out'**
   String get logoutSuccess;
-
-  /// Login success message
-  ///
-  /// In en, this message translates to:
-  /// **'Successfully logged in as'**
-  String get loginSuccess;
 
   /// Registration coming soon message
   ///
@@ -205,12 +199,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Help & Support'**
   String get helpSupport;
-
-  /// About LABUDA menu item
-  ///
-  /// In en, this message translates to:
-  /// **'About LABUDA'**
-  String get aboutLabuda;
 
   /// Coming soon text
   ///
@@ -512,11 +500,11 @@ abstract class AppLocalizations {
   /// **'Learn how we protect your data'**
   String get learnDataProtection;
 
-  /// About LABUDA
+  /// About HiShumi
   ///
   /// In en, this message translates to:
-  /// **'About LABUDA'**
-  String get aboutLABUDA;
+  /// **'About HiShumi'**
+  String get aboutHiShumi;
 
   /// About app description
   ///
@@ -671,7 +659,7 @@ abstract class AppLocalizations {
   /// App description in about
   ///
   /// In en, this message translates to:
-  /// **'LABUDA - Koi Social Commerce Platform'**
+  /// **'HiShumi - Koi Social Commerce Platform'**
   String get koiSocialCommercePlatform;
 
   /// App version
@@ -683,14 +671,14 @@ abstract class AppLocalizations {
   /// Copyright text
   ///
   /// In en, this message translates to:
-  /// **'© {year} LABUDA Team'**
+  /// **'Â© {year} Labuda Team'**
   String copyrightLabudaTeam(Object year);
 
-  /// LABUDA description
+  /// HiShumi description
   ///
   /// In en, this message translates to:
-  /// **'LABUDA is the first social commerce platform designed specifically for the Indonesian koi community.'**
-  String get labudaDescription;
+  /// **'HiShumi is the first social commerce platform designed specifically for the Indonesian koi community.'**
+  String get hishumiDescription;
 
   /// Close button
   ///
@@ -1112,12 +1100,6 @@ abstract class AppLocalizations {
   /// **'Password updated successfully!'**
   String get passwordUpdatedSuccessfully;
 
-  /// Failed to change password error
-  ///
-  /// In en, this message translates to:
-  /// **'Failed to change password. Please try again.'**
-  String get failedToChangePassword;
-
   /// Verification email sent message
   ///
   /// In en, this message translates to:
@@ -1283,7 +1265,7 @@ abstract class AppLocalizations {
   /// GoPay payment description
   ///
   /// In en, this message translates to:
-  /// **'Primary payment method • Ready for integration'**
+  /// **'Primary payment method â€¢ Ready for integration'**
   String get primaryPaymentMethodReady;
 
   /// Other e-wallets title
@@ -1778,12 +1760,6 @@ abstract class AppLocalizations {
   /// **'POPULAR'**
   String get popular;
 
-  /// Why become seller title
-  ///
-  /// In en, this message translates to:
-  /// **'Why become a LABUDA Seller?'**
-  String get whyBecomeLabudaSeller;
-
   /// Seller benefit 1
   ///
   /// In en, this message translates to:
@@ -2219,7 +2195,7 @@ abstract class AppLocalizations {
   /// Article: Become seller content
   ///
   /// In en, this message translates to:
-  /// **'To become a seller on LABUDA:\n\n1. Go to Settings → Upgrade to Seller\n2. Choose your plan (Basic or Pro)\n3. Fill in your business information\n4. Complete payment for the subscription\n5. Wait for verification approval\n\nOnce approved, you can start creating For Sale for your koi!'**
+  /// **'To become a seller on HiShumi:\n\n1. Go to Settings â†’ Upgrade to Seller\n2. Choose your plan (Basic or Pro)\n3. Fill in your business information\n4. Complete payment for the subscription\n5. Wait for verification approval\n\nOnce approved, you can start creating For Sale for your koi!'**
   String get articleBecomeSellerContent;
 
   /// Article: Cancel order
@@ -2291,7 +2267,7 @@ abstract class AppLocalizations {
   /// Article: Shipping setup content
   ///
   /// In en, this message translates to:
-  /// **'To set up shipping:\n\n1. Go to Settings → Pengiriman, or Seller Dashboard → Atur Pengiriman\n2. Add a shipping option (train, bus, travel, plane, or custom)\n3. Set the province coverage with the rate you charge for each province\n4. Toggle the option active to make it available for your For Sales\n5. When creating a For Sale, choose which of your options apply to that For Sale\n\nShipping is seller-managed: you decide the options, rates, and courier. For irregular cases (large fish, special handling), send a shipping quote to the buyer in chat as a fallback.\n\nAlways use proper packaging with oxygen for live koi shipping!'**
+  /// **'To set up shipping:\n\n1. Go to Settings â†’ Pengiriman, or Seller Dashboard â†’ Atur Pengiriman\n2. Add a shipping option (train, bus, travel, plane, or custom)\n3. Set the province coverage with the rate you charge for each province\n4. Toggle the option active to make it available for your For Sales\n5. When creating a For Sale, choose which of your options apply to that For Sale\n\nShipping is seller-managed: you decide the options, rates, and courier. For irregular cases (large fish, special handling), send a shipping quote to the buyer in chat as a fallback.\n\nAlways use proper packaging with oxygen for live koi shipping!'**
   String get articleShippingSetupContent;
 
   /// Article: Edit profile
@@ -2315,7 +2291,7 @@ abstract class AppLocalizations {
   /// Article: Change password content
   ///
   /// In en, this message translates to:
-  /// **'To change your password:\n\n1. Go to Settings → Security\n2. Tap \'Change Password\'\n3. Enter your current password\n4. Enter your new password (min 8 characters)\n5. Confirm the new password\n6. Tap \'Update Password\'\n\nYou\'ll be logged out from other devices after changing password.'**
+  /// **'To change your password:\n\n1. Go to Settings â†’ Security\n2. Tap \'Change Password\'\n3. Enter your current password\n4. Enter your new password (min 8 characters)\n5. Confirm the new password\n6. Tap \'Update Password\'\n\nYou\'ll be logged out from other devices after changing password.'**
   String get articleChangePasswordContent;
 
   /// Article: Seller verification
@@ -2351,7 +2327,7 @@ abstract class AppLocalizations {
   /// Article: App slow or not loading content
   ///
   /// In en, this message translates to:
-  /// **'If the app feels slow or a screen is not loading:\n\n1. Check your internet connection — try Wi-Fi or mobile data\n2. Close the app completely and open it again\n3. Make sure you are using the latest app version\n4. Restart your phone\n\nIf the problem continues, contact support and mention which screen is affected.'**
+  /// **'If the app feels slow or a screen is not loading:\n\n1. Check your internet connection â€” try Wi-Fi or mobile data\n2. Close the app completely and open it again\n3. Make sure you are using the latest app version\n4. Restart your phone\n\nIf the problem continues, contact support and mention which screen is affected.'**
   String get articleAppSlowOrNotLoadingContent;
 
   /// Article: Withdrawal failed
@@ -2363,7 +2339,7 @@ abstract class AppLocalizations {
   /// Article: Withdrawal failed content
   ///
   /// In en, this message translates to:
-  /// **'If your withdrawal fails:\n\n1. Check that your bank account details are correct\n2. Make sure your seller verification (KTP) is complete\n3. Check that the amount meets the minimum withdrawal shown on the Earnings screen\n\nWithdrawals are reviewed by admin first. Once approved, the funds are transferred to your registered bank account within 1-3 business days.\n\nNext steps:\n• Open the Earnings screen and check the withdrawal status\n• If the withdrawal failed, check your bank details and submit a new request\n• Contact support if the funds were deducted from your balance but not received'**
+  /// **'If your withdrawal fails:\n\n1. Check that your bank account details are correct\n2. Make sure your seller verification (KTP) is complete\n3. Check that the amount meets the minimum withdrawal shown on the Earnings screen\n\nWithdrawals are reviewed by admin first. Once approved, the funds are transferred to your registered bank account within 1-3 business days.\n\nNext steps:\nâ€¢ Open the Earnings screen and check the withdrawal status\nâ€¢ If the withdrawal failed, check your bank details and submit a new request\nâ€¢ Contact support if the funds were deducted from your balance but not received'**
   String get articleWithdrawalFailedContent;
 
   /// Article: For Sale not visible
@@ -2375,7 +2351,7 @@ abstract class AppLocalizations {
   /// Article: For Sale not visible content
   ///
   /// In en, this message translates to:
-  /// **'Your For Sale may not be visible to buyers because:\n\n1. It is sold — the stock has been sold out, so it is no longer offered\n2. It is withdrawn — the For Sale has been removed from sale\n3. Its details are incomplete — make sure the photos, price, and shipping options are filled in\n\nA new For Sale is shown to buyers as soon as you publish it — there is no approval stage to wait for.\n\nNext steps:\n• Go to My For Sales and check the status\n• Complete any missing details and save again\n\nIf the For Sale is still active but not showing to buyers, contact support.'**
+  /// **'Your For Sale may not be visible to buyers because:\n\n1. It is sold â€” the stock has been sold out, so it is no longer offered\n2. It is withdrawn â€” the For Sale has been removed from sale\n3. Its details are incomplete â€” make sure the photos, price, and shipping options are filled in\n\nA new For Sale is shown to buyers as soon as you publish it â€” there is no approval stage to wait for.\n\nNext steps:\nâ€¢ Go to My For Sales and check the status\nâ€¢ Complete any missing details and save again\n\nIf the For Sale is still active but not showing to buyers, contact support.'**
   String get articleForSaleNotVisibleContent;
 
   /// Article: Seller payment pending
@@ -2387,7 +2363,7 @@ abstract class AppLocalizations {
   /// Article: Seller payment pending content
   ///
   /// In en, this message translates to:
-  /// **'Order payments reach the seller in these stages:\n\n1. Payment completed → the funds are held in escrow while the order is running\n2. Order shipped → the funds stay in escrow until the buyer confirms receipt\n3. Order completed → the funds are released to your income and can be withdrawn immediately\n\nCheck these screens:\n• Order status in the Seller Dashboard\n• Earnings screen for your available balance\n\nOnce the buyer taps \'Confirm Receipt\' (or the order completes automatically), the order amount enters your income and there is no waiting period before you can withdraw it.\n\nIf a completed order is not showing in your earnings, contact support with the order number.'**
+  /// **'Order payments reach the seller in these stages:\n\n1. Payment completed â†’ the funds are held in escrow while the order is running\n2. Order shipped â†’ the funds stay in escrow until the buyer confirms receipt\n3. Order completed â†’ the funds are released to your income and can be withdrawn immediately\n\nCheck these screens:\nâ€¢ Order status in the Seller Dashboard\nâ€¢ Earnings screen for your available balance\n\nOnce the buyer taps \'Confirm Receipt\' (or the order completes automatically), the order amount enters your income and there is no waiting period before you can withdraw it.\n\nIf a completed order is not showing in your earnings, contact support with the order number.'**
   String get articleSellerPaymentPendingContent;
 
   /// Article: Shipment and delivery issues
@@ -2399,7 +2375,7 @@ abstract class AppLocalizations {
   /// Article: Shipment and delivery content
   ///
   /// In en, this message translates to:
-  /// **'For shipment issues:\n\n1. Open the order details\n2. Check the tracking number in the shipping info\n3. Track the package with the courier\'s website or app\n\nCommon issues:\n• Tracking not updating — it can take some time before the courier records the first scan\n• Delivery delayed — contact the seller through the order chat for an update\n• Wrong address — message the seller immediately\n\nIf the package has not arrived:\n• Check the order status and delivery confirmation\n• Contact the seller through the order chat\n• If the delivery window has passed, open a dispute from the order\n\nStill having issues? Contact support with your order number.'**
+  /// **'For shipment issues:\n\n1. Open the order details\n2. Check the tracking number in the shipping info\n3. Track the package with the courier\'s website or app\n\nCommon issues:\nâ€¢ Tracking not updating â€” it can take some time before the courier records the first scan\nâ€¢ Delivery delayed â€” contact the seller through the order chat for an update\nâ€¢ Wrong address â€” message the seller immediately\n\nIf the package has not arrived:\nâ€¢ Check the order status and delivery confirmation\nâ€¢ Contact the seller through the order chat\nâ€¢ If the delivery window has passed, open a dispute from the order\n\nStill having issues? Contact support with your order number.'**
   String get articleOrderShipmentHelpContent;
 
   /// Article: Item not received
@@ -2411,7 +2387,7 @@ abstract class AppLocalizations {
   /// Article: Item not received content
   ///
   /// In en, this message translates to:
-  /// **'If you paid but haven\'t received your item:\n\nStep 1: Check the order status\n• Being Prepared: the seller is preparing your order\n• In Delivery: check the tracking number on the order\n\nStep 2: Contact the seller\n• Use the \'Chat Seller\' button on the order\n• Ask for a shipping update or the tracking number\n\nStep 3: Use the protection window\n• You have 5 days from the moment the seller ships to confirm receipt or open a dispute\n• If you need more time, use \'Extend Confirmation\' once to add 3 days\n• If the seller does not ship in time, the order can be cancelled\n\nNext actions:\n1. Chat with the seller first (fastest resolution)\n2. If there is no response, contact support with your order details'**
+  /// **'If you paid but haven\'t received your item:\n\nStep 1: Check the order status\nâ€¢ Being Prepared: the seller is preparing your order\nâ€¢ In Delivery: check the tracking number on the order\n\nStep 2: Contact the seller\nâ€¢ Use the \'Chat Seller\' button on the order\nâ€¢ Ask for a shipping update or the tracking number\n\nStep 3: Use the protection window\nâ€¢ You have 5 days from the moment the seller ships to confirm receipt or open a dispute\nâ€¢ If you need more time, use \'Extend Confirmation\' once to add 3 days\nâ€¢ If the seller does not ship in time, the order can be cancelled\n\nNext actions:\n1. Chat with the seller first (fastest resolution)\n2. If there is no response, contact support with your order details'**
   String get articleItemNotReceivedContent;
 
   /// Label for Pro tier seller badge
@@ -2599,6 +2575,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Start shopping from the best Koi collection'**
   String get emptyOrdersMessage;
+
+  /// Status-filter-empty title for the buyer order list. Neutral on purpose: a status tab being empty must not imply the buyer has never ordered (orders may exist under other statuses).
+  ///
+  /// In en, this message translates to:
+  /// **'No Orders'**
+  String get emptyOrdersByStatusTitle;
+
+  /// Status-filter-empty message for the buyer order list
+  ///
+  /// In en, this message translates to:
+  /// **'There are no orders with this status yet'**
+  String get emptyOrdersByStatusMessage;
 
   /// Collection-empty title for the seller incoming-orders list
   ///
@@ -2989,6 +2977,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'🎯 Kamu ingin apa hari ini?'**
   String get homeFirstUseTitle;
+
+  /// Security screen: Change Password is unavailable because the account has no HiShumi password credential (Google-only)
+  ///
+  /// In en, this message translates to:
+  /// **'Password managed by Google'**
+  String get passwordManagedByGoogleTitle;
+
+  /// Security screen: explanation body shown instead of the Change Password form for accounts without a password credential
+  ///
+  /// In en, this message translates to:
+  /// **'You signed in with Google and this account doesn\'t have a HiShumi password. To change your password, manage it in your Google account.'**
+  String get passwordManagedByGoogleBody;
 }
 
 class _AppLocalizationsDelegate

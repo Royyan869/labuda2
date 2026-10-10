@@ -3,11 +3,11 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/shared/widgets/app_snackbar.dart';
-import 'package:labuda/domains/commerce/pricing/promotion/domain/entities/external_product.dart';
-import 'package:labuda/domains/commerce/pricing/promotion/domain/entities/external_product_review_status.dart';
-import 'package:labuda/domains/commerce/pricing/promotion/presentation/providers/canonical_external_product_providers.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/shared/widgets/app_snackbar.dart';
+import 'package:hishumi/domains/commerce/pricing/promotion/domain/entities/external_product.dart';
+import 'package:hishumi/domains/commerce/pricing/promotion/domain/entities/external_product_review_status.dart';
+import 'package:hishumi/domains/commerce/pricing/promotion/presentation/providers/canonical_external_product_providers.dart';
 
 class ExternalProductManagementScreen extends ConsumerStatefulWidget {
   const ExternalProductManagementScreen({super.key});

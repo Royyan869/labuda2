@@ -1,6 +1,6 @@
-import 'package:labuda/domains/finance/wallet/coins/domain/entities/coin_balance.dart';
-import 'package:labuda/domains/finance/wallet/coins/domain/entities/coin_transaction.dart';
-import 'package:labuda/domains/finance/wallet/coins/data/dto/coin_dto.dart';
+import 'package:hishumi/domains/finance/wallet/coins/domain/entities/coin_balance.dart';
+import 'package:hishumi/domains/finance/wallet/coins/domain/entities/coin_transaction.dart';
+import 'package:hishumi/domains/finance/wallet/coins/data/dto/coin_dto.dart';
 
 /// Mapper for converting between DTOs and entities.
 ///

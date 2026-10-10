@@ -11,7 +11,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/labuda/backend/internal/integration/payment/application/recon"
+	"github.com/hishumi/backend/internal/integration/payment/application/recon"
 )
 
 // Resolver builds a recon.Snapshot for a single order_id by issuing a fixed

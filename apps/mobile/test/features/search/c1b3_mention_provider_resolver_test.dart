@@ -5,15 +5,15 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/api/api_client.dart';
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/core/providers/core_providers.dart'
+import 'package:hishumi/core/api/api_client.dart';
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/core/providers/core_providers.dart'
     show apiClientProvider, loggerServiceProvider;
-import 'package:labuda/core/src/interfaces/services/i_logger_service.dart';
-import 'package:labuda/features/search/search/data/dto/search_dto.dart';
-import 'package:labuda/features/search/search/domain/entities/user_search.dart';
-import 'package:labuda/features/search/search/presentation/providers/mention_providers.dart';
-import 'package:labuda/shared/providers/auth_status_providers.dart'
+import 'package:hishumi/core/src/interfaces/services/i_logger_service.dart';
+import 'package:hishumi/features/search/search/data/dto/search_dto.dart';
+import 'package:hishumi/features/search/search/domain/entities/user_search.dart';
+import 'package:hishumi/features/search/search/presentation/providers/mention_providers.dart';
+import 'package:hishumi/shared/providers/auth_status_providers.dart'
     show currentUserIdProvider;
 
 class _FakeApiClient extends Fake implements ApiClient {}

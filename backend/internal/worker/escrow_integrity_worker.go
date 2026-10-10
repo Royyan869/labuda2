@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	escrowApp "github.com/labuda/backend/internal/core/escrow/application"
+	escrowApp "github.com/hishumi/backend/internal/core/escrow/application"
 	"go.uber.org/zap"
 )
 

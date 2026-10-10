@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/commerce/shipping/quote/entity"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/commerce/shipping/quote/entity"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // ShippingQuoteRepository defines the interface for shipping quote persistence.

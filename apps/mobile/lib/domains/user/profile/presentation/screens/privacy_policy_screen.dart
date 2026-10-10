@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/shared/shared.dart';
-import 'package:labuda/core/src/theme/app_theme.dart';
+import 'package:hishumi/shared/shared.dart';
+import 'package:hishumi/core/src/theme/app_theme.dart';
 
 /// Privacy Policy Screen
-/// Displays the privacy policy for LABUDA platform
+/// Displays the privacy policy for HiShumi platform
 ///
 /// Size: < 200 lines (per GUIDELINES)
 class PrivacyPolicyScreen extends StatelessWidget {
@@ -86,7 +86,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
               _buildSection(
                 context,
                 '9. Children\'s Privacy',
-                'LABUDA is not intended for users under the age of 13. We do not knowingly collect personal information from children under 13.',
+                'HiShumi is not intended for users under the age of 13. We do not knowingly collect personal information from children under 13.',
               ),
               _buildSection(
                 context,

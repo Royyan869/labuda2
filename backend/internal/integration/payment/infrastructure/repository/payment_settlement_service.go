@@ -5,11 +5,11 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	orderRepo "github.com/labuda/backend/internal/commerce/order/infrastructure/repository"
-	coinsinfra "github.com/labuda/backend/internal/incentive/coins/infrastructure/repository"
-	coinsrepo "github.com/labuda/backend/internal/incentive/coins/repository"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/money"
+	orderRepo "github.com/hishumi/backend/internal/commerce/order/infrastructure/repository"
+	coinsinfra "github.com/hishumi/backend/internal/incentive/coins/infrastructure/repository"
+	coinsrepo "github.com/hishumi/backend/internal/incentive/coins/repository"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/money"
 )
 
 // PaymentSettlementService handles payment settlement.

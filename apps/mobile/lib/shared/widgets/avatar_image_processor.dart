@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:labuda/shared/shared.dart';
+import 'package:hishumi/shared/shared.dart';
 import 'web_image_cropper.dart';
 import 'flutter_crop_image.dart';
 
@@ -123,7 +123,7 @@ class AvatarImageProcessor {
     Uint8List croppedBytes,
   ) async {
     try {
-      final directory = await Directory.systemTemp.createTemp('labuda_crop_');
+      final directory = await Directory.systemTemp.createTemp('hishumi_crop_');
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final tempFile = File('${directory.path}/cropped_$timestamp.jpg');
       await tempFile.writeAsBytes(croppedBytes);

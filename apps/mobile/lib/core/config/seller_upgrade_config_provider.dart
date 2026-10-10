@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/core/config/seller_upgrade_config_entity.dart';
-import 'package:labuda/core/config/seller_upgrade_config_service.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/core/config/seller_upgrade_config_entity.dart';
+import 'package:hishumi/core/config/seller_upgrade_config_service.dart';
 
 /// Provider for SellerUpgradeConfigService
 final sellerUpgradeConfigServiceProvider = Provider<SellerUpgradeConfigService>(

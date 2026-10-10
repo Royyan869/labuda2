@@ -5,8 +5,8 @@ import 'package:flutter/material.dart';
 // External
 
 // Internal
-import 'package:labuda/core/core.dart';
-import 'package:labuda/shared/src/providers/upload_progress_provider.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/shared/src/providers/upload_progress_provider.dart';
 
 /// Utility class untuk upload task operations
 class UploadTaskUtils {

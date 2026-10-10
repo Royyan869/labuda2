@@ -1,6 +1,6 @@
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/domains/commerce/transaction/order/domain/entities/order_status.dart';
-import 'package:labuda/domains/commerce/transaction/order/domain/repositories/order_repository.dart';
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/domains/commerce/transaction/order/domain/entities/order_status.dart';
+import 'package:hishumi/domains/commerce/transaction/order/domain/repositories/order_repository.dart';
 
 /// Get Order Status Use Case
 ///

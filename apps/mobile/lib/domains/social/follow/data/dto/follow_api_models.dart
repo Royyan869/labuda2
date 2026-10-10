@@ -11,7 +11,7 @@
 // - Mute (follow_handler.go MuteUser/UnmuteUser)
 
 import 'package:equatable/equatable.dart';
-import 'package:labuda/core/api/models/common_api_models.dart';
+import 'package:hishumi/core/api/models/common_api_models.dart';
 
 // =============================================================================
 // Follow Request/Response DTOs

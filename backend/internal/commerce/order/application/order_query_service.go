@@ -6,13 +6,13 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/commerce/order/delivery/http/dto"
-	"github.com/labuda/backend/internal/commerce/order/entity"
-	paymentRepo "github.com/labuda/backend/internal/integration/payment/infrastructure/repository"
-	"github.com/labuda/backend/internal/pkg/sellerdisplay"
-	"github.com/labuda/backend/internal/pkg/userdisplay"
-	"github.com/labuda/backend/internal/projection"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/commerce/order/delivery/http/dto"
+	"github.com/hishumi/backend/internal/commerce/order/entity"
+	paymentRepo "github.com/hishumi/backend/internal/integration/payment/infrastructure/repository"
+	"github.com/hishumi/backend/internal/pkg/sellerdisplay"
+	"github.com/hishumi/backend/internal/pkg/userdisplay"
+	"github.com/hishumi/backend/internal/projection"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // projectionLister abstracts the projection read methods used by OrderQueryService.

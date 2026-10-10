@@ -3,7 +3,7 @@ package entity_test
 import (
 	"testing"
 
-	"github.com/labuda/backend/internal/commerce/order/entity"
+	"github.com/hishumi/backend/internal/commerce/order/entity"
 )
 
 // The auction settlement type is a creation-time validation input: the pricing

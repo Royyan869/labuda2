@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/shared/widgets/address_location_view.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/shared/widgets/address_location_view.dart';
 
 /// Content Metadata Sections - Display location, hashtags
 ///

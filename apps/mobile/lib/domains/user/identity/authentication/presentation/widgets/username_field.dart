@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/shared/helpers/canonical_username_validator.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/shared/helpers/canonical_username_validator.dart';
 
 /// Canonical username input — the single username field used by BOTH the
 /// sign-up screen and the complete-profile screen (one widget, one language,

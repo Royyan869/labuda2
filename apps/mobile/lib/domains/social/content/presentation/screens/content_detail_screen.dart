@@ -4,18 +4,18 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/system/shared/domain/services/time_format_service.dart';
-import 'package:labuda/shared/shared.dart';
-import 'package:labuda/shared/governance/content_lifecycle.dart';
-import 'package:labuda/domains/social/content/content.dart';
-import 'package:labuda/domains/social/content/presentation/providers/content_state.dart';
-import 'package:labuda/domains/social/content/presentation/widgets/content_resource_projection_card.dart';
-import 'package:labuda/domains/social/share/share.dart';
-import 'package:labuda/domains/social/content/presentation/widgets/content_engagement_actions.dart';
-import 'package:labuda/domains/user/profile/presentation/providers/user_data_provider.dart';
-import 'package:labuda/domains/system/report/domain/entities/entities.dart';
-import 'package:labuda/shared/widgets/carousel_video_player.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/system/shared/domain/services/time_format_service.dart';
+import 'package:hishumi/shared/shared.dart';
+import 'package:hishumi/shared/governance/content_lifecycle.dart';
+import 'package:hishumi/domains/social/content/content.dart';
+import 'package:hishumi/domains/social/content/presentation/providers/content_state.dart';
+import 'package:hishumi/domains/social/content/presentation/widgets/content_resource_projection_card.dart';
+import 'package:hishumi/domains/social/share/share.dart';
+import 'package:hishumi/domains/social/content/presentation/widgets/content_engagement_actions.dart';
+import 'package:hishumi/domains/user/profile/presentation/providers/user_data_provider.dart';
+import 'package:hishumi/domains/system/report/domain/entities/entities.dart';
+import 'package:hishumi/shared/widgets/carousel_video_player.dart';
 
 /// Content Detail Screen
 class ContentDetailScreen extends ConsumerStatefulWidget {

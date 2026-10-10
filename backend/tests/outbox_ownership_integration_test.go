@@ -12,10 +12,10 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
-	"github.com/labuda/backend/internal/platform/outbox/infrastructure/repository"
-	"github.com/labuda/backend/internal/realtime"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/testdb"
+	"github.com/hishumi/backend/internal/platform/outbox/infrastructure/repository"
+	"github.com/hishumi/backend/internal/realtime"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/testdb"
 )
 
 // realtimeOwnershipScope is the claim scope of the realtime worker.

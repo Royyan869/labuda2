@@ -3,8 +3,8 @@
 // The canonical backend key `payment_method_code` (OrderDetailResponse) must map
 // onto Order.paymentMethodCode. Null = unbound (auction-claim) order.
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/domains/commerce/transaction/order/data/mappers/order_mapper.dart';
-import 'package:labuda/domains/commerce/transaction/order/data/models/api/order_api_response_dtos.dart';
+import 'package:hishumi/domains/commerce/transaction/order/data/mappers/order_mapper.dart';
+import 'package:hishumi/domains/commerce/transaction/order/data/models/api/order_api_response_dtos.dart';
 
 void main() {
   test('OrderApiResponse maps payment_method_code onto Order.paymentMethodCode',

@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/labuda/backend/pkg/midtrans"
+	"github.com/hishumi/backend/pkg/midtrans"
 )
 
 func baseInput(now, expired time.Time) SnapSessionInput {

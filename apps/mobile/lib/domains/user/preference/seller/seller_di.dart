@@ -7,11 +7,11 @@
 library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/domains/user/preference/seller/data/seller_providers.dart';
-import 'package:labuda/domains/user/preference/seller/domain/domain.dart';
+import 'package:hishumi/domains/user/preference/seller/data/seller_providers.dart';
+import 'package:hishumi/domains/user/preference/seller/domain/domain.dart';
 
 // Re-export repository provider for convenience
-export 'package:labuda/domains/user/preference/seller/data/seller_providers.dart'
+export 'package:hishumi/domains/user/preference/seller/data/seller_providers.dart'
     show sellerRepositoryProvider;
 
 // ============================================

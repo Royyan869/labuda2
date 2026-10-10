@@ -15,9 +15,9 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/shared/attachment/entities/share_reference.dart';
-import 'package:labuda/shared/object/presentation/widgets/object_preview_card.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/shared/attachment/entities/share_reference.dart';
+import 'package:hishumi/shared/object/presentation/widgets/object_preview_card.dart';
 
 Widget _wrap(ShareReference reference, {VoidCallback? onTap}) {
   return MaterialApp(

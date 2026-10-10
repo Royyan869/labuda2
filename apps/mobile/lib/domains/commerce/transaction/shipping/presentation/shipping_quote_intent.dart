@@ -18,12 +18,12 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/domains/commerce/catalog/auction/presentation/providers/auction_providers.dart';
-import 'package:labuda/domains/commerce/catalog/for_sale/data/dto/shipping_quote_dto.dart';
-import 'package:labuda/domains/commerce/catalog/for_sale/presentation/providers/for_sale_providers.dart';
-import 'package:labuda/domains/commerce/transaction/shipping/presentation/providers/providers.dart';
-import 'package:labuda/domains/commerce/transaction/shipping/presentation/widgets/shipping_quote_form_sheet.dart';
-import 'package:labuda/shared/widgets/app_snackbar.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/presentation/providers/auction_providers.dart';
+import 'package:hishumi/domains/commerce/catalog/for_sale/data/dto/shipping_quote_dto.dart';
+import 'package:hishumi/domains/commerce/catalog/for_sale/presentation/providers/for_sale_providers.dart';
+import 'package:hishumi/domains/commerce/transaction/shipping/presentation/providers/providers.dart';
+import 'package:hishumi/domains/commerce/transaction/shipping/presentation/widgets/shipping_quote_form_sheet.dart';
+import 'package:hishumi/shared/widgets/app_snackbar.dart';
 
 /// The seller-selected listing the manual shipping quote applies to.
 ///

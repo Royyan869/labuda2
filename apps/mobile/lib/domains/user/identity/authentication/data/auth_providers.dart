@@ -5,9 +5,11 @@
 library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/user/identity/authentication/data/datasources/auth_api_datasource.dart';
-import 'package:labuda/domains/user/identity/authentication/data/repositories/auth_repository_impl.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/user/identity/authentication/data/datasources/auth_api_datasource.dart';
+import 'package:hishumi/domains/user/identity/authentication/data/repositories/auth_repository_impl.dart';
+import 'package:hishumi/domains/user/profile/data/profile_providers.dart'
+    show userApiDatasourceProvider;
 
 // =============================================================================
 // DATASOURCE PROVIDERS
@@ -36,11 +38,13 @@ final authApiDatasourceProvider = Provider<AuthApiDatasource>((ref) {
 /// to data layer provider file.
 final authRepositoryProvider = Provider<IAuthRepository>((ref) {
   final apiDatasource = ref.watch(authApiDatasourceProvider);
+  final userDatasource = ref.watch(userApiDatasourceProvider);
   final localStorage = ref.watch(localStorageServiceProvider);
   return AuthRepositoryImpl(
     firebaseAuth: null, // Will use default instance
     googleSignIn: null, // Will create default instance
     localStorage: localStorage,
     apiDatasource: apiDatasource,
+    userDatasource: userDatasource,
   );
 });

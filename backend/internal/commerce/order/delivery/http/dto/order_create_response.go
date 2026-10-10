@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/commerce/order/entity"
+	"github.com/hishumi/backend/internal/commerce/order/entity"
 )
 
 // OrderCreateResponse represents the response for POST /api/v1/orders.

@@ -7,8 +7,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	finance "github.com/labuda/backend/internal/finance"
-	"github.com/labuda/backend/internal/finance/entity"
+	finance "github.com/hishumi/backend/internal/finance"
+	"github.com/hishumi/backend/internal/finance/entity"
 	"go.uber.org/zap"
 )
 

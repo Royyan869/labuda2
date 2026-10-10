@@ -10,7 +10,7 @@
 library;
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/domains/commerce/transaction/order/domain/entities/refund_request.dart';
+import 'package:hishumi/domains/commerce/transaction/order/domain/entities/refund_request.dart';
 
 void main() {
   // =========================================================================

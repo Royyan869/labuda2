@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/domains/social/content/data/dto/content_dto.dart';
-import 'package:labuda/domains/social/content/data/mappers/content_mapper.dart';
-import 'package:labuda/domains/social/content/domain/entities/content.dart';
-import 'package:labuda/shared/domain/entities/resource_projection.dart';
+import 'package:hishumi/domains/social/content/data/dto/content_dto.dart';
+import 'package:hishumi/domains/social/content/data/mappers/content_mapper.dart';
+import 'package:hishumi/domains/social/content/domain/entities/content.dart';
+import 'package:hishumi/shared/domain/entities/resource_projection.dart';
 
 Map<String, dynamic> _contentJson({
   required String visibility,

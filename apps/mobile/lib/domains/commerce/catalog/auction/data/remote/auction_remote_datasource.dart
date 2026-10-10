@@ -2,10 +2,10 @@
 /// API-based data source using ApiClient
 library;
 
-import 'package:labuda/core/api/api.dart';
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/domains/commerce/catalog/auction/data/dto/auction_dto.dart';
-import 'package:labuda/domains/commerce/catalog/auction/data/dto/bidding_item_dto.dart';
+import 'package:hishumi/core/api/api.dart';
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/data/dto/auction_dto.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/data/dto/bidding_item_dto.dart';
 
 /// Auction Remote Datasource
 ///

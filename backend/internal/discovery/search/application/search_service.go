@@ -5,10 +5,10 @@ import (
 	"errors"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/discovery/search/entity"
-	"github.com/labuda/backend/internal/discovery/search/repository"
-	"github.com/labuda/backend/internal/governance/viewercontext"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/discovery/search/entity"
+	"github.com/hishumi/backend/internal/discovery/search/repository"
+	"github.com/hishumi/backend/internal/governance/viewercontext"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // ErrViewerContextRequired is returned by service methods that require a

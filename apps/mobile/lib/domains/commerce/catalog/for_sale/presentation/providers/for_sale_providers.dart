@@ -6,10 +6,10 @@ library;
 
 import 'package:equatable/equatable.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/providers/core_providers.dart';
-import 'package:labuda/domains/commerce/catalog/for_sale/data/data.dart';
-import 'package:labuda/domains/commerce/catalog/for_sale/domain/domain.dart';
-import 'package:labuda/domains/commerce/catalog/for_sale/presentation/providers/for_sale_controller.dart';
+import 'package:hishumi/core/providers/core_providers.dart';
+import 'package:hishumi/domains/commerce/catalog/for_sale/data/data.dart';
+import 'package:hishumi/domains/commerce/catalog/for_sale/domain/domain.dart';
+import 'package:hishumi/domains/commerce/catalog/for_sale/presentation/providers/for_sale_controller.dart';
 
 // =============================================================================
 // DATA LAYER PROVIDERS (Dependency Injection)

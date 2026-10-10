@@ -3,10 +3,10 @@ import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/social/content/presentation/screens/create_content_screen.dart';
-import 'package:labuda/domains/social/content/data/dto/content_dto.dart';
-import 'package:labuda/domains/social/content/presentation/widgets/create_content/content_type_visibility_header.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/social/content/presentation/screens/create_content_screen.dart';
+import 'package:hishumi/domains/social/content/data/dto/content_dto.dart';
+import 'package:hishumi/domains/social/content/presentation/widgets/create_content/content_type_visibility_header.dart';
 
 class _FakeAuthController extends AuthController {
   _FakeAuthController(this._state);

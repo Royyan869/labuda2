@@ -1,4 +1,4 @@
-import 'package:labuda/domains/social/comment/domain/entities/comment.dart';
+import 'package:hishumi/domains/social/comment/domain/entities/comment.dart';
 
 /// A comment the composer is still sending.
 ///

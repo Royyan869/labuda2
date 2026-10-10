@@ -20,7 +20,7 @@ void main() {
       expect(
         source,
         contains(
-          "import 'package:labuda/domains/commerce/transaction/shipping/presentation/widgets/seller_shipping_options_selector.dart';",
+          "import 'package:hishumi/domains/commerce/transaction/shipping/presentation/widgets/seller_shipping_options_selector.dart';",
         ),
       );
       expect(source, contains('SellerShippingSetupsSelector('));

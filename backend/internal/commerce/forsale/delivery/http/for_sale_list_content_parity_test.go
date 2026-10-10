@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	commerceshared "github.com/labuda/backend/internal/commerce/shared"
-	"github.com/labuda/backend/internal/pkg/sellerdisplay"
+	commerceshared "github.com/hishumi/backend/internal/commerce/shared"
+	"github.com/hishumi/backend/internal/pkg/sellerdisplay"
 )
 
 // CANONICAL TRUTH (owner-locked): for_sale and auction emit the SAME Product

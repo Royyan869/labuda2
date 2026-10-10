@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/features/search/search/presentation/providers/providers.dart';
-import 'package:labuda/features/search/search/domain/usecases/search_usecase.dart';
+import 'package:hishumi/features/search/search/presentation/providers/providers.dart';
+import 'package:hishumi/features/search/search/domain/usecases/search_usecase.dart';
 
 /// Search UseCase Providers
 ///

@@ -7,14 +7,14 @@
 library;
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/api/exceptions/api_exception.dart';
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/core/core.dart' as core;
-import 'package:labuda/domains/finance/transaction/payment/domain/entities/payment.dart';
-import 'package:labuda/domains/finance/transaction/payment/domain/entities/payment_intent.dart';
-import 'package:labuda/domains/finance/transaction/payment/domain/repositories/payment_repository.dart';
-import 'package:labuda/domains/finance/transaction/payment/presentation/providers/payment_initiation_notifier.dart';
-import 'package:labuda/domains/finance/transaction/payment/presentation/providers/payment_providers.dart';
+import 'package:hishumi/core/api/exceptions/api_exception.dart';
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/core/core.dart' as core;
+import 'package:hishumi/domains/finance/transaction/payment/domain/entities/payment.dart';
+import 'package:hishumi/domains/finance/transaction/payment/domain/entities/payment_intent.dart';
+import 'package:hishumi/domains/finance/transaction/payment/domain/repositories/payment_repository.dart';
+import 'package:hishumi/domains/finance/transaction/payment/presentation/providers/payment_initiation_notifier.dart';
+import 'package:hishumi/domains/finance/transaction/payment/presentation/providers/payment_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Backend copy that must never reach the user verbatim.

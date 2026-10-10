@@ -5,12 +5,12 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/audit"
-	warningApp "github.com/labuda/backend/internal/governance/moderation/application"
-	warningEntity "github.com/labuda/backend/internal/governance/moderation/entity"
-	"github.com/labuda/backend/internal/middleware"
-	"github.com/labuda/backend/internal/platform/response"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/audit"
+	warningApp "github.com/hishumi/backend/internal/governance/moderation/application"
+	warningEntity "github.com/hishumi/backend/internal/governance/moderation/entity"
+	"github.com/hishumi/backend/internal/middleware"
+	"github.com/hishumi/backend/internal/platform/response"
+	"github.com/hishumi/backend/pkg/db"
 	"go.uber.org/zap"
 )
 

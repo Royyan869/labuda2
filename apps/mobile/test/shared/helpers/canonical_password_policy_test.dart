@@ -15,7 +15,7 @@
 // characters are deliberately outside this authority (Stage 2C+).
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/shared/helpers/canonical_password_policy.dart';
+import 'package:hishumi/shared/helpers/canonical_password_policy.dart';
 
 void main() {
   group('CanonicalPasswordPolicy validity', () {

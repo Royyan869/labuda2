@@ -15,7 +15,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/domains/commerce/transaction/checkout/domain/entities/checkout_request.dart';
+import 'package:hishumi/domains/commerce/transaction/checkout/domain/entities/checkout_request.dart';
 
 const _requestEntity =
     'lib/domains/commerce/transaction/checkout/domain/entities/checkout_request.dart';

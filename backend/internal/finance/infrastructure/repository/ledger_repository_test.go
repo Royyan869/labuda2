@@ -8,8 +8,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
-	ledgerrepo "github.com/labuda/backend/internal/finance/repository"
-	"github.com/labuda/backend/pkg/money"
+	ledgerrepo "github.com/hishumi/backend/internal/finance/repository"
+	"github.com/hishumi/backend/pkg/money"
 )
 
 // TestDbTx is a mock that implements db.Tx interface for testing.

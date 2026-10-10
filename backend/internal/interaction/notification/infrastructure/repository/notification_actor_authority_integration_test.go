@@ -11,11 +11,11 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
-	notificationentity "github.com/labuda/backend/internal/interaction/notification/entity"
-	notificationrepository "github.com/labuda/backend/internal/interaction/notification/infrastructure/repository"
-	dbpkg "github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/migration"
-	"github.com/labuda/backend/pkg/testdb"
+	notificationentity "github.com/hishumi/backend/internal/interaction/notification/entity"
+	notificationrepository "github.com/hishumi/backend/internal/interaction/notification/infrastructure/repository"
+	dbpkg "github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/migration"
+	"github.com/hishumi/backend/pkg/testdb"
 )
 
 // systemCallerID mirrors audit.SystemCallerID: the reserved identity that

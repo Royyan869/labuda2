@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/domains/user/profile/data/models/api/user_api_models.dart';
+import 'package:hishumi/domains/user/profile/data/models/api/user_api_models.dart';
 
 void main() {
   group('Firebase session response contract', () {

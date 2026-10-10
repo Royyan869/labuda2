@@ -4,7 +4,7 @@
 // no double).
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/domains/commerce/negotiation/negotiation/presentation/widgets/negotiation_offer_sheet.dart';
+import 'package:hishumi/domains/commerce/negotiation/negotiation/presentation/widgets/negotiation_offer_sheet.dart';
 
 /// Pushes the sheet as a second route so the success path can pop safely.
 Future<void> _openSheet(

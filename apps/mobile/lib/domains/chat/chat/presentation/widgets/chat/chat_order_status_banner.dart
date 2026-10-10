@@ -10,9 +10,9 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/core/common/types/preparation_time.dart';
-import 'package:labuda/domains/commerce/transaction/order/domain/entities/order_status.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/core/common/types/preparation_time.dart';
+import 'package:hishumi/domains/commerce/transaction/order/domain/entities/order_status.dart';
 
 // =============================================================================
 // SHARED STATUS DISPLAY LOGIC

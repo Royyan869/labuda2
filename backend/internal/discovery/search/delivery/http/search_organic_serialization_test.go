@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/discovery/search/entity"
-	productentity "github.com/labuda/backend/internal/commerce/product/entity"
+	"github.com/hishumi/backend/internal/discovery/search/entity"
+	productentity "github.com/hishumi/backend/internal/commerce/product/entity"
 )
 
 func TestForSalePreviewsToResponse_OmitsSellerName(t *testing.T) {

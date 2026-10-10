@@ -1,8 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/core/providers/core_providers.dart';
-import 'package:labuda/domains/social/like/domain/entities/like.dart';
-import 'package:labuda/domains/social/like/domain/repositories/like_repository.dart';
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/core/providers/core_providers.dart';
+import 'package:hishumi/domains/social/like/domain/entities/like.dart';
+import 'package:hishumi/domains/social/like/domain/repositories/like_repository.dart';
 import 'like_state.dart';
 import '../../data/remote/like_api_datasource.dart';
 import '../../data/like_repository_impl.dart';

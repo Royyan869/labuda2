@@ -8,9 +8,14 @@
 // not a parent of Auction and this is not the only commerce entry point.
 //
 // Routes:
-// - `/for-sale` - For Sale catalog
 // - `/for-sale/:forSaleId` - For Sale detail page
 // - `/create/for-sale` - Create new For Sale
+// - `/seller/for-sale` - Seller For Sale management
+//
+// PUBLIC BROWSE: there is NO standalone `/for-sale` list route. The canonical
+// public For Sale browse surface is MarketplaceForSaleTab inside the
+// Marketplace screen (bottom-nav tab) — Owner decision: Marketplace is the
+// sole public browse destination for For Sale and Auction.
 //
 // ## Architecture:
 // ```
@@ -22,14 +27,14 @@
 // ```
 //
 // ## Flow:
-// Marketplace → CreateForSale → ForSales → ForSaleDetail → Checkout
+// Marketplace (For Sale tab) → ForSaleDetail → Checkout
 // ============================================================================
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:labuda/domains/commerce/catalog/for_sale/for_sale.dart';
-import 'package:labuda/domains/commerce/catalog/for_sale/presentation/create_for_sale_route_contract.dart';
-import 'package:labuda/core/src/router/route_paths.dart';
+import 'package:hishumi/domains/commerce/catalog/for_sale/for_sale.dart';
+import 'package:hishumi/domains/commerce/catalog/for_sale/presentation/create_for_sale_route_contract.dart';
+import 'package:hishumi/core/src/router/route_paths.dart';
 import 'base_module.dart';
 
 /// ForSale Module — fixed-price sale routes.
@@ -41,15 +46,6 @@ class ForSaleModule extends BaseModule {
 
   @override
   List<GoRoute> get routes => [
-    // ============================================================================
-    // FOR SALE CATALOG
-    // ============================================================================
-    GoRoute(
-      path: RoutePaths.forSales,
-      name: RouteNames.forSales,
-      builder: (context, state) => const ForSaleListScreen(),
-    ),
-
     // ============================================================================
     // FOR SALE DETAIL PAGE
     // ============================================================================

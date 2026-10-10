@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	commerceshared "github.com/labuda/backend/internal/commerce/shared"
-	chatEntity "github.com/labuda/backend/internal/interaction/chat/entity"
+	commerceshared "github.com/hishumi/backend/internal/commerce/shared"
+	chatEntity "github.com/hishumi/backend/internal/interaction/chat/entity"
 )
 
 // ResourceProjectionResolver resolves chat message occurrences into viewer-

@@ -2,9 +2,9 @@ package http
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/labuda/backend/internal/integration/payment/application"
-	"github.com/labuda/backend/internal/platform/response"
-	"github.com/labuda/backend/pkg/midtrans"
+	"github.com/hishumi/backend/internal/integration/payment/application"
+	"github.com/hishumi/backend/internal/platform/response"
+	"github.com/hishumi/backend/pkg/midtrans"
 	"go.uber.org/zap"
 )
 

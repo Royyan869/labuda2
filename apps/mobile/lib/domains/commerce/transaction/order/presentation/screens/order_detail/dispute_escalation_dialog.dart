@@ -3,12 +3,12 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart' as core;
-import 'package:labuda/core/src/theme/app_theme.dart';
-import 'package:labuda/domains/commerce/transaction/order/data/order_providers.dart';
-import 'package:labuda/domains/commerce/transaction/order/domain/entities/refund_request.dart';
-import 'package:labuda/shared/widgets/app_snackbar.dart';
-import 'package:labuda/domains/commerce/transaction/order/presentation/widgets/evidence_media_gallery.dart';
+import 'package:hishumi/core/core.dart' as core;
+import 'package:hishumi/core/src/theme/app_theme.dart';
+import 'package:hishumi/domains/commerce/transaction/order/data/order_providers.dart';
+import 'package:hishumi/domains/commerce/transaction/order/domain/entities/refund_request.dart';
+import 'package:hishumi/shared/widgets/app_snackbar.dart';
+import 'package:hishumi/domains/commerce/transaction/order/presentation/widgets/evidence_media_gallery.dart';
 
 /// Dialog for escalating a rejected refund to a dispute
 class DisputeEscalationDialog extends ConsumerStatefulWidget {

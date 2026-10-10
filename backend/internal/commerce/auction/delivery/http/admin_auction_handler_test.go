@@ -20,10 +20,10 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 
-	"github.com/labuda/backend/internal/audit"
-	auctionApp "github.com/labuda/backend/internal/commerce/auction/application"
-	"github.com/labuda/backend/internal/commerce/auction/entity"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/audit"
+	auctionApp "github.com/hishumi/backend/internal/commerce/auction/application"
+	"github.com/hishumi/backend/internal/commerce/auction/entity"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 func init() {

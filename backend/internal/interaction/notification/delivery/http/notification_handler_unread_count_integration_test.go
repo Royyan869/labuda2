@@ -15,12 +15,12 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 
-	notificationpkg "github.com/labuda/backend/internal/interaction/notification"
-	notificationhttp "github.com/labuda/backend/internal/interaction/notification/delivery/http"
-	notificationentity "github.com/labuda/backend/internal/interaction/notification/entity"
-	notificationrepoimpl "github.com/labuda/backend/internal/interaction/notification/infrastructure/repository"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/testdb"
+	notificationpkg "github.com/hishumi/backend/internal/interaction/notification"
+	notificationhttp "github.com/hishumi/backend/internal/interaction/notification/delivery/http"
+	notificationentity "github.com/hishumi/backend/internal/interaction/notification/entity"
+	notificationrepoimpl "github.com/hishumi/backend/internal/interaction/notification/infrastructure/repository"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/testdb"
 )
 
 // unreadCountFixture is one migrated test database plus an actor and a

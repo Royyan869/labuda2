@@ -4,9 +4,9 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/commerce/pricing/promotion/presentation/providers/canonical_promotion_providers.dart';
-import 'package:labuda/domains/commerce/pricing/promotion/presentation/screens/canonical_promotion_queue_screen.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/commerce/pricing/promotion/presentation/providers/canonical_promotion_providers.dart';
+import 'package:hishumi/domains/commerce/pricing/promotion/presentation/screens/canonical_promotion_queue_screen.dart';
 
 // ============================================================================
 // CANONICAL PROMOTION REFILL QUEUE — MOBILE CONTRACT

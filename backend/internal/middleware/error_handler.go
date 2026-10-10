@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/labuda/backend/internal/platform/response"
+	"github.com/hishumi/backend/internal/platform/response"
 	"go.uber.org/zap"
 )
 

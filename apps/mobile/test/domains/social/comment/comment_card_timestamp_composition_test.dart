@@ -25,14 +25,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/social/comment/domain/entities/comment.dart';
-import 'package:labuda/domains/social/comment/presentation/widgets/comment_card.dart';
-import 'package:labuda/domains/social/like/domain/entities/like.dart';
-import 'package:labuda/domains/social/like/domain/repositories/like_repository.dart';
-import 'package:labuda/domains/social/like/presentation/providers/like_notifier.dart'
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/social/comment/domain/entities/comment.dart';
+import 'package:hishumi/domains/social/comment/presentation/widgets/comment_card.dart';
+import 'package:hishumi/domains/social/like/domain/entities/like.dart';
+import 'package:hishumi/domains/social/like/domain/repositories/like_repository.dart';
+import 'package:hishumi/domains/social/like/presentation/providers/like_notifier.dart'
     show likeRepositoryProvider;
-import 'package:labuda/domains/system/shared/domain/services/time_format_service.dart';
+import 'package:hishumi/domains/system/shared/domain/services/time_format_service.dart';
 
 const List<double> _widths = <double>[320, 360, 412, 500];
 const List<double> _scales = <double>[1.0, 1.3, 2.0];

@@ -7,10 +7,10 @@
 /// instance/discovery authority is purged and never referenced here.
 library;
 
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/commerce/pricing/promotion/data/dto/external_product_dto.dart';
-import 'package:labuda/domains/commerce/pricing/promotion/domain/entities/external_product.dart';
-import 'package:labuda/domains/commerce/pricing/promotion/domain/entities/external_product_media.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/commerce/pricing/promotion/data/dto/external_product_dto.dart';
+import 'package:hishumi/domains/commerce/pricing/promotion/domain/entities/external_product.dart';
+import 'package:hishumi/domains/commerce/pricing/promotion/domain/entities/external_product_media.dart';
 
 abstract class ExternalProductRepository {
   Future<Result<ExternalProduct>> createExternalProductDraft({

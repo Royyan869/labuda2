@@ -29,10 +29,10 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/incentive/coins/entity"
-	coinsRepo "github.com/labuda/backend/internal/incentive/coins/infrastructure/repository"
-	"github.com/labuda/backend/internal/incentive/coins/repository"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/incentive/coins/entity"
+	coinsRepo "github.com/hishumi/backend/internal/incentive/coins/infrastructure/repository"
+	"github.com/hishumi/backend/internal/incentive/coins/repository"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 const (

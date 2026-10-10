@@ -10,11 +10,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/chat/chat/data/dto/chat_room_event_dto.dart';
-import 'package:labuda/domains/chat/chat/domain/entities/chat_entities.dart';
-import 'package:labuda/domains/chat/chat/domain/repositories/chat_repository.dart';
-import 'package:labuda/domains/chat/chat/presentation/providers/chat_providers.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/chat/chat/data/dto/chat_room_event_dto.dart';
+import 'package:hishumi/domains/chat/chat/domain/entities/chat_entities.dart';
+import 'package:hishumi/domains/chat/chat/domain/repositories/chat_repository.dart';
+import 'package:hishumi/domains/chat/chat/presentation/providers/chat_providers.dart';
 
 const _userId = 'user-1';
 

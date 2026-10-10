@@ -9,7 +9,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"go.uber.org/zap/zaptest"
 
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // withdrawalEmptyMockDB returns a mockDB whose WithTx runs the callback with a

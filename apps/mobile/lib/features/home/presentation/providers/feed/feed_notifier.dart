@@ -1,7 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/features/home/domain/domain.dart';
-import 'package:labuda/features/home/data/data.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/features/home/domain/domain.dart';
+import 'package:hishumi/features/home/data/data.dart';
 import 'feed_state.dart';
 
 part 'feed_notifier.g.dart';

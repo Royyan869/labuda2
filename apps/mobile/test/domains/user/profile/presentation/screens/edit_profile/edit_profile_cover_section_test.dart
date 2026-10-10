@@ -4,7 +4,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/domains/user/profile/presentation/screens/edit_profile/edit_profile_cover_section.dart';
+import 'package:hishumi/domains/user/profile/presentation/screens/edit_profile/edit_profile_cover_section.dart';
 
 class _StaticImageHttpOverrides extends HttpOverrides {
   _StaticImageHttpOverrides(this._bytes);

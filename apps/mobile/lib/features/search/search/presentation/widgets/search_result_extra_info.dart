@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/features/search/search/domain/entities/search_result.dart';
-import 'package:labuda/shared/domain/entities/resource_projection.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/features/search/search/domain/entities/search_result.dart';
+import 'package:hishumi/shared/domain/entities/resource_projection.dart';
 
 /// Widget to display extra info for search results
 ///

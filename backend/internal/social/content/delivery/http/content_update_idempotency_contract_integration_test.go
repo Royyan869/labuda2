@@ -22,9 +22,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	contententity "github.com/labuda/backend/internal/social/content/entity"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/testdb"
+	contententity "github.com/hishumi/backend/internal/social/content/entity"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/testdb"
 	"github.com/stretchr/testify/require"
 )
 

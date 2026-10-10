@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/core/media/media_upload_orchestrator.dart';
-import 'package:labuda/domains/chat/chat/domain/entities/chat_entities.dart';
-import 'package:labuda/domains/chat/chat/presentation/providers/chat_providers.dart';
-import 'package:labuda/shared/widgets/composer_action_buttons.dart';
-import 'package:labuda/shared/widgets/pending_media_strip.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/core/media/media_upload_orchestrator.dart';
+import 'package:hishumi/domains/chat/chat/domain/entities/chat_entities.dart';
+import 'package:hishumi/domains/chat/chat/presentation/providers/chat_providers.dart';
+import 'package:hishumi/shared/widgets/composer_action_buttons.dart';
+import 'package:hishumi/shared/widgets/pending_media_strip.dart';
 
 /// Chat Input Area Widget
 ///

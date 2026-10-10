@@ -12,8 +12,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
-	"github.com/labuda/backend/internal/governance/viewercontext"
-	feedentity "github.com/labuda/backend/internal/social/feed/entity"
+	"github.com/hishumi/backend/internal/governance/viewercontext"
+	feedentity "github.com/hishumi/backend/internal/social/feed/entity"
 )
 
 // F1-W3A — handler-boundary hydrator unit tests.

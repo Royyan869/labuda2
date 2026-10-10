@@ -1,9 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/domains/user/profile/data/mappers/user_api_mapper.dart';
-import 'package:labuda/domains/user/profile/data/profile_providers.dart'
+import 'package:hishumi/domains/user/profile/data/mappers/user_api_mapper.dart';
+import 'package:hishumi/domains/user/profile/data/profile_providers.dart'
     show userApiDatasourceProvider;
-import 'package:labuda/domains/user/profile/domain/entities/profile_entity.dart';
-import 'package:labuda/domains/user/identity/authentication/domain/entities/auth_user.dart';
+import 'package:hishumi/domains/user/profile/domain/entities/profile_entity.dart';
+import 'package:hishumi/domains/user/identity/authentication/domain/entities/auth_user.dart';
 
 /// Combined user/profile snapshot fetched from a single backend request.
 ///

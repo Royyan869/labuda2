@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/domains/chat/chat/data/dto/message_dto.dart';
-import 'package:labuda/shared/domain/entities/resource_projection.dart';
+import 'package:hishumi/domains/chat/chat/data/dto/message_dto.dart';
+import 'package:hishumi/shared/domain/entities/resource_projection.dart';
 
 /// Chat resource-projection INGESTION contract:
 /// HTTP `resource_projection` → MessageDto → domain Message.

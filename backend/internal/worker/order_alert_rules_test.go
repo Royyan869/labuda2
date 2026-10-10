@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	alertentity "github.com/labuda/backend/internal/platform/alert/entity"
+	alertentity "github.com/hishumi/backend/internal/platform/alert/entity"
 	"github.com/jackc/pgx/v5"
 )
 

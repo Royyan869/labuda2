@@ -21,26 +21,26 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/commerce/catalog/auction/domain/domain.dart';
-import 'package:labuda/domains/commerce/catalog/auction/presentation/providers/auction_notifier.dart';
-import 'package:labuda/domains/commerce/catalog/auction/presentation/providers/auction_recommendation_providers.dart'
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/domain/domain.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/presentation/providers/auction_notifier.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/presentation/providers/auction_recommendation_providers.dart'
     show ownerOtherAuctionsProvider, similarAuctionsProvider;
-import 'package:labuda/domains/commerce/catalog/auction/presentation/providers/auction_state.dart';
-import 'package:labuda/domains/commerce/catalog/auction/presentation/screens/auction_detail_screen.dart';
-import 'package:labuda/domains/commerce/catalog/auction/presentation/widgets/detail/auction_action_modal.dart';
-import 'package:labuda/domains/commerce/catalog/shared/domain/entities/commerce_viewer_capabilities.dart';
-import 'package:labuda/domains/commerce/transaction/shipping/domain/entities/shipping.dart';
-import 'package:labuda/domains/commerce/transaction/shipping/domain/repositories/shipping_repository.dart';
-import 'package:labuda/domains/commerce/transaction/shipping/presentation/providers/providers.dart';
-import 'package:labuda/domains/finance/wallet/coins/coins.dart';
-import 'package:labuda/domains/user/profile/domain/entities/address_entity.dart';
-import 'package:labuda/domains/user/profile/presentation/providers/notifiers/address_notifier.dart';
-import 'package:labuda/domains/user/profile/presentation/providers/state/address_state.dart';
-import 'package:labuda/domains/user/preference/saved_item/data/repositories/saved_item_repository.dart';
-import 'package:labuda/domains/user/preference/saved_item/data/repositories/saved_item_repository_provider.dart';
-import 'package:labuda/shared/governance/content_lifecycle.dart';
-import 'package:labuda/shared/models/wilayah_models.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/presentation/providers/auction_state.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/presentation/screens/auction_detail_screen.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/presentation/widgets/detail/auction_action_modal.dart';
+import 'package:hishumi/domains/commerce/catalog/shared/domain/entities/commerce_viewer_capabilities.dart';
+import 'package:hishumi/domains/commerce/transaction/shipping/domain/entities/shipping.dart';
+import 'package:hishumi/domains/commerce/transaction/shipping/domain/repositories/shipping_repository.dart';
+import 'package:hishumi/domains/commerce/transaction/shipping/presentation/providers/providers.dart';
+import 'package:hishumi/domains/finance/wallet/coins/coins.dart';
+import 'package:hishumi/domains/user/profile/domain/entities/address_entity.dart';
+import 'package:hishumi/domains/user/profile/presentation/providers/notifiers/address_notifier.dart';
+import 'package:hishumi/domains/user/profile/presentation/providers/state/address_state.dart';
+import 'package:hishumi/domains/user/preference/saved_item/data/repositories/saved_item_repository.dart';
+import 'package:hishumi/domains/user/preference/saved_item/data/repositories/saved_item_repository_provider.dart';
+import 'package:hishumi/shared/governance/content_lifecycle.dart';
+import 'package:hishumi/shared/models/wilayah_models.dart';
 
 class _RecordingNavigationHandler extends Fake implements NavigationHandler {
   int renewalCalls = 0;

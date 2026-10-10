@@ -1,8 +1,8 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'search_state.dart';
-import 'package:labuda/features/search/search/domain/entities/search_filters.dart';
-import 'package:labuda/features/search/search/domain/entities/search_result.dart';
-import 'package:labuda/features/search/search/domain/usecases/search_usecase_providers.dart';
+import 'package:hishumi/features/search/search/domain/entities/search_filters.dart';
+import 'package:hishumi/features/search/search/domain/entities/search_result.dart';
+import 'package:hishumi/features/search/search/domain/usecases/search_usecase_providers.dart';
 
 part 'search_notifier.g.dart';
 

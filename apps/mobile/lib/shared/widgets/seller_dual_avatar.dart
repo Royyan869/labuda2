@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/shared/models/seller_identity_data.dart';
-import 'package:labuda/shared/widgets/app_image.dart';
-import 'package:labuda/shared/widgets/profile_avatar.dart';
+import 'package:hishumi/shared/models/seller_identity_data.dart';
+import 'package:hishumi/shared/widgets/app_image.dart';
+import 'package:hishumi/shared/widgets/profile_avatar.dart';
 
 /// CANONICAL dual avatar for sellers — store/farm image as the main circle
 /// (storefront icon when no photo) with the personal [ProfileAvatar] overlaid

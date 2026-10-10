@@ -1,6 +1,6 @@
 import 'package:go_router/go_router.dart';
-import 'package:labuda/core/src/router/route_paths.dart';
-import 'package:labuda/domains/finance/wallet/coins/coins.dart';
+import 'package:hishumi/core/src/router/route_paths.dart';
+import 'package:hishumi/domains/finance/wallet/coins/coins.dart';
 import 'base_module.dart';
 
 /// Coins module routing implementation

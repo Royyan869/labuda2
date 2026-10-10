@@ -12,21 +12,21 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/providers/core_providers.dart'
+import 'package:hishumi/core/providers/core_providers.dart'
     show loggerServiceProvider, webSocketServiceProvider;
-import 'package:labuda/core/src/interfaces/services/i_logger_service.dart';
-import 'package:labuda/core/websocket/websocket_service.dart';
-import 'package:labuda/domains/user/identity/authentication/authentication.dart';
-import 'package:labuda/domains/user/identity/authentication/presentation/providers/auth_controller.dart';
-import 'package:labuda/domains/user/profile/data/profile_providers.dart';
-import 'package:labuda/domains/user/profile/data/services/avatar_cache_service.dart';
-import 'package:labuda/domains/user/profile/data/datasources/user_api_datasource.dart';
-import 'package:labuda/core/api/api_client.dart';
+import 'package:hishumi/core/src/interfaces/services/i_logger_service.dart';
+import 'package:hishumi/core/websocket/websocket_service.dart';
+import 'package:hishumi/domains/user/identity/authentication/authentication.dart';
+import 'package:hishumi/domains/user/identity/authentication/presentation/providers/auth_controller.dart';
+import 'package:hishumi/domains/user/profile/data/profile_providers.dart';
+import 'package:hishumi/domains/user/profile/data/services/avatar_cache_service.dart';
+import 'package:hishumi/domains/user/profile/data/datasources/user_api_datasource.dart';
+import 'package:hishumi/core/api/api_client.dart';
 
-import 'package:labuda/domains/chat/chat/domain/entities/chat_entities.dart';
-import 'package:labuda/domains/chat/chat/presentation/widgets/chat_card.dart';
-import 'package:labuda/shared/governance/content_lifecycle.dart';
-import 'package:labuda/shared/shared.dart';
+import 'package:hishumi/domains/chat/chat/domain/entities/chat_entities.dart';
+import 'package:hishumi/domains/chat/chat/presentation/widgets/chat_card.dart';
+import 'package:hishumi/shared/governance/content_lifecycle.dart';
+import 'package:hishumi/shared/shared.dart';
 
 // =============================================================================
 // Fixtures

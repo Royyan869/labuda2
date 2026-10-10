@@ -3,11 +3,11 @@ package http
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	ratingApp "github.com/labuda/backend/internal/commerce/order/rating/application"
-	ratingEntity "github.com/labuda/backend/internal/commerce/order/rating/entity"
-	ratingRepo "github.com/labuda/backend/internal/commerce/order/rating/infrastructure/repository"
-	"github.com/labuda/backend/internal/platform/response"
-	"github.com/labuda/backend/pkg/db"
+	ratingApp "github.com/hishumi/backend/internal/commerce/order/rating/application"
+	ratingEntity "github.com/hishumi/backend/internal/commerce/order/rating/entity"
+	ratingRepo "github.com/hishumi/backend/internal/commerce/order/rating/infrastructure/repository"
+	"github.com/hishumi/backend/internal/platform/response"
+	"github.com/hishumi/backend/pkg/db"
 	"go.uber.org/zap"
 )
 

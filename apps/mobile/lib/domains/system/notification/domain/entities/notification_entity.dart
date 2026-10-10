@@ -1,4 +1,4 @@
-import 'package:labuda/core/interfaces/i_notification_trigger.dart';
+import 'package:hishumi/core/interfaces/i_notification_trigger.dart';
 
 /// Notification Entity
 ///

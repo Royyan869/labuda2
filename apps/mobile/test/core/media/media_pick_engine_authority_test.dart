@@ -2,8 +2,8 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/media/media_upload_config.dart';
-import 'package:labuda/core/media/media_upload_orchestrator.dart';
+import 'package:hishumi/core/media/media_upload_config.dart';
+import 'package:hishumi/core/media/media_upload_orchestrator.dart';
 
 /// NEGATIVE CONTRACT — one media pick engine.
 ///

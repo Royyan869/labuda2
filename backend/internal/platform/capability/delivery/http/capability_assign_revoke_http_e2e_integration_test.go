@@ -10,7 +10,7 @@ package http
 //	POST   /api/v1/admin/users/:id/capabilities
 //	DELETE /api/v1/admin/users/:id/capabilities/:cap
 //
-//	  user_id (LabudaAuth/UserLookup output)
+//	  user_id (HiShumiAuth/UserLookup output)
 //	  → ActorContextInject (real resolver: users.role + active capabilities from DB)
 //	  → RequireAdminMiddleware (real RoleCheckerDB.IsAdmin)
 //	  → RequireCapability("governance.capability.assign")
@@ -19,7 +19,7 @@ package http
 //	      → CapabilityRepository.CreateGrant / RevokeGuarded (own transaction)
 //	        → user_capabilities (real PostgreSQL)
 //
-// Authentication itself (LabudaAuthMiddleware JWT validation) is stubbed by
+// Authentication itself (HiShumiAuthMiddleware JWT validation) is stubbed by
 // setting the user_id that UserLookupMiddleware would set — the same technique
 // the repository's existing middleware-pipeline tests use.
 //
@@ -46,17 +46,17 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
-	"github.com/labuda/backend/internal/audit"
-	"github.com/labuda/backend/internal/identity/auth"
-	"github.com/labuda/backend/internal/middleware"
-	"github.com/labuda/backend/internal/platform/capability"
-	capabilityApp "github.com/labuda/backend/internal/platform/capability/application"
-	capabilityEntity "github.com/labuda/backend/internal/platform/capability/entity"
-	capabilityInfra "github.com/labuda/backend/internal/platform/capability/infrastructure"
-	capabilityRepoImpl "github.com/labuda/backend/internal/platform/capability/infrastructure/repository"
-	"github.com/labuda/backend/internal/platform/capability/invariant"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/testdb"
+	"github.com/hishumi/backend/internal/audit"
+	"github.com/hishumi/backend/internal/identity/auth"
+	"github.com/hishumi/backend/internal/middleware"
+	"github.com/hishumi/backend/internal/platform/capability"
+	capabilityApp "github.com/hishumi/backend/internal/platform/capability/application"
+	capabilityEntity "github.com/hishumi/backend/internal/platform/capability/entity"
+	capabilityInfra "github.com/hishumi/backend/internal/platform/capability/infrastructure"
+	capabilityRepoImpl "github.com/hishumi/backend/internal/platform/capability/infrastructure/repository"
+	"github.com/hishumi/backend/internal/platform/capability/invariant"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/testdb"
 )
 
 // insertAuthorityUser inserts one active user with the given role and active
@@ -126,7 +126,7 @@ func buildCapabilityAdminRouter(t *testing.T, tdb *testdb.TestDB, appDB *db.DB, 
 	resolver := capabilityInfra.NewActorResolver(capRepo, stateQuerier)
 
 	r := gin.New()
-	// LabudaAuthMiddleware + UserLookupMiddleware produce user_id.
+	// HiShumiAuthMiddleware + UserLookupMiddleware produce user_id.
 	r.Use(func(c *gin.Context) { c.Set("user_id", operatorID); c.Next() })
 	r.Use(middleware.ActorContextInject(resolver, middleware.ActorContextInjectOptions{}))
 

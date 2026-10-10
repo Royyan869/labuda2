@@ -56,7 +56,6 @@ abstract final class AnalyticsScreen {
   // Discovery
   static const String search = 'search';
   static const String searchResults = 'search_results';
-  static const String forSaleList = 'for_sale_list';
   static const String productDetail = 'product_detail';
   static const String auctionDetail = 'auction_detail';
   static const String savedItems = 'saved_items';
@@ -140,7 +139,6 @@ abstract final class AnalyticsScreen {
     RouteNames.helpArticle: helpArticle,
     RouteNames.supportTickets: supportTickets,
     RouteNames.supportTicketThread: supportTicketThread,
-    RouteNames.forSales: forSaleList,
     RouteNames.forSaleDetail: productDetail,
     RouteNames.createForSale: createForSale,
     RouteNames.auctionDetails: auctionDetail,
@@ -189,7 +187,6 @@ abstract final class AnalyticsScreen {
   /// templates must precede less specific ones.
   static const List<(String, String)> _byPath = <(String, String)>[
     (RoutePaths.forSaleDetail, productDetail),
-    (RoutePaths.forSales, forSaleList),
     (RoutePaths.createForSale, createForSale),
     (RoutePaths.createContent, createContent),
     (RoutePaths.auctionDetails, auctionDetail),

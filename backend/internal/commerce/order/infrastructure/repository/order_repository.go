@@ -9,12 +9,12 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/commerce/order/entity"
-	orderrepository "github.com/labuda/backend/internal/commerce/order/repository"
-	refundEntity "github.com/labuda/backend/internal/finance/refund/entity"
-	addressentity "github.com/labuda/backend/internal/identity/address/entity"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/money"
+	"github.com/hishumi/backend/internal/commerce/order/entity"
+	orderrepository "github.com/hishumi/backend/internal/commerce/order/repository"
+	refundEntity "github.com/hishumi/backend/internal/finance/refund/entity"
+	addressentity "github.com/hishumi/backend/internal/identity/address/entity"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/money"
 )
 
 // OrderRepository handles order persistence using pgx-based DB layer.

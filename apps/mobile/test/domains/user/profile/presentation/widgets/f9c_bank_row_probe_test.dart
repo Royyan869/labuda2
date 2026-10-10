@@ -3,9 +3,9 @@
 // 320 / 360 / 412 / 500 x text scale 1.0 / 1.3 / 2.0.
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/user/profile/domain/entities/bank_account_entity.dart';
-import 'package:labuda/domains/user/profile/presentation/widgets/bank_account_card_widget.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/user/profile/domain/entities/bank_account_entity.dart';
+import 'package:hishumi/domains/user/profile/presentation/widgets/bank_account_card_widget.dart';
 
 const List<double> _widths = <double>[320, 360, 412, 500];
 const List<double> _scales = <double>[1.0, 1.3, 2.0];

@@ -12,10 +12,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:labuda/domains/commerce/catalog/auction/domain/domain.dart';
-import 'package:labuda/domains/commerce/catalog/auction/presentation/widgets/detail/auction_seller_card.dart';
-import 'package:labuda/shared/governance/content_lifecycle.dart';
-import 'package:labuda/shared/governance/seller_tier_badge.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/domain/domain.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/presentation/widgets/detail/auction_seller_card.dart';
+import 'package:hishumi/shared/governance/content_lifecycle.dart';
+import 'package:hishumi/shared/governance/seller_tier_badge.dart';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 

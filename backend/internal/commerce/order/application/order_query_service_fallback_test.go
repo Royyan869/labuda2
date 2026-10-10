@@ -9,8 +9,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/labuda/backend/internal/projection"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/projection"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // ─── projectionLister stub ────────────────────────────────────────────────────

@@ -8,7 +8,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/labuda/backend/pkg/testdb"
+	"github.com/hishumi/backend/pkg/testdb"
 )
 
 // TestMigration000047_SchemaStateProof verifies that after migration 000047 UP:

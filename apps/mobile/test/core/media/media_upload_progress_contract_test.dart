@@ -3,11 +3,11 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/core/media/media_upload_config.dart';
-import 'package:labuda/core/media/media_upload_orchestrator.dart';
-import 'package:labuda/core/providers/core_providers.dart';
-import 'package:labuda/core/services/s3_service.dart';
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/core/media/media_upload_config.dart';
+import 'package:hishumi/core/media/media_upload_orchestrator.dart';
+import 'package:hishumi/core/providers/core_providers.dart';
+import 'package:hishumi/core/services/s3_service.dart';
 
 // ============================================================================
 // PER-FILE UPLOAD PROGRESS CONTRACT

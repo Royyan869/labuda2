@@ -1,7 +1,7 @@
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/user/profile/data/datasources/user_api_datasource.dart';
-import 'package:labuda/domains/user/profile/data/mappers/user_api_mapper.dart';
+﻿import 'package:firebase_auth/firebase_auth.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/user/profile/data/datasources/user_api_datasource.dart';
+import 'package:hishumi/domains/user/profile/data/mappers/user_api_mapper.dart';
 
 /// Result of user sync operation - includes user data, creation flag, and profile completion
 class SyncUserResult {
@@ -77,9 +77,9 @@ class UserSyncService {
     required String username,
     String? phoneNumber,
   }) async {
-    // 🔍 COLD START AUDIT: Sync started
+    // ðŸ” COLD START AUDIT: Sync started
 
-    // 🔎 BAGIAN 1: Log Firebase ID Token
+    // ðŸ”Ž BAGIAN 1: Log Firebase ID Token
     final firebaseUser = _firebaseAuth.currentUser;
 
     final idToken = await firebaseUser?.getIdToken();
@@ -92,7 +92,7 @@ class UserSyncService {
       return Result.error('Firebase ID token is null - user not authenticated');
     }
 
-    // 🔎 BAGIAN 2: Log username being sent
+    // ðŸ”Ž BAGIAN 2: Log username being sent
     _logger?.log(
       '[SYNC] Syncing user: username length=${username.length}',
       level: LogLevel.debug,
@@ -121,7 +121,7 @@ class UserSyncService {
         'Backend sync failed: ${result.error}',
         extra: {'username': username},
       );
-      // PASS 2A: forward errorCode/statusCode from the datasource result —
+      // PASS 2A: forward errorCode/statusCode from the datasource result â€”
       // AuthController's classifyAuthSyncError needs the backend's
       // structured code (INVALID_TOKEN/ACCOUNT_DELETED/ACCOUNT_INACTIVE) to
       // classify this failure correctly instead of guessing from text.
@@ -134,7 +134,7 @@ class UserSyncService {
     }
 
     // Persist platform tokens via the canonical credential boundary
-    // (ILocalStorageService — the single authority for secure credential
+    // (ILocalStorageService â€” the single authority for secure credential
     // storage). This happens IMMEDIATELY after the exchange returns a token
     // pair, BEFORE the /users/me fetch, so a transient profile failure does
     // not lose the freshly issued credentials (session stays restorable/retry).
@@ -150,12 +150,12 @@ class UserSyncService {
         if (response.accessToken.isNotEmpty) {
           if (response.refreshToken != null &&
               response.refreshToken!.isNotEmpty) {
-            await storage.saveLabudaCredential(
+            await storage.saveHiShumiCredential(
               response.accessToken,
               response.refreshToken!,
             );
           } else {
-            // Access token only (incomplete profile) — store as restricted credential
+            // Access token only (incomplete profile) â€” store as restricted credential
             await storage.setRestrictedToken(response.accessToken);
           }
         }
@@ -215,12 +215,12 @@ class UserSyncService {
   ///
   /// Use this to fetch the most up-to-date user data from PostgreSQL
   Future<Result<AuthUser>> getCurrentUser() async {
-    // 🔍 LANGKAH 2: Di awal method
+    // ðŸ” LANGKAH 2: Di awal method
     _logger?.log('[SYNC] getCurrentUser called', level: LogLevel.debug);
 
     final result = await _datasource.getCurrentUser();
 
-    // 🔍 LANGKAH 2: Setelah API call
+    // ðŸ” LANGKAH 2: Setelah API call
     _logger?.log(
       '[SYNC] getCurrentUser: response received',
       level: LogLevel.debug,
@@ -251,181 +251,10 @@ class UserSyncService {
     return result.map((response) => UserApiMapper.toAuthUser(response));
   }
 
-  /// Get user by ID from backend
-  Future<Result<AuthUser?>> getUserById(String userId) async {
-    final result = await _datasource.getUserById(userId);
-
-    if (result.isError) {
-      // User not found is not an error, return null
-      if (result.error?.contains('not found') == true) {
-        return Result.success(null);
-      }
-      return Result.error(result.error ?? 'Failed to get user');
-    }
-
-    return Result.success(UserApiMapper.toAuthUser(result.data!));
-  }
-
-  /// Update user profile in backend
-  Future<Result<AuthUser>> updateProfile({
-    required String userId,
-    String? bio,
-    String? avatarUrl,
-    DateTime? dateOfBirth,
-    String? gender,
-    String? location,
-    String? instagramHandle,
-    String? facebookHandle,
-    String? twitterHandle,
-    String? tiktokHandle,
-  }) async {
-    _logger?.info('Updating profile for user: $userId');
-
-    final request = UserApiMapper.toUpdateProfileRequest(
-      bio: bio,
-      avatarUrl: avatarUrl,
-      dateOfBirth: dateOfBirth,
-      gender: gender,
-      location: location,
-      instagramHandle: instagramHandle,
-      facebookHandle: facebookHandle,
-      twitterHandle: twitterHandle,
-      tiktokHandle: tiktokHandle,
-    );
-
-    final result = await _datasource.updateProfile(userId, request);
-
-    return result.map((response) {
-      _logger?.info('Profile updated successfully');
-      return UserApiMapper.toAuthUser(response);
-    });
-  }
-
-  /// Update current user's profile
-  Future<Result<AuthUser>> updateMyProfile({
-    String? bio,
-    String? avatarUrl,
-    DateTime? dateOfBirth,
-    String? gender,
-    String? location,
-  }) async {
-    final request = UserApiMapper.toUpdateProfileRequest(
-      bio: bio,
-      avatarUrl: avatarUrl,
-      dateOfBirth: dateOfBirth,
-      gender: gender,
-      location: location,
-    );
-
-    final result = await _datasource.updateMyProfile(request);
-    return result.map((response) => UserApiMapper.toAuthUser(response));
-  }
-
-  /// Search users
-  Future<Result<List<AuthUser>>> searchUsers({
-    required String query,
-    int page = 1,
-    int limit = 20,
-  }) async {
-    final result = await _datasource.searchUsers(
-      query: query,
-      page: page,
-      limit: limit,
-    );
-
-    return result.map(
-      (responses) => responses.map(UserApiMapper.toAuthUser).toList(),
-    );
-  }
-
-  // Username availability is backend authority only (exchange /
-  // complete-profile decide transactionally; rejections surface as structured
-  // codes). Local validation is format-only — see CanonicalUsernameValidator.
-
-  /// Update avatar URL
-  Future<Result<AuthUser>> updateAvatar(String userId, String avatarUrl) async {
-    final result = await _datasource.updateAvatar(userId, avatarUrl);
-    return result.map((response) => UserApiMapper.toAuthUser(response));
-  }
-
-  // ========================================
-  // Role Management Operations
-  // ========================================
-
-  /// Update user roles (replaces all roles with the provided roles)
-  /// This is the preferred method for managing user roles from backend API
-  Future<Result<AuthUser>> updateUserRoles({
-    required String userId,
-    required List<String> roles,
-  }) async {
-    _logger?.info('Updating user roles: userId=$userId, roles=$roles');
-
-    final result = await _datasource.updateUserRoles(
-      userId: userId,
-      roles: roles,
-    );
-
-    if (result.isError) {
-      _logger?.error(
-        'Failed to update user roles: ${result.error}',
-        extra: {'userId': userId, 'roles': roles},
-      );
-      return Result.error(result.error ?? 'Failed to update user roles');
-    }
-
-    _logger?.info('User roles updated successfully: ${result.data?.id}');
-    return result.map((response) => UserApiMapper.toAuthUser(response));
-  }
-
-  /// Add roles to user (doesn't remove existing roles)
-  Future<Result<AuthUser>> addUserRoles({
-    required String userId,
-    required List<String> roles,
-  }) async {
-    _logger?.info('Adding user roles: userId=$userId, roles=$roles');
-
-    final result = await _datasource.addUserRoles(userId: userId, roles: roles);
-
-    if (result.isError) {
-      _logger?.error(
-        'Failed to add user roles: ${result.error}',
-        extra: {'userId': userId, 'roles': roles},
-      );
-      return Result.error(result.error ?? 'Failed to add user roles');
-    }
-
-    _logger?.info('User roles added successfully: ${result.data?.id}');
-    return result.map((response) => UserApiMapper.toAuthUser(response));
-  }
-
-  /// Remove roles from user
-  Future<Result<AuthUser>> removeUserRoles({
-    required String userId,
-    required List<String> roles,
-  }) async {
-    _logger?.info('Removing user roles: userId=$userId, roles=$roles');
-
-    final result = await _datasource.removeUserRoles(
-      userId: userId,
-      roles: roles,
-    );
-
-    if (result.isError) {
-      _logger?.error(
-        'Failed to remove user roles: ${result.error}',
-        extra: {'userId': userId, 'roles': roles},
-      );
-      return Result.error(result.error ?? 'Failed to remove user roles');
-    }
-
-    _logger?.info('User roles removed successfully: ${result.data?.id}');
-    return result.map((response) => UserApiMapper.toAuthUser(response));
-  }
-
   Future<void> _clearStoredSessionTokens() async {
     final storage = _localStorage;
     if (storage == null) return;
 
-    await storage.clearLabudaCredential();
+    await storage.clearHiShumiCredential();
   }
 }

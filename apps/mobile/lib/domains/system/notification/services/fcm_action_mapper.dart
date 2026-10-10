@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
+import 'package:hishumi/core/core.dart';
 import 'in_app_banner_service.dart';
 import 'notification_navigation_service.dart';
 

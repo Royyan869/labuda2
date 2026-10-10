@@ -9,7 +9,7 @@
 library;
 
 import 'package:equatable/equatable.dart';
-import 'package:labuda/domains/finance/transaction/payment/domain/entities/payment_intent.dart';
+import 'package:hishumi/domains/finance/transaction/payment/domain/entities/payment_intent.dart';
 
 /// Payment initiation state with safety mechanisms
 class PaymentInitiationState extends Equatable {

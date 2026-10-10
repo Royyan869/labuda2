@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/shared/entities/post_location.dart';
-import 'package:labuda/shared/widgets/address_location_view.dart';
-import 'package:labuda/shared/widgets/app_snackbar.dart';
+import 'package:hishumi/shared/entities/post_location.dart';
+import 'package:hishumi/shared/widgets/address_location_view.dart';
+import 'package:hishumi/shared/widgets/app_snackbar.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:labuda/core/src/theme/app_theme.dart';
+import 'package:hishumi/core/src/theme/app_theme.dart';
 
 /// Clickable location widget yang bisa buka Google Maps
 ///

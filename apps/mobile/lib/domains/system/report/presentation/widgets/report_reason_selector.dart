@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/domains/system/report/domain/entities/entities.dart';
-import 'package:labuda/core/src/theme/app_theme.dart';
+import 'package:hishumi/domains/system/report/domain/entities/entities.dart';
+import 'package:hishumi/core/src/theme/app_theme.dart';
 
 /// Report Reason Selector Widget
 ///

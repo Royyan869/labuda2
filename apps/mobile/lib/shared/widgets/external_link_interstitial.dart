@@ -1,8 +1,8 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/shared/widgets/app_snackbar.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/shared/widgets/app_snackbar.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// Shows an interstitial dialog before opening an external URL.
@@ -73,7 +73,7 @@ class _ExternalLinkDialog extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Anda akan meninggalkan Labuda dan membuka situs eksternal.',
+            'Anda akan meninggalkan HiShumi dan membuka situs eksternal.',
             style: context.typeRoles.bodyDense.copyWith(
               color: scheme.onSurfaceVariant,
             ),
@@ -120,7 +120,7 @@ class _ExternalLinkDialog extends StatelessWidget {
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
-                  'Labuda tidak bertanggung jawab atas konten di situs eksternal.',
+                  'HiShumi tidak bertanggung jawab atas konten di situs eksternal.',
                   style: context.typeRoles.labelMicro.copyWith(
                     color: context.statusColors.warning,
                   ),

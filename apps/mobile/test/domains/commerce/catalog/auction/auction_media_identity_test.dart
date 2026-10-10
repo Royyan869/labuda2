@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction_media_identity.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/domain/entities/auction_media_identity.dart';
 
 void main() {
   test(

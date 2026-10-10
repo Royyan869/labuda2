@@ -29,17 +29,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/core.dart' hide NotificationEntity;
-import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_detail_primitives.dart';
-import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_marketplace_primitives.dart';
-import 'package:labuda/domains/system/notification/domain/entities/notification_entity.dart';
-import 'package:labuda/domains/system/notification/presentation/widgets/notification_item_widget.dart';
-import 'package:labuda/domains/user/profile/data/datasources/user_api_datasource.dart';
-import 'package:labuda/domains/user/profile/data/profile_providers.dart'
+import 'package:hishumi/core/core.dart' hide NotificationEntity;
+import 'package:hishumi/domains/commerce/catalog/shared/presentation/widgets/commerce_detail_primitives.dart';
+import 'package:hishumi/domains/commerce/catalog/shared/presentation/widgets/commerce_marketplace_primitives.dart';
+import 'package:hishumi/domains/system/notification/domain/entities/notification_entity.dart';
+import 'package:hishumi/domains/system/notification/presentation/widgets/notification_item_widget.dart';
+import 'package:hishumi/domains/user/profile/data/datasources/user_api_datasource.dart';
+import 'package:hishumi/domains/user/profile/data/profile_providers.dart'
     show avatarCacheServiceProvider;
-import 'package:labuda/domains/user/profile/data/services/avatar_cache_service.dart';
-import 'package:labuda/shared/models/seller_identity_data.dart';
-import 'package:labuda/shared/shared.dart';
+import 'package:hishumi/domains/user/profile/data/services/avatar_cache_service.dart';
+import 'package:hishumi/shared/models/seller_identity_data.dart';
+import 'package:hishumi/shared/shared.dart';
 
 // ============================================================================
 // Matrix

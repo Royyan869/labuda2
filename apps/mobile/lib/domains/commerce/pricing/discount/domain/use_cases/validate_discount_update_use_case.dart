@@ -1,5 +1,5 @@
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/domains/commerce/pricing/discount/domain/entities/discount_entity.dart';
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/domains/commerce/pricing/discount/domain/entities/discount_entity.dart';
 
 /// Validate Discount Update Use Case
 ///

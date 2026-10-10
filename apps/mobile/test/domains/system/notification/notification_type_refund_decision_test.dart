@@ -9,8 +9,8 @@
 
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:labuda/core/interfaces/i_notification_trigger.dart';
-import 'package:labuda/domains/system/notification/domain/services/notification_display_service.dart';
+import 'package:hishumi/core/interfaces/i_notification_trigger.dart';
+import 'package:hishumi/domains/system/notification/domain/services/notification_display_service.dart';
 
 void main() {
   // ============================================================================

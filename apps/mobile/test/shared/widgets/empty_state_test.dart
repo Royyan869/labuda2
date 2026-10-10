@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/shared/widgets/empty_state.dart';
+import 'package:hishumi/shared/widgets/empty_state.dart';
 
 /// CANONICAL contract for the empty-state foundation.
 ///

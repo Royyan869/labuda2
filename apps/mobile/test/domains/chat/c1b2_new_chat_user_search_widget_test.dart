@@ -10,7 +10,7 @@
 import 'dart:io' as fs;
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/shared/helpers/user_identity_formatter.dart';
+import 'package:hishumi/shared/helpers/user_identity_formatter.dart';
 
 // =============================================================================
 // Tests

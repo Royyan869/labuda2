@@ -6,11 +6,11 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	discountentity "github.com/labuda/backend/internal/pricing/discount/entity"
-	"github.com/labuda/backend/internal/pricing/token/entity"
-	pricingtokenrepo "github.com/labuda/backend/internal/pricing/token/repository"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/money"
+	discountentity "github.com/hishumi/backend/internal/pricing/discount/entity"
+	"github.com/hishumi/backend/internal/pricing/token/entity"
+	pricingtokenrepo "github.com/hishumi/backend/internal/pricing/token/repository"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/money"
 	"github.com/shopspring/decimal"
 )
 

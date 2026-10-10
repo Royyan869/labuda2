@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/platform/admin/repository"
+	"github.com/hishumi/backend/internal/platform/admin/repository"
 )
 
 // TestWarningCountsMapping verifies that userDetailsFromRepo correctly

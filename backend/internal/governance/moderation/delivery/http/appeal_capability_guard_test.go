@@ -11,10 +11,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 
-	"github.com/labuda/backend/internal/middleware"
-	"github.com/labuda/backend/internal/platform/capability"
-	capabilityEntity "github.com/labuda/backend/internal/platform/capability/entity"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/middleware"
+	"github.com/hishumi/backend/internal/platform/capability"
+	capabilityEntity "github.com/hishumi/backend/internal/platform/capability/entity"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // ============================================================================

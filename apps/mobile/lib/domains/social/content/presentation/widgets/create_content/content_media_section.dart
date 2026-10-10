@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:labuda/shared/widgets/media_preview.dart';
+import 'package:hishumi/shared/widgets/media_preview.dart';
 
 /// Widget that shows the live create-flow media preview
 ///

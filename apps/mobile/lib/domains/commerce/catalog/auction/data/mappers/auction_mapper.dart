@@ -9,12 +9,12 @@
 /// - Winner checkout flow requires productId to create order
 library;
 
-import 'package:labuda/core/media/media_upload_orchestrator.dart';
-import 'package:labuda/domains/commerce/catalog/auction/data/dto/auction_dto.dart';
-import 'package:labuda/domains/commerce/catalog/auction/domain/domain.dart';
-import 'package:labuda/domains/social/content/domain/entities/content.dart';
-import 'package:labuda/core/common/types/preparation_time.dart';
-import 'package:labuda/shared/governance/content_lifecycle.dart';
+import 'package:hishumi/core/media/media_upload_orchestrator.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/data/dto/auction_dto.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/domain/domain.dart';
+import 'package:hishumi/domains/social/content/domain/entities/content.dart';
+import 'package:hishumi/core/common/types/preparation_time.dart';
+import 'package:hishumi/shared/governance/content_lifecycle.dart';
 
 /// Mapper for Auction-related conversions
 ///

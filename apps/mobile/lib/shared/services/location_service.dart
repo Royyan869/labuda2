@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:labuda/core/core.dart';
+import 'package:hishumi/core/core.dart';
 
 /// Service untuk handle GPS location dan reverse geocoding
 class LocationService {

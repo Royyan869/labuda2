@@ -1,8 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/commerce/catalog/auction/data/auction_providers.dart';
-import 'package:labuda/domains/commerce/catalog/auction/data/dto/bidding_item_dto.dart';
-import 'package:labuda/domains/commerce/catalog/auction/data/repositories/my_bids_repository.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/data/auction_providers.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/data/dto/bidding_item_dto.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/data/repositories/my_bids_repository.dart';
 
 final myBidsProvider = FutureProvider.autoDispose<List<BiddingItemDto>>((
   ref,

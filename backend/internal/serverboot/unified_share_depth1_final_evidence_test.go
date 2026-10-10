@@ -11,13 +11,13 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	auctionEntity "github.com/labuda/backend/internal/commerce/auction/entity"
-	fpsEntity "github.com/labuda/backend/internal/commerce/forsale/entity"
-	commerceshared "github.com/labuda/backend/internal/commerce/shared"
-	chatApp "github.com/labuda/backend/internal/interaction/chat/application"
-	chatEntity "github.com/labuda/backend/internal/interaction/chat/entity"
-	"github.com/labuda/backend/internal/social/content/entity"
-	"github.com/labuda/backend/pkg/db"
+	auctionEntity "github.com/hishumi/backend/internal/commerce/auction/entity"
+	fpsEntity "github.com/hishumi/backend/internal/commerce/forsale/entity"
+	commerceshared "github.com/hishumi/backend/internal/commerce/shared"
+	chatApp "github.com/hishumi/backend/internal/interaction/chat/application"
+	chatEntity "github.com/hishumi/backend/internal/interaction/chat/entity"
+	"github.com/hishumi/backend/internal/social/content/entity"
+	"github.com/hishumi/backend/pkg/db"
 	"github.com/stretchr/testify/require"
 )
 

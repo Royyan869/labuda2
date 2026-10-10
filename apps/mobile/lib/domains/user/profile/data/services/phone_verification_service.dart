@@ -1,8 +1,8 @@
 import 'dart:developer' as developer;
 
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:labuda/core/api/di/api_di.dart';
-import 'package:labuda/shared/helpers/canonical_phone_validator.dart';
+import 'package:hishumi/core/api/di/api_di.dart';
+import 'package:hishumi/shared/helpers/canonical_phone_validator.dart';
 
 /// Service untuk verifikasi nomor telepon menggunakan Firebase Phone Auth
 ///

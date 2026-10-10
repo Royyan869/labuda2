@@ -11,7 +11,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
-	adminrepo "github.com/labuda/backend/internal/platform/admin/repository"
+	adminrepo "github.com/hishumi/backend/internal/platform/admin/repository"
 )
 
 type adminFollowCountTx struct {

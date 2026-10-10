@@ -20,10 +20,10 @@
 library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/shared/providers/authenticated_account_provider.dart'
+import 'package:hishumi/shared/providers/authenticated_account_provider.dart'
     show authenticatedUserProvider;
-import 'package:labuda/domains/user/identity/authentication/domain/entities/auth_user.dart';
-import 'package:labuda/domains/user/preference/seller/domain/entities/seller_state.dart';
+import 'package:hishumi/domains/user/identity/authentication/domain/entities/auth_user.dart';
+import 'package:hishumi/domains/user/preference/seller/domain/entities/seller_state.dart';
 
 SellerIdentityStatus _sellerIdentityStatusFromUser(AuthUser? user) {
   if (user == null) {

@@ -1,10 +1,10 @@
 // Content Mapper
 // Konversi antara DTO (Data Layer) dan Entity (Domain Layer)
 
-import 'package:labuda/domains/social/content/data/dto/content_dto.dart';
-import 'package:labuda/domains/social/content/domain/entities/content.dart';
-import 'package:labuda/domains/social/content/domain/repositories/content_repository.dart';
-import 'package:labuda/shared/governance/content_lifecycle.dart';
+import 'package:hishumi/domains/social/content/data/dto/content_dto.dart';
+import 'package:hishumi/domains/social/content/domain/entities/content.dart';
+import 'package:hishumi/domains/social/content/domain/repositories/content_repository.dart';
+import 'package:hishumi/shared/governance/content_lifecycle.dart';
 
 /// Mapper untuk Content Domain Contract Alignment V1
 ///

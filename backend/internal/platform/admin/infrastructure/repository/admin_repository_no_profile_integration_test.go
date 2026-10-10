@@ -16,9 +16,9 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/labuda/backend/internal/platform/admin/repository"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/testdb"
+	"github.com/hishumi/backend/internal/platform/admin/repository"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/testdb"
 )
 
 func insertUserWithoutProfile(t *testing.T, tdb *testdb.TestDB, ctx context.Context) uuid.UUID {

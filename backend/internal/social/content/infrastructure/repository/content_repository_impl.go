@@ -9,8 +9,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/labuda/backend/internal/social/content/entity"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/social/content/entity"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // ContentRepositoryImpl handles content persistence using pgx-based DB layer.

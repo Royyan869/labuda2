@@ -6,11 +6,11 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/commerce/forsale/entity"
-	productEntity "github.com/labuda/backend/internal/commerce/product/entity"
-	commerceshared "github.com/labuda/backend/internal/commerce/shared"
-	"github.com/labuda/backend/internal/pkg/sellerdisplay"
-	"github.com/labuda/backend/pkg/money"
+	"github.com/hishumi/backend/internal/commerce/forsale/entity"
+	productEntity "github.com/hishumi/backend/internal/commerce/product/entity"
+	commerceshared "github.com/hishumi/backend/internal/commerce/shared"
+	"github.com/hishumi/backend/internal/pkg/sellerdisplay"
+	"github.com/hishumi/backend/pkg/money"
 	"github.com/stretchr/testify/require"
 )
 

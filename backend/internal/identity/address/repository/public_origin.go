@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	addressEntity "github.com/labuda/backend/internal/identity/address/entity"
-	"github.com/labuda/backend/pkg/db"
+	addressEntity "github.com/hishumi/backend/internal/identity/address/entity"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // ResolvePublicOrigin resolves the public origin line ("City, Province") of a

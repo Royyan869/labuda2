@@ -6,10 +6,10 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/finance/bankaccount/entity"
-	bankAccountRepo "github.com/labuda/backend/internal/finance/bankaccount/infrastructure/repository"
-	outboxrepo "github.com/labuda/backend/internal/platform/outbox/infrastructure/repository"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/finance/bankaccount/entity"
+	bankAccountRepo "github.com/hishumi/backend/internal/finance/bankaccount/infrastructure/repository"
+	outboxrepo "github.com/hishumi/backend/internal/platform/outbox/infrastructure/repository"
+	"github.com/hishumi/backend/pkg/db"
 	"go.uber.org/zap"
 )
 

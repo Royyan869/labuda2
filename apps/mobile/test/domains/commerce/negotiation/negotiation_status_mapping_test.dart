@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/domains/commerce/negotiation/negotiation/data/dto/negotiation_dto.dart';
-import 'package:labuda/domains/commerce/negotiation/negotiation/data/mappers/negotiation_mapper.dart';
-import 'package:labuda/domains/commerce/negotiation/negotiation/domain/entities/negotiation.dart';
+import 'package:hishumi/domains/commerce/negotiation/negotiation/data/dto/negotiation_dto.dart';
+import 'package:hishumi/domains/commerce/negotiation/negotiation/data/mappers/negotiation_mapper.dart';
+import 'package:hishumi/domains/commerce/negotiation/negotiation/domain/entities/negotiation.dart';
 
 /// NEGOTIATION STATUS MAPPING CONTRACT (T3 status mapping purge)
 ///

@@ -7,10 +7,10 @@
 library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/social/content/data/content_repository_impl.dart';
-import 'package:labuda/domains/social/content/data/remote/content_api_datasource.dart';
-import 'package:labuda/domains/social/content/domain/repositories/content_repository.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/social/content/data/content_repository_impl.dart';
+import 'package:hishumi/domains/social/content/data/remote/content_api_datasource.dart';
+import 'package:hishumi/domains/social/content/domain/repositories/content_repository.dart';
 
 // =============================================================================
 // DATASOURCE PROVIDERS

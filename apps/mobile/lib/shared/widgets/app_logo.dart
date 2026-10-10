@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
+import 'package:hishumi/core/core.dart';
 
 /// Reusable App Logo component dengan styling konsisten
 ///

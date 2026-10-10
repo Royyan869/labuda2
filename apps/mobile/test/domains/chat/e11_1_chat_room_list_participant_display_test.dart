@@ -15,8 +15,8 @@
 
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:labuda/domains/chat/chat/data/dto/chat_dto.dart';
-import 'package:labuda/domains/chat/chat/data/mappers/chat_mapper.dart';
+import 'package:hishumi/domains/chat/chat/data/dto/chat_dto.dart';
+import 'package:hishumi/domains/chat/chat/data/mappers/chat_mapper.dart';
 
 // ---------------------------------------------------------------------------
 // Fixtures

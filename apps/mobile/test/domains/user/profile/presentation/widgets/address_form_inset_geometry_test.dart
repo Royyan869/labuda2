@@ -58,14 +58,14 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/user/profile/presentation/widgets/address_form_dialog.dart';
-import 'package:labuda/generated/app_localizations.dart';
-import 'package:labuda/shared/models/wilayah_models.dart';
-import 'package:labuda/shared/providers/authenticated_account_provider.dart';
-import 'package:labuda/shared/providers/wilayah_provider_simple.dart';
-import 'package:labuda/shared/widgets/app_bottom_sheet_base.dart';
-import 'package:labuda/shared/widgets/bottom_action_bar.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/user/profile/presentation/widgets/address_form_dialog.dart';
+import 'package:hishumi/generated/app_localizations.dart';
+import 'package:hishumi/shared/models/wilayah_models.dart';
+import 'package:hishumi/shared/providers/authenticated_account_provider.dart';
+import 'package:hishumi/shared/providers/wilayah_provider_simple.dart';
+import 'package:hishumi/shared/widgets/app_bottom_sheet_base.dart';
+import 'package:hishumi/shared/widgets/bottom_action_bar.dart';
 
 /// Exact CTA label (addressToEdit == null → "Add" mode).
 const String _ctaLabel = 'Save Address';

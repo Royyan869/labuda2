@@ -3,8 +3,8 @@ package application
 import (
 	"testing"
 
-	"github.com/labuda/backend/internal/commerce/paymentmethod/entity"
-	"github.com/labuda/backend/pkg/money"
+	"github.com/hishumi/backend/internal/commerce/paymentmethod/entity"
+	"github.com/hishumi/backend/pkg/money"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

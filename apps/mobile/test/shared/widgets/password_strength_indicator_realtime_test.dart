@@ -14,7 +14,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/shared/widgets/password_strength_indicator.dart';
+import 'package:hishumi/shared/widgets/password_strength_indicator.dart';
 
 void main() {
   testWidgets('empty password renders no strength label', (tester) async {

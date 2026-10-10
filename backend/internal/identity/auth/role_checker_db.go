@@ -6,10 +6,10 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/audit"
-	capabilityEntity "github.com/labuda/backend/internal/platform/capability/entity"
-	"github.com/labuda/backend/internal/platform/capability/invariant"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/audit"
+	capabilityEntity "github.com/hishumi/backend/internal/platform/capability/entity"
+	"github.com/hishumi/backend/internal/platform/capability/invariant"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // RoleCheckerDB implements RoleChecker interface using PostgreSQL database.

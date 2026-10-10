@@ -14,7 +14,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // Info holds the public user display fields for a single user.

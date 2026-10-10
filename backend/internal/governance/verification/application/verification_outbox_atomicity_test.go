@@ -9,12 +9,12 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/labuda/backend/internal/audit"
-	"github.com/labuda/backend/internal/platform/capability"
-	"github.com/labuda/backend/internal/governance/verification/entity"
-	"github.com/labuda/backend/internal/governance/verification/infrastructure/repository"
-	outboxrepo "github.com/labuda/backend/internal/platform/outbox/infrastructure/repository"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/audit"
+	"github.com/hishumi/backend/internal/platform/capability"
+	"github.com/hishumi/backend/internal/governance/verification/entity"
+	"github.com/hishumi/backend/internal/governance/verification/infrastructure/repository"
+	outboxrepo "github.com/hishumi/backend/internal/platform/outbox/infrastructure/repository"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // ---------------------------------------------------------------------------

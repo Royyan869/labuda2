@@ -11,8 +11,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/platform/response"
-	"github.com/labuda/backend/internal/platform/s3presign"
+	"github.com/hishumi/backend/internal/platform/response"
+	"github.com/hishumi/backend/internal/platform/s3presign"
 	"go.uber.org/zap"
 )
 

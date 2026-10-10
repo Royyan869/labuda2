@@ -1,7 +1,7 @@
 import 'package:go_router/go_router.dart';
-import 'package:labuda/domains/user/preference/onboarding/onboarding.dart';
-import 'package:labuda/domains/user/identity/authentication/presentation/screens/account_restricted_screen.dart';
-import 'package:labuda/core/src/router/route_paths.dart';
+import 'package:hishumi/domains/user/preference/onboarding/onboarding.dart';
+import 'package:hishumi/domains/user/identity/authentication/presentation/screens/account_restricted_screen.dart';
+import 'package:hishumi/core/src/router/route_paths.dart';
 import 'base_module.dart';
 
 /// App Entry Module untuk splash dan welcome screens

@@ -1,11 +1,11 @@
 {
-    "name": "labuda",
-    "short_name": "labuda",
+    "name": "HiShumi",
+    "short_name": "HiShumi",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "LABUDA - Social Commerce Koi",
+    "description": "HiShumi - Social Commerce Koi",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

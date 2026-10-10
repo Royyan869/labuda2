@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	paymentRepo "github.com/labuda/backend/internal/integration/payment/infrastructure/repository"
+	paymentRepo "github.com/hishumi/backend/internal/integration/payment/infrastructure/repository"
 	"go.uber.org/zap"
 )
 

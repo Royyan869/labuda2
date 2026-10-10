@@ -2,7 +2,7 @@
 set -eu
 
 # ---------------------------------------------------------------------------
-# Labuda backend container entrypoint.
+# HiShumi backend container entrypoint.
 #
 #   1. Materialize the Firebase service-account JSON from the secret env var
 #      FIREBASE_SERVICE_ACCOUNT_JSON into a temp file the Go SDK can read, and
@@ -26,8 +26,8 @@ fi
 # is safe on every cold start and after a database is recreated. Set
 # RUN_MIGRATIONS_AT_STARTUP=false only for debugging.
 if [ "${RUN_MIGRATIONS_AT_STARTUP:-true}" = "true" ]; then
-  ./bin/labuda-migrate
+  ./bin/hishumi-migrate
 fi
 
 # --- 3. Start the HTTP server ------------------------------------------------
-exec ./bin/labuda-backend
+exec ./bin/hishumi-backend

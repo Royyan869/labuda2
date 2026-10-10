@@ -21,5 +21,5 @@ export 'entities/refund_history_page_result.dart';
 // ShippingProof is owned by shipping domain (features/shipping/domain/repositories/shipping_repository.dart)
 
 // Re-export core types used by order domain
-export 'package:labuda/core/common/types/payment_types.dart'
+export 'package:hishumi/core/common/types/payment_types.dart'
     show PaymentStatus;

@@ -4,13 +4,13 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/core/interfaces/i_notification_trigger.dart';
-import 'package:labuda/domains/system/notification/notification.dart';
-import 'package:labuda/generated/app_localizations.dart';
-import 'package:labuda/shared/widgets/empty_state.dart';
-import 'package:labuda/shared/widgets/loading_indicator.dart';
-import 'package:labuda/shared/widgets/page_error_state.dart';
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/core/interfaces/i_notification_trigger.dart';
+import 'package:hishumi/domains/system/notification/notification.dart';
+import 'package:hishumi/generated/app_localizations.dart';
+import 'package:hishumi/shared/widgets/empty_state.dart';
+import 'package:hishumi/shared/widgets/loading_indicator.dart';
+import 'package:hishumi/shared/widgets/page_error_state.dart';
 
 const _uid = 'u1';
 

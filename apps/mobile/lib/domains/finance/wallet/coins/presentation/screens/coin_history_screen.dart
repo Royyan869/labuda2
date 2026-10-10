@@ -5,15 +5,15 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/system/shared/domain/services/time_format_service.dart';
-import 'package:labuda/domains/finance/wallet/coins/coins_di.dart';
-import 'package:labuda/domains/finance/wallet/coins/domain/entities/coin_transaction.dart';
-import 'package:labuda/domains/finance/wallet/coins/presentation/providers/coin_notifier.dart';
-import 'package:labuda/domains/finance/wallet/coins/presentation/providers/coin_state.dart';
-import 'package:labuda/shared/widgets/empty_state.dart';
-import 'package:labuda/shared/widgets/loading_indicator.dart';
-import 'package:labuda/shared/widgets/page_error_state.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/system/shared/domain/services/time_format_service.dart';
+import 'package:hishumi/domains/finance/wallet/coins/coins_di.dart';
+import 'package:hishumi/domains/finance/wallet/coins/domain/entities/coin_transaction.dart';
+import 'package:hishumi/domains/finance/wallet/coins/presentation/providers/coin_notifier.dart';
+import 'package:hishumi/domains/finance/wallet/coins/presentation/providers/coin_state.dart';
+import 'package:hishumi/shared/widgets/empty_state.dart';
+import 'package:hishumi/shared/widgets/loading_indicator.dart';
+import 'package:hishumi/shared/widgets/page_error_state.dart';
 
 /// Screen for viewing coin transaction history
 class CoinHistoryScreen extends ConsumerStatefulWidget {

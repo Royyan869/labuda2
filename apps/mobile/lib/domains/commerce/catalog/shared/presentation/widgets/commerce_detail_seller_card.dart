@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_detail_primitives.dart';
-import 'package:labuda/domains/user/profile/profile.dart'
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/commerce/catalog/shared/presentation/widgets/commerce_detail_primitives.dart';
+import 'package:hishumi/domains/user/profile/profile.dart'
     show userDataProvider, profileStreamProvider;
-import 'package:labuda/shared/governance/content_lifecycle.dart';
-import 'package:labuda/shared/governance/seller_tier_badge.dart';
-import 'package:labuda/shared/models/seller_identity_data.dart';
-import 'package:labuda/shared/shared.dart';
+import 'package:hishumi/shared/governance/content_lifecycle.dart';
+import 'package:hishumi/shared/governance/seller_tier_badge.dart';
+import 'package:hishumi/shared/models/seller_identity_data.dart';
+import 'package:hishumi/shared/shared.dart';
 
 /// Canonical DETAIL seller card — ONE AUTHORITY for both sale channels.
 ///

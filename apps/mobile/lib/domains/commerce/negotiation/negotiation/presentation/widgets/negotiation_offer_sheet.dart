@@ -12,10 +12,10 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/shared/utils/money_input_formatter.dart';
-import 'package:labuda/shared/widgets/app_bottom_sheet_base.dart';
-import 'package:labuda/shared/widgets/app_text_field.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/shared/utils/money_input_formatter.dart';
+import 'package:hishumi/shared/widgets/app_bottom_sheet_base.dart';
+import 'package:hishumi/shared/widgets/app_text_field.dart';
 
 class NegotiationOfferSheet extends StatefulWidget {
   const NegotiationOfferSheet({

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/shared/shared.dart';
-import 'package:labuda/domains/social/follow/follow.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/shared/shared.dart';
+import 'package:hishumi/domains/social/follow/follow.dart';
 
 // Alias for easier access
 final followProvider = followStatusProvider;

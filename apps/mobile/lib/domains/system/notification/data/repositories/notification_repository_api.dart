@@ -3,14 +3,14 @@
 
 // External
 import 'package:dio/dio.dart';
-import 'package:labuda/core/core.dart' hide NotificationEntity;
+import 'package:hishumi/core/core.dart' hide NotificationEntity;
 
 // Internal
-import 'package:labuda/domains/system/notification/data/datasources/notification_api_datasource.dart';
-import 'package:labuda/domains/system/notification/data/mappers/notification_api_mapper.dart';
-import 'package:labuda/domains/system/notification/domain/entities/notification_entity.dart';
-import 'package:labuda/domains/system/notification/domain/entities/notification_preference_entity.dart';
-import 'package:labuda/domains/system/notification/domain/repositories/i_notification_repository.dart';
+import 'package:hishumi/domains/system/notification/data/datasources/notification_api_datasource.dart';
+import 'package:hishumi/domains/system/notification/data/mappers/notification_api_mapper.dart';
+import 'package:hishumi/domains/system/notification/domain/entities/notification_entity.dart';
+import 'package:hishumi/domains/system/notification/domain/entities/notification_preference_entity.dart';
+import 'package:hishumi/domains/system/notification/domain/repositories/i_notification_repository.dart';
 
 class NotificationRepositoryApi implements INotificationRepository {
   final NotificationApiDatasource _datasource;

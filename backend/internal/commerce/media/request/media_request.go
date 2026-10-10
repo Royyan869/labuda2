@@ -5,10 +5,10 @@ import (
 	"strings"
 	"time"
 
-	mediaentity "github.com/labuda/backend/internal/commerce/media/entity"
-	productentity "github.com/labuda/backend/internal/commerce/product/entity"
-	"github.com/labuda/backend/internal/pkg/mediaref"
-	"github.com/labuda/backend/internal/platform/mediaresolve"
+	mediaentity "github.com/hishumi/backend/internal/commerce/media/entity"
+	productentity "github.com/hishumi/backend/internal/commerce/product/entity"
+	"github.com/hishumi/backend/internal/pkg/mediaref"
+	"github.com/hishumi/backend/internal/platform/mediaresolve"
 )
 
 const (

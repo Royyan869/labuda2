@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/shared/shared.dart';
-import 'package:labuda/core/src/theme/app_theme.dart';
+import 'package:hishumi/shared/shared.dart';
+import 'package:hishumi/core/src/theme/app_theme.dart';
 
 /// Terms of Service Screen
-/// Displays the terms of service for LABUDA platform
+/// Displays the terms of service for HiShumi platform
 ///
 /// Size: < 200 lines (per GUIDELINES)
 class TermsOfServiceScreen extends StatelessWidget {
@@ -24,12 +24,12 @@ class TermsOfServiceScreen extends StatelessWidget {
               _buildSection(
                 context,
                 '1. Acceptance of Terms',
-                'By accessing and using LABUDA, you accept and agree to be bound by the terms and provision of this agreement.',
+                'By accessing and using HiShumi, you accept and agree to be bound by the terms and provision of this agreement.',
               ),
               _buildSection(
                 context,
                 '2. Use License',
-                'Permission is granted to temporarily download one copy of the materials on LABUDA for personal, non-commercial transitory viewing only.',
+                'Permission is granted to temporarily download one copy of the materials on HiShumi for personal, non-commercial transitory viewing only.',
               ),
               _buildSection(
                 context,
@@ -39,12 +39,12 @@ class TermsOfServiceScreen extends StatelessWidget {
               _buildSection(
                 context,
                 '4. User Content',
-                'You retain all rights to the content you post on LABUDA. By posting content, you grant LABUDA a worldwide, non-exclusive, royalty-free license to use, reproduce, and display such content.',
+                'You retain all rights to the content you post on HiShumi. By posting content, you grant LABUDA a worldwide, non-exclusive, royalty-free license to use, reproduce, and display such content.',
               ),
               _buildSection(
                 context,
                 '5. Prohibited Activities',
-                'You may not use LABUDA to:\n'
+                'You may not use HiShumi to:\n'
                     '• Post illegal, harmful, or offensive content\n'
                     '• Impersonate others or provide false information\n'
                     '• Engage in fraudulent transactions\n'
@@ -54,12 +54,12 @@ class TermsOfServiceScreen extends StatelessWidget {
               _buildSection(
                 context,
                 '6. Transactions',
-                'All transactions conducted through LABUDA are between buyers and sellers. LABUDA acts as a platform facilitator and is not responsible for the quality, safety, or legality of items listed.',
+                'All transactions conducted through HiShumi are between buyers and sellers. LABUDA acts as a platform facilitator and is not responsible for the quality, safety, or legality of items listed.',
               ),
               _buildSection(
                 context,
                 '7. Payment Terms',
-                'Payment processing is handled through secure third-party providers. LABUDA does not store your full payment information.',
+                'Payment processing is handled through secure third-party providers. HiShumi does not store your full payment information.',
               ),
               _buildSection(
                 context,
@@ -82,7 +82,7 @@ class TermsOfServiceScreen extends StatelessWidget {
               _buildSection(
                 context,
                 '10. Intellectual Property',
-                'The LABUDA platform, including its design, graphics, and content, is protected by intellectual property laws and remains the property of LABUDA.',
+                'The HiShumi platform, including its design, graphics, and content, is protected by intellectual property laws and remains the property of LABUDA.',
               ),
               _buildSection(
                 context,
@@ -140,7 +140,7 @@ class TermsOfServiceScreen extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         Text(
-          'Please read these terms carefully before using LABUDA. By using our service, you agree to these terms.',
+          'Please read these terms carefully before using HiShumi. By using our service, you agree to these terms.',
           style: Theme.of(context).textTheme.bodyLarge,
         ),
       ],
@@ -187,7 +187,7 @@ class TermsOfServiceScreen extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'By creating an account or using LABUDA, you acknowledge that you have read, understood, and agree to be bound by these Terms of Service.',
+            'By creating an account or using HiShumi, you acknowledge that you have read, understood, and agree to be bound by these Terms of Service.',
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(height: 1.5),
           ),
         ],

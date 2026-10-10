@@ -5,8 +5,8 @@
 /// PHASE 1F: Payment domain closure - using unified PaymentStatus from core
 library;
 
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/core/core.dart' as core show ILoggerService;
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/core/core.dart' as core show ILoggerService;
 
 import '../../domain/entities/payment.dart';
 import '../../domain/entities/payment_intent.dart';

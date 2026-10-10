@@ -9,8 +9,8 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"go.uber.org/zap/zaptest"
 
-	"github.com/labuda/backend/internal/config"
-	dbpkg "github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/config"
+	dbpkg "github.com/hishumi/backend/pkg/db"
 )
 
 // TestOutboxArchivalWorker_NewWorker tests creating a new archival worker

@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/social/follow/domain/entities/follow_entity.dart';
-import 'package:labuda/domains/social/follow/data/follow_providers.dart';
-import 'package:labuda/domains/social/follow/domain/repositories/i_follow_repository.dart';
-import 'package:labuda/domains/social/follow/presentation/widgets/user_card.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/social/follow/domain/entities/follow_entity.dart';
+import 'package:hishumi/domains/social/follow/data/follow_providers.dart';
+import 'package:hishumi/domains/social/follow/domain/repositories/i_follow_repository.dart';
+import 'package:hishumi/domains/social/follow/presentation/widgets/user_card.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:labuda/shared/governance/content_lifecycle.dart';
-import 'package:labuda/shared/widgets/follow_button.dart';
+import 'package:hishumi/shared/governance/content_lifecycle.dart';
+import 'package:hishumi/shared/widgets/follow_button.dart';
 
 class _FakeAuthController extends AuthController {
   _FakeAuthController(this.stateValue);

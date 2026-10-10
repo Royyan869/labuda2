@@ -11,8 +11,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/identity/auth/application"
-	authhttp "github.com/labuda/backend/internal/identity/auth/delivery/http"
+	"github.com/hishumi/backend/internal/identity/auth/application"
+	authhttp "github.com/hishumi/backend/internal/identity/auth/delivery/http"
 )
 
 func callCompleteProfileUnitHandler(t *testing.T, h *authhttp.AuthHandler, token, username string) *httptest.ResponseRecorder {

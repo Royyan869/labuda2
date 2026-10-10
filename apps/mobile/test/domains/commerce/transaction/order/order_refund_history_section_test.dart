@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'package:labuda/domains/commerce/transaction/order/domain/entities/refund_request.dart';
-import 'package:labuda/domains/commerce/transaction/order/presentation/screens/order_detail/order_refund_list_section.dart';
+import 'package:hishumi/domains/commerce/transaction/order/domain/entities/refund_request.dart';
+import 'package:hishumi/domains/commerce/transaction/order/presentation/screens/order_detail/order_refund_list_section.dart';
 
 RefundRequest _refund({required String id, required RefundStatus status}) {
   return RefundRequest(

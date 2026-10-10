@@ -8,7 +8,7 @@ import (
 	"encoding/json"
 
 	"github.com/google/uuid"
-	platformevent "github.com/labuda/backend/internal/platform/event"
+	platformevent "github.com/hishumi/backend/internal/platform/event"
 	"go.uber.org/zap"
 )
 

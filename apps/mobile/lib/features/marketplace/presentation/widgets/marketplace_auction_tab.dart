@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction.dart';
-import 'package:labuda/domains/commerce/catalog/auction/presentation/providers/auction_notifier.dart';
-import 'package:labuda/domains/commerce/catalog/auction/presentation/widgets/auction_card.dart';
-import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_marketplace_primitives.dart';
-import 'package:labuda/shared/widgets/empty_state.dart';
-import 'package:labuda/shared/widgets/page_error_state.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/domain/entities/auction.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/presentation/providers/auction_notifier.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/presentation/widgets/auction_card.dart';
+import 'package:hishumi/domains/commerce/catalog/shared/presentation/widgets/commerce_marketplace_primitives.dart';
+import 'package:hishumi/shared/widgets/empty_state.dart';
+import 'package:hishumi/shared/widgets/page_error_state.dart';
 
 /// Auction tab content for Marketplace screen.
 ///

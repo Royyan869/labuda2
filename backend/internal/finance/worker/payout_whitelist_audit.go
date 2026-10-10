@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	financeRepo "github.com/labuda/backend/internal/finance/infrastructure/repository"
+	financeRepo "github.com/hishumi/backend/internal/finance/infrastructure/repository"
 	"go.uber.org/zap"
 )
 

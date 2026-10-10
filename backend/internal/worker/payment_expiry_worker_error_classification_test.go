@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	orderEntity "github.com/labuda/backend/internal/commerce/order/entity"
+	orderEntity "github.com/hishumi/backend/internal/commerce/order/entity"
 )
 
 // PASS_20B (requirement 26/27): cancelOrderForExpiredPayment used to log

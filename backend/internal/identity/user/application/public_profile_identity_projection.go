@@ -4,9 +4,9 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/governance/viewercontext"
-	userEntity "github.com/labuda/backend/internal/identity/user/domain/entity"
-	"github.com/labuda/backend/internal/pkg/publiccard"
+	"github.com/hishumi/backend/internal/governance/viewercontext"
+	userEntity "github.com/hishumi/backend/internal/identity/user/domain/entity"
+	"github.com/hishumi/backend/internal/pkg/publiccard"
 )
 
 func projectPublicProfileIdentity(

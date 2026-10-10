@@ -8,12 +8,12 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	orderApp "github.com/labuda/backend/internal/commerce/order/application"
-	orderEntity "github.com/labuda/backend/internal/commerce/order/entity"
-	coinsinfra "github.com/labuda/backend/internal/incentive/coins/infrastructure/repository"
-	coinsrepo "github.com/labuda/backend/internal/incentive/coins/repository"
-	paymentRepo "github.com/labuda/backend/internal/integration/payment/infrastructure/repository"
-	"github.com/labuda/backend/pkg/db"
+	orderApp "github.com/hishumi/backend/internal/commerce/order/application"
+	orderEntity "github.com/hishumi/backend/internal/commerce/order/entity"
+	coinsinfra "github.com/hishumi/backend/internal/incentive/coins/infrastructure/repository"
+	coinsrepo "github.com/hishumi/backend/internal/incentive/coins/repository"
+	paymentRepo "github.com/hishumi/backend/internal/integration/payment/infrastructure/repository"
+	"github.com/hishumi/backend/pkg/db"
 	"go.uber.org/zap"
 )
 

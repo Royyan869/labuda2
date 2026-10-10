@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/domains/user/preference/seller/presentation/widgets/wizard/seller_wizard_helpers.dart';
+import 'package:hishumi/domains/user/preference/seller/presentation/widgets/wizard/seller_wizard_helpers.dart';
 
 void main() {
   group('SellerWizardHelpers', () {

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/domains/user/preference/seller/presentation/widgets/wizard/store_name_form_field.dart';
-import 'package:labuda/domains/user/preference/seller/presentation/widgets/wizard/store_photo_preview.dart';
-import 'package:labuda/core/src/theme/app_theme.dart';
+import 'package:hishumi/domains/user/preference/seller/presentation/widgets/wizard/store_name_form_field.dart';
+import 'package:hishumi/domains/user/preference/seller/presentation/widgets/wizard/store_photo_preview.dart';
+import 'package:hishumi/core/src/theme/app_theme.dart';
 
 /// Step 2: Store Information Widget
 ///

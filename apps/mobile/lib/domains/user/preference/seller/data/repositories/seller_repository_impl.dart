@@ -4,8 +4,8 @@
 /// NO FALLBACK LOGIC - all data comes from backend API.
 library;
 
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/shared/domain/entities/resource_projection.dart';
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/shared/domain/entities/resource_projection.dart';
 
 import '../../domain/entities/seller_analytics_read.dart';
 import '../../domain/entities/seller_performance.dart';

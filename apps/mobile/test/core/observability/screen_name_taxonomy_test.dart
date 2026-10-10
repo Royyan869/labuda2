@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/observability/screen_names.dart';
+import 'package:hishumi/core/observability/screen_names.dart';
 
 /// Locks the canonical screen taxonomy.
 ///

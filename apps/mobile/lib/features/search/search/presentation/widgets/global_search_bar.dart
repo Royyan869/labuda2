@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/features/search/search/domain/entities/search_result.dart';
-import 'package:labuda/core/src/theme/app_theme.dart';
+import 'package:hishumi/features/search/search/domain/entities/search_result.dart';
+import 'package:hishumi/core/src/theme/app_theme.dart';
 
 /// Global search bar widget for unified search
 class GlobalSearchBar extends ConsumerStatefulWidget {

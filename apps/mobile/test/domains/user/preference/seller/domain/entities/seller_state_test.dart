@@ -10,9 +10,9 @@
 // These tests are the anti-regression lock: only `sellerSubscriptionStatus ==
 // 'expired'` may render expiry copy / a renewal CTA.
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/user/identity/authentication/domain/entities/seller_tier.dart';
-import 'package:labuda/domains/user/preference/seller/domain/entities/seller_state.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/user/identity/authentication/domain/entities/seller_tier.dart';
+import 'package:hishumi/domains/user/preference/seller/domain/entities/seller_state.dart';
 
 AuthUser _testUser({
   List<UserRole> roles = const [UserRole.user],

@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:labuda/domains/chat/chat/domain/entities/chat_entities.dart';
+import 'package:hishumi/domains/chat/chat/domain/entities/chat_entities.dart';
 
 /// Chat List State
 ///

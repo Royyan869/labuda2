@@ -9,10 +9,10 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:labuda/core/src/theme/app_theme.dart';
-import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction.dart';
-import 'package:labuda/shared/shared.dart';
-import 'package:labuda/shared/utils/media_extensions.dart';
+import 'package:hishumi/core/src/theme/app_theme.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/domain/entities/auction.dart';
+import 'package:hishumi/shared/shared.dart';
+import 'package:hishumi/shared/utils/media_extensions.dart';
 
 class AuctionDetailHeader extends StatelessWidget {
   final Auction auction;

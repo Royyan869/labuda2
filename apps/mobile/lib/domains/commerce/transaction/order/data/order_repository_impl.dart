@@ -1,7 +1,7 @@
 import 'dart:async';
 
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/core/src/interfaces/services/i_logger_service.dart';
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/core/src/interfaces/services/i_logger_service.dart';
 
 import '../domain/domain.dart';
 import 'mappers/order_mapper.dart';

@@ -5,7 +5,7 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
-import 'package:labuda/core/core.dart';
+import 'package:hishumi/core/core.dart';
 
 Uint8List _jpegBytes() {
   final image = img.Image(width: 1, height: 1);

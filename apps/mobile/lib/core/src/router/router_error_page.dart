@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:labuda/core/src/theme/app_theme.dart';
+import 'package:hishumi/core/src/theme/app_theme.dart';
 
 class RouterErrorPage extends StatelessWidget {
   final GoRouterState state;

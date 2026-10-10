@@ -22,14 +22,14 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/user/profile/data/datasources/user_api_datasource.dart';
-import 'package:labuda/domains/user/profile/data/profile_providers.dart'
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/user/profile/data/datasources/user_api_datasource.dart';
+import 'package:hishumi/domains/user/profile/data/profile_providers.dart'
     show avatarCacheServiceProvider;
-import 'package:labuda/domains/user/profile/data/services/avatar_cache_service.dart';
-import 'package:labuda/shared/widgets/app_image.dart';
-import 'package:labuda/shared/widgets/profile_avatar.dart';
-import 'package:labuda/shared/widgets/seller_avatar.dart';
+import 'package:hishumi/domains/user/profile/data/services/avatar_cache_service.dart';
+import 'package:hishumi/shared/widgets/app_image.dart';
+import 'package:hishumi/shared/widgets/profile_avatar.dart';
+import 'package:hishumi/shared/widgets/seller_avatar.dart';
 
 /// Decode targets pinned by the Profile header for the flying avatar:
 /// expanded size 96 × 2 for the main circle, and 0.4 × that value for the

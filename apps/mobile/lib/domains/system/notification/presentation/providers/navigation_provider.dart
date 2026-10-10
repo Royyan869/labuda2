@@ -8,8 +8,8 @@ library;
 
 // Dart
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/system/notification/services/notification_navigation_service.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/system/notification/services/notification_navigation_service.dart';
 
 /// Provider for NotificationNavigationService
 ///

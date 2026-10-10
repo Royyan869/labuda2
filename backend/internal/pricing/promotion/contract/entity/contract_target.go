@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	promoentity "github.com/labuda/backend/internal/pricing/promotion/entity"
+	promoentity "github.com/hishumi/backend/internal/pricing/promotion/entity"
 )
 
 // MaxTargetsPerContract is the canonical rolling queue capacity (§12).

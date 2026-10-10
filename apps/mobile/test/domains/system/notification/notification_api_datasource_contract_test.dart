@@ -1,8 +1,8 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/api/api_client.dart';
-import 'package:labuda/domains/system/notification/data/datasources/notification_api_datasource.dart';
-import 'package:labuda/domains/system/notification/data/models/api/notification_api_models.dart';
+import 'package:hishumi/core/api/api_client.dart';
+import 'package:hishumi/domains/system/notification/data/datasources/notification_api_datasource.dart';
+import 'package:hishumi/domains/system/notification/data/models/api/notification_api_models.dart';
 
 class _RecordingApiClient implements ApiClient {
   String? lastGetPath;

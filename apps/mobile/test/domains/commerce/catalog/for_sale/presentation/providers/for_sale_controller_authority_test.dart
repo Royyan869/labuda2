@@ -1,13 +1,13 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/commerce/catalog/for_sale/domain/domain.dart';
-import 'package:labuda/domains/commerce/catalog/for_sale/presentation/providers/for_sale_controller.dart';
-import 'package:labuda/domains/commerce/catalog/for_sale/presentation/providers/for_sale_providers.dart';
-import 'package:labuda/domains/user/identity/authentication/domain/entities/account_status.dart';
-import 'package:labuda/domains/user/identity/authentication/domain/entities/seller_tier.dart';
-import 'package:labuda/shared/governance/content_lifecycle.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/commerce/catalog/for_sale/domain/domain.dart';
+import 'package:hishumi/domains/commerce/catalog/for_sale/presentation/providers/for_sale_controller.dart';
+import 'package:hishumi/domains/commerce/catalog/for_sale/presentation/providers/for_sale_providers.dart';
+import 'package:hishumi/domains/user/identity/authentication/domain/entities/account_status.dart';
+import 'package:hishumi/domains/user/identity/authentication/domain/entities/seller_tier.dart';
+import 'package:hishumi/shared/governance/content_lifecycle.dart';
 
 class _NoopLogger implements ILoggerService {
   const _NoopLogger();

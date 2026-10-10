@@ -27,9 +27,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	supportEntity "github.com/labuda/backend/internal/governance/support/entity"
-	supportRepo "github.com/labuda/backend/internal/governance/support/repository"
-	"github.com/labuda/backend/pkg/testdb"
+	supportEntity "github.com/hishumi/backend/internal/governance/support/entity"
+	supportRepo "github.com/hishumi/backend/internal/governance/support/repository"
+	"github.com/hishumi/backend/pkg/testdb"
 	"github.com/stretchr/testify/require"
 )
 

@@ -1,7 +1,7 @@
 /// Dispute DTOs for dispute/escalation flow
 library;
 
-import 'package:labuda/domains/commerce/transaction/order/domain/entities/refund_request.dart';
+import 'package:hishumi/domains/commerce/transaction/order/domain/entities/refund_request.dart';
 
 /// Dispute DTO - represents a dispute created by buyer after seller rejection
 class DisputeDto {

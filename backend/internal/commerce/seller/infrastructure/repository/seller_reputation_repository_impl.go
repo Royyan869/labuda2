@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	sellerEntity "github.com/labuda/backend/internal/commerce/seller/entity"
-	"github.com/labuda/backend/pkg/db"
+	sellerEntity "github.com/hishumi/backend/internal/commerce/seller/entity"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // UpsertReputationStateTx creates or overwrites the live reputation state for a seller.

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/domains/user/profile/profile.dart'
+import 'package:hishumi/domains/user/profile/profile.dart'
     show phoneVerificationProvider, phoneVerificationServiceProvider;
-import 'package:labuda/core/src/theme/app_theme.dart';
+import 'package:hishumi/core/src/theme/app_theme.dart';
 
 /// Header for phone verification dialog
 class VerificationHeader extends ConsumerWidget {

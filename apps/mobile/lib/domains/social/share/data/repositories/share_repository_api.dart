@@ -1,10 +1,10 @@
 // Share Repository API Implementation
 // Implements ShareRepository using Go Backend API
 
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/social/share/data/datasources/share_api_datasource.dart';
-import 'package:labuda/domains/social/share/data/remote/native_share_service.dart';
-import 'package:labuda/domains/social/share/domain/domain.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/social/share/data/datasources/share_api_datasource.dart';
+import 'package:hishumi/domains/social/share/data/remote/native_share_service.dart';
+import 'package:hishumi/domains/social/share/domain/domain.dart';
 
 /// Share Repository API Implementation
 ///

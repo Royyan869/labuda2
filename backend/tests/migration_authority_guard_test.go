@@ -49,7 +49,7 @@ func TestMigrationAuthorityDocsAndRuntimeStayAligned(t *testing.T) {
 		{
 			path: "../cmd/migrate/main.go",
 			mustContain: []string{
-				"github.com/labuda/backend/pkg/migration",
+				"github.com/hishumi/backend/pkg/migration",
 				"migration.ResolveDir(",
 				"migration.Run(",
 				"migration.CurrentVersion(",

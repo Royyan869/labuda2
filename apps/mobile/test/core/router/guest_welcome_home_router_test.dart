@@ -10,9 +10,11 @@
 //   → navigateToHome → go('/home')
 //   → guest redirect allows /home
 //   → MainScreen (Home tab = HomeScreen) renders
-//   → ForSaleListScreen must NOT render
 //
-// Home intent = /home = canonical Home. Home intent ≠ For Sale destination.
+// Home intent = /home = canonical Home. There is no standalone /for-sale
+// browse route anymore (Marketplace is the sole public browse destination),
+// so the old "ForSaleListScreen must NOT render" negative proof is moot —
+// the class no longer exists.
 //
 // Uses actual goRouterProvider with only the HTTP transport layer faked.
 // MainScreen, HomeScreen, WelcomeScreen, feedProvider, FeedNotifier and the
@@ -32,42 +34,40 @@ import 'package:firebase_core_platform_interface/test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/app.dart';
-import 'package:labuda/core/core.dart' hide NotificationEntity;
-import 'package:labuda/domains/commerce/catalog/auction/auction.dart';
-import 'package:labuda/domains/commerce/catalog/for_sale/for_sale.dart'
-    show ForSaleListScreen;
-import 'package:labuda/domains/social/content/content.dart';
-import 'package:labuda/domains/social/follow/data/follow_providers.dart';
-import 'package:labuda/domains/social/follow/domain/entities/follow_entity.dart';
-import 'package:labuda/domains/social/follow/domain/repositories/i_follow_repository.dart';
-import 'package:labuda/domains/social/like/domain/entities/like.dart';
-import 'package:labuda/domains/social/like/domain/repositories/like_repository.dart';
-import 'package:labuda/domains/social/like/presentation/providers/like_notifier.dart';
-import 'package:labuda/domains/social/rating/data/rating_providers.dart';
-import 'package:labuda/domains/social/rating/domain/entities/rating_entity.dart';
-import 'package:labuda/domains/social/rating/domain/repositories/i_rating_repository.dart';
-import 'package:labuda/domains/social/rating/presentation/providers/rating_provider.dart';
-import 'package:labuda/domains/system/notification/data/notification_providers.dart';
-import 'package:labuda/domains/system/notification/domain/entities/notification_entity.dart';
-import 'package:labuda/domains/system/notification/domain/entities/notification_preference_entity.dart';
-import 'package:labuda/domains/system/notification/domain/repositories/i_notification_repository.dart';
-import 'package:labuda/domains/system/notification/services/fcm_service.dart';
-import 'package:labuda/domains/system/notification/services/local_notification_service.dart';
-import 'package:labuda/domains/user/identity/authentication/data/auth_providers.dart'
+import 'package:hishumi/app.dart';
+import 'package:hishumi/core/core.dart' hide NotificationEntity;
+import 'package:hishumi/domains/commerce/catalog/auction/auction.dart';
+import 'package:hishumi/domains/social/content/content.dart';
+import 'package:hishumi/domains/social/follow/data/follow_providers.dart';
+import 'package:hishumi/domains/social/follow/domain/entities/follow_entity.dart';
+import 'package:hishumi/domains/social/follow/domain/repositories/i_follow_repository.dart';
+import 'package:hishumi/domains/social/like/domain/entities/like.dart';
+import 'package:hishumi/domains/social/like/domain/repositories/like_repository.dart';
+import 'package:hishumi/domains/social/like/presentation/providers/like_notifier.dart';
+import 'package:hishumi/domains/social/rating/data/rating_providers.dart';
+import 'package:hishumi/domains/social/rating/domain/entities/rating_entity.dart';
+import 'package:hishumi/domains/social/rating/domain/repositories/i_rating_repository.dart';
+import 'package:hishumi/domains/social/rating/presentation/providers/rating_provider.dart';
+import 'package:hishumi/domains/system/notification/data/notification_providers.dart';
+import 'package:hishumi/domains/system/notification/domain/entities/notification_entity.dart';
+import 'package:hishumi/domains/system/notification/domain/entities/notification_preference_entity.dart';
+import 'package:hishumi/domains/system/notification/domain/repositories/i_notification_repository.dart';
+import 'package:hishumi/domains/system/notification/services/fcm_service.dart';
+import 'package:hishumi/domains/system/notification/services/local_notification_service.dart';
+import 'package:hishumi/domains/user/identity/authentication/data/auth_providers.dart'
     as auth_data
     show authRepositoryProvider;
-import 'package:labuda/domains/user/identity/authentication/domain/entities/account_status.dart';
-import 'package:labuda/domains/user/preference/onboarding/presentation/screens/welcome_screen.dart';
-import 'package:labuda/domains/user/profile/data/datasources/user_api_datasource.dart';
-import 'package:labuda/domains/user/profile/data/profile_providers.dart'
+import 'package:hishumi/domains/user/identity/authentication/domain/entities/account_status.dart';
+import 'package:hishumi/domains/user/preference/onboarding/presentation/screens/welcome_screen.dart';
+import 'package:hishumi/domains/user/profile/data/datasources/user_api_datasource.dart';
+import 'package:hishumi/domains/user/profile/data/profile_providers.dart'
     show userSyncServiceProvider;
-import 'package:labuda/domains/user/profile/data/services/user_sync_service.dart';
-import 'package:labuda/domains/user/profile/domain/entities/profile_entity.dart';
-import 'package:labuda/domains/user/profile/presentation/providers/profile_view_provider.dart';
-import 'package:labuda/features/marketplace/marketplace.dart';
-import 'package:labuda/features/home/home.dart';
-import 'package:labuda/shared/governance/content_lifecycle.dart';
+import 'package:hishumi/domains/user/profile/data/services/user_sync_service.dart';
+import 'package:hishumi/domains/user/profile/domain/entities/profile_entity.dart';
+import 'package:hishumi/domains/user/profile/presentation/providers/profile_view_provider.dart';
+import 'package:hishumi/features/marketplace/marketplace.dart';
+import 'package:hishumi/features/home/home.dart';
+import 'package:hishumi/shared/governance/content_lifecycle.dart';
 
 // ============================================================================
 // Canonical HTTP fixture builder (from cross-boundary pipeline test)
@@ -124,7 +124,9 @@ class _FakeFeedHttpAdapter implements HttpClientAdapter {
         'timestamp': '2026-08-05T00:00:00Z',
       }),
       200,
-      headers: {'content-type': ['application/json']},
+      headers: {
+        'content-type': ['application/json'],
+      },
     );
   }
 
@@ -140,9 +142,7 @@ class _FakeFeedHttpAdapter implements HttpClientAdapter {
     }
 
     _feedRequestCount++;
-    capturedQueryParams.add(Map<String, dynamic>.from(
-      options.queryParameters,
-    ));
+    capturedQueryParams.add(Map<String, dynamic>.from(options.queryParameters));
 
     if (_feedRequestCount > _responses.length) {
       // Exhausted canned responses — return empty feed.
@@ -150,9 +150,13 @@ class _FakeFeedHttpAdapter implements HttpClientAdapter {
         items: <Map<String, dynamic>>[],
         hasMore: false,
       );
-      return ResponseBody.fromString(jsonEncode(body), 200, headers: {
-        'content-type': ['application/json'],
-      });
+      return ResponseBody.fromString(
+        jsonEncode(body),
+        200,
+        headers: {
+          'content-type': ['application/json'],
+        },
+      );
     }
 
     final canned = _responses[_feedRequestCount - 1];
@@ -168,7 +172,9 @@ class _FakeFeedHttpAdapter implements HttpClientAdapter {
     return ResponseBody.fromString(
       jsonEncode(canned.body),
       canned.statusCode,
-      headers: {'content-type': ['application/json']},
+      headers: {
+        'content-type': ['application/json'],
+      },
     );
   }
 
@@ -256,8 +262,9 @@ class _NoopLogger implements ILoggerService {
 
   @override
   Future<Result<void>> debug(
-    String message, {Map<String, dynamic>? extra,}
-  ) async => _ok();
+    String message, {
+    Map<String, dynamic>? extra,
+  }) async => _ok();
 
   @override
   Future<void> debugCallingGetCurrentUser() async {}
@@ -300,8 +307,10 @@ class _NoopLogger implements ILoggerService {
 
   @override
   Future<Result<void>> error(
-    String message, {Map<String, dynamic>? extra, StackTrace? stackTrace,}
-  ) async => _ok();
+    String message, {
+    Map<String, dynamic>? extra,
+    StackTrace? stackTrace,
+  }) async => _ok();
 
   @override
   Future<Result<List<LogEntry>>> getLogs({
@@ -313,28 +322,28 @@ class _NoopLogger implements ILoggerService {
 
   @override
   Future<Result<void>> fatal(
-    String message, {Map<String, dynamic>? extra, StackTrace? stackTrace,}
-  ) async => _ok();
+    String message, {
+    Map<String, dynamic>? extra,
+    StackTrace? stackTrace,
+  }) async => _ok();
 
   @override
   Future<Result<void>> info(
-    String message, {Map<String, dynamic>? extra,}
-  ) async => _ok();
+    String message, {
+    Map<String, dynamic>? extra,
+  }) async => _ok();
 
   @override
   Future<void> log(String message, {LogLevel level = LogLevel.debug}) async {}
-
-
-
-
 
   @override
   Future<Result<void>> setLogLevel(LogLevel level) async => _ok();
 
   @override
   Future<Result<void>> warning(
-    String message, {Map<String, dynamic>? extra,}
-  ) async => _ok();
+    String message, {
+    Map<String, dynamic>? extra,
+  }) async => _ok();
 }
 
 // -- Analytics ----------------------------------------------------------
@@ -346,8 +355,10 @@ class _NoopAnalytics implements IAnalyticsRepository {
 
   @override
   Future<Result<void>> logEvent(
-    String eventName, {Map<String, dynamic>? parameters, String? userId,}
-  ) async => _ok();
+    String eventName, {
+    Map<String, dynamic>? parameters,
+    String? userId,
+  }) async => _ok();
 
   @override
   Future<Result<void>> logScreenView({
@@ -363,9 +374,12 @@ class _FakeLocalStorage extends Fake implements ILocalStorageService {}
 // -- FCM / Notifications ------------------------------------------------
 
 class _FakeFcmService extends Fake implements FcmService {}
-class _FakeLocalNotificationService extends Fake implements LocalNotificationService {}
 
-class _FakeNotificationRepository extends Fake implements INotificationRepository {
+class _FakeLocalNotificationService extends Fake
+    implements LocalNotificationService {}
+
+class _FakeNotificationRepository extends Fake
+    implements INotificationRepository {
   @override
   Future<Result<List<NotificationEntity>>> getNotifications({
     required String userId,
@@ -426,20 +440,24 @@ class _FakeFollowRepository extends Fake implements IFollowRepository {
   Future<Result<FollowStats>> getFollowStats({
     required String userId,
     String? currentUserId,
-  }) async => Result.success(FollowStats(
-    userId: userId,
-    followersCount: 0,
-    followingCount: 0,
-    lastUpdated: DateTime.utc(2026, 1, 1),
-  ));
+  }) async => Result.success(
+    FollowStats(
+      userId: userId,
+      followersCount: 0,
+      followingCount: 0,
+      lastUpdated: DateTime.utc(2026, 1, 1),
+    ),
+  );
 
   @override
-  Stream<FollowStats> watchFollowStats(String userId) => Stream.value(FollowStats(
-    userId: userId,
-    followersCount: 0,
-    followingCount: 0,
-    lastUpdated: DateTime.utc(2026, 1, 1),
-  ));
+  Stream<FollowStats> watchFollowStats(String userId) => Stream.value(
+    FollowStats(
+      userId: userId,
+      followersCount: 0,
+      followingCount: 0,
+      lastUpdated: DateTime.utc(2026, 1, 1),
+    ),
+  );
 }
 
 // -- Content ------------------------------------------------------------
@@ -455,17 +473,23 @@ class _FakeContentRepository extends Fake implements ContentRepository {
 
   @override
   Future<Result<List<Content>>> getContentsByAuthor(
-    String authorId, {int? limit, int? offset,}
-  ) async => Result.success(const <Content>[]);
+    String authorId, {
+    int? limit,
+    int? offset,
+  }) async => Result.success(const <Content>[]);
 
   @override
   Future<Result<ContentAuthorPage>> getContentsByAuthorPaged(
-    String authorId, {int limit = 20, String? cursor,}
-  ) async => Result.success(const ContentAuthorPage(
-    items: <Content>[],
-    nextCursor: null,
-    hasMore: false,
-  ));
+    String authorId, {
+    int limit = 20,
+    String? cursor,
+  }) async => Result.success(
+    const ContentAuthorPage(
+      items: <Content>[],
+      nextCursor: null,
+      hasMore: false,
+    ),
+  );
 }
 
 // -- Like ---------------------------------------------------------------
@@ -483,24 +507,28 @@ class _FakeLikeRepository extends Fake implements LikeRepository {
     required String targetId,
     required LikeTargetType targetType,
     required String currentUserId,
-  }) async => Result.success(LikeStats(
-    targetId: targetId,
-    targetType: targetType,
-    totalLikes: 0,
-    isLikedByCurrentUser: false,
-  ));
+  }) async => Result.success(
+    LikeStats(
+      targetId: targetId,
+      targetType: targetType,
+      totalLikes: 0,
+      isLikedByCurrentUser: false,
+    ),
+  );
 
   @override
   Stream<LikeStats> watchLikeStats({
     required String targetId,
     required LikeTargetType targetType,
     required String currentUserId,
-  }) => Stream.value(LikeStats(
-    targetId: targetId,
-    targetType: targetType,
-    totalLikes: 0,
-    isLikedByCurrentUser: false,
-  ));
+  }) => Stream.value(
+    LikeStats(
+      targetId: targetId,
+      targetType: targetType,
+      totalLikes: 0,
+      isLikedByCurrentUser: false,
+    ),
+  );
 }
 
 // -- Auction (kept for Explore tab; Home no longer uses commerce preview) ---
@@ -538,15 +566,17 @@ class _FakeRatingRepository extends Fake implements IRatingRepository {
   @override
   Future<Result<RatingSummary>> getRatingSummary({
     required String sellerId,
-  }) async => Result.success(const RatingSummary(
-    totalRatings: 0,
-    averageRating: 0,
-    oneStarCount: 0,
-    twoStarCount: 0,
-    threeStarCount: 0,
-    fourStarCount: 0,
-    fiveStarCount: 0,
-  ));
+  }) async => Result.success(
+    const RatingSummary(
+      totalRatings: 0,
+      averageRating: 0,
+      oneStarCount: 0,
+      twoStarCount: 0,
+      threeStarCount: 0,
+      fourStarCount: 0,
+      fiveStarCount: 0,
+    ),
+  );
 
   @override
   Future<Result<Rating>> createRatingForOrder({
@@ -556,9 +586,8 @@ class _FakeRatingRepository extends Fake implements IRatingRepository {
   }) async => Result.error('Not used');
 
   @override
-  Future<Result<Rating?>> getRatingForOrder({
-    required String orderId,
-  }) async => Result.success(null);
+  Future<Result<Rating?>> getRatingForOrder({required String orderId}) async =>
+      Result.success(null);
 }
 
 // ============================================================================
@@ -699,15 +728,17 @@ Future<ProviderContainer> _buildContainer({
       return const <Auction>[];
     }),
     getUserRatingSummaryProvider.overrideWith((ref, userId) async {
-      return Result.success(const RatingSummary(
-        totalRatings: 0,
-        averageRating: 0,
-        oneStarCount: 0,
-        twoStarCount: 0,
-        threeStarCount: 0,
-        fourStarCount: 0,
-        fiveStarCount: 0,
-      ));
+      return Result.success(
+        const RatingSummary(
+          totalRatings: 0,
+          averageRating: 0,
+          oneStarCount: 0,
+          twoStarCount: 0,
+          threeStarCount: 0,
+          fourStarCount: 0,
+          fiveStarCount: 0,
+        ),
+      );
     }),
   ];
 
@@ -750,11 +781,11 @@ void main() {
   // GUEST HOME NAVIGATION (production GoRouter + production redirect logic)
   //
   // Guest → Welcome → tap Home icon → /home → MainScreen (Home tab).
-  // ForSaleListScreen must NOT open.
+  // The Marketplace screen must NOT open.
   // ==========================================================================
   group('GUEST HOME NAVIGATION (production router)', () {
     testWidgets(
-      'guest on Welcome taps Home → canonical Home opens, not For Sale',
+      'guest on Welcome taps Home → canonical Home opens, not Marketplace',
       (tester) async {
         // Feed transport succeeds with an empty feed so HomeScreen renders
         // its shell; we assert the SCREEN that opened, not feed content.
@@ -810,8 +841,9 @@ void main() {
         expect(find.text('Komunitas & Marketplace Koi'), findsNothing);
         expect(find.text('🔥 Sedang Laku Hari Ini'), findsNothing);
 
-        // NEGATIVE PROOF: the For Sale catalog screen did NOT open.
-        expect(find.byType(ForSaleListScreen), findsNothing);
+        // NEGATIVE PROOF: the Marketplace screen (the sole public browse
+        // destination) did NOT open — the Home action resolves to /home only.
+        expect(find.byType(MarketplaceScreen), findsNothing);
       },
     );
   });

@@ -5,7 +5,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/platform/capability/entity"
+	"github.com/hishumi/backend/internal/platform/capability/entity"
 )
 
 // CapabilityRepository defines the interface for capability data operations.

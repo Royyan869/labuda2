@@ -2,8 +2,8 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/shared/shared.dart';
-import 'package:labuda/shared/widgets/app_image.dart';
+import 'package:hishumi/shared/shared.dart';
+import 'package:hishumi/shared/widgets/app_image.dart';
 
 /// CANONICAL ProfileAvatar contract (Owner decision 2026-09-24).
 ///

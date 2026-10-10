@@ -3,11 +3,11 @@
 library;
 
 // Re-export repository providers from data layer
-export 'package:labuda/domains/commerce/catalog/auction/data/auction_providers.dart'
+export 'package:hishumi/domains/commerce/catalog/auction/data/auction_providers.dart'
     show auctionRepositoryProvider;
 
 // Re-export all presentation providers from auction_notifier.dart
-export 'package:labuda/domains/commerce/catalog/auction/presentation/providers/auction_notifier.dart'
+export 'package:hishumi/domains/commerce/catalog/auction/presentation/providers/auction_notifier.dart'
     show
         auctionNotifierProvider,
         marketplaceAuctionsProvider,

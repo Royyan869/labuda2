@@ -9,12 +9,12 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:labuda/core/core.dart' as core;
-import 'package:labuda/core/src/theme/app_theme.dart';
-import 'package:labuda/domains/commerce/transaction/order/order.dart';
-import 'package:labuda/domains/finance/transaction/payment/payment.dart';
-import 'package:labuda/domains/social/rating/rating.dart';
-import 'package:labuda/shared/widgets/app_snackbar.dart';
+import 'package:hishumi/core/core.dart' as core;
+import 'package:hishumi/core/src/theme/app_theme.dart';
+import 'package:hishumi/domains/commerce/transaction/order/order.dart';
+import 'package:hishumi/domains/finance/transaction/payment/payment.dart';
+import 'package:hishumi/domains/social/rating/rating.dart';
+import 'package:hishumi/shared/widgets/app_snackbar.dart';
 // Payment URLs are presented exclusively inside Labuda's internal WebView.
 
 mixin OrderDetailHandlersMixin on ConsumerState<OrderDetailScreen> {

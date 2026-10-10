@@ -14,9 +14,9 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/governance/verification/infrastructure/repository"
-	outboxrepo "github.com/labuda/backend/internal/platform/outbox/infrastructure/repository"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/governance/verification/infrastructure/repository"
+	outboxrepo "github.com/hishumi/backend/internal/platform/outbox/infrastructure/repository"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // neverCalledTransactor fails the test if WithTx is ever reached.

@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/labuda/backend/internal/platform/logger"
-	midtransPayout "github.com/labuda/backend/pkg/midtrans"
+	"github.com/hishumi/backend/internal/platform/logger"
+	midtransPayout "github.com/hishumi/backend/pkg/midtrans"
 	"go.uber.org/zap"
 )
 

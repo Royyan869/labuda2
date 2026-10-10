@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	productEntity "github.com/labuda/backend/internal/commerce/product/entity"
-	"github.com/labuda/backend/internal/platform/mediaresolve"
-	"github.com/labuda/backend/internal/platform/s3presign"
+	productEntity "github.com/hishumi/backend/internal/commerce/product/entity"
+	"github.com/hishumi/backend/internal/platform/mediaresolve"
+	"github.com/hishumi/backend/internal/platform/s3presign"
 )
 
 func ptrStr(s string) *string { return &s }

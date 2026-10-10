@@ -6,9 +6,9 @@
 library;
 
 // Dart
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/system/notification/domain/entities/notification_preference_entity.dart';
-import 'package:labuda/domains/system/notification/domain/repositories/i_notification_repository.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/system/notification/domain/entities/notification_preference_entity.dart';
+import 'package:hishumi/domains/system/notification/domain/repositories/i_notification_repository.dart';
 
 class GetPreferencesUseCase {
   final INotificationRepository repository;

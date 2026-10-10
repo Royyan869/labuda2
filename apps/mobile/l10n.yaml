@@ -4,7 +4,7 @@
 # - ARB source files live in:   lib/l10n/            (app_en.arb, app_id.arb)
 # - Generated Dart files go to: lib/generated/       (imported by the app)
 #
-# The app imports from `package:labuda/generated/app_localizations.dart`.
+# The app imports from `package:hishumi/generated/app_localizations.dart`.
 # Keep output-dir aligned with that import path so there is exactly one set
 # of generated files (no duplicates / dead code).
 

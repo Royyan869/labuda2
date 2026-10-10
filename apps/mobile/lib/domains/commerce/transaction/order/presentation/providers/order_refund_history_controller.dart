@@ -1,8 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/domains/commerce/transaction/order/data/order_providers.dart';
-import 'package:labuda/domains/commerce/transaction/order/domain/domain.dart';
+import 'package:hishumi/domains/commerce/transaction/order/data/order_providers.dart';
+import 'package:hishumi/domains/commerce/transaction/order/domain/domain.dart';
 
 typedef OrderRefundHistoryQuery = ({
   String orderId,

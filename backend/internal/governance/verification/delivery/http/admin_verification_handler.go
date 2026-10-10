@@ -26,12 +26,12 @@ import (
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 
-	bankaccountEntity "github.com/labuda/backend/internal/finance/bankaccount/entity"
-	verificationApp "github.com/labuda/backend/internal/governance/verification/application"
-	verificationEntity "github.com/labuda/backend/internal/governance/verification/entity"
-	"github.com/labuda/backend/internal/middleware"
-	"github.com/labuda/backend/internal/platform/response"
-	"github.com/labuda/backend/pkg/db"
+	bankaccountEntity "github.com/hishumi/backend/internal/finance/bankaccount/entity"
+	verificationApp "github.com/hishumi/backend/internal/governance/verification/application"
+	verificationEntity "github.com/hishumi/backend/internal/governance/verification/entity"
+	"github.com/hishumi/backend/internal/middleware"
+	"github.com/hishumi/backend/internal/platform/response"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // AdminDocViewTTL is the lifetime of a KYC document presigned GET URL.

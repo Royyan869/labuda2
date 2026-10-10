@@ -7,7 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
-	"github.com/labuda/backend/pkg/money"
+	"github.com/hishumi/backend/pkg/money"
 )
 
 // Test N8-B settlement binding matrix at the canonical OrderCreationService boundary.

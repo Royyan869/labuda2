@@ -8,10 +8,10 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	coinsApp "github.com/labuda/backend/internal/incentive/coins/application"
-	coinsRepo "github.com/labuda/backend/internal/incentive/coins/infrastructure/repository"
-	platformevent "github.com/labuda/backend/internal/platform/event"
-	dbpkg "github.com/labuda/backend/pkg/db"
+	coinsApp "github.com/hishumi/backend/internal/incentive/coins/application"
+	coinsRepo "github.com/hishumi/backend/internal/incentive/coins/infrastructure/repository"
+	platformevent "github.com/hishumi/backend/internal/platform/event"
+	dbpkg "github.com/hishumi/backend/pkg/db"
 	"go.uber.org/zap"
 )
 

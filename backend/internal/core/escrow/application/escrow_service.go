@@ -14,11 +14,11 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/core/escrow/entity"
-	infraEscrowRepo "github.com/labuda/backend/internal/core/escrow/infrastructure/repository"
-	escrowrepo "github.com/labuda/backend/internal/core/escrow/repository"
-	disputeRepo "github.com/labuda/backend/internal/governance/dispute/repository"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/core/escrow/entity"
+	infraEscrowRepo "github.com/hishumi/backend/internal/core/escrow/infrastructure/repository"
+	escrowrepo "github.com/hishumi/backend/internal/core/escrow/repository"
+	disputeRepo "github.com/hishumi/backend/internal/governance/dispute/repository"
+	"github.com/hishumi/backend/pkg/db"
 	"go.uber.org/zap"
 )
 

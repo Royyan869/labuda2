@@ -3,9 +3,9 @@ package shared
 import (
 	"context"
 
-	productEntity "github.com/labuda/backend/internal/commerce/product/entity"
-	addressRepo "github.com/labuda/backend/internal/identity/address/repository"
-	"github.com/labuda/backend/pkg/db"
+	productEntity "github.com/hishumi/backend/internal/commerce/product/entity"
+	addressRepo "github.com/hishumi/backend/internal/identity/address/repository"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // PublicListingOrigin resolves the buyer-facing origin summary ("City,

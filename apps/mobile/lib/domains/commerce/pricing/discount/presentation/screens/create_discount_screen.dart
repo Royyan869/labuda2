@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart' as core;
-import 'package:labuda/shared/widgets/app_dialog.dart';
-import 'package:labuda/shared/widgets/app_snackbar.dart';
-import 'package:labuda/shared/shared.dart'
+import 'package:hishumi/core/core.dart' as core;
+import 'package:hishumi/shared/widgets/app_dialog.dart';
+import 'package:hishumi/shared/widgets/app_snackbar.dart';
+import 'package:hishumi/shared/shared.dart'
     show authenticatedUserProvider, BottomActionBar, BottomBarAction;
-import 'package:labuda/domains/commerce/pricing/discount/domain/entities/discount_entity.dart';
-import 'package:labuda/domains/commerce/pricing/discount/domain/use_cases/create_discount_use_case.dart';
-import 'package:labuda/domains/commerce/pricing/discount/presentation/providers/discount_provider.dart';
-import 'package:labuda/domains/commerce/pricing/discount/presentation/widgets/create_discount_form/basic_info_section.dart';
-import 'package:labuda/domains/commerce/pricing/discount/presentation/widgets/create_discount_form/discount_type_section.dart';
-import 'package:labuda/domains/commerce/pricing/discount/presentation/widgets/create_discount_form/applies_to_section.dart';
-import 'package:labuda/domains/commerce/pricing/discount/presentation/widgets/create_discount_form/validity_section.dart';
-import 'package:labuda/domains/commerce/pricing/discount/presentation/widgets/create_discount_form/limits_section.dart';
+import 'package:hishumi/domains/commerce/pricing/discount/domain/entities/discount_entity.dart';
+import 'package:hishumi/domains/commerce/pricing/discount/domain/use_cases/create_discount_use_case.dart';
+import 'package:hishumi/domains/commerce/pricing/discount/presentation/providers/discount_provider.dart';
+import 'package:hishumi/domains/commerce/pricing/discount/presentation/widgets/create_discount_form/basic_info_section.dart';
+import 'package:hishumi/domains/commerce/pricing/discount/presentation/widgets/create_discount_form/discount_type_section.dart';
+import 'package:hishumi/domains/commerce/pricing/discount/presentation/widgets/create_discount_form/applies_to_section.dart';
+import 'package:hishumi/domains/commerce/pricing/discount/presentation/widgets/create_discount_form/validity_section.dart';
+import 'package:hishumi/domains/commerce/pricing/discount/presentation/widgets/create_discount_form/limits_section.dart';
 
 /// Screen untuk membuat discount
 ///

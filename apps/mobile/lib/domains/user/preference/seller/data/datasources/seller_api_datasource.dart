@@ -3,9 +3,9 @@
 /// API-based datasource for seller data
 library;
 
-import 'package:labuda/core/api/api.dart';
-import 'package:labuda/core/src/interfaces/services/i_logger_service.dart';
-import 'package:labuda/domains/user/preference/seller/data/models/api/seller_api_models.dart';
+import 'package:hishumi/core/api/api.dart';
+import 'package:hishumi/core/src/interfaces/services/i_logger_service.dart';
+import 'package:hishumi/domains/user/preference/seller/data/models/api/seller_api_models.dart';
 
 /// Seller API Datasource
 ///

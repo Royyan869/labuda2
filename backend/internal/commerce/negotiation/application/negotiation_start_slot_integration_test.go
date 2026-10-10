@@ -12,10 +12,10 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgconn"
 
-	negotiationApp "github.com/labuda/backend/internal/commerce/negotiation/application"
-	negotiationEntity "github.com/labuda/backend/internal/commerce/negotiation/entity"
-	negotiationImpl "github.com/labuda/backend/internal/commerce/negotiation/infrastructure/repository"
-	"github.com/labuda/backend/pkg/db"
+	negotiationApp "github.com/hishumi/backend/internal/commerce/negotiation/application"
+	negotiationEntity "github.com/hishumi/backend/internal/commerce/negotiation/entity"
+	negotiationImpl "github.com/hishumi/backend/internal/commerce/negotiation/infrastructure/repository"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // TestSemanticSlot_S1_ActiveBlocksNew verifies S1: existing active → rejected.

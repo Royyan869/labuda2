@@ -2,10 +2,10 @@ import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/social/content/content.dart';
-import 'package:labuda/domains/social/content/presentation/widgets/create_content/content_submission_handler.dart';
-import 'package:labuda/shared/src/providers/upload_progress_provider.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/social/content/content.dart';
+import 'package:hishumi/domains/social/content/presentation/widgets/create_content/content_submission_handler.dart';
+import 'package:hishumi/shared/src/providers/upload_progress_provider.dart';
 
 class _User {
   final String id;

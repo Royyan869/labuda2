@@ -13,8 +13,8 @@
 // 'user deleted'), so all three fell through to a generic, indefinitely-
 // retryable AuthSyncErrorKind.backendFailure.
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/api/api_error_codes.dart' as api_codes;
-import 'package:labuda/domains/user/identity/authentication/presentation/providers/auth_controller.dart';
+import 'package:hishumi/core/api/api_error_codes.dart' as api_codes;
+import 'package:hishumi/domains/user/identity/authentication/presentation/providers/auth_controller.dart';
 
 void main() {
   group('classifyAuthSyncError — structured codes (primary)', () {

@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/features/search/search/domain/entities/user_search.dart';
-import 'package:labuda/shared/helpers/canonical_username_validator.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/features/search/search/domain/entities/user_search.dart';
+import 'package:hishumi/shared/helpers/canonical_username_validator.dart';
 
 /// Mention-related providers for search domain
 ///

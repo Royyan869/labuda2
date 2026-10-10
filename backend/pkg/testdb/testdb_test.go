@@ -4,7 +4,7 @@ package testdb
 import (
 	"testing"
 
-	"github.com/labuda/backend/internal/config"
+	"github.com/hishumi/backend/internal/config"
 )
 
 // TestDatabaseIsolation verifies that test database is isolated from main database.
@@ -79,7 +79,7 @@ func TestMainDatabaseNotAffected(t *testing.T) {
 		}
 
 		// Test DSN should contain test database's dbname parameter
-		// Use word boundary matching to avoid false positives (e.g., "labuda" in "labuda_test")
+		// Use word boundary matching to avoid false positives (e.g., "hishumi" in "hishumi_test")
 		testDBPattern := "dbname=" + cfg.Database.TestName
 		if !containsWord(testDSN, testDBPattern) {
 			t.Errorf("Test DSN does not contain test database pattern '%s'", testDBPattern)
@@ -122,4 +122,22 @@ func contains(s, substr string) bool {
 		}
 	}
 	return false
+}
+
+// TestContainsWord_GuardBehavior pins the word-boundary matcher that the
+// isolation assertions rely on (H.4.4-B): the canonical test database name
+// must match exactly, while the shorter dev name prefix must NOT match the
+// test DSN (e.g. "hishumi" must not match "dbname=hishumi_test").
+func TestContainsWord_GuardBehavior(t *testing.T) {
+	dsn := "host=localhost port=5432 user=hishumi password=secret dbname=hishumi_test sslmode=disable"
+
+	if !containsWord(dsn, "dbname=hishumi_test") {
+		t.Fatal("containsWord must match the exact canonical test database name")
+	}
+	if containsWord(dsn, "dbname=hishumi") {
+		t.Fatal("containsWord must NOT match the dev database name as a prefix of the test database name")
+	}
+	if containsWord(dsn, "dbname=other_db") {
+		t.Fatal("containsWord must NOT match a database name absent from the DSN")
+	}
 }

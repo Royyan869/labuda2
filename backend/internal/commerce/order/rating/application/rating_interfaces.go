@@ -5,9 +5,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/commerce/order/rating/entity"
-	"github.com/labuda/backend/internal/commerce/order/rating/infrastructure/repository"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/commerce/order/rating/entity"
+	"github.com/hishumi/backend/internal/commerce/order/rating/infrastructure/repository"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // RatingReader provides read-only access to rating data.

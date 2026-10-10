@@ -11,11 +11,11 @@ import (
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 
-	"github.com/labuda/backend/internal/finance/entity"
-	"github.com/labuda/backend/internal/finance/repository"
-	"github.com/labuda/backend/internal/middleware"
-	"github.com/labuda/backend/internal/platform/response"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/finance/entity"
+	"github.com/hishumi/backend/internal/finance/repository"
+	"github.com/hishumi/backend/internal/middleware"
+	"github.com/hishumi/backend/internal/platform/response"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // ReconciliationTransactor is the minimal DB capability this handler needs to

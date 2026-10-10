@@ -10,10 +10,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/labuda/backend/internal/commerce/order/entity"
-	"github.com/labuda/backend/internal/identity/auth"
-	idempotencyRepo "github.com/labuda/backend/internal/platform/idempotency/repository"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/commerce/order/entity"
+	"github.com/hishumi/backend/internal/identity/auth"
+	idempotencyRepo "github.com/hishumi/backend/internal/platform/idempotency/repository"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // ============================================================================

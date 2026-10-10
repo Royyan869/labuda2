@@ -4,7 +4,7 @@ import '../route_paths.dart';
 import 'base_module.dart';
 
 // Import Search screens from search_refactor module
-import 'package:labuda/features/search/search/search.dart';
+import 'package:hishumi/features/search/search/search.dart';
 
 /// Search module routing implementation
 ///

@@ -8,11 +8,11 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/labuda/backend/internal/commerce/auction/entity"
-	auctionRepo "github.com/labuda/backend/internal/commerce/auction/infrastructure/repository"
-	platformconfigApp "github.com/labuda/backend/internal/platform/config/application"
-	outboxRepo "github.com/labuda/backend/internal/platform/outbox/infrastructure/repository"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/commerce/auction/entity"
+	auctionRepo "github.com/hishumi/backend/internal/commerce/auction/infrastructure/repository"
+	platformconfigApp "github.com/hishumi/backend/internal/platform/config/application"
+	outboxRepo "github.com/hishumi/backend/internal/platform/outbox/infrastructure/repository"
+	"github.com/hishumi/backend/pkg/db"
 	"go.uber.org/zap"
 )
 

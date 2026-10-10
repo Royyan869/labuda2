@@ -1,6 +1,6 @@
-import 'package:labuda/shared/helpers/canonical_email_validator.dart';
-import 'package:labuda/shared/helpers/canonical_phone_validator.dart';
-import 'package:labuda/shared/utils/currency_utils.dart';
+import 'package:hishumi/shared/helpers/canonical_email_validator.dart';
+import 'package:hishumi/shared/helpers/canonical_phone_validator.dart';
+import 'package:hishumi/shared/utils/currency_utils.dart';
 
 extension StringExtensions on String {
   /// STAGE 4B-1: delegates to the canonical email authority.

@@ -18,10 +18,10 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:labuda/core/api/api_error_codes.dart' as codes;
-import 'package:labuda/core/api/commerce_restriction_presenter.dart';
-import 'package:labuda/core/api/exceptions/api_exception.dart';
-import 'package:labuda/core/api/interceptors/error_interceptor.dart';
+import 'package:hishumi/core/api/api_error_codes.dart' as codes;
+import 'package:hishumi/core/api/commerce_restriction_presenter.dart';
+import 'package:hishumi/core/api/exceptions/api_exception.dart';
+import 'package:hishumi/core/api/interceptors/error_interceptor.dart';
 
 /// The exact backend JSON response format for COMMERCE_RESTRICTED.
 const _commerceRestrictedBody = {

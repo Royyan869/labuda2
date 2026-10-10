@@ -1,5 +1,5 @@
-name: labuda
-description: "LABUDA - Social Commerce Platform untuk Komunitas Koi Indonesia"
+name: hishumi
+description: "HiShumi - Social Commerce Platform untuk Komunitas Koi Indonesia"
 publish_to: 'none'
 
 version: 1.0.0+1
@@ -60,9 +60,6 @@ dependencies:
   visibility_detector: ^0.4.0+2
   flutter_local_notifications: ^20.0.0  # Local notifications (Phase 1: notification module)
   fl_chart: ^1.1.1  # Charts and graphs for analytics
-
-  # ML Kit for OCR
-  google_mlkit_text_recognition: ^0.15.0
 
   # Utils - Latest
   intl: ^0.20.2

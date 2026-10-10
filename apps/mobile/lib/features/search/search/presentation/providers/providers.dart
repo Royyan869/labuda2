@@ -1,10 +1,10 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/features/search/search/data/search_history_repository_impl.dart';
-import 'package:labuda/features/search/search/data/search_repository_impl.dart';
-import 'package:labuda/features/search/search/data/remote/search_api_service.dart';
-import 'package:labuda/features/search/search/domain/repositories/search_history_repository.dart';
-import 'package:labuda/features/search/search/domain/repositories/search_repository.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/features/search/search/data/search_history_repository_impl.dart';
+import 'package:hishumi/features/search/search/data/search_repository_impl.dart';
+import 'package:hishumi/features/search/search/data/remote/search_api_service.dart';
+import 'package:hishumi/features/search/search/domain/repositories/search_history_repository.dart';
+import 'package:hishumi/features/search/search/domain/repositories/search_repository.dart';
 part 'providers.g.dart';
 
 // =====================

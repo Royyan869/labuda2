@@ -5,7 +5,7 @@ library;
 export 'common/result.dart';
 export 'common/base_entity.dart';
 export 'common/paginated_result.dart';
-export 'package:labuda/domains/user/identity/authentication/authentication.dart';
+export 'package:hishumi/domains/user/identity/authentication/authentication.dart';
 export 'common/types/payment_types.dart';
 
 // Configuration exports
@@ -25,7 +25,6 @@ export 'interfaces/i_notification_trigger.dart';
 export 'interfaces/i_order_payment_handler.dart';
 
 // Utilities exports
-export 'src/utils/constants/app_constants.dart';
 export 'src/utils/extensions/string_extensions.dart';
 export 'src/utils/extensions/context_extensions.dart';
 

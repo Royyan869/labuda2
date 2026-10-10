@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/shared/shared.dart';
-import 'package:labuda/domains/social/content/content.dart';
-import 'package:labuda/features/home/domain/domain.dart'; // R3.1: Import FeedItem from home domain
-import 'package:labuda/features/home/presentation/providers/feed_renderers.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/shared/shared.dart';
+import 'package:hishumi/domains/social/content/content.dart';
+import 'package:hishumi/features/home/domain/domain.dart'; // R3.1: Import FeedItem from home domain
+import 'package:hishumi/features/home/presentation/providers/feed_renderers.dart';
 
 /// Feed Tab untuk User Profile dengan real content dan reposts
 ///
@@ -269,7 +269,7 @@ class _ProfileFeedTabState extends ConsumerState<ProfileFeedTab> {
 
     const safeFragments = [
       'Connection timed out',
-      'Cannot reach Labuda server',
+      'Cannot reach HiShumi server',
       'Network error',
       'Please try again',
       'not found',

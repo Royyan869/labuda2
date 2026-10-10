@@ -11,7 +11,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	addressEntity "github.com/labuda/backend/internal/identity/address/entity"
+	addressEntity "github.com/hishumi/backend/internal/identity/address/entity"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

@@ -3,11 +3,11 @@
 /// Repository implementation that uses Go API datasource.
 library;
 
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/domains/commerce/pricing/discount/data/datasources/discount_api_datasource.dart';
-import 'package:labuda/domains/commerce/pricing/discount/data/models/discount_model.dart';
-import 'package:labuda/domains/commerce/pricing/discount/domain/entities/discount_entity.dart';
-import 'package:labuda/domains/commerce/pricing/discount/domain/repositories/i_discount_repository.dart';
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/domains/commerce/pricing/discount/data/datasources/discount_api_datasource.dart';
+import 'package:hishumi/domains/commerce/pricing/discount/data/models/discount_model.dart';
+import 'package:hishumi/domains/commerce/pricing/discount/domain/entities/discount_entity.dart';
+import 'package:hishumi/domains/commerce/pricing/discount/domain/repositories/i_discount_repository.dart';
 
 /// Repository implementation using Go API datasource
 class DiscountApiRepositoryImpl implements IDiscountRepository {

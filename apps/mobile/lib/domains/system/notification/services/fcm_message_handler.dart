@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
+import 'package:hishumi/core/core.dart';
 import 'notification_navigation_service.dart';
 import 'fcm_action_mapper.dart';
 import 'in_app_banner_service.dart';

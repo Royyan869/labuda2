@@ -7,9 +7,9 @@
 library;
 
 // Dart
-import 'package:labuda/core/core.dart' hide NotificationEntity;
-import 'package:labuda/domains/system/notification/domain/entities/notification_entity.dart';
-import 'package:labuda/domains/system/notification/domain/entities/notification_preference_entity.dart';
+import 'package:hishumi/core/core.dart' hide NotificationEntity;
+import 'package:hishumi/domains/system/notification/domain/entities/notification_entity.dart';
+import 'package:hishumi/domains/system/notification/domain/entities/notification_preference_entity.dart';
 
 abstract class INotificationRepository {
   /// Get notifications untuk user — ONE-SHOT canonical read.

@@ -3,7 +3,7 @@ package http_test
 import (
 	"testing"
 
-	"github.com/labuda/backend/internal/util"
+	"github.com/hishumi/backend/internal/util"
 )
 
 // STEP A.2.4 — AUTH HANDLER NORMALIZATION VERIFICATION

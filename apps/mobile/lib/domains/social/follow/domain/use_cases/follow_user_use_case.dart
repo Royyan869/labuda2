@@ -1,5 +1,5 @@
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/social/follow/domain/repositories/i_follow_repository.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/social/follow/domain/repositories/i_follow_repository.dart';
 
 class FollowUserParams {
   final String followerId;

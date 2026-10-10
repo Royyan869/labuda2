@@ -5,9 +5,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/discovery/search/entity"
-	productentity "github.com/labuda/backend/internal/commerce/product/entity"
-	"github.com/labuda/backend/internal/pkg/publiccard"
+	"github.com/hishumi/backend/internal/discovery/search/entity"
+	productentity "github.com/hishumi/backend/internal/commerce/product/entity"
+	"github.com/hishumi/backend/internal/pkg/publiccard"
 )
 
 func TestSearchProjectionAdapter_ContentTypesAndAuthorParity(t *testing.T) {

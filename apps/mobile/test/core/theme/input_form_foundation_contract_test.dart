@@ -13,8 +13,8 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/shared/widgets/app_text_field.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/shared/widgets/app_text_field.dart';
 
 import '../../support/theme_authority_gate.dart';
 
@@ -38,7 +38,6 @@ const _searchConsumers = <String>[
   'lib/domains/social/follow/presentation/screens/follow_list_screen.dart',
   'lib/domains/chat/chat/presentation/screens/new_chat_screen.dart',
   'lib/shared/widgets/user_search_bottom_sheet.dart',
-  'lib/domains/commerce/catalog/for_sale/presentation/screens/for_sale_list_screen.dart',
   'lib/domains/chat/chat/presentation/screens/chat_list_screen.dart',
   'lib/domains/system/support/presentation/screens/help_center_screen.dart',
 ];
@@ -58,24 +57,27 @@ void main() {
       'light': AppTheme.lightTheme,
       'dark': AppTheme.darkTheme,
     }.entries) {
-      test('${mode.key}: error / focused-error / disabled borders are owned', () {
-        final scheme = mode.value.colorScheme;
-        final d = mode.value.inputDecorationTheme;
+      test(
+        '${mode.key}: error / focused-error / disabled borders are owned',
+        () {
+          final scheme = mode.value.colorScheme;
+          final d = mode.value.inputDecorationTheme;
 
-        final errorBorder = d.errorBorder! as OutlineInputBorder;
-        expect(errorBorder.borderSide.color, scheme.error);
-        expect(errorBorder.borderRadius, AppShape.containerRadius);
+          final errorBorder = d.errorBorder! as OutlineInputBorder;
+          expect(errorBorder.borderSide.color, scheme.error);
+          expect(errorBorder.borderRadius, AppShape.containerRadius);
 
-        final focusedError = d.focusedErrorBorder! as OutlineInputBorder;
-        expect(focusedError.borderSide.color, scheme.error);
-        expect(focusedError.borderSide.width, AppMetrics.focusedBorderWidth);
+          final focusedError = d.focusedErrorBorder! as OutlineInputBorder;
+          expect(focusedError.borderSide.color, scheme.error);
+          expect(focusedError.borderSide.width, AppMetrics.focusedBorderWidth);
 
-        final disabled = d.disabledBorder! as OutlineInputBorder;
-        expect(
-          disabled.borderSide.color,
-          scheme.onSurface.withValues(alpha: 0.12),
-        );
-      });
+          final disabled = d.disabledBorder! as OutlineInputBorder;
+          expect(
+            disabled.borderSide.color,
+            scheme.onSurface.withValues(alpha: 0.12),
+          );
+        },
+      );
 
       test('${mode.key}: label / helper / error / icon states are owned', () {
         final scheme = mode.value.colorScheme;
@@ -169,7 +171,10 @@ void main() {
         MaterialApp(
           theme: AppTheme.lightTheme,
           home: const Scaffold(
-            body: AppTextField(labelText: 'Email', errorText: 'sudah terdaftar'),
+            body: AppTextField(
+              labelText: 'Email',
+              errorText: 'sudah terdaftar',
+            ),
           ),
         ),
       );
@@ -199,10 +204,9 @@ void main() {
       final purged = RegExp(r'isPassword(?!Visible)');
       final offenders = <String>[];
       for (final path in themeAuthorityDartFiles()) {
-        final code = _read(path)
-            .split('\n')
-            .where((l) => !l.trimLeft().startsWith('//'))
-            .join('\n');
+        final code = _read(
+          path,
+        ).split('\n').where((l) => !l.trimLeft().startsWith('//')).join('\n');
         if (code.contains('AppTextField.password') || purged.hasMatch(code)) {
           offenders.add(path);
         }
@@ -250,9 +254,9 @@ void main() {
         isFalse,
       );
       expect(
-        File('lib/domains/social/follow/follow.dart')
-            .readAsStringSync()
-            .contains('user_search_bar'),
+        File(
+          'lib/domains/social/follow/follow.dart',
+        ).readAsStringSync().contains('user_search_bar'),
         isFalse,
       );
     });
@@ -317,9 +321,9 @@ void main() {
   group('negative proof: canonical validation', () {
     test('seller upgrade username uses CanonicalUsernameValidator', () {
       expect(
-        _read(_sellerUpgrade).contains(
-          'CanonicalUsernameValidator.normalizeAndValidate',
-        ),
+        _read(
+          _sellerUpgrade,
+        ).contains('CanonicalUsernameValidator.normalizeAndValidate'),
         isTrue,
       );
     });
@@ -349,7 +353,10 @@ void main() {
 
     test('the whole auth form locks while submitting', () {
       expect(_read(_signIn).contains('enabled: !isAuthLoading'), isTrue);
-      expect(_read(_signUp).contains('enabled: !_controller.isLoading'), isTrue);
+      expect(
+        _read(_signUp).contains('enabled: !_controller.isLoading'),
+        isTrue,
+      );
     });
   });
 }

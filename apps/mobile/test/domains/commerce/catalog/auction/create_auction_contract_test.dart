@@ -1,11 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:labuda/core/common/types/preparation_time.dart';
+import 'package:hishumi/core/common/types/preparation_time.dart';
 
-import 'package:labuda/domains/commerce/catalog/auction/data/dto/auction_dto.dart';
-import 'package:labuda/domains/commerce/catalog/auction/data/mappers/auction_mapper.dart';
-import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction.dart';
-import 'package:labuda/domains/commerce/catalog/auction/domain/repositories/auction_repository.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/data/dto/auction_dto.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/data/mappers/auction_mapper.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/domain/entities/auction.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/domain/repositories/auction_repository.dart';
 
 /// PASS_18E/PASS_21B: locks CreateAuctionDto's wire shape to the backend's
 /// `CreateAuctionRequest` contract (internal/commerce/auction/delivery/http)

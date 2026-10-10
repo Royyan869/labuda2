@@ -9,10 +9,10 @@ library;
 
 // Dart
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/domains/system/notification/domain/entities/notification_preference_entity.dart';
-import 'package:labuda/domains/system/notification/domain/use_cases/get_preferences_use_case.dart';
-import 'package:labuda/domains/system/notification/domain/use_cases/update_preferences_use_case.dart';
-import 'package:labuda/domains/system/notification/data/notification_providers.dart';
+import 'package:hishumi/domains/system/notification/domain/entities/notification_preference_entity.dart';
+import 'package:hishumi/domains/system/notification/domain/use_cases/get_preferences_use_case.dart';
+import 'package:hishumi/domains/system/notification/domain/use_cases/update_preferences_use_case.dart';
+import 'package:hishumi/domains/system/notification/data/notification_providers.dart';
 
 final getPreferencesUseCaseProvider = Provider<GetPreferencesUseCase>((ref) {
   final repository = ref.watch(notificationRepositoryProvider);

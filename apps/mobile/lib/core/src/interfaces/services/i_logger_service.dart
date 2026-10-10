@@ -1,4 +1,4 @@
-import 'package:labuda/core/common/result.dart';
+import 'package:hishumi/core/common/result.dart';
 
 /// Interface untuk logger service yang menggunakan `Result<T>` pattern
 ///

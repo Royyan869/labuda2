@@ -1,14 +1,14 @@
 # ============================================
 # PostgreSQL Backup Script (Windows/PowerShell)
-# Labuda Project - Automatic Daily Backup
+# HiShumi Project - Automatic Daily Backup
 # ============================================
 
 $ErrorActionPreference = "Stop"
 
 # Configuration
-$CONTAINER_NAME = "labuda-postgres"
-$DB_NAME = "labuda"
-$DB_USER = "labuda"
+$CONTAINER_NAME = "hishumi-postgres"
+$DB_NAME = "hishumi"
+$DB_USER = "hishumi"
 $BACKUP_DIR = "./backups"
 $RETENTION_DAYS = 7
 
@@ -20,7 +20,7 @@ if (-not (Test-Path $BACKUP_DIR)) {
 
 # Generate timestamp
 $TIMESTAMP = Get-Date -Format "yyyyMMdd_HHmmss"
-$BACKUP_FILE = "$BACKUP_DIR\labuda_$TIMESTAMP.dump"
+$BACKUP_FILE = "$BACKUP_DIR\hishumi_$TIMESTAMP.dump"
 
 Write-Host "=========================================="
 Write-Host "PostgreSQL Backup Started"
@@ -101,7 +101,7 @@ Write-Host "Applying retention policy: keeping last $RETENTION_DAYS days..." -Fo
 $cutoffDate = (Get-Date).AddDays(-$RETENTION_DAYS)
 $deletedCount = 0
 
-Get-ChildItem -Path $BACKUP_DIR -Filter "labuda_*.dump" | Where-Object {
+Get-ChildItem -Path $BACKUP_DIR -Filter "hishumi_*.dump" | Where-Object {
     $_.LastWriteTime -lt $cutoffDate
 } | ForEach-Object {
     Write-Host "Deleting old backup: $($_.Name)" -ForegroundColor Yellow

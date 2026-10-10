@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/features/search/search/domain/entities/search_result.dart';
-import 'package:labuda/features/search/search/presentation/utils/all_tab_sections.dart';
-import 'package:labuda/features/search/search/presentation/widgets/search_result_item.dart';
-import 'package:labuda/core/src/theme/app_theme.dart';
+import 'package:hishumi/features/search/search/domain/entities/search_result.dart';
+import 'package:hishumi/features/search/search/presentation/utils/all_tab_sections.dart';
+import 'package:hishumi/features/search/search/presentation/widgets/search_result_item.dart';
+import 'package:hishumi/core/src/theme/app_theme.dart';
 
 /// All Tab content — SECTION-BASED multi-domain overview.
 ///

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 // PHASE 7-8 CUTOVER: Using chat_refactor screens
-import 'package:labuda/domains/chat/chat/chat.dart';
-import 'package:labuda/core/src/router/route_paths.dart';
-import 'package:labuda/domains/chat/chat/presentation/models/pending_commerce_attachment.dart';
+import 'package:hishumi/domains/chat/chat/chat.dart';
+import 'package:hishumi/core/src/router/route_paths.dart';
+import 'package:hishumi/domains/chat/chat/presentation/models/pending_commerce_attachment.dart';
 import 'base_module.dart';
 
 /// Chat Module - Routes dan dependencies untuk fitur chat

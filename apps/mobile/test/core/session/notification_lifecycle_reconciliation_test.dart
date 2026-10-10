@@ -14,16 +14,16 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/core.dart' hide NotificationEntity, ConnectionState;
+import 'package:hishumi/core/core.dart' hide NotificationEntity, ConnectionState;
 // Explicit alias: ConnectionState is ambiguous between the async enum and the
 // WebSocket enum; the socket lifecycle contract uses the WebSocket one.
-import 'package:labuda/core/websocket/websocket_service.dart' as websocket;
-import 'package:labuda/domains/system/notification/data/notification_providers.dart';
-import 'package:labuda/domains/system/notification/domain/entities/notification_entity.dart';
-import 'package:labuda/domains/system/notification/domain/repositories/i_notification_repository.dart';
-import 'package:labuda/domains/system/notification/presentation/providers/notification_list_provider.dart';
-import 'package:labuda/domains/system/notification/presentation/providers/unread_count_provider.dart';
-import 'package:labuda/shared/providers/auth_status_providers.dart';
+import 'package:hishumi/core/websocket/websocket_service.dart' as websocket;
+import 'package:hishumi/domains/system/notification/data/notification_providers.dart';
+import 'package:hishumi/domains/system/notification/domain/entities/notification_entity.dart';
+import 'package:hishumi/domains/system/notification/domain/repositories/i_notification_repository.dart';
+import 'package:hishumi/domains/system/notification/presentation/providers/notification_list_provider.dart';
+import 'package:hishumi/domains/system/notification/presentation/providers/unread_count_provider.dart';
+import 'package:hishumi/shared/providers/auth_status_providers.dart';
 
 const _user1 = 'user-1';
 const _user2 = 'user-2';

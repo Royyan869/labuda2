@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/shared/helpers/canonical_password_match.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/shared/helpers/canonical_password_match.dart';
 
 /// Authentication password field with visibility toggle
 ///

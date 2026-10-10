@@ -2,12 +2,12 @@
 /// Pure Dart interface - no implementation details
 library;
 
-import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction.dart';
-import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction_bid.dart';
-import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction_status.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/domain/entities/auction.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/domain/entities/auction_bid.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/domain/entities/auction_status.dart';
 
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/core/common/types/preparation_time.dart';
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/core/common/types/preparation_time.dart';
 
 /// Auction Repository Interface
 ///

@@ -12,9 +12,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/governance/dispute/infrastructure/repository"
-	disputeRepo "github.com/labuda/backend/internal/governance/dispute/repository"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/governance/dispute/infrastructure/repository"
+	disputeRepo "github.com/hishumi/backend/internal/governance/dispute/repository"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // =============================================================================

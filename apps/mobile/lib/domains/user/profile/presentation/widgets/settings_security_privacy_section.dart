@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/generated/app_localizations.dart';
-import 'package:labuda/core/src/theme/app_theme.dart';
+import 'package:hishumi/generated/app_localizations.dart';
+import 'package:hishumi/core/src/theme/app_theme.dart';
 
 /// Security & Privacy Section
 /// Handles: Security, Privacy Settings, Blocked Users

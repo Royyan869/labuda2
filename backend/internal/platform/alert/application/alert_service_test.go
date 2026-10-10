@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/platform/alert/entity"
+	"github.com/hishumi/backend/internal/platform/alert/entity"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 )

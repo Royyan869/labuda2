@@ -7,10 +7,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/discovery/search/entity"
-	"github.com/labuda/backend/internal/governance/viewercontext"
-	capabilityctx "github.com/labuda/backend/internal/platform/capability"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/discovery/search/entity"
+	"github.com/hishumi/backend/internal/governance/viewercontext"
+	capabilityctx "github.com/hishumi/backend/internal/platform/capability"
+	"github.com/hishumi/backend/pkg/db"
 	"go.uber.org/zap"
 )
 

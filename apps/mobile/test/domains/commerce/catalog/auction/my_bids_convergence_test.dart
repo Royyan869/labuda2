@@ -9,14 +9,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/core/observability/screen_view_route_observer.dart';
-import 'package:labuda/core/src/router/modules/auction_module.dart';
-import 'package:labuda/domains/commerce/catalog/auction/data/dto/bidding_item_dto.dart';
-import 'package:labuda/domains/commerce/catalog/auction/presentation/providers/my_bids_provider.dart';
-import 'package:labuda/domains/commerce/catalog/auction/presentation/screens/my_bids_screen.dart';
-import 'package:labuda/generated/app_localizations.dart';
-import 'package:labuda/shared/widgets/page_error_state.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/core/observability/screen_view_route_observer.dart';
+import 'package:hishumi/core/src/router/modules/auction_module.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/data/dto/bidding_item_dto.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/presentation/providers/my_bids_provider.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/presentation/screens/my_bids_screen.dart';
+import 'package:hishumi/generated/app_localizations.dart';
+import 'package:hishumi/shared/widgets/page_error_state.dart';
 
 BiddingItemDto _item({
   required String id,

@@ -3,7 +3,7 @@ package application
 import (
 	"testing"
 
-	coinsapp "github.com/labuda/backend/internal/incentive/coins/application"
+	coinsapp "github.com/hishumi/backend/internal/incentive/coins/application"
 )
 
 func TestCanonicalFormula_CoinsMaxBasedOnPDOnly(t *testing.T) {

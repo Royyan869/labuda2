@@ -7,11 +7,11 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	auctionEntity "github.com/labuda/backend/internal/commerce/auction/entity"
-	auctionRepo "github.com/labuda/backend/internal/commerce/auction/infrastructure/repository"
-	forsaleEntity "github.com/labuda/backend/internal/commerce/forsale/entity"
-	"github.com/labuda/backend/internal/pricing/promotion/entity"
-	"github.com/labuda/backend/pkg/db"
+	auctionEntity "github.com/hishumi/backend/internal/commerce/auction/entity"
+	auctionRepo "github.com/hishumi/backend/internal/commerce/auction/infrastructure/repository"
+	forsaleEntity "github.com/hishumi/backend/internal/commerce/forsale/entity"
+	"github.com/hishumi/backend/internal/pricing/promotion/entity"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // OperabilityCheckerImpl implements OperabilityChecker with real domain checks.

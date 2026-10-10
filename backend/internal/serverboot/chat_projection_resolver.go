@@ -6,12 +6,12 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	commerceshared "github.com/labuda/backend/internal/commerce/shared"
-	"github.com/labuda/backend/internal/governance/viewercontext"
-	chatApp "github.com/labuda/backend/internal/interaction/chat/application"
-	chatEntity "github.com/labuda/backend/internal/interaction/chat/entity"
-	"github.com/labuda/backend/internal/pkg/blockcheck"
-	"github.com/labuda/backend/pkg/db"
+	commerceshared "github.com/hishumi/backend/internal/commerce/shared"
+	"github.com/hishumi/backend/internal/governance/viewercontext"
+	chatApp "github.com/hishumi/backend/internal/interaction/chat/application"
+	chatEntity "github.com/hishumi/backend/internal/interaction/chat/entity"
+	"github.com/hishumi/backend/internal/pkg/blockcheck"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 type profileProjectionBatchResolver struct {

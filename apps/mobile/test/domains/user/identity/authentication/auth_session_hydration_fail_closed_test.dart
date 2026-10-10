@@ -1,20 +1,19 @@
-import 'package:dio/dio.dart';
+﻿import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/user/identity/authentication/data/auth_providers.dart'
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/user/identity/authentication/data/auth_providers.dart'
     as auth_data;
-import 'package:labuda/domains/user/identity/authentication/data/datasources/auth_api_datasource.dart';
-import 'package:labuda/domains/user/identity/authentication/data/repositories/auth_profile_repository.dart';
-import 'package:labuda/domains/user/identity/authentication/domain/entities/account_status.dart';
-import 'package:labuda/domains/user/identity/authentication/domain/entities/firebase_principal.dart';
-import 'package:labuda/domains/user/identity/authentication/domain/entities/user_profile_patch.dart';
-import 'package:labuda/domains/user/profile/data/datasources/user_api_datasource.dart';
-import 'package:labuda/domains/user/profile/data/models/api/user_api_models.dart';
-import 'package:labuda/domains/user/profile/data/profile_providers.dart'
+import 'package:hishumi/domains/user/identity/authentication/data/datasources/auth_api_datasource.dart';
+import 'package:hishumi/domains/user/identity/authentication/data/repositories/auth_profile_repository.dart';
+import 'package:hishumi/domains/user/identity/authentication/domain/entities/firebase_principal.dart';
+import 'package:hishumi/domains/user/identity/authentication/domain/entities/user_profile_patch.dart';
+import 'package:hishumi/domains/user/profile/data/datasources/user_api_datasource.dart';
+import 'package:hishumi/domains/user/profile/data/models/api/user_api_models.dart';
+import 'package:hishumi/domains/user/profile/data/profile_providers.dart'
     show userSyncServiceProvider;
-import 'package:labuda/domains/user/profile/data/services/user_sync_service.dart';
+import 'package:hishumi/domains/user/profile/data/services/user_sync_service.dart';
 
 class _MockApiClient implements ApiClient {
   @override
@@ -46,14 +45,12 @@ class _MockApiClient implements ApiClient {
   }
 
   @override
-  bool isNetworkError(DioException e) => false;
-
-  @override
   bool isNotFound(DioException e) => false;
 
   @override
   bool isUnauthorized(DioException e) => false;
 
+  @override
   bool isValidationError(DioException e) => false;
 
   @override
@@ -187,7 +184,7 @@ class _RecordingLocalStorageService extends Fake
   // credential boundary; the counters keep meaning so the login/session tests
   // observe the same writes as production.
   @override
-  Future<Result<void>> saveLabudaCredential(String access, String refresh) async {
+  Future<Result<void>> saveHiShumiCredential(String access, String refresh) async {
     setAuthTokenCalls++;
     setRefreshTokenCalls++;
     authToken = access;
@@ -196,15 +193,15 @@ class _RecordingLocalStorageService extends Fake
   }
 
   @override
-  Future<Result<String?>> readLabudaAccessToken() async =>
+  Future<Result<String?>> readHiShumiAccessToken() async =>
       Result.success(authToken);
 
   @override
-  Future<Result<String?>> readLabudaRefreshToken() async =>
+  Future<Result<String?>> readHiShumiRefreshToken() async =>
       Result.success(refreshToken);
 
   @override
-  Future<Result<bool>> hasLabudaCredential() async => Result.success(
+  Future<Result<bool>> hasHiShumiCredential() async => Result.success(
         authToken != null &&
             authToken!.isNotEmpty &&
             refreshToken != null &&
@@ -212,7 +209,7 @@ class _RecordingLocalStorageService extends Fake
       );
 
   @override
-  Future<Result<void>> clearLabudaCredential() async {
+  Future<Result<void>> clearHiShumiCredential() async {
     clearAuthTokenCalls++;
     clearRefreshTokenCalls++;
     authToken = null;
@@ -223,7 +220,7 @@ class _RecordingLocalStorageService extends Fake
   // AUTH-2 (CREDENTIAL AUTHORITY): the restricted-completion credential lives
   // on its own isolated key (canonical contract). completeProfile reads it,
   // consumes it via clearRestrictedToken, and persists the full credential via
-  // saveLabudaCredential. Back these with the dedicated field so the
+  // saveHiShumiCredential. Back these with the dedicated field so the
   // session-hydration tests observe the real production path.
   @override
   Future<Result<void>> setRestrictedToken(String token) async {
@@ -493,31 +490,6 @@ class _MockAuthApiDatasource extends AuthApiDatasource {
     ),
   );
 
-  Result<UserApiResponse> currentUserResult = Result.success(
-    UserApiResponse.fromJson({
-      'id': 'user-1',
-      'email': 'seller@example.com',
-      'username': 'seller-one',
-      'account_status': 'active',
-      'roles': ['seller'],
-      'has_seller_profile': true,
-      'seller_subscription_status': 'expired',
-      'has_market_authority': false,
-      'is_email_verified': true,
-      'created_at': '2026-06-01T00:00:00Z',
-      'updated_at': '2026-06-02T00:00:00Z',
-      'profile': {
-        'id': 'user-1',
-        'username': 'seller-one',
-        'bio': 'bio',
-        'avatar_url': 'https://example.com/avatar.png',
-        'followers_count': 1,
-        'following_count': 2,
-        'preferred_lang': 'en',
-      },
-    }),
-  );
-
   @override
   Future<Result<FirebaseExchangeCompleteResponse>> completeProfile({
     required String username,
@@ -525,9 +497,6 @@ class _MockAuthApiDatasource extends AuthApiDatasource {
   }) async {
     return completeResult;
   }
-
-  @override
-  Future<Result<UserApiResponse>> getCurrentUser() async => currentUserResult;
 }
 
 class _MockUserSyncService extends UserSyncService {
@@ -598,9 +567,6 @@ class _FailingAuthRepository extends Fake implements IAuthRepository {
       Result.success(null);
 
   @override
-  Future<Result<void>> verifyEmail() async => Result.success(null);
-
-  @override
   Future<Result<UserProfilePatch>> updateProfile({
     String? photoUrl,
     String? phoneNumber,
@@ -626,12 +592,6 @@ class _FailingAuthRepository extends Fake implements IAuthRepository {
       Result.success(null);
 
   @override
-  Future<Result<List<AuthUser>>> searchUsers({
-    required String query,
-    int limit = 20,
-  }) async => Result.success(const <AuthUser>[]);
-
-  @override
   Future<Result<void>> deactivateAccount({
     required String userId,
     required String reason,
@@ -648,16 +608,6 @@ class _FailingAuthRepository extends Fake implements IAuthRepository {
     required String currentPassword,
     required String newPassword,
   }) async => Result.success(null);
-
-  @override
-  Future<Result<AuthUser>> updateUserRole({
-    required String userId,
-    required UserRole newRole,
-  }) async => Result.error('not used');
-
-  @override
-  Stream<FirebasePrincipal?> get authStateChanges =>
-      const Stream<FirebasePrincipal?>.empty();
 }
 
 class _TestAuthController extends AuthController {
@@ -676,23 +626,6 @@ class _TestAuthController extends AuthController {
   Future<void> performFirebaseSignOut() async {
     signOutCalls++;
   }
-}
-
-AuthUser _hydratedUser({required bool isEmailVerified}) {
-  return AuthUser(
-    id: 'user-1',
-    createdAt: DateTime(2026, 6, 1),
-    updatedAt: DateTime(2026, 6, 2),
-    email: 'seller@example.com',
-    username: 'seller-one',
-    isEmailVerified: isEmailVerified,
-    accountStatus: AccountStatus.active,
-    hasSellerProfile: true,
-    sellerSubscriptionStatus: 'active',
-    hasMarketAuthority: true,
-    roles: const [UserRole.user],
-    provider: AuthProvider.email,
-  );
 }
 
 ProviderContainer _container({
@@ -822,7 +755,10 @@ void main() {
             requiresProfileCompletion: false,
             created: true,
           ),
-        )
+        );
+      // Canonical /users/me authority: UserApiDatasource (the former
+      // AuthApiDatasource duplicate was purged).
+      final userDatasource = _MockUserApiDatasource()
         ..currentUserResult = Result.success(
           UserApiResponse.fromJson({
             'id': 'current-user-2',
@@ -854,6 +790,7 @@ void main() {
           currentUserValue: _MockFirebaseUser(idToken: 'firebase-token'),
         ),
         apiDatasource: datasource,
+        userDatasource: userDatasource,
         localStorage: localStorage,
       );
 
@@ -865,6 +802,81 @@ void main() {
       expect(localStorage.refreshToken, isNull);
       expect(localStorage.clearAuthTokenCalls, 1);
       expect(localStorage.clearRefreshTokenCalls, 1);
+    },
+  );
+
+  test(
+    'complete-profile success persists the full session pair, consumes the '
+    'restricted token, and hydrates via the canonical /users/me authority',
+    () async {
+      final datasource = _MockAuthApiDatasource()
+        ..completeResult = Result.success(
+          const FirebaseExchangeCompleteResponse(
+            userId: 'session-user-1',
+            accessToken: 'platform-access-token',
+            refreshToken: 'platform-refresh-token',
+            expiresAt: '2026-06-14T00:00:00Z',
+            refreshExpiresAt: '2026-07-14T00:00:00Z',
+            requiresProfileCompletion: false,
+            created: false,
+          ),
+        );
+      final userDatasource = _MockUserApiDatasource()
+        ..currentUserResult = Result.success(
+          UserApiResponse.fromJson({
+            'id': 'session-user-1',
+            'email': 'seller@example.com',
+            'username': 'completed-user',
+            'account_status': 'active',
+            'roles': ['seller'],
+            'has_seller_profile': false,
+            'seller_subscription_status': 'none',
+            'has_market_authority': false,
+            'is_email_verified': true,
+            'created_at': '2026-06-01T00:00:00Z',
+            'updated_at': '2026-06-02T00:00:00Z',
+            'profile': {
+              'id': 'session-user-1',
+              'username': 'completed-user',
+              'bio': 'bio',
+              'avatar_url': 'https://example.com/avatar.png',
+              'followers_count': 0,
+              'following_count': 0,
+              'preferred_lang': 'en',
+            },
+          }),
+        );
+      final localStorage = _RecordingLocalStorageService()
+        ..restrictedToken = 'restricted-token';
+      final repository = AuthProfileRepository(
+        firebaseAuth: _MockFirebaseAuth(
+          currentUserValue: _MockFirebaseUser(idToken: 'firebase-token'),
+        ),
+        apiDatasource: datasource,
+        userDatasource: userDatasource,
+        localStorage: localStorage,
+      );
+
+      final result = await repository.completeProfile(username: 'completed-user');
+
+      expect(result.isSuccess, isTrue);
+      // ONE identity, ONE session: the returned profile is the SAME backend
+      // user the restricted token was issued for (consistency guard passed).
+      expect(result.data?.id, 'session-user-1');
+      expect(result.data?.username, 'completed-user');
+      // The full access+refresh pair from the completion response replaces
+      // the restricted credential via the canonical boundary.
+      expect(localStorage.authToken, 'platform-access-token');
+      expect(localStorage.refreshToken, 'platform-refresh-token');
+      expect(localStorage.setAuthTokenCalls, 1);
+      expect(localStorage.setRefreshTokenCalls, 1);
+      // The restricted completion credential is CONSUMED â€” no stale second
+      // credential may survive the session upgrade.
+      expect(localStorage.clearRestrictedTokenCalls, 1);
+      expect(localStorage.restrictedToken, isNull);
+      // Nothing clobbered the freshly persisted pair.
+      expect(localStorage.clearAuthTokenCalls, 0);
+      expect(localStorage.clearRefreshTokenCalls, 0);
     },
   );
 
@@ -882,7 +894,8 @@ void main() {
             requiresProfileCompletion: false,
             created: true,
           ),
-        )
+        );
+      final userDatasource = _MockUserApiDatasource()
         ..currentUserResult = Result.error(
           'Backend unavailable',
           statusCode: 503,
@@ -894,6 +907,7 @@ void main() {
           currentUserValue: _MockFirebaseUser(idToken: 'firebase-token'),
         ),
         apiDatasource: datasource,
+        userDatasource: userDatasource,
         localStorage: localStorage,
       );
 
@@ -1008,235 +1022,6 @@ void main() {
 
       expect(result.success, isFalse);
       expect(controller.state, isA<AuthStateError>());
-    },
-  );
-
-  test(
-    'refreshVerifiedEmailAccount updates the canonical hydrated account email flag',
-    () async {
-      final datasource = _MockUserApiDatasource()
-        ..currentUserResult = Result.success(
-          UserApiResponse.fromJson({
-            'id': 'user-1',
-            'email': 'seller@example.com',
-            'username': 'seller-one',
-            'account_status': 'active',
-            'roles': ['seller'],
-            'has_seller_profile': true,
-            'seller_subscription_status': 'active',
-            'has_market_authority': true,
-            'is_email_verified': false,
-            'created_at': '2026-06-01T00:00:00Z',
-            'updated_at': '2026-06-02T00:00:00Z',
-            'profile': {
-              'id': 'user-1',
-              'username': 'seller-one',
-              'bio': 'bio',
-              'avatar_url': 'https://example.com/avatar.png',
-              'followers_count': 1,
-              'following_count': 2,
-              'preferred_lang': 'en',
-            },
-          }),
-        );
-      final authAuth = _MockFirebaseAuth(
-        currentUserValue: _MockFirebaseUser(idToken: 'firebase-token'),
-      );
-      final userSyncService = UserSyncService(
-        firebaseAuth: authAuth,
-        datasource: datasource,
-        logger: _NoopLoggerService(),
-      );
-      final controller = _TestAuthController(
-        firebaseUser: _MockFirebaseUser(idToken: 'firebase-token'),
-      );
-      final container = _container(
-        controller: controller,
-        authRepository: _FailingAuthRepository(),
-        userSyncService: userSyncService,
-        logger: _NoopLoggerService(),
-        analyticsRepository: _NoopAnalyticsRepository(),
-        localStorageService: _RecordingLocalStorageService(),
-      );
-      addTearDown(container.dispose);
-
-      container.read(authControllerProvider.notifier);
-      controller.state = AuthState.authenticated(
-        _hydratedUser(isEmailVerified: false),
-        emailVerified: false,
-      );
-
-      final result = await controller.refreshVerifiedEmailAccount();
-      await Future<void>.delayed(const Duration(milliseconds: 1));
-
-      expect(result, isTrue);
-      expect(controller.state, isA<AuthStateAuthenticated>());
-      expect(
-        (controller.state as AuthStateAuthenticated).emailVerified,
-        isTrue,
-      );
-      expect(
-        (controller.state as AuthStateAuthenticated).user.isEmailVerified,
-        isTrue,
-      );
-      expect(controller.signOutCalls, 0);
-    },
-  );
-
-  test(
-    'refreshVerifiedEmailAccount fail-closes when backend returns a different hydrated user',
-    () async {
-      final datasource = _MockUserApiDatasource()
-        ..currentUserResult = Result.success(
-          UserApiResponse.fromJson({
-            'id': 'user-2',
-            'email': 'seller@example.com',
-            'username': 'seller-two',
-            'account_status': 'active',
-            'roles': ['seller'],
-            'has_seller_profile': true,
-            'seller_subscription_status': 'active',
-            'has_market_authority': true,
-            'is_email_verified': true,
-            'created_at': '2026-06-01T00:00:00Z',
-            'updated_at': '2026-06-02T00:00:00Z',
-            'profile': {
-              'id': 'user-2',
-              'username': 'seller-two',
-              'bio': 'bio',
-              'avatar_url': 'https://example.com/avatar.png',
-              'followers_count': 1,
-              'following_count': 2,
-              'preferred_lang': 'en',
-            },
-          }),
-        );
-      final authAuth = _MockFirebaseAuth(
-        currentUserValue: _MockFirebaseUser(idToken: 'firebase-token'),
-      );
-      final userSyncService = UserSyncService(
-        firebaseAuth: authAuth,
-        datasource: datasource,
-        logger: _NoopLoggerService(),
-      );
-      final controller = _TestAuthController(
-        firebaseUser: _MockFirebaseUser(idToken: 'firebase-token'),
-      );
-      final container = _container(
-        controller: controller,
-        authRepository: _FailingAuthRepository(),
-        userSyncService: userSyncService,
-        logger: _NoopLoggerService(),
-        analyticsRepository: _NoopAnalyticsRepository(),
-        localStorageService: _RecordingLocalStorageService(),
-      );
-      addTearDown(container.dispose);
-
-      container.read(authControllerProvider.notifier);
-      controller.state = AuthState.authenticated(
-        _hydratedUser(isEmailVerified: false),
-        emailVerified: false,
-      );
-
-      final result = await controller.refreshVerifiedEmailAccount();
-      await Future<void>.delayed(const Duration(milliseconds: 1));
-
-      expect(result, isFalse);
-      expect(controller.signOutCalls, 1);
-      expect(controller.state, isA<AuthStateUnauthenticated>());
-    },
-  );
-
-  test(
-    'refreshVerifiedEmailAccount keeps authenticated authority on transient backend failure',
-    () async {
-      final datasource = _MockUserApiDatasource()
-        ..currentUserResult = Result.error(
-          'Backend unavailable',
-          statusCode: 503,
-        );
-      final authAuth = _MockFirebaseAuth(
-        currentUserValue: _MockFirebaseUser(idToken: 'firebase-token'),
-      );
-      final userSyncService = UserSyncService(
-        firebaseAuth: authAuth,
-        datasource: datasource,
-        logger: _NoopLoggerService(),
-      );
-      final controller = _TestAuthController(
-        firebaseUser: _MockFirebaseUser(idToken: 'firebase-token'),
-      );
-      final container = _container(
-        controller: controller,
-        authRepository: _FailingAuthRepository(),
-        userSyncService: userSyncService,
-        logger: _NoopLoggerService(),
-        analyticsRepository: _NoopAnalyticsRepository(),
-        localStorageService: _RecordingLocalStorageService(),
-      );
-      addTearDown(container.dispose);
-
-      container.read(authControllerProvider.notifier);
-      controller.state = AuthState.authenticated(
-        _hydratedUser(isEmailVerified: false),
-        emailVerified: false,
-      );
-
-      final result = await controller.refreshVerifiedEmailAccount();
-      await Future<void>.delayed(const Duration(milliseconds: 1));
-
-      expect(result, isFalse);
-      expect(controller.state, isA<AuthStateAuthenticated>());
-      expect(
-        (controller.state as AuthStateAuthenticated).user.isEmailVerified,
-        isFalse,
-      );
-      expect(controller.signOutCalls, 0);
-    },
-  );
-
-  test(
-    'refreshVerifiedEmailAccount fail-closes on deleted or invalid identity',
-    () async {
-      final datasource = _MockUserApiDatasource()
-        ..currentUserResult = Result.error(
-          'Account has been deleted',
-          code: 'ACCOUNT_DELETED',
-          statusCode: 403,
-        );
-      final authAuth = _MockFirebaseAuth(
-        currentUserValue: _MockFirebaseUser(idToken: 'firebase-token'),
-      );
-      final userSyncService = UserSyncService(
-        firebaseAuth: authAuth,
-        datasource: datasource,
-        logger: _NoopLoggerService(),
-      );
-      final controller = _TestAuthController(
-        firebaseUser: _MockFirebaseUser(idToken: 'firebase-token'),
-      );
-      final container = _container(
-        controller: controller,
-        authRepository: _FailingAuthRepository(),
-        userSyncService: userSyncService,
-        logger: _NoopLoggerService(),
-        analyticsRepository: _NoopAnalyticsRepository(),
-        localStorageService: _RecordingLocalStorageService(),
-      );
-      addTearDown(container.dispose);
-
-      container.read(authControllerProvider.notifier);
-      controller.state = AuthState.authenticated(
-        _hydratedUser(isEmailVerified: false),
-        emailVerified: false,
-      );
-
-      final result = await controller.refreshVerifiedEmailAccount();
-      await Future<void>.delayed(const Duration(milliseconds: 1));
-
-      expect(result, isFalse);
-      expect(controller.signOutCalls, 1);
-      expect(controller.state, isA<AuthStateUnauthenticated>());
     },
   );
 }

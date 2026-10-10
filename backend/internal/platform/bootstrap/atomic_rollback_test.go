@@ -5,11 +5,11 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/audit"
-	"github.com/labuda/backend/internal/platform/bootstrap"
-	capInfra "github.com/labuda/backend/internal/platform/capability/infrastructure/repository"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/testdb"
+	"github.com/hishumi/backend/internal/audit"
+	"github.com/hishumi/backend/internal/platform/bootstrap"
+	capInfra "github.com/hishumi/backend/internal/platform/capability/infrastructure/repository"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/testdb"
 	"github.com/stretchr/testify/require"
 )
 

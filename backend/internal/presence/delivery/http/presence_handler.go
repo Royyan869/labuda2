@@ -7,8 +7,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/presence"
-	"github.com/labuda/backend/internal/platform/response"
+	"github.com/hishumi/backend/internal/presence"
+	"github.com/hishumi/backend/internal/platform/response"
 	"go.uber.org/zap"
 )
 

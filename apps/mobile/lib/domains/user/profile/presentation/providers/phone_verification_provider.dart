@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/user/profile/data/services/phone_verification_service.dart'
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/user/profile/data/services/phone_verification_service.dart'
     show PhoneVerificationService;
 
 /// Unified state untuk phone verification (send + verify)

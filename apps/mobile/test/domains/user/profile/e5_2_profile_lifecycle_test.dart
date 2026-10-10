@@ -12,8 +12,8 @@
 
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:labuda/domains/user/profile/presentation/utils/profile_lifecycle_redaction.dart';
-import 'package:labuda/shared/governance/content_lifecycle.dart';
+import 'package:hishumi/domains/user/profile/presentation/utils/profile_lifecycle_redaction.dart';
+import 'package:hishumi/shared/governance/content_lifecycle.dart';
 
 void main() {
   group('E5.2 — ContentLifecycle parse from /users/:id identity.lifecycle', () {

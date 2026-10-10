@@ -6,8 +6,8 @@
 library;
 
 import 'package:freezed_annotation/freezed_annotation.dart';
-import 'package:labuda/domains/finance/wallet/coins/domain/entities/coin_balance.dart';
-import 'package:labuda/domains/finance/wallet/coins/domain/entities/coin_transaction.dart';
+import 'package:hishumi/domains/finance/wallet/coins/domain/entities/coin_balance.dart';
+import 'package:hishumi/domains/finance/wallet/coins/domain/entities/coin_transaction.dart';
 
 part 'coin_state.freezed.dart';
 

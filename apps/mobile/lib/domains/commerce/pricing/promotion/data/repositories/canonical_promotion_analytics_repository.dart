@@ -5,8 +5,8 @@
 /// authority projection (canonical_promotion_delivery_events).
 library;
 
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/commerce/pricing/promotion/data/dto/canonical_promotion_analytics_dto.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/commerce/pricing/promotion/data/dto/canonical_promotion_analytics_dto.dart';
 
 /// Abstract interface for canonical promotion analytics.
 abstract class CanonicalPromotionAnalyticsRepository {

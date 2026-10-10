@@ -1,7 +1,7 @@
-import 'package:labuda/core/api/api_client.dart';
-import 'package:labuda/core/src/interfaces/services/i_logger_service.dart';
-import 'package:labuda/domains/user/profile/data/models/blocked_user_model.dart';
-import 'package:labuda/domains/user/profile/data/services/user_lookup_service.dart';
+import 'package:hishumi/core/api/api_client.dart';
+import 'package:hishumi/core/src/interfaces/services/i_logger_service.dart';
+import 'package:hishumi/domains/user/profile/data/models/blocked_user_model.dart';
+import 'package:hishumi/domains/user/profile/data/services/user_lookup_service.dart';
 
 /// Service for managing blocked users.
 ///

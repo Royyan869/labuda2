@@ -5,9 +5,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	commerceshared "github.com/labuda/backend/internal/commerce/shared"
-	chatApp "github.com/labuda/backend/internal/interaction/chat/application"
-	chatEntity "github.com/labuda/backend/internal/interaction/chat/entity"
+	commerceshared "github.com/hishumi/backend/internal/commerce/shared"
+	chatApp "github.com/hishumi/backend/internal/interaction/chat/application"
+	chatEntity "github.com/hishumi/backend/internal/interaction/chat/entity"
 	"github.com/stretchr/testify/assert"
 )
 

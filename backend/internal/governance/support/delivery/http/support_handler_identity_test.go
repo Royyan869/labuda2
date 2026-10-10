@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	supportEntity "github.com/labuda/backend/internal/governance/support/entity"
+	supportEntity "github.com/hishumi/backend/internal/governance/support/entity"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/midtrans"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/midtrans"
 	"github.com/stretchr/testify/assert"
 )
 

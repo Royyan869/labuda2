@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	shippingQuoteApp "github.com/labuda/backend/internal/commerce/shipping/quote/application"
-	chatApp "github.com/labuda/backend/internal/interaction/chat/application"
+	shippingQuoteApp "github.com/hishumi/backend/internal/commerce/shipping/quote/application"
+	chatApp "github.com/hishumi/backend/internal/interaction/chat/application"
 )
 
 // shippingQuoteProjectionResolverAdapter implements

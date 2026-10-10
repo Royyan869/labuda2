@@ -3,8 +3,8 @@ package worker
 import (
 	"testing"
 
-	"github.com/labuda/backend/internal/platform/events"
-	"github.com/labuda/backend/internal/projection"
+	"github.com/hishumi/backend/internal/platform/events"
+	"github.com/hishumi/backend/internal/projection"
 )
 
 // ─── event classification ─────────────────────────────────────────────────────

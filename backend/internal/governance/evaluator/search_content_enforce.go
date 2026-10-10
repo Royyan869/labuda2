@@ -2,8 +2,8 @@ package evaluator
 
 import (
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/discovery/search/entity"
-	"github.com/labuda/backend/internal/governance/viewercontext"
+	"github.com/hishumi/backend/internal/discovery/search/entity"
+	"github.com/hishumi/backend/internal/governance/viewercontext"
 )
 
 // PHASE 3B — /search/content evaluator enforcement helper.

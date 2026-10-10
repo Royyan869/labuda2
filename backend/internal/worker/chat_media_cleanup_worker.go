@@ -30,8 +30,8 @@ import (
 	"sync"
 	"time"
 
-	chatEntity "github.com/labuda/backend/internal/interaction/chat/entity"
-	dbpkg "github.com/labuda/backend/pkg/db"
+	chatEntity "github.com/hishumi/backend/internal/interaction/chat/entity"
+	dbpkg "github.com/hishumi/backend/pkg/db"
 	"go.uber.org/zap"
 )
 

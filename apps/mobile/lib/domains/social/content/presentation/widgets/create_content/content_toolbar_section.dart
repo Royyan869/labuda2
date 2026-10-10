@@ -1,9 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:labuda/core/src/theme/app_theme.dart';
-import 'package:labuda/domains/social/content/presentation/widgets/content_toolbar_widget.dart';
-import 'package:labuda/core/media/media_upload_config.dart';
-import 'package:labuda/domains/social/content/presentation/widgets/create_content/content_event_handlers.dart';
+import 'package:hishumi/core/src/theme/app_theme.dart';
+import 'package:hishumi/domains/social/content/presentation/widgets/content_toolbar_widget.dart';
+import 'package:hishumi/core/media/media_upload_config.dart';
+import 'package:hishumi/domains/social/content/presentation/widgets/create_content/content_event_handlers.dart';
 
 /// Widget for post creation toolbar with keyboard-aware padding
 class ContentToolbarSection extends StatelessWidget {

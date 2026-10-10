@@ -2,8 +2,8 @@
 // Data Transfer Objects for Feed domain API communication
 
 import 'package:json_annotation/json_annotation.dart';
-import 'package:labuda/domains/social/content/domain/entities/content.dart';
-import 'package:labuda/shared/domain/entities/resource_projection.dart';
+import 'package:hishumi/domains/social/content/domain/entities/content.dart';
+import 'package:hishumi/shared/domain/entities/resource_projection.dart';
 
 part 'feed_dto.g.dart';
 

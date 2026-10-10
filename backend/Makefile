@@ -1,7 +1,7 @@
 .PHONY: help run build test test-integration-auth test-worker-sql-alignment coverage lint fmt clean docker-up docker-down
 
 # Variables
-APP_NAME=labuda-backend
+APP_NAME=hishumi-backend
 MAIN_PATH=./cmd/core_server
 BUILD_DIR=./bin
 
@@ -29,7 +29,7 @@ test: ## Run tests
 	@echo "$(COLOR_YELLOW)Running tests...$(COLOR_RESET)"
 	go test -v ./...
 
-test-integration-auth: ## Run auth integration tests (requires local Postgres with labuda_test database)
+test-integration-auth: ## Run auth integration tests (requires local Postgres with hishumi_test database)
 	@echo "$(COLOR_YELLOW)Running auth integration tests...$(COLOR_RESET)"
 	go test -tags integration -v -timeout 120s ./internal/identity/auth/delivery/http/...
 	@echo "$(COLOR_GREEN)Auth integration tests complete$(COLOR_RESET)"
@@ -99,4 +99,4 @@ deps: ## Download dependencies
 # Database commands
 
 db-connect: ## Connect to PostgreSQL
-	docker exec -it labuda-postgres psql -U labuda -d labuda
+	docker exec -it hishumi-postgres psql -U hishumi -d hishumi

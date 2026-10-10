@@ -28,7 +28,7 @@ class _CoinToggleSection extends ConsumerWidget {
       decoration: BoxDecoration(
         color: colorScheme.surface,
         borderRadius: BorderRadius.circular(AppShape.r12),
-        // Coin brand colour: Labuda Coins has no Material colour-scheme role.
+        // Coin brand colour: HiShumi Coins has no Material colour-scheme role.
         border: Border.all(
           color: AppColors.coinPrimary.withValues(alpha: 0.3),
           width: 1.5,
@@ -62,7 +62,7 @@ class _CoinToggleSection extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Gunakan Koin Labuda',
+                      'Gunakan Koin HiShumi',
                       style: context.typeRoles.titleSection.copyWith(
                         fontWeight: FontWeight.w600,
                       ),

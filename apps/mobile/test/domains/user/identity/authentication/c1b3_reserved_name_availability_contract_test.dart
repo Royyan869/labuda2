@@ -16,7 +16,7 @@
 // screen that collected the username.
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/shared/helpers/canonical_username_validator.dart';
+import 'package:hishumi/shared/helpers/canonical_username_validator.dart';
 
 void main() {
   group('C1B3 Reserved-name contract (backend = single authority)', () {

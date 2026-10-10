@@ -6,22 +6,22 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:labuda/core/common/types/preparation_time.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/commerce/catalog/auction/domain/domain.dart';
-import 'package:labuda/domains/commerce/catalog/auction/presentation/providers/auction_notifier.dart';
-import 'package:labuda/domains/commerce/catalog/auction/presentation/providers/auction_state.dart';
-import 'package:labuda/domains/commerce/catalog/auction/presentation/screens/create_auction_screen.dart';
-import 'package:labuda/domains/commerce/transaction/shipping/domain/domain.dart';
-import 'package:labuda/domains/commerce/transaction/shipping/presentation/providers/providers.dart';
-import 'package:labuda/domains/user/identity/authentication/domain/entities/account_status.dart';
-import 'package:labuda/domains/user/identity/authentication/domain/entities/seller_tier.dart';
-import 'package:labuda/domains/user/profile/data/profile_providers.dart'
+import 'package:hishumi/core/common/types/preparation_time.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/domain/domain.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/presentation/providers/auction_notifier.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/presentation/providers/auction_state.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/presentation/screens/create_auction_screen.dart';
+import 'package:hishumi/domains/commerce/transaction/shipping/domain/domain.dart';
+import 'package:hishumi/domains/commerce/transaction/shipping/presentation/providers/providers.dart';
+import 'package:hishumi/domains/user/identity/authentication/domain/entities/account_status.dart';
+import 'package:hishumi/domains/user/identity/authentication/domain/entities/seller_tier.dart';
+import 'package:hishumi/domains/user/profile/data/profile_providers.dart'
     show addressRepositoryProvider;
-import 'package:labuda/domains/user/profile/domain/entities/address_entity.dart';
-import 'package:labuda/domains/user/profile/domain/repositories/i_address_repository.dart';
-import 'package:labuda/shared/governance/content_lifecycle.dart';
-import 'package:labuda/shared/models/wilayah_models.dart';
+import 'package:hishumi/domains/user/profile/domain/entities/address_entity.dart';
+import 'package:hishumi/domains/user/profile/domain/repositories/i_address_repository.dart';
+import 'package:hishumi/shared/governance/content_lifecycle.dart';
+import 'package:hishumi/shared/models/wilayah_models.dart';
 
 class _FakeAuthController extends AuthController {
   _FakeAuthController(this._state);

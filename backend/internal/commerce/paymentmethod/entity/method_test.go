@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/labuda/backend/pkg/money"
+	"github.com/hishumi/backend/pkg/money"
 )
 
 func TestCalculateFee_Flat(t *testing.T) {

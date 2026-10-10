@@ -4,7 +4,7 @@
 library;
 
 import 'package:dio/dio.dart';
-import 'package:labuda/core/api/api_client.dart';
+import 'package:hishumi/core/api/api_client.dart';
 
 /// Verification status DTO from backend canonical response.
 ///

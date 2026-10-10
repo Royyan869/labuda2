@@ -4,10 +4,10 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/shared/domain/entities/resource_projection.dart';
-import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction.dart';
-import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_detail_primitives.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/shared/domain/entities/resource_projection.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/domain/entities/auction.dart';
+import 'package:hishumi/domains/commerce/catalog/shared/presentation/widgets/commerce_detail_primitives.dart';
 
 /// Bid section widget for auction detail
 class AuctionBidSection extends StatelessWidget {

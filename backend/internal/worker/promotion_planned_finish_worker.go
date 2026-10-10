@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	contractApp "github.com/labuda/backend/internal/pricing/promotion/contract/application"
+	contractApp "github.com/hishumi/backend/internal/pricing/promotion/contract/application"
 	"go.uber.org/zap"
 )
 

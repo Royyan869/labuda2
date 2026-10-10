@@ -2,21 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/core/src/router/modules/profile_module.dart';
-import 'package:labuda/domains/user/profile/data/profile_providers.dart';
-import 'package:labuda/domains/user/profile/data/services/avatar_upload_service.dart';
-import 'package:labuda/domains/user/profile/data/services/cover_photo_upload_service.dart';
-import 'package:labuda/domains/user/profile/domain/entities/profile_entity.dart';
-import 'package:labuda/domains/user/profile/domain/repositories/i_profile_repository.dart';
-import 'package:labuda/domains/user/profile/presentation/screens/personal_information_screen.dart';
-import 'package:labuda/domains/user/profile/presentation/screens/unified_edit_profile_screen.dart';
-import 'package:labuda/domains/user/identity/authentication/domain/entities/account_status.dart';
-import 'package:labuda/generated/app_localizations.dart';
-import 'package:labuda/domains/user/preference/seller/data/services/store_photo_upload_service.dart';
-import 'package:labuda/domains/user/preference/seller/data/seller_providers.dart'
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/core/src/router/modules/profile_module.dart';
+import 'package:hishumi/domains/user/profile/data/profile_providers.dart';
+import 'package:hishumi/domains/user/profile/data/services/avatar_upload_service.dart';
+import 'package:hishumi/domains/user/profile/data/services/cover_photo_upload_service.dart';
+import 'package:hishumi/domains/user/profile/domain/entities/profile_entity.dart';
+import 'package:hishumi/domains/user/profile/domain/repositories/i_profile_repository.dart';
+import 'package:hishumi/domains/user/profile/presentation/screens/personal_information_screen.dart';
+import 'package:hishumi/domains/user/profile/presentation/screens/unified_edit_profile_screen.dart';
+import 'package:hishumi/domains/user/identity/authentication/domain/entities/account_status.dart';
+import 'package:hishumi/generated/app_localizations.dart';
+import 'package:hishumi/domains/user/preference/seller/data/services/store_photo_upload_service.dart';
+import 'package:hishumi/domains/user/preference/seller/data/seller_providers.dart'
     show storePhotoUploadServiceProvider;
-import 'package:labuda/shared/governance/content_lifecycle.dart';
+import 'package:hishumi/shared/governance/content_lifecycle.dart';
 
 class _FakeAuthController extends AuthController {
   _FakeAuthController(this._state);

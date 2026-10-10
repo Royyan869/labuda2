@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/labuda/backend/internal/finance/infrastructure/repository"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/finance/infrastructure/repository"
+	"github.com/hishumi/backend/pkg/db"
 	"go.uber.org/zap"
 )
 

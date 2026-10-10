@@ -13,7 +13,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/commerce/auction/entity"
+	"github.com/hishumi/backend/internal/commerce/auction/entity"
 )
 
 // TestAdminCancel_EmptyReason_RejectsBeforeTouchingRepo proves the

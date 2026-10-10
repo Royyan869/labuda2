@@ -5,16 +5,19 @@
 // /welcome, and that private routes (orders, checkout, chat, etc.) are
 // still gated.
 //
-// Canonical terminology: the commerce discovery surface is For Sale
-// (routes /for-sale...). The legacy "forSale" route vocabulary (/forSale...)
-// is NOT registered anywhere in the router and is NOT public — guests
-// hitting it are redirected to /welcome like any unknown private location.
+// Canonical terminology: the public commerce DISCOVERY surface is the
+// Marketplace tab (For Sale + Auction). There is no standalone `/for-sale`
+// browse route anymore; the `/for-sale` prefix stays in the guest whitelist
+// only so the public DETAIL route `/for-sale/:id` remains guest-browsable.
+// The legacy "forSale" route vocabulary (/forSale...) is NOT registered
+// anywhere in the router and is NOT public — guests hitting it are
+// redirected to /welcome like any unknown private location.
 //
 // Uses the [handleAuthRedirectForTest] seam instead of a full GoRouter stack
 // to keep these tests fast and dependency-free.
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/core.dart';
+import 'package:hishumi/core/core.dart';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -40,9 +43,18 @@ void main() {
     // ------------------------------------------------------------------
     // Public browse routes: no redirect (null)
     // ------------------------------------------------------------------
-    test('1. /for-sale → no redirect (guest For Sale catalog)', () {
-      expect(_redirect('/for-sale'), isNull);
-    });
+    test(
+      '1. /for-sale prefix stays guest-allowed (for /for-sale/:id detail)',
+      () {
+        // The /for-sale browse route is gone (Marketplace is the sole public
+        // browse destination), but the /for-sale prefix must remain in the
+        // guest whitelist so the public DETAIL route /for-sale/:id stays
+        // guest-browsable. The exact /for-sale path has no registered route
+        // now and resolves to the router error page — the redirect guard
+        // itself is prefix-based and unchanged.
+        expect(_redirect('/for-sale'), isNull);
+      },
+    );
 
     test('2. /for-sale/:id → no redirect (guest For Sale detail)', () {
       expect(_redirect('/for-sale/some-for-sale-id'), isNull);
@@ -143,9 +155,9 @@ void main() {
     // Edge cases: exact-prefix collision guard
     // ------------------------------------------------------------------
     test('20. legacy /forSale vocabulary is NOT public browse → /welcome', () {
-      // Canonical commerce browse vocabulary is /for-sale. The legacy
-      // "forSale" route/prefix was removed; it must not be treated as a
-      // guest destination.
+      // The legacy "forSale" route/prefix was removed; it must not be treated
+      // as a guest destination. (The canonical /for-sale prefix remains in the
+      // whitelist only for the public /for-sale/:id detail route.)
       expect(_redirect('/forSale'), equals('/welcome'));
       expect(_redirect('/forSale/some-forSale-id'), equals('/welcome'));
     });

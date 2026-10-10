@@ -5,7 +5,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/shared/shared.dart'; // TODO: update;
+import 'package:hishumi/shared/shared.dart'; // TODO: update;
 
 class ProvinceDropdown extends ConsumerWidget {
   final Province? selectedProvince;

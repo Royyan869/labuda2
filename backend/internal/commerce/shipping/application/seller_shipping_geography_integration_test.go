@@ -7,11 +7,11 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	shippingEntity "github.com/labuda/backend/internal/commerce/shipping/entity"
-	shippingRepo "github.com/labuda/backend/internal/commerce/shipping/infrastructure/repository"
-	geography "github.com/labuda/backend/internal/platform/geography"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/testdb"
+	shippingEntity "github.com/hishumi/backend/internal/commerce/shipping/entity"
+	shippingRepo "github.com/hishumi/backend/internal/commerce/shipping/infrastructure/repository"
+	geography "github.com/hishumi/backend/internal/platform/geography"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/testdb"
 	"github.com/stretchr/testify/require"
 )
 

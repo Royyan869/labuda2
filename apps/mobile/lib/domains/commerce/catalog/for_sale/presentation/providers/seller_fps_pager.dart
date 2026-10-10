@@ -6,10 +6,10 @@ library;
 
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/commerce/catalog/for_sale/domain/domain.dart';
-import 'package:labuda/domains/commerce/catalog/for_sale/presentation/providers/for_sale_controller.dart';
-import 'package:labuda/domains/commerce/catalog/for_sale/presentation/providers/for_sale_providers.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/commerce/catalog/for_sale/domain/domain.dart';
+import 'package:hishumi/domains/commerce/catalog/for_sale/presentation/providers/for_sale_controller.dart';
+import 'package:hishumi/domains/commerce/catalog/for_sale/presentation/providers/for_sale_providers.dart';
 
 final sellerFPSPagerProvider =
     NotifierProvider.autoDispose<SellerFPSPagerController, SellerFPSPagerState>(

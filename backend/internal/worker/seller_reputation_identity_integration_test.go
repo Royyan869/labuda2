@@ -11,10 +11,10 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 
-	sellerRepo "github.com/labuda/backend/internal/commerce/seller/infrastructure/repository"
-	outboxRepo "github.com/labuda/backend/internal/platform/outbox/infrastructure/repository"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/testdb"
+	sellerRepo "github.com/hishumi/backend/internal/commerce/seller/infrastructure/repository"
+	outboxRepo "github.com/hishumi/backend/internal/platform/outbox/infrastructure/repository"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/testdb"
 )
 
 // TestReputationIdentity_ProfileKeyIsNotCommerceKey is the real-DB regression

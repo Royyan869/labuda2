@@ -37,12 +37,12 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/user/preference/seller/domain/entities/seller_earnings.dart';
-import 'package:labuda/domains/user/preference/seller/domain/entities/withdrawal.dart';
-import 'package:labuda/domains/user/preference/seller/presentation/providers/withdraw_notifier.dart';
-import 'package:labuda/domains/user/preference/seller/presentation/screens/seller_earnings_screen.dart';
-import 'package:labuda/domains/user/preference/seller/seller_di.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/user/preference/seller/domain/entities/seller_earnings.dart';
+import 'package:hishumi/domains/user/preference/seller/domain/entities/withdrawal.dart';
+import 'package:hishumi/domains/user/preference/seller/presentation/providers/withdraw_notifier.dart';
+import 'package:hishumi/domains/user/preference/seller/presentation/screens/seller_earnings_screen.dart';
+import 'package:hishumi/domains/user/preference/seller/seller_di.dart';
 
 const String _sellerId = 'seller-1';
 

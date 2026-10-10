@@ -4,14 +4,14 @@
 library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/system/report/data/data.dart';
-import 'package:labuda/domains/system/report/domain/repositories/report_repository.dart';
-import 'package:labuda/domains/system/report/domain/repositories/appeal_repository.dart';
-import 'package:labuda/domains/system/report/domain/repositories/warning_repository.dart';
-import 'package:labuda/domains/system/report/data/repositories/report_repository_impl.dart';
-import 'package:labuda/domains/system/report/data/repositories/appeal_repository_impl.dart';
-import 'package:labuda/domains/system/report/data/repositories/warning_repository_impl.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/system/report/data/data.dart';
+import 'package:hishumi/domains/system/report/domain/repositories/report_repository.dart';
+import 'package:hishumi/domains/system/report/domain/repositories/appeal_repository.dart';
+import 'package:hishumi/domains/system/report/domain/repositories/warning_repository.dart';
+import 'package:hishumi/domains/system/report/data/repositories/report_repository_impl.dart';
+import 'package:hishumi/domains/system/report/data/repositories/appeal_repository_impl.dart';
+import 'package:hishumi/domains/system/report/data/repositories/warning_repository_impl.dart';
 
 // =============================================================================
 // DATASOURCE PROVIDERS

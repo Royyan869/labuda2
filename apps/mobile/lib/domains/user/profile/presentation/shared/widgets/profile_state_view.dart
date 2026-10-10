@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
+import 'package:hishumi/core/core.dart';
 
 /// Profile state view for conditional rendering
 ///

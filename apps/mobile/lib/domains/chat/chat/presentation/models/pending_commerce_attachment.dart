@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:labuda/domains/chat/chat/data/dto/chat_resource_occurrence_request.dart';
+import 'package:hishumi/domains/chat/chat/data/dto/chat_resource_occurrence_request.dart';
 
 /// Canonical pending product attachment held by the Chat composer.
 ///

@@ -6,8 +6,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/labuda/backend/internal/pricing/discount/entity"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/pricing/discount/entity"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // DiscountRepositoryImpl implements DiscountRepository using PostgreSQL.

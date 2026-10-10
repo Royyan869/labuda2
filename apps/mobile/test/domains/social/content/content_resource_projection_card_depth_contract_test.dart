@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_marketplace_primitives.dart';
-import 'package:labuda/shared/domain/entities/resource_projection.dart';
-import 'package:labuda/domains/social/content/presentation/widgets/content_resource_projection_card.dart';
+import 'package:hishumi/domains/commerce/catalog/shared/presentation/widgets/commerce_marketplace_primitives.dart';
+import 'package:hishumi/shared/domain/entities/resource_projection.dart';
+import 'package:hishumi/domains/social/content/presentation/widgets/content_resource_projection_card.dart';
 
 Map<String, dynamic> _contentProjectionJson({
   String resourceId = 'content-b',

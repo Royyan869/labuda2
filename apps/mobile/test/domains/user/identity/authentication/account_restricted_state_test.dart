@@ -6,8 +6,8 @@
 // 3. AccountStatus predicates match expected restriction types
 // 4. ID1F: Mid-session restriction gate logic (validate + resume paths)
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/domains/user/identity/authentication/domain/entities/account_status.dart';
-import 'package:labuda/core/core.dart';
+import 'package:hishumi/domains/user/identity/authentication/domain/entities/account_status.dart';
+import 'package:hishumi/core/core.dart';
 
 /// Minimal AuthUser for testing — only accountStatus matters.
 AuthUser _testUser({AccountStatus? status}) {

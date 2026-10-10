@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/commerce/order/entity"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/commerce/order/entity"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // ErrDuplicatePricingToken is returned when an order with the same pricing_token_id already exists.

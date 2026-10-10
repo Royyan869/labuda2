@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:labuda/domains/commerce/pricing/discount/domain/entities/discount_entity.dart';
+import 'package:hishumi/domains/commerce/pricing/discount/domain/entities/discount_entity.dart';
 
 /// Result of discount validation
 class DiscountValidationResult extends Equatable {

@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/shared/shared.dart';
-import 'package:labuda/domains/user/profile/presentation/providers/profile_view_provider.dart';
-import 'package:labuda/domains/user/profile/domain/entities/profile_entity.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/shared/shared.dart';
+import 'package:hishumi/domains/user/profile/presentation/providers/profile_view_provider.dart';
+import 'package:hishumi/domains/user/profile/domain/entities/profile_entity.dart';
 // R4.3: Import providers instead of services directly
-import 'package:labuda/domains/user/profile/data/profile_providers.dart'
+import 'package:hishumi/domains/user/profile/data/profile_providers.dart'
     show avatarUploadServiceProvider, coverPhotoUploadServiceProvider;
 // R4.3: Type imports still needed for getter signatures
-import 'package:labuda/domains/user/profile/data/services/avatar_upload_service.dart';
-import 'package:labuda/domains/user/profile/data/services/cover_photo_upload_service.dart';
-import 'package:labuda/domains/user/preference/seller/data/seller_providers.dart'
+import 'package:hishumi/domains/user/profile/data/services/avatar_upload_service.dart';
+import 'package:hishumi/domains/user/profile/data/services/cover_photo_upload_service.dart';
+import 'package:hishumi/domains/user/preference/seller/data/seller_providers.dart'
     show storePhotoUploadServiceProvider;
-import 'package:labuda/domains/user/preference/seller/data/data.dart'
+import 'package:hishumi/domains/user/preference/seller/data/data.dart'
     show StorePhotoUploadService;
 import 'edit_profile/edit_profile_cover_section.dart';
 import 'edit_profile/edit_profile_avatar_section.dart';

@@ -17,13 +17,13 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/require"
 
-	forsaleapp "github.com/labuda/backend/internal/commerce/forsale/application"
-	idempotencyRepo "github.com/labuda/backend/internal/platform/idempotency/repository"
-	contentapp "github.com/labuda/backend/internal/social/content/application"
-	contententity "github.com/labuda/backend/internal/social/content/entity"
-	contentrepo "github.com/labuda/backend/internal/social/content/infrastructure/repository"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/testdb"
+	forsaleapp "github.com/hishumi/backend/internal/commerce/forsale/application"
+	idempotencyRepo "github.com/hishumi/backend/internal/platform/idempotency/repository"
+	contentapp "github.com/hishumi/backend/internal/social/content/application"
+	contententity "github.com/hishumi/backend/internal/social/content/entity"
+	contentrepo "github.com/hishumi/backend/internal/social/content/infrastructure/repository"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/testdb"
 	"go.uber.org/zap"
 )
 

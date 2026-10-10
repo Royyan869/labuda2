@@ -11,7 +11,7 @@ package application
 import (
 	"testing"
 
-	"github.com/labuda/backend/pkg/midtrans"
+	"github.com/hishumi/backend/pkg/midtrans"
 	"github.com/stretchr/testify/assert"
 )
 

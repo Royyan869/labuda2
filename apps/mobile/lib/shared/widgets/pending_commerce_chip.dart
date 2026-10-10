@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/shared/domain/entities/resource_projection.dart';
-import 'package:labuda/shared/widgets/app_image.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/shared/domain/entities/resource_projection.dart';
+import 'package:hishumi/shared/widgets/app_image.dart';
 
 /// Canonical pre-send commerce chip.
 ///

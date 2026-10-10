@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:labuda/core/core.dart';
+import 'package:hishumi/core/core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/generated/app_localizations.dart';
+import 'package:hishumi/generated/app_localizations.dart';
 
 class SettingsSupportSection extends ConsumerWidget {
   final Function(String) onNavigate;
@@ -53,7 +53,7 @@ class SettingsSupportSection extends ConsumerWidget {
         ),
         _buildSettingsTile(
           icon: Icons.info_outline,
-          title: l10n.aboutLABUDA,
+          title: l10n.aboutHiShumi,
           subtitle: l10n.appVersionInformation,
           onTap: () => onNavigate('about'),
           scheme: scheme,

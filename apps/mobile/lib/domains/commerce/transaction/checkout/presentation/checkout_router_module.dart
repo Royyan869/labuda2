@@ -1,8 +1,8 @@
 import 'package:go_router/go_router.dart';
-import 'package:labuda/core/src/router/modules/base_module.dart';
-import 'package:labuda/core/src/router/route_paths.dart';
-import 'package:labuda/domains/commerce/transaction/checkout/checkout.dart';
-import 'package:labuda/domains/finance/transaction/payment/presentation/screens/payment_webview_screen.dart';
+import 'package:hishumi/core/src/router/modules/base_module.dart';
+import 'package:hishumi/core/src/router/route_paths.dart';
+import 'package:hishumi/domains/commerce/transaction/checkout/checkout.dart';
+import 'package:hishumi/domains/finance/transaction/payment/presentation/screens/payment_webview_screen.dart';
 
 /// Checkout Module - Transaction flow routes
 ///

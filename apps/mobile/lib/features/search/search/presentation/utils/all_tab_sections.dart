@@ -1,4 +1,4 @@
-import 'package:labuda/features/search/search/domain/entities/search_result.dart';
+import 'package:hishumi/features/search/search/domain/entities/search_result.dart';
 
 /// SECTION-BASED ALL (canonical): All Tab is an overview multi-domain
 /// projection, NOT a global cross-domain ranking engine.

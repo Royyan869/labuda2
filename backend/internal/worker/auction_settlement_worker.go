@@ -7,12 +7,12 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	auctionApp "github.com/labuda/backend/internal/commerce/auction/application"
-	"github.com/labuda/backend/internal/commerce/auction/entity"
-	auctionRepo "github.com/labuda/backend/internal/commerce/auction/infrastructure/repository"
-	commercegov "github.com/labuda/backend/internal/commerce/governance/commercegov"
-	outboxrepo "github.com/labuda/backend/internal/platform/outbox/infrastructure/repository"
-	"github.com/labuda/backend/pkg/db"
+	auctionApp "github.com/hishumi/backend/internal/commerce/auction/application"
+	"github.com/hishumi/backend/internal/commerce/auction/entity"
+	auctionRepo "github.com/hishumi/backend/internal/commerce/auction/infrastructure/repository"
+	commercegov "github.com/hishumi/backend/internal/commerce/governance/commercegov"
+	outboxrepo "github.com/hishumi/backend/internal/platform/outbox/infrastructure/repository"
+	"github.com/hishumi/backend/pkg/db"
 	"go.uber.org/zap"
 )
 

@@ -19,10 +19,10 @@
 // The original 320 x 1.3 case is pinned explicitly.
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/interfaces/i_notification_trigger.dart';
-import 'package:labuda/core/src/theme/app_theme.dart';
-import 'package:labuda/domains/system/notification/domain/entities/notification_entity.dart';
-import 'package:labuda/domains/system/notification/presentation/widgets/notification_item_widget.dart';
+import 'package:hishumi/core/interfaces/i_notification_trigger.dart';
+import 'package:hishumi/core/src/theme/app_theme.dart';
+import 'package:hishumi/domains/system/notification/domain/entities/notification_entity.dart';
+import 'package:hishumi/domains/system/notification/presentation/widgets/notification_item_widget.dart';
 
 const List<double> _widths = <double>[320, 360, 412, 500];
 const List<double> _scales = <double>[1.0, 1.3, 2.0];

@@ -1,4 +1,4 @@
-import 'package:labuda/core/config/seller_upgrade_config.dart';
+import 'package:hishumi/core/config/seller_upgrade_config.dart';
 
 /// Entity representing seller upgrade configuration
 ///

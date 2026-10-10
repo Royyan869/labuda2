@@ -9,11 +9,11 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/labuda/backend/internal/governance/viewercontext"
-	"github.com/labuda/backend/internal/pkg/publiccard"
-	contentApp "github.com/labuda/backend/internal/social/content/application"
-	"github.com/labuda/backend/internal/social/content/entity"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/governance/viewercontext"
+	"github.com/hishumi/backend/internal/pkg/publiccard"
+	contentApp "github.com/hishumi/backend/internal/social/content/application"
+	"github.com/hishumi/backend/internal/social/content/entity"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 type strictBindJSONErrorRow struct {

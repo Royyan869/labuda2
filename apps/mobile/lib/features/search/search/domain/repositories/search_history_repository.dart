@@ -1,5 +1,5 @@
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/features/search/search/domain/entities/search_history.dart';
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/features/search/search/domain/entities/search_history.dart';
 
 /// Repository interface for search history operations
 abstract interface class SearchHistoryRepository {

@@ -10,9 +10,9 @@
 
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:labuda/domains/commerce/transaction/order/domain/entities/order_status.dart';
-import 'package:labuda/domains/commerce/transaction/order/data/mappers/order_mapper.dart';
-import 'package:labuda/domains/commerce/transaction/order/data/models/api/order_api_response_dtos.dart';
+import 'package:hishumi/domains/commerce/transaction/order/domain/entities/order_status.dart';
+import 'package:hishumi/domains/commerce/transaction/order/data/mappers/order_mapper.dart';
+import 'package:hishumi/domains/commerce/transaction/order/data/models/api/order_api_response_dtos.dart';
 
 void main() {
   // =========================================================================

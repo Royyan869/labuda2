@@ -5,12 +5,12 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	auctionEntity "github.com/labuda/backend/internal/commerce/auction/entity"
-	forsaleEntity "github.com/labuda/backend/internal/commerce/forsale/entity"
-	productEntity "github.com/labuda/backend/internal/commerce/product/entity"
-	shippingQuoteEntity "github.com/labuda/backend/internal/commerce/shipping/quote/entity"
-	chatvalidator "github.com/labuda/backend/internal/interaction/chat/attachmentvalidator"
-	"github.com/labuda/backend/pkg/money"
+	auctionEntity "github.com/hishumi/backend/internal/commerce/auction/entity"
+	forsaleEntity "github.com/hishumi/backend/internal/commerce/forsale/entity"
+	productEntity "github.com/hishumi/backend/internal/commerce/product/entity"
+	shippingQuoteEntity "github.com/hishumi/backend/internal/commerce/shipping/quote/entity"
+	chatvalidator "github.com/hishumi/backend/internal/interaction/chat/attachmentvalidator"
+	"github.com/hishumi/backend/pkg/money"
 )
 
 func TestBuildShippingQuoteAttachmentJSON_Canonical(t *testing.T) {

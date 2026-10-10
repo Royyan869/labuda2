@@ -13,8 +13,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/labuda/backend/internal/integration/payment/infrastructure/repository"
-	"github.com/labuda/backend/pkg/midtrans"
+	"github.com/hishumi/backend/internal/integration/payment/infrastructure/repository"
+	"github.com/hishumi/backend/pkg/midtrans"
 )
 
 // TestWebhookEventIsReprocessable pins the idempotency semantic that makes

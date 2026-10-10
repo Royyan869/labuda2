@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/presence"
-	"github.com/labuda/backend/pkg/rate"
+	"github.com/hishumi/backend/internal/presence"
+	"github.com/hishumi/backend/pkg/rate"
 	"go.uber.org/zap"
 	"golang.org/x/net/websocket"
 )

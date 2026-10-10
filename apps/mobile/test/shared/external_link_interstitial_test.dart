@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/shared/widgets/external_link_interstitial.dart';
+import 'package:hishumi/shared/widgets/external_link_interstitial.dart';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -129,7 +129,7 @@ void main() {
       // Dialog title
       expect(find.text('Buka tautan eksternal?'), findsOneWidget);
       // Warning text
-      expect(find.textContaining('meninggalkan Labuda'), findsOneWidget);
+      expect(find.textContaining('meninggalkan HiShumi'), findsOneWidget);
       // Destination domain visible (appears in both host row and full URL text)
       expect(find.textContaining('shop.example.com'), findsAtLeastNWidgets(1));
       // Full URL visible (may be ellipsized but widget exists)

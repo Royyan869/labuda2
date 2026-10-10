@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/features/home/presentation/screens/home_screen.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/features/home/presentation/screens/home_screen.dart';
 
 /// Register Home tab to navigation registry
 ///

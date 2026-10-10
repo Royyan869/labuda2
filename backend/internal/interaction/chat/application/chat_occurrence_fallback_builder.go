@@ -6,8 +6,8 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	chatEntity "github.com/labuda/backend/internal/interaction/chat/entity"
-	"github.com/labuda/backend/pkg/db"
+	chatEntity "github.com/hishumi/backend/internal/interaction/chat/entity"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // OccurrenceFallbackBuilders produces server-built immutable fallback snapshots

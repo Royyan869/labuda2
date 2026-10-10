@@ -13,10 +13,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/middleware"
-	"github.com/labuda/backend/internal/platform/response"
-	contractApp "github.com/labuda/backend/internal/pricing/promotion/contract/application"
-	contractEntity "github.com/labuda/backend/internal/pricing/promotion/contract/entity"
+	"github.com/hishumi/backend/internal/middleware"
+	"github.com/hishumi/backend/internal/platform/response"
+	contractApp "github.com/hishumi/backend/internal/pricing/promotion/contract/application"
+	contractEntity "github.com/hishumi/backend/internal/pricing/promotion/contract/entity"
 	"go.uber.org/zap"
 )
 

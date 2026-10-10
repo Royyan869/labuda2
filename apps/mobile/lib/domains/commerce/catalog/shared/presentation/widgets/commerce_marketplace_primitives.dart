@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_marketplace_metrics.dart';
-import 'package:labuda/domains/social/content/domain/entities/content.dart';
-import 'package:labuda/shared/widgets/app_image.dart';
-import 'package:labuda/shared/widgets/empty_state.dart';
-import 'package:labuda/shared/widgets/loading_indicator.dart';
-import 'package:labuda/shared/widgets/page_error_state.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/commerce/catalog/shared/presentation/widgets/commerce_marketplace_metrics.dart';
+import 'package:hishumi/domains/social/content/domain/entities/content.dart';
+import 'package:hishumi/shared/widgets/app_image.dart';
+import 'package:hishumi/shared/widgets/empty_state.dart';
+import 'package:hishumi/shared/widgets/loading_indicator.dart';
+import 'package:hishumi/shared/widgets/page_error_state.dart';
 
 /// CANONICAL public commerce grid (2 columns): every marketplace surface
 /// renders through this widget with the shared empty/error vocabulary.

@@ -3,9 +3,9 @@ package http
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/labuda/backend/internal/middleware"
-	"github.com/labuda/backend/internal/platform/capability/application"
-	"github.com/labuda/backend/internal/platform/response"
+	"github.com/hishumi/backend/internal/middleware"
+	"github.com/hishumi/backend/internal/platform/capability/application"
+	"github.com/hishumi/backend/internal/platform/response"
 )
 
 // CapabilityHandler handles HTTP requests for capability management.

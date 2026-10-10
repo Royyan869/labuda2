@@ -14,11 +14,11 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	contentapp "github.com/labuda/backend/internal/social/content/application"
-	contentrepo "github.com/labuda/backend/internal/social/content/infrastructure/repository"
-	idempotencyRepo "github.com/labuda/backend/internal/platform/idempotency/repository"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/testdb"
+	contentapp "github.com/hishumi/backend/internal/social/content/application"
+	contentrepo "github.com/hishumi/backend/internal/social/content/infrastructure/repository"
+	idempotencyRepo "github.com/hishumi/backend/internal/platform/idempotency/repository"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/testdb"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 )

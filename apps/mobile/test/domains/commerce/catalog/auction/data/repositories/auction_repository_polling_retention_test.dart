@@ -2,13 +2,13 @@ import 'dart:collection';
 
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/commerce/catalog/auction/data/repositories/auction_repository_impl.dart';
-import 'package:labuda/domains/commerce/catalog/auction/data/remote/auction_remote_datasource.dart';
-import 'package:labuda/domains/commerce/catalog/auction/domain/domain.dart';
-import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction_media_identity.dart';
-import 'package:labuda/domains/social/content/domain/entities/content.dart';
-import 'package:labuda/shared/governance/content_lifecycle.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/data/repositories/auction_repository_impl.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/data/remote/auction_remote_datasource.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/domain/domain.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/domain/entities/auction_media_identity.dart';
+import 'package:hishumi/domains/social/content/domain/entities/content.dart';
+import 'package:hishumi/shared/governance/content_lifecycle.dart';
 
 class _NoopLogger implements ILoggerService {
   Future<Result<void>> _ok() async => Result.success(null);

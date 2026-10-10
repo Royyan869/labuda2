@@ -13,9 +13,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/social/content/presentation/widgets/content_engagement_actions.dart';
-import 'package:labuda/domains/user/identity/authentication/presentation/providers/auth_controller.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/social/content/presentation/widgets/content_engagement_actions.dart';
+import 'package:hishumi/domains/user/identity/authentication/presentation/providers/auth_controller.dart';
 
 import '../../support/geometry_authority_gate.dart';
 import '../../support/theme_authority_gate.dart';

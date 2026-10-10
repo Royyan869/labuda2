@@ -3,23 +3,21 @@
 <plist version="1.0">
 <dict>
 	<key>CLIENT_ID</key>
-	<string>883544146901-jjtd1au2p4hktt7mgq9tepu4gorgctlh.apps.googleusercontent.com</string>
+	<string>1079914053843-l7u7munvo067nce4t9muf4dm02lkfulr.apps.googleusercontent.com</string>
 	<key>REVERSED_CLIENT_ID</key>
-	<string>com.googleusercontent.apps.883544146901-jjtd1au2p4hktt7mgq9tepu4gorgctlh</string>
-	<key>ANDROID_CLIENT_ID</key>
-	<string>883544146901-b8cuqaf549ch9l269g73qtftr9juq6ft.apps.googleusercontent.com</string>
+	<string>com.googleusercontent.apps.1079914053843-l7u7munvo067nce4t9muf4dm02lkfulr</string>
 	<key>API_KEY</key>
-	<string>AIzaSyCzMgnWF-YnyYxF1_Ha3THszw8DJ7h7Yik</string>
+	<string>AIzaSyDLbml4CB04FVUj3fsQjZn3rSUdNXQGRRM</string>
 	<key>GCM_SENDER_ID</key>
-	<string>883544146901</string>
+	<string>1079914053843</string>
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.labuda.app.labuda</string>
+	<string>com.hishumi.app</string>
 	<key>PROJECT_ID</key>
-	<string>labuda-79de2</string>
+	<string>hishumi</string>
 	<key>STORAGE_BUCKET</key>
-	<string>labuda-79de2.firebasestorage.app</string>
+	<string>hishumi.firebasestorage.app</string>
 	<key>IS_ADS_ENABLED</key>
 	<false></false>
 	<key>IS_ANALYTICS_ENABLED</key>
@@ -31,6 +29,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:883544146901:ios:33b4631274b2eb26faf35c</string>
+	<string>1:1079914053843:ios:1399ad098cdce6c2e15426</string>
 </dict>
 </plist>

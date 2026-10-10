@@ -268,10 +268,13 @@ func Load() (*Config, error) {
 			WriteTimeout: getDurationEnv("SERVER_WRITE_TIMEOUT", 30) * time.Second,
 		},
 		Database: DatabaseConfig{
-			Host:            getEnv("DB_HOST", "localhost"),
-			Port:            getEnv("DB_PORT", "5432"),
-			User:            getEnv("DB_USER", "labuda"),
-			Password:        getEnv("DB_PASSWORD", "labuda123"),
+		Host:            getEnv("DB_HOST", "localhost"),
+		Port:            getEnv("DB_PORT", "5432"),
+		User:            getEnv("DB_USER", "hishumi"),
+		// No silent weak default: DB_PASSWORD must be set explicitly per
+		// environment (H.4.4-B). Load() fails closed when it is missing or
+		// still a well-known insecure placeholder.
+		Password:        getEnv("DB_PASSWORD", ""),
 			Name:            getEnv("DB_NAME", ""), // No default - MUST be set
 			SSLMode:         getEnv("DB_SSLMODE", "disable"),
 			// Pool sizing. Defaults leave headroom below a typical local
@@ -281,8 +284,8 @@ func Load() (*Config, error) {
 			MaxConnections: getIntEnv("DB_MAX_CONNECTIONS", 10),
 			MinConnections: getIntEnv("DB_MIN_CONNECTIONS", 2),
 			ConnMaxLifetime: getDurationEnv("DB_CONN_MAX_LIFETIME", 1800) * time.Second,
-			// Test database defaults to same host with different database name
-			TestName:     getEnv("DB_TEST_NAME", "labuda_test"),
+		// Test database defaults to same host with different database name
+		TestName:     getEnv("DB_TEST_NAME", "hishumi_test"),
 			TestHost:     getEnv("DB_TEST_HOST", ""),
 			TestPort:     getEnv("DB_TEST_PORT", ""),
 			TestUser:     getEnv("DB_TEST_USER", ""),
@@ -330,7 +333,7 @@ func Load() (*Config, error) {
 			Burst:             getIntEnv("RATE_LIMIT_BURST", 200),
 		},
 		App: AppConfig{
-			Name:        getEnv("APP_NAME", "Labuda Backend"),
+			Name:        getEnv("APP_NAME", "HiShumi Backend"),
 			Version:     getEnv("APP_VERSION", "0.1.0"),
 			FrontendURL: getEnv("FRONTEND_URL", "http://localhost:3000"),
 		},
@@ -387,7 +390,44 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("DB_NAME is required but not set. Please set DB_NAME environment variable")
 	}
 
+	// FAIL-CLOSED VALIDATION (H.4.4-B): database password must be explicit.
+	// There is no silent weak default: a missing password or a well-known
+	// insecure placeholder refuses to boot instead of connecting with a
+	// guessable credential.
+	if err := validateDatabasePassword(config.Database.Password); err != nil {
+		return nil, err
+	}
+
 	return config, nil
+}
+
+// insecureDatabasePasswordPlaceholders are well-known insecure values that
+// must never be accepted as an explicit DB_PASSWORD (case-insensitive).
+// Explicitly configured values (including credentials already deployed to an
+// existing local database) keep working; rotation to a strong value happens
+// when the operator recreates the development/test databases.
+var insecureDatabasePasswordPlaceholders = map[string]struct{}{
+	"changeme":  {},
+	"change_me": {},
+	"change-me": {},
+	"change me": {},
+	"change_me_this_is_not_secure": {},
+	"password":  {},
+	"postgres":  {},
+}
+
+// validateDatabasePassword rejects a missing or placeholder database
+// password. The offending value is never included in the error so secrets
+// cannot leak through logs.
+func validateDatabasePassword(password string) error {
+	trimmed := strings.TrimSpace(password)
+	if trimmed == "" {
+		return fmt.Errorf("DB_PASSWORD is required but not set. Please set DB_PASSWORD environment variable explicitly per environment")
+	}
+	if _, blocked := insecureDatabasePasswordPlaceholders[strings.ToLower(trimmed)]; blocked {
+		return fmt.Errorf("DB_PASSWORD uses a well-known insecure placeholder. Set an explicit per-environment DB_PASSWORD (see backend/.env.example)")
+	}
+	return nil
 }
 
 // IsDevelopment returns true if running in development environment

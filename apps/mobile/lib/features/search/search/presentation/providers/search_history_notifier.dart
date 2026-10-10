@@ -1,8 +1,8 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'providers.dart';
 import 'search_history_state.dart';
-import 'package:labuda/features/search/search/domain/entities/search_history.dart';
-import 'package:labuda/features/search/search/domain/repositories/search_history_repository.dart';
+import 'package:hishumi/features/search/search/domain/entities/search_history.dart';
+import 'package:hishumi/features/search/search/domain/repositories/search_history_repository.dart';
 
 part 'search_history_notifier.g.dart';
 

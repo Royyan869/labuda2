@@ -4,7 +4,7 @@
 /// Backend endpoint: POST /api/v1/pricing/preview
 library;
 
-import 'package:labuda/domains/commerce/pricing/pricing_preview/domain/entities/pricing_snapshot.dart';
+import 'package:hishumi/domains/commerce/pricing/pricing_preview/domain/entities/pricing_snapshot.dart';
 
 /// Pricing Preview Response DTO
 ///

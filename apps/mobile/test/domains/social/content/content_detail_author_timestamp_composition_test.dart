@@ -26,22 +26,22 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/social/content/data/content_providers.dart'
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/social/content/data/content_providers.dart'
     show contentRepositoryProvider;
-import 'package:labuda/domains/social/content/domain/entities/content.dart';
-import 'package:labuda/domains/social/content/domain/repositories/content_repository.dart';
-import 'package:labuda/domains/social/content/presentation/screens/content_detail_screen.dart';
-import 'package:labuda/domains/social/like/domain/entities/like.dart';
-import 'package:labuda/domains/social/like/domain/repositories/like_repository.dart';
-import 'package:labuda/domains/social/like/presentation/providers/like_notifier.dart'
+import 'package:hishumi/domains/social/content/domain/entities/content.dart';
+import 'package:hishumi/domains/social/content/domain/repositories/content_repository.dart';
+import 'package:hishumi/domains/social/content/presentation/screens/content_detail_screen.dart';
+import 'package:hishumi/domains/social/like/domain/entities/like.dart';
+import 'package:hishumi/domains/social/like/domain/repositories/like_repository.dart';
+import 'package:hishumi/domains/social/like/presentation/providers/like_notifier.dart'
     show likeRepositoryProvider;
-import 'package:labuda/domains/system/shared/domain/services/time_format_service.dart';
-import 'package:labuda/domains/user/profile/data/datasources/user_api_datasource.dart';
-import 'package:labuda/domains/user/profile/data/profile_providers.dart'
+import 'package:hishumi/domains/system/shared/domain/services/time_format_service.dart';
+import 'package:hishumi/domains/user/profile/data/datasources/user_api_datasource.dart';
+import 'package:hishumi/domains/user/profile/data/profile_providers.dart'
     show avatarCacheServiceProvider;
-import 'package:labuda/domains/user/profile/data/services/avatar_cache_service.dart';
-import 'package:labuda/domains/user/profile/presentation/providers/user_data_provider.dart'
+import 'package:hishumi/domains/user/profile/data/services/avatar_cache_service.dart';
+import 'package:hishumi/domains/user/profile/presentation/providers/user_data_provider.dart'
     show userDataProvider;
 
 const List<double> _widths = <double>[320, 360, 412, 500];

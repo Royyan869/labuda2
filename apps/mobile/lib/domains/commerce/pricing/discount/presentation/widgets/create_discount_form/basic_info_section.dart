@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart' as core;
-import 'package:labuda/core/src/theme/app_theme.dart';
-import 'package:labuda/shared/widgets/app_text_field.dart';
+import 'package:hishumi/core/core.dart' as core;
+import 'package:hishumi/core/src/theme/app_theme.dart';
+import 'package:hishumi/shared/widgets/app_text_field.dart';
 
 /// Section untuk basic info discount (kode & deskripsi)
 class BasicInfoSection extends StatefulWidget {

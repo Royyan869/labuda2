@@ -2,10 +2,10 @@ import 'dart:collection';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/api/api_client.dart';
-import 'package:labuda/domains/commerce/pricing/promotion/data/dto/external_product_dto.dart';
-import 'package:labuda/domains/commerce/pricing/promotion/data/repositories/external_product_repository.dart';
-import 'package:labuda/domains/commerce/pricing/promotion/domain/entities/external_product_review_status.dart';
+import 'package:hishumi/core/api/api_client.dart';
+import 'package:hishumi/domains/commerce/pricing/promotion/data/dto/external_product_dto.dart';
+import 'package:hishumi/domains/commerce/pricing/promotion/data/repositories/external_product_repository.dart';
+import 'package:hishumi/domains/commerce/pricing/promotion/domain/entities/external_product_review_status.dart';
 
 class _MapResponse<T> extends Response<T> with MapMixin<String, dynamic> {
   final Map<String, dynamic> _map;

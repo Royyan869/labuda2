@@ -1,6 +1,6 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:labuda/domains/social/follow/domain/entities/follow_entity.dart';
-import 'package:labuda/domains/social/follow/domain/use_cases/providers/use_case_providers.dart';
+import 'package:hishumi/domains/social/follow/domain/entities/follow_entity.dart';
+import 'package:hishumi/domains/social/follow/domain/use_cases/providers/use_case_providers.dart';
 
 part 'follow_search_provider.g.dart';
 

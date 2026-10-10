@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/generated/app_localizations.dart';
-import 'package:labuda/domains/chat/chat/data/dto/message_dto.dart';
-import 'package:labuda/domains/chat/chat/data/mappers/chat_mapper.dart';
-import 'package:labuda/domains/chat/chat/domain/entities/chat_entities.dart';
-import 'package:labuda/domains/chat/chat/presentation/widgets/message_bubble.dart';
-import 'package:labuda/shared/attachment/entities/share_reference.dart';
-import 'package:labuda/shared/governance/content_lifecycle.dart';
+import 'package:hishumi/generated/app_localizations.dart';
+import 'package:hishumi/domains/chat/chat/data/dto/message_dto.dart';
+import 'package:hishumi/domains/chat/chat/data/mappers/chat_mapper.dart';
+import 'package:hishumi/domains/chat/chat/domain/entities/chat_entities.dart';
+import 'package:hishumi/domains/chat/chat/presentation/widgets/message_bubble.dart';
+import 'package:hishumi/shared/attachment/entities/share_reference.dart';
+import 'package:hishumi/shared/governance/content_lifecycle.dart';
 
 void main() {
   group('CHAT_DOMAIN_PASS_15 hidden contract', () {

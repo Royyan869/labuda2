@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/labuda/backend/internal/platform/s3presign"
+	"github.com/hishumi/backend/internal/platform/s3presign"
 )
 
 // Config controls how media references are projected for read paths.

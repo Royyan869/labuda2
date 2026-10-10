@@ -35,11 +35,11 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/labuda/backend/internal/config"
-	"github.com/labuda/backend/internal/integration/payment/application/recon"
-	"github.com/labuda/backend/internal/integration/payment/application/recon/audit"
-	"github.com/labuda/backend/pkg/database"
-	"github.com/labuda/backend/internal/platform/logger"
+	"github.com/hishumi/backend/internal/config"
+	"github.com/hishumi/backend/internal/integration/payment/application/recon"
+	"github.com/hishumi/backend/internal/integration/payment/application/recon/audit"
+	"github.com/hishumi/backend/pkg/database"
+	"github.com/hishumi/backend/internal/platform/logger"
 )
 
 type flags struct {

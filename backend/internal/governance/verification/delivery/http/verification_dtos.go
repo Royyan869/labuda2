@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	verificationEntity "github.com/labuda/backend/internal/governance/verification/entity"
+	verificationEntity "github.com/hishumi/backend/internal/governance/verification/entity"
 )
 
 // ============================================================================

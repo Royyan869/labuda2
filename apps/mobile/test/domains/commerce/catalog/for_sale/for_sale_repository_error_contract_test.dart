@@ -1,11 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/api/api_client.dart';
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/core/src/interfaces/services/i_logger_service.dart';
-import 'package:labuda/domains/commerce/catalog/for_sale/data/dto/for_sale_dto.dart';
-import 'package:labuda/domains/commerce/catalog/for_sale/data/repositories/for_sale_repository_impl.dart';
-import 'package:labuda/domains/commerce/catalog/for_sale/data/remote/for_sale_remote_datasource.dart';
-import 'package:labuda/domains/commerce/catalog/for_sale/domain/domain.dart';
+import 'package:hishumi/core/api/api_client.dart';
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/core/src/interfaces/services/i_logger_service.dart';
+import 'package:hishumi/domains/commerce/catalog/for_sale/data/dto/for_sale_dto.dart';
+import 'package:hishumi/domains/commerce/catalog/for_sale/data/repositories/for_sale_repository_impl.dart';
+import 'package:hishumi/domains/commerce/catalog/for_sale/data/remote/for_sale_remote_datasource.dart';
+import 'package:hishumi/domains/commerce/catalog/for_sale/domain/domain.dart';
 
 class _NoOpLogger implements ILoggerService {
   @override

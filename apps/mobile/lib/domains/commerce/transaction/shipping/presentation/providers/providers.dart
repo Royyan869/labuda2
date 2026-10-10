@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/core/providers/core_providers.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/core/providers/core_providers.dart';
 import 'shipping_notifier.dart';
 import 'shipping_state.dart';
 import '../../data/data.dart';

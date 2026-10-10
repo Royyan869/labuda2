@@ -1,6 +1,6 @@
 library;
 
-import 'package:labuda/generated/app_localizations.dart';
+import 'package:hishumi/generated/app_localizations.dart';
 
 /// Mechanical `label_key → AppLocalizations` resolver for Order Actions.
 ///

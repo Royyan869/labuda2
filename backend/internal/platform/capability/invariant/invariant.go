@@ -27,7 +27,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/labuda/backend/internal/platform/capability"
+	"github.com/hishumi/backend/internal/platform/capability"
 )
 
 // ErrLastFullAccessAdmin is returned when a mutation would leave the system

@@ -10,7 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
-	"github.com/labuda/backend/pkg/testdb"
+	"github.com/hishumi/backend/pkg/testdb"
 )
 
 func TestMigration000041_DropsLegacyContentShareReferenceAndKeepsOccurrenceAuthority(t *testing.T) {

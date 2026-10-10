@@ -20,8 +20,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/commerce/pricing/promotion/presentation/screens/canonical_promotion_list_screen.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/commerce/pricing/promotion/presentation/screens/canonical_promotion_list_screen.dart';
 
 class _LifecycleApiClient implements ApiClient {
   final List<Map<String, dynamic>> contracts;

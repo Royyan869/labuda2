@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/features/search/search/domain/entities/search_result.dart';
-import 'package:labuda/features/search/search/presentation/widgets/search_result_item.dart';
+import 'package:hishumi/features/search/search/domain/entities/search_result.dart';
+import 'package:hishumi/features/search/search/presentation/widgets/search_result_item.dart';
 
 Widget _wrap(SearchResult result) {
   return ProviderScope(

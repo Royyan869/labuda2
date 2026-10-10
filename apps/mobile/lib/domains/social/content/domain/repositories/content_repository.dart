@@ -1,8 +1,8 @@
 // Content Repository Interface
 // Domain layer - pure Dart, bebas dari implementation details
 
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/domains/social/content/domain/entities/content.dart';
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/domains/social/content/domain/entities/content.dart';
 
 /// Interface repository untuk content management.
 ///

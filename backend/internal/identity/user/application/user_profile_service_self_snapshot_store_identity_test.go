@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	userEntity "github.com/labuda/backend/internal/identity/user/domain/entity"
+	userEntity "github.com/hishumi/backend/internal/identity/user/domain/entity"
 )
 
 // The self session snapshot (GET /users/me) must carry seller store identity.

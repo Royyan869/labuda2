@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
-import 'package:labuda/domains/commerce/transaction/checkout/presentation/screens/payment_result_screen_impl.dart';
-import 'package:labuda/domains/finance/transaction/payment/domain/entities/payment.dart';
-import 'package:labuda/domains/commerce/transaction/checkout/presentation/providers/payment_result_notifier.dart';
-import 'package:labuda/domains/commerce/transaction/checkout/presentation/providers/payment_result_state.dart';
-import 'package:labuda/core/common/types/payment_types.dart';
-import 'package:labuda/domains/user/identity/authentication/authentication.dart';
+import 'package:hishumi/domains/commerce/transaction/checkout/presentation/screens/payment_result_screen_impl.dart';
+import 'package:hishumi/domains/finance/transaction/payment/domain/entities/payment.dart';
+import 'package:hishumi/domains/commerce/transaction/checkout/presentation/providers/payment_result_notifier.dart';
+import 'package:hishumi/domains/commerce/transaction/checkout/presentation/providers/payment_result_state.dart';
+import 'package:hishumi/core/common/types/payment_types.dart';
+import 'package:hishumi/domains/user/identity/authentication/authentication.dart';
 
 /// Fake notifier that renders a fixed [PaymentResultState] and records which
 /// handler methods the screen calls, without touching real repositories or

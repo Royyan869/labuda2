@@ -20,9 +20,9 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/labuda/backend/internal/config"
-	"github.com/labuda/backend/internal/platform/geography"
-	"github.com/labuda/backend/pkg/migration"
+	"github.com/hishumi/backend/internal/config"
+	"github.com/hishumi/backend/internal/platform/geography"
+	"github.com/hishumi/backend/pkg/migration"
 )
 
 func main() {

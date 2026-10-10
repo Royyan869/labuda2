@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/social/rating/rating.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/social/rating/rating.dart';
 
 /// CANONICAL Rating List Screen
 ///

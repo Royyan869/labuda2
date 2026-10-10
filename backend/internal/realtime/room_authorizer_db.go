@@ -3,10 +3,10 @@ package realtime
 import (
 	"context"
 
-	orderentity "github.com/labuda/backend/internal/commerce/order/entity"
+	orderentity "github.com/hishumi/backend/internal/commerce/order/entity"
 	"github.com/google/uuid"
-	chatentity "github.com/labuda/backend/internal/interaction/chat/entity"
-	"github.com/labuda/backend/pkg/db"
+	chatentity "github.com/hishumi/backend/internal/interaction/chat/entity"
+	"github.com/hishumi/backend/pkg/db"
 	"go.uber.org/zap"
 )
 

@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	ratingEntity "github.com/labuda/backend/internal/commerce/order/rating/entity"
-	"github.com/labuda/backend/internal/commerce/order/rating/infrastructure/repository"
-	"github.com/labuda/backend/pkg/db"
+	ratingEntity "github.com/hishumi/backend/internal/commerce/order/rating/entity"
+	"github.com/hishumi/backend/internal/commerce/order/rating/infrastructure/repository"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // ⚠️ RATING DOMAIN BOUNDARY WARNING ⚠️
@@ -22,7 +22,7 @@ import (
 // 4. NEVER access OrderRatingRepository directly from external domains
 //
 // VIOLATION EXAMPLES (DO NOT DO THIS):
-// ❌ import "github.com/labuda/backend/internal/commerce/order/rating/application"
+// ❌ import "github.com/hishumi/backend/internal/commerce/order/rating/application"
 // ❌ service := application.NewRatingService()
 // ❌ repo := repository.NewOrderRatingRepository()
 //

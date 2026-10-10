@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/generated/app_localizations.dart';
-import 'package:labuda/features/home/presentation/widgets/main_drawer/main_drawer.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/generated/app_localizations.dart';
+import 'package:hishumi/features/home/presentation/widgets/main_drawer/main_drawer.dart';
 
 class _NoopApiClient implements ApiClient {
   @override

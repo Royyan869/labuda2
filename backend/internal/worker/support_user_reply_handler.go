@@ -11,7 +11,7 @@ import (
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 
-	platformevent "github.com/labuda/backend/internal/platform/event"
+	platformevent "github.com/hishumi/backend/internal/platform/event"
 )
 
 // SupportUserReplyService defines the minimal interface for the support service

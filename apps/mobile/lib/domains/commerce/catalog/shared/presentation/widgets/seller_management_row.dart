@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/src/theme/app_theme.dart';
-import 'package:labuda/shared/widgets/app_image.dart';
+import 'package:hishumi/core/src/theme/app_theme.dart';
+import 'package:hishumi/shared/widgets/app_image.dart';
 
 /// Canonical seller-management row — ONE AUTHORITY for every seller-owned
 /// listing row (auction management, for-sale management, and anything after

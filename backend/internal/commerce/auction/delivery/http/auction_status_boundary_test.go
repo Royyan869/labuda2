@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/commerce/auction/entity"
-	productEntity "github.com/labuda/backend/internal/commerce/product/entity"
-	"github.com/labuda/backend/internal/pkg/sellerdisplay"
+	"github.com/hishumi/backend/internal/commerce/auction/entity"
+	productEntity "github.com/hishumi/backend/internal/commerce/product/entity"
+	"github.com/hishumi/backend/internal/pkg/sellerdisplay"
 )
 
 // SCOPE 3 — auction status boundary.

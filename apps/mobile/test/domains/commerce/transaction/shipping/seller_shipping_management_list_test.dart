@@ -2,15 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/commerce/transaction/shipping/domain/domain.dart';
-import 'package:labuda/domains/commerce/transaction/shipping/presentation/providers/providers.dart';
-import 'package:labuda/domains/commerce/transaction/shipping/presentation/widgets/shipping_option_setup_screen.dart';
-import 'package:labuda/domains/user/identity/authentication/domain/entities/account_status.dart';
-import 'package:labuda/domains/user/preference/seller/presentation/screens/seller_shipping_screen.dart';
-import 'package:labuda/generated/app_localizations.dart';
-import 'package:labuda/shared/governance/content_lifecycle.dart';
-import 'package:labuda/shared/providers/wilayah_provider_simple.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/commerce/transaction/shipping/domain/domain.dart';
+import 'package:hishumi/domains/commerce/transaction/shipping/presentation/providers/providers.dart';
+import 'package:hishumi/domains/commerce/transaction/shipping/presentation/widgets/shipping_option_setup_screen.dart';
+import 'package:hishumi/domains/user/identity/authentication/domain/entities/account_status.dart';
+import 'package:hishumi/domains/user/preference/seller/presentation/screens/seller_shipping_screen.dart';
+import 'package:hishumi/generated/app_localizations.dart';
+import 'package:hishumi/shared/governance/content_lifecycle.dart';
+import 'package:hishumi/shared/providers/wilayah_provider_simple.dart';
 
 // =============================================================================
 // Fake repository with controllable mutation responses

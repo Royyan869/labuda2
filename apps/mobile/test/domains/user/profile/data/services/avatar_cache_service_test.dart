@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/domains/user/profile/data/datasources/user_api_datasource.dart';
-import 'package:labuda/domains/user/profile/data/models/api/user_api_models.dart';
-import 'package:labuda/domains/user/profile/data/services/avatar_cache_service.dart';
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/domains/user/profile/data/datasources/user_api_datasource.dart';
+import 'package:hishumi/domains/user/profile/data/models/api/user_api_models.dart';
+import 'package:hishumi/domains/user/profile/data/services/avatar_cache_service.dart';
 
 /// Minimal fake [UserApiDatasource] that delegates [getUserById] to a
 /// controllable callback and tracks call count.

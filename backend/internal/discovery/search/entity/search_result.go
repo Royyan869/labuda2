@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	productentity "github.com/labuda/backend/internal/commerce/product/entity"
+	productentity "github.com/hishumi/backend/internal/commerce/product/entity"
 )
 
 // ForSalePreview represents a simplified forSale for search results.

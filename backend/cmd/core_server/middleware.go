@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/labuda/backend/internal/config"
-	"github.com/labuda/backend/internal/middleware"
-	"github.com/labuda/backend/internal/platform/logger"
+	"github.com/hishumi/backend/internal/config"
+	"github.com/hishumi/backend/internal/middleware"
+	"github.com/hishumi/backend/internal/platform/logger"
 	"go.uber.org/zap"
 )
 

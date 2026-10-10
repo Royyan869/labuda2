@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/shared/widgets/app_snackbar.dart';
-import 'package:labuda/domains/social/share/domain/entities/share_target.dart';
-import 'package:labuda/domains/social/share/presentation/providers/share_notifier.dart';
-import 'package:labuda/domains/social/share/presentation/providers/share_state.dart';
-import 'package:labuda/features/home/home.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/shared/widgets/app_snackbar.dart';
+import 'package:hishumi/domains/social/share/domain/entities/share_target.dart';
+import 'package:hishumi/domains/social/share/presentation/providers/share_notifier.dart';
+import 'package:hishumi/domains/social/share/presentation/providers/share_state.dart';
+import 'package:hishumi/features/home/home.dart';
 import 'share_preview_card.dart';
 
 /// Dialog for sharing content as a new Post with optional caption

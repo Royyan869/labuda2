@@ -4,9 +4,9 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/pricing/promotion/contract/entity"
-	promoentity "github.com/labuda/backend/internal/pricing/promotion/entity"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/pricing/promotion/contract/entity"
+	promoentity "github.com/hishumi/backend/internal/pricing/promotion/entity"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // ContractTargetRepository persists the rolling target queue for a promotion contract.

@@ -13,21 +13,21 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/system/shared/domain/services/time_format_service.dart';
-import 'package:labuda/domains/social/comment/domain/entities/comment.dart';
-import 'package:labuda/domains/social/content/domain/entities/content.dart';
-import 'package:labuda/features/home/presentation/widgets/feed_media_mosaic.dart';
-import 'package:labuda/shared/domain/entities/resource_projection.dart';
-import 'package:labuda/domains/social/content/presentation/widgets/content_resource_projection_card.dart';
-import 'package:labuda/domains/social/like/domain/entities/like.dart';
-import 'package:labuda/domains/social/like/presentation/providers/like_notifier.dart';
-import 'package:labuda/domains/social/comment/presentation/utils/comment_like_handlers.dart';
-import 'package:labuda/shared/governance/content_lifecycle.dart';
-import 'package:labuda/shared/shared.dart';
-import 'package:labuda/domains/system/report/domain/entities/entities.dart';
-import 'package:labuda/core/navigation/navigation_provider.dart';
-import 'package:labuda/core/src/theme/app_theme.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/system/shared/domain/services/time_format_service.dart';
+import 'package:hishumi/domains/social/comment/domain/entities/comment.dart';
+import 'package:hishumi/domains/social/content/domain/entities/content.dart';
+import 'package:hishumi/features/home/presentation/widgets/feed_media_mosaic.dart';
+import 'package:hishumi/shared/domain/entities/resource_projection.dart';
+import 'package:hishumi/domains/social/content/presentation/widgets/content_resource_projection_card.dart';
+import 'package:hishumi/domains/social/like/domain/entities/like.dart';
+import 'package:hishumi/domains/social/like/presentation/providers/like_notifier.dart';
+import 'package:hishumi/domains/social/comment/presentation/utils/comment_like_handlers.dart';
+import 'package:hishumi/shared/governance/content_lifecycle.dart';
+import 'package:hishumi/shared/shared.dart';
+import 'package:hishumi/domains/system/report/domain/entities/entities.dart';
+import 'package:hishumi/core/navigation/navigation_provider.dart';
+import 'package:hishumi/core/src/theme/app_theme.dart';
 
 /// Comment Card Widget
 ///

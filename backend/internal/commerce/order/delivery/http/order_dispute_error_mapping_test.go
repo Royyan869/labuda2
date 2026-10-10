@@ -7,9 +7,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	orderEntity "github.com/labuda/backend/internal/commerce/order/entity"
-	"github.com/labuda/backend/internal/governance/dispute/application"
-	disputeEntity "github.com/labuda/backend/internal/governance/dispute/entity"
+	orderEntity "github.com/hishumi/backend/internal/commerce/order/entity"
+	"github.com/hishumi/backend/internal/governance/dispute/application"
+	disputeEntity "github.com/hishumi/backend/internal/governance/dispute/entity"
 	"github.com/stretchr/testify/require"
 )
 

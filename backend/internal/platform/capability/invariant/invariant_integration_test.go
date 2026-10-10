@@ -7,14 +7,14 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/identity/auth"
-	"github.com/labuda/backend/internal/platform/capability"
-	capabilityEntity "github.com/labuda/backend/internal/platform/capability/entity"
-	capabilityRepoImpl "github.com/labuda/backend/internal/platform/capability/infrastructure/repository"
-	"github.com/labuda/backend/internal/platform/capability/invariant"
-	capabilityRepo "github.com/labuda/backend/internal/platform/capability/repository"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/testdb"
+	"github.com/hishumi/backend/internal/identity/auth"
+	"github.com/hishumi/backend/internal/platform/capability"
+	capabilityEntity "github.com/hishumi/backend/internal/platform/capability/entity"
+	capabilityRepoImpl "github.com/hishumi/backend/internal/platform/capability/infrastructure/repository"
+	"github.com/hishumi/backend/internal/platform/capability/invariant"
+	capabilityRepo "github.com/hishumi/backend/internal/platform/capability/repository"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/testdb"
 	"github.com/stretchr/testify/require"
 )
 

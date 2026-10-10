@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/shared/shared.dart';
-import 'package:labuda/domains/user/profile/domain/entities/bank_account_entity.dart';
-import 'package:labuda/domains/user/profile/presentation/providers/bank_account_provider.dart'
+import 'package:hishumi/shared/shared.dart';
+import 'package:hishumi/domains/user/profile/domain/entities/bank_account_entity.dart';
+import 'package:hishumi/domains/user/profile/presentation/providers/bank_account_provider.dart'
     show bankAccountRepositoryProvider;
-import 'package:labuda/core/src/theme/app_theme.dart';
+import 'package:hishumi/core/src/theme/app_theme.dart';
 
 /// Add/Edit Bank Account Dialog
 /// Modal dialog for adding or editing bank account

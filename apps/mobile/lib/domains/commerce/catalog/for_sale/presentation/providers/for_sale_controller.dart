@@ -4,10 +4,10 @@
 /// Wraps repository calls with error handling.
 library;
 
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/core/src/interfaces/services/i_logger_service.dart';
-import 'package:labuda/domains/commerce/catalog/for_sale/domain/domain.dart';
-import 'package:labuda/domains/user/identity/authentication/authentication.dart';
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/core/src/interfaces/services/i_logger_service.dart';
+import 'package:hishumi/domains/commerce/catalog/for_sale/domain/domain.dart';
+import 'package:hishumi/domains/user/identity/authentication/authentication.dart';
 
 /// ForSale Controller
 class ForSaleController {

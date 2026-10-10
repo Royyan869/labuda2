@@ -1,5 +1,5 @@
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/user/profile/domain/entities/profile_entity.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/user/profile/domain/entities/profile_entity.dart';
 
 /// Profile repository interface
 ///

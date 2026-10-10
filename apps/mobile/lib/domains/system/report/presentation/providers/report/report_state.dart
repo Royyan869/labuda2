@@ -3,7 +3,7 @@
 /// State management for report functionality.
 library;
 
-import 'package:labuda/domains/system/report/domain/entities/entities.dart';
+import 'package:hishumi/domains/system/report/domain/entities/entities.dart';
 
 /// Report Actions State
 class ReportActionsState {

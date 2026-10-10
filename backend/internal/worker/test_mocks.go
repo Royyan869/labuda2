@@ -11,12 +11,12 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
-	alertapp "github.com/labuda/backend/internal/platform/alert/application"
-	alertentity "github.com/labuda/backend/internal/platform/alert/entity"
-	"github.com/labuda/backend/internal/finance/entity"
-	"github.com/labuda/backend/internal/finance/repository"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/money"
+	alertapp "github.com/hishumi/backend/internal/platform/alert/application"
+	alertentity "github.com/hishumi/backend/internal/platform/alert/entity"
+	"github.com/hishumi/backend/internal/finance/entity"
+	"github.com/hishumi/backend/internal/finance/repository"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/money"
 )
 
 // mockTx implements db.Tx for testing

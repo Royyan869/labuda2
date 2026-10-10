@@ -15,8 +15,8 @@
 library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/domains/user/profile/profile.dart';
-import 'package:labuda/shared/providers/auth_status_providers.dart';
+import 'package:hishumi/domains/user/profile/profile.dart';
+import 'package:hishumi/shared/providers/auth_status_providers.dart';
 
 export 'block_action_state.dart';
 

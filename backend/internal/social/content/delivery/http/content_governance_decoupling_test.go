@@ -4,9 +4,9 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/governance/evaluator"
-	"github.com/labuda/backend/internal/governance/viewercontext"
-	"github.com/labuda/backend/internal/social/content/entity"
+	"github.com/hishumi/backend/internal/governance/evaluator"
+	"github.com/hishumi/backend/internal/governance/viewercontext"
+	"github.com/hishumi/backend/internal/social/content/entity"
 	"go.uber.org/zap"
 )
 

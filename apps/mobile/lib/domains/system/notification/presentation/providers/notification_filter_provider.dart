@@ -8,8 +8,8 @@
 library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/domains/system/notification/domain/entities/notification_filter.dart';
-import 'package:labuda/domains/system/notification/presentation/providers/notification_list_provider.dart';
+import 'package:hishumi/domains/system/notification/domain/entities/notification_filter.dart';
+import 'package:hishumi/domains/system/notification/presentation/providers/notification_list_provider.dart';
 
 /// Selected filter state (simple immutable container).
 class FilterState {

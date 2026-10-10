@@ -3,18 +3,18 @@ import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/core/providers/core_providers.dart';
-import 'package:labuda/domains/commerce/transaction/order/data/order_providers.dart';
-import 'package:labuda/domains/commerce/transaction/order/domain/domain.dart';
-import 'package:labuda/domains/finance/transaction/payment/domain/entities/payment.dart';
-import 'package:labuda/domains/finance/transaction/payment/domain/entities/payment_intent.dart';
-import 'package:labuda/domains/finance/transaction/payment/domain/repositories/payment_repository.dart'
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/core/providers/core_providers.dart';
+import 'package:hishumi/domains/commerce/transaction/order/data/order_providers.dart';
+import 'package:hishumi/domains/commerce/transaction/order/domain/domain.dart';
+import 'package:hishumi/domains/finance/transaction/payment/domain/entities/payment.dart';
+import 'package:hishumi/domains/finance/transaction/payment/domain/entities/payment_intent.dart';
+import 'package:hishumi/domains/finance/transaction/payment/domain/repositories/payment_repository.dart'
     as payment_repo;
-import 'package:labuda/domains/finance/transaction/payment/presentation/providers/payment_providers.dart';
-import 'package:labuda/domains/commerce/transaction/checkout/presentation/providers/payment_result_notifier.dart';
-import 'package:labuda/domains/commerce/transaction/checkout/presentation/providers/payment_result_state.dart';
-import 'package:labuda/shared/services/logger_service.dart';
+import 'package:hishumi/domains/finance/transaction/payment/presentation/providers/payment_providers.dart';
+import 'package:hishumi/domains/commerce/transaction/checkout/presentation/providers/payment_result_notifier.dart';
+import 'package:hishumi/domains/commerce/transaction/checkout/presentation/providers/payment_result_state.dart';
+import 'package:hishumi/shared/services/logger_service.dart';
 
 class _FakeOrderRepository implements OrderRepository {
   _FakeOrderRepository(this._handler);

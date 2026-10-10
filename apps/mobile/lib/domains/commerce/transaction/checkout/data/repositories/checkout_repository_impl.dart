@@ -2,12 +2,12 @@
 library;
 
 import 'package:dio/dio.dart';
-import 'package:labuda/core/api/api_client.dart';
-import 'package:labuda/core/api/api_error_codes.dart' as api_codes;
-import 'package:labuda/core/api/exceptions/api_exception.dart';
-import 'package:labuda/core/src/interfaces/services/i_logger_service.dart';
-import 'package:labuda/domains/commerce/transaction/checkout/domain/entities/checkout_request.dart';
-import 'package:labuda/domains/commerce/transaction/checkout/domain/entities/checkout_response.dart';
+import 'package:hishumi/core/api/api_client.dart';
+import 'package:hishumi/core/api/api_error_codes.dart' as api_codes;
+import 'package:hishumi/core/api/exceptions/api_exception.dart';
+import 'package:hishumi/core/src/interfaces/services/i_logger_service.dart';
+import 'package:hishumi/domains/commerce/transaction/checkout/domain/entities/checkout_request.dart';
+import 'package:hishumi/domains/commerce/transaction/checkout/domain/entities/checkout_response.dart';
 
 /// Checkout Repository Interface
 abstract class CheckoutRepository {

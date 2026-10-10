@@ -19,10 +19,10 @@ import (
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 
-	verificationApp "github.com/labuda/backend/internal/governance/verification/application"
-	verificationEntity "github.com/labuda/backend/internal/governance/verification/entity"
-	"github.com/labuda/backend/internal/middleware"
-	"github.com/labuda/backend/internal/platform/response"
+	verificationApp "github.com/hishumi/backend/internal/governance/verification/application"
+	verificationEntity "github.com/hishumi/backend/internal/governance/verification/entity"
+	"github.com/hishumi/backend/internal/middleware"
+	"github.com/hishumi/backend/internal/platform/response"
 )
 
 // S3Presigner generates short-lived presigned S3 URLs without exposing AWS

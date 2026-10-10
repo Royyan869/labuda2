@@ -4,9 +4,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/commerce/order/entity"
-	addressentity "github.com/labuda/backend/internal/identity/address/entity"
-	paymentRepo "github.com/labuda/backend/internal/integration/payment/infrastructure/repository"
+	"github.com/hishumi/backend/internal/commerce/order/entity"
+	addressentity "github.com/hishumi/backend/internal/identity/address/entity"
+	paymentRepo "github.com/hishumi/backend/internal/integration/payment/infrastructure/repository"
 )
 
 // Decision Contract from Backend

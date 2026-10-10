@@ -13,24 +13,24 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
-	auctionentity "github.com/labuda/backend/internal/commerce/auction/entity"
-	auctioninfra "github.com/labuda/backend/internal/commerce/auction/infrastructure/repository"
-	fpsentity "github.com/labuda/backend/internal/commerce/forsale/entity"
-	fpsinfra "github.com/labuda/backend/internal/commerce/forsale/infrastructure/repository"
-	orderApp "github.com/labuda/backend/internal/commerce/order/application"
-	orderentity "github.com/labuda/backend/internal/commerce/order/entity"
-	orderinfra "github.com/labuda/backend/internal/commerce/order/infrastructure/repository"
-	productentity "github.com/labuda/backend/internal/commerce/product/entity"
-	productinfra "github.com/labuda/backend/internal/commerce/product/infrastructure/repository"
-	shippingApp "github.com/labuda/backend/internal/commerce/shipping/application"
-	shippingrepo "github.com/labuda/backend/internal/commerce/shipping/infrastructure/repository"
-	shippingquoteApp "github.com/labuda/backend/internal/commerce/shipping/quote/application"
-	shippingquoteRepo "github.com/labuda/backend/internal/commerce/shipping/quote/infrastructure/repository"
-	capabilityEntity "github.com/labuda/backend/internal/platform/capability/entity"
-	outboxinfra "github.com/labuda/backend/internal/platform/outbox/infrastructure/repository"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/money"
-	"github.com/labuda/backend/pkg/testdb"
+	auctionentity "github.com/hishumi/backend/internal/commerce/auction/entity"
+	auctioninfra "github.com/hishumi/backend/internal/commerce/auction/infrastructure/repository"
+	fpsentity "github.com/hishumi/backend/internal/commerce/forsale/entity"
+	fpsinfra "github.com/hishumi/backend/internal/commerce/forsale/infrastructure/repository"
+	orderApp "github.com/hishumi/backend/internal/commerce/order/application"
+	orderentity "github.com/hishumi/backend/internal/commerce/order/entity"
+	orderinfra "github.com/hishumi/backend/internal/commerce/order/infrastructure/repository"
+	productentity "github.com/hishumi/backend/internal/commerce/product/entity"
+	productinfra "github.com/hishumi/backend/internal/commerce/product/infrastructure/repository"
+	shippingApp "github.com/hishumi/backend/internal/commerce/shipping/application"
+	shippingrepo "github.com/hishumi/backend/internal/commerce/shipping/infrastructure/repository"
+	shippingquoteApp "github.com/hishumi/backend/internal/commerce/shipping/quote/application"
+	shippingquoteRepo "github.com/hishumi/backend/internal/commerce/shipping/quote/infrastructure/repository"
+	capabilityEntity "github.com/hishumi/backend/internal/platform/capability/entity"
+	outboxinfra "github.com/hishumi/backend/internal/platform/outbox/infrastructure/repository"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/money"
+	"github.com/hishumi/backend/pkg/testdb"
 	"go.uber.org/zap"
 )
 
@@ -53,7 +53,7 @@ import (
 //
 // Only identity-irrelevant gates are stubbed (account status, seller
 // capability, actor resolution); every persistence touch uses real
-// repositories against the disposable labuda_test database.
+// repositories against the disposable hishumi_test database.
 // ============================================================================
 
 type stage5RoleChecker struct{}

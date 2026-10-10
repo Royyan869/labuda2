@@ -3,8 +3,8 @@
 /// Repository for forSale - the fixed-price selling surface over Product.
 library;
 
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/domains/commerce/catalog/for_sale/domain/entities/for_sale.dart';
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/domains/commerce/catalog/for_sale/domain/entities/for_sale.dart';
 
 /// ForSale repository interface
 abstract class ForSaleRepository {

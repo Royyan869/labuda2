@@ -25,14 +25,14 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/social/follow/data/follow_providers.dart';
-import 'package:labuda/domains/social/follow/domain/entities/follow_entity.dart';
-import 'package:labuda/domains/social/follow/domain/repositories/i_follow_repository.dart';
-import 'package:labuda/domains/social/follow/presentation/screens/follow_list_screen.dart';
-import 'package:labuda/domains/social/follow/presentation/widgets/user_card.dart';
-import 'package:labuda/generated/app_localizations.dart';
-import 'package:labuda/shared/widgets/empty_state.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/social/follow/data/follow_providers.dart';
+import 'package:hishumi/domains/social/follow/domain/entities/follow_entity.dart';
+import 'package:hishumi/domains/social/follow/domain/repositories/i_follow_repository.dart';
+import 'package:hishumi/domains/social/follow/presentation/screens/follow_list_screen.dart';
+import 'package:hishumi/domains/social/follow/presentation/widgets/user_card.dart';
+import 'package:hishumi/generated/app_localizations.dart';
+import 'package:hishumi/shared/widgets/empty_state.dart';
 
 class _FakeAuthController extends AuthController {
   @override

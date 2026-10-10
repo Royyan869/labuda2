@@ -21,13 +21,13 @@ import (
 
 	"github.com/google/uuid"
 
-	forsaleEntity "github.com/labuda/backend/internal/commerce/forsale/entity"
-	forsaleRepo "github.com/labuda/backend/internal/commerce/forsale/infrastructure/repository"
-	productEntity "github.com/labuda/backend/internal/commerce/product/entity"
-	productInfraRepo "github.com/labuda/backend/internal/commerce/product/infrastructure/repository"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/money"
-	"github.com/labuda/backend/pkg/testdb"
+	forsaleEntity "github.com/hishumi/backend/internal/commerce/forsale/entity"
+	forsaleRepo "github.com/hishumi/backend/internal/commerce/forsale/infrastructure/repository"
+	productEntity "github.com/hishumi/backend/internal/commerce/product/entity"
+	productInfraRepo "github.com/hishumi/backend/internal/commerce/product/infrastructure/repository"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/money"
+	"github.com/hishumi/backend/pkg/testdb"
 )
 
 // TestForSaleStockRoundTrip_Qty1 proves the full reservation cycle for a

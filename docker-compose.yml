@@ -1,30 +1,35 @@
 version: "3.9"
 
+# Compose project name: hishumi (product identity).
+# Previously derived from directory name "labuda" — now pinned explicitly
+# so the project name survives any directory rename.
+name: hishumi
+
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: labuda-postgres
+    container_name: hishumi-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: labuda
-      POSTGRES_PASSWORD: labuda123
-      POSTGRES_DB: labuda
+      POSTGRES_USER: hishumi
+      POSTGRES_PASSWORD: hishumi_local_dev_pw
+      POSTGRES_DB: hishumi
       PGDATA: /var/lib/postgresql/data/pgdata
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U labuda"]
+      test: ["CMD-SHELL", "pg_isready -U hishumi"]
       interval: 10s
       timeout: 5s
       retries: 5
     networks:
-      - labuda-network
+      - hishumi-network
 
   redis:
     image: redis:7-alpine
-    container_name: labuda-redis
+    container_name: hishumi-redis
     restart: unless-stopped
     command: redis-server --appendonly yes
     ports:
@@ -37,7 +42,7 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - labuda-network
+      - hishumi-network
 
 volumes:
   postgres_data:
@@ -46,5 +51,5 @@ volumes:
     driver: local
 
 networks:
-  labuda-network:
+  hishumi-network:
     driver: bridge

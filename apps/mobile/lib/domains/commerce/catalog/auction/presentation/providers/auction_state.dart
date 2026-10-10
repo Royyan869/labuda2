@@ -2,7 +2,7 @@
 /// Sealed classes for type-safe state management
 library;
 
-import 'package:labuda/domains/commerce/catalog/auction/domain/domain.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/domain/domain.dart';
 
 /// Base auction state
 sealed class AuctionState {

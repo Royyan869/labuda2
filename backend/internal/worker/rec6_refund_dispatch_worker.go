@@ -21,7 +21,7 @@ import (
 	"sync"
 	"time"
 
-	refundapp "github.com/labuda/backend/internal/finance/refund/application"
+	refundapp "github.com/hishumi/backend/internal/finance/refund/application"
 	"go.uber.org/zap"
 )
 

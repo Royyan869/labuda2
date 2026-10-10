@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/features/search/search/data/dto/search_dto.dart';
-import 'package:labuda/features/search/search/data/remote/search_api_service.dart';
-import 'package:labuda/features/search/search/data/search_repository_impl.dart';
-import 'package:labuda/features/search/search/domain/entities/search_result.dart';
-import 'package:labuda/features/search/search/presentation/screens/search_results_screen.dart';
+import 'package:hishumi/features/search/search/data/dto/search_dto.dart';
+import 'package:hishumi/features/search/search/data/remote/search_api_service.dart';
+import 'package:hishumi/features/search/search/data/search_repository_impl.dart';
+import 'package:hishumi/features/search/search/domain/entities/search_result.dart';
+import 'package:hishumi/features/search/search/presentation/screens/search_results_screen.dart';
 
 class _ExternalProductSearchApiService implements SearchApiService {
   @override

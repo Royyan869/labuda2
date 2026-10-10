@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
-import 'package:labuda/shared/domain/entities/resource_projection.dart';
-import 'package:labuda/shared/attachment/entities/share_reference.dart';
-import 'package:labuda/shared/governance/content_lifecycle.dart';
+import 'package:hishumi/shared/domain/entities/resource_projection.dart';
+import 'package:hishumi/shared/attachment/entities/share_reference.dart';
+import 'package:hishumi/shared/governance/content_lifecycle.dart';
 
 class CommentMedia extends Equatable {
   final String id;

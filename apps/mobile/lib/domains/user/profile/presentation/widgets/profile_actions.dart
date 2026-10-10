@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/shared/shared.dart';
-import 'package:labuda/shared/governance/content_lifecycle.dart';
-import 'package:labuda/core/src/theme/app_theme.dart';
+import 'package:hishumi/shared/shared.dart';
+import 'package:hishumi/shared/governance/content_lifecycle.dart';
+import 'package:hishumi/core/src/theme/app_theme.dart';
 
 /// Compact action buttons untuk Profile V2
 ///

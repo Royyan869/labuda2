@@ -6,8 +6,8 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/platform/capability/entity"
-	"github.com/labuda/backend/internal/platform/capability/repository"
+	"github.com/hishumi/backend/internal/platform/capability/entity"
+	"github.com/hishumi/backend/internal/platform/capability/repository"
 )
 
 // Checker provides capability checking operations.

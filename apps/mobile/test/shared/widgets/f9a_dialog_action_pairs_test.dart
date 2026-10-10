@@ -19,8 +19,8 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/shared/widgets/app_dialog.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/shared/widgets/app_dialog.dart';
 
 const List<double> _widths = <double>[320, 360, 412, 500];
 const List<double> _scales = <double>[1.0, 1.3, 2.0];

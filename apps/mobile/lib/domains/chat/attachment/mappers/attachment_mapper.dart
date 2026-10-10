@@ -1,4 +1,4 @@
-import 'package:labuda/shared/attachment/entities/attachment.dart';
+import 'package:hishumi/shared/attachment/entities/attachment.dart';
 
 /// Unified Attachment Mapper - converts between Attachment entities and JSON maps
 /// Used by both Chat and Comment modules for consistent serialization

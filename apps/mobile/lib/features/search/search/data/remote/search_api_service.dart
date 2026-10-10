@@ -1,8 +1,8 @@
 import 'package:dio/dio.dart';
-import 'package:labuda/core/api/api_client.dart';
-import 'package:labuda/core/api/structured_api_exception.dart';
-import 'package:labuda/core/src/interfaces/services/i_logger_service.dart';
-import 'package:labuda/features/search/search/data/dto/search_dto.dart';
+import 'package:hishumi/core/api/api_client.dart';
+import 'package:hishumi/core/api/structured_api_exception.dart';
+import 'package:hishumi/core/src/interfaces/services/i_logger_service.dart';
+import 'package:hishumi/features/search/search/data/dto/search_dto.dart';
 
 /// Search API Service
 ///

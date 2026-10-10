@@ -2,8 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_blurhash/flutter_blurhash.dart';
-import 'package:labuda/core/services/blurhash_cache_service.dart';
-import 'package:labuda/core/src/theme/app_theme.dart';
+import 'package:hishumi/core/services/blurhash_cache_service.dart';
+import 'package:hishumi/core/src/theme/app_theme.dart';
 
 /// Image quality options for loading different image sizes
 enum MediaQuality { thumbnail, medium, high, webp }

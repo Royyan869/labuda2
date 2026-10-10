@@ -1,9 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/commerce/catalog/auction/data/auction_providers.dart';
-import 'package:labuda/domains/commerce/catalog/auction/domain/domain.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/data/auction_providers.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/domain/domain.dart';
 
 /// Canonical My Auctions filter options, in presentation order.
 ///

@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:labuda/features/search/search/domain/entities/search_result.dart';
+import 'package:hishumi/features/search/search/domain/entities/search_result.dart';
 
 /// Search history entry
 class SearchHistory extends Equatable {

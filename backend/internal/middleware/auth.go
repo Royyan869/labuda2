@@ -5,7 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/platform/response"
+	"github.com/hishumi/backend/internal/platform/response"
 )
 
 // Common auth errors
@@ -17,9 +17,9 @@ var (
 // GetUserIDFromContext extracts user ID (UUID) from the gin context
 // This is the canonical way to get user ID - use this instead of duplicating the logic
 // Slice 3: Firebase UID via UserClaims is purged. Canonical identity is
-// Labuda JWT user_id → DB.
+// HiShumi JWT user_id → DB.
 func GetUserIDFromContext(c *gin.Context) (uuid.UUID, error) {
-	// First try to get from user_id key (set by LabudaAuthMiddleware)
+	// First try to get from user_id key (set by HiShumiAuthMiddleware)
 	if userIDVal, exists := c.Get("user_id"); exists {
 		switch v := userIDVal.(type) {
 		case uuid.UUID:

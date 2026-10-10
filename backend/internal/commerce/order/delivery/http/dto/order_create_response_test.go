@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/commerce/order/entity"
-	"github.com/labuda/backend/pkg/money"
+	"github.com/hishumi/backend/internal/commerce/order/entity"
+	"github.com/hishumi/backend/pkg/money"
 	"github.com/stretchr/testify/require"
 )
 

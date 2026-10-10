@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/websocket/websocket_message.dart';
-import 'package:labuda/domains/chat/chat/data/dto/chat_room_event_dto.dart';
-import 'package:labuda/domains/chat/chat/data/dto/message_dto.dart';
+import 'package:hishumi/core/websocket/websocket_message.dart';
+import 'package:hishumi/domains/chat/chat/data/dto/chat_room_event_dto.dart';
+import 'package:hishumi/domains/chat/chat/data/dto/message_dto.dart';
 
 void main() {
   test('WebSocketMessage.fromJson parses canonical backend chat envelope', () {

@@ -77,7 +77,7 @@ func TestFulfillment_SentinelErrorsImported(t *testing.T) {
 	source := string(src)
 
 	// auth package must be imported
-	if !strings.Contains(source, `"github.com/labuda/backend/internal/identity/auth"`) {
+	if !strings.Contains(source, `"github.com/hishumi/backend/internal/identity/auth"`) {
 		t.Fatal("order_handler.go must import the auth package to use auth.ErrSellerRequired " +
 			"and auth.ErrBuyerRequired sentinels")
 	}

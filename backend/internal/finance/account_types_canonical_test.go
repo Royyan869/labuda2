@@ -3,8 +3,8 @@ package finance_test
 import (
 	"testing"
 
-	"github.com/labuda/backend/internal/finance"
-	ledgerintf "github.com/labuda/backend/internal/finance/repository"
+	"github.com/hishumi/backend/internal/finance"
+	ledgerintf "github.com/hishumi/backend/internal/finance/repository"
 )
 
 // TestCanonicalAccountTypeConstants is the static guard introduced by TASK 40.

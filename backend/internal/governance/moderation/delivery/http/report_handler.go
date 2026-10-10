@@ -24,12 +24,12 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	moderationApp "github.com/labuda/backend/internal/governance/moderation/application"
-	"github.com/labuda/backend/internal/governance/moderation/entity"
-	moderationRepo "github.com/labuda/backend/internal/governance/moderation/infrastructure/repository"
-	"github.com/labuda/backend/internal/middleware"
-	"github.com/labuda/backend/internal/platform/response"
-	"github.com/labuda/backend/pkg/db"
+	moderationApp "github.com/hishumi/backend/internal/governance/moderation/application"
+	"github.com/hishumi/backend/internal/governance/moderation/entity"
+	moderationRepo "github.com/hishumi/backend/internal/governance/moderation/infrastructure/repository"
+	"github.com/hishumi/backend/internal/middleware"
+	"github.com/hishumi/backend/internal/platform/response"
+	"github.com/hishumi/backend/pkg/db"
 	"go.uber.org/zap"
 )
 

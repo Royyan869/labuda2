@@ -2,15 +2,15 @@ import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/social/content/data/content_providers.dart';
-import 'package:labuda/domains/social/content/data/content_repository_impl.dart';
-import 'package:labuda/domains/social/content/data/dto/content_dto.dart';
-import 'package:labuda/domains/social/content/data/mappers/content_mapper.dart';
-import 'package:labuda/domains/social/content/data/remote/content_api_datasource.dart';
-import 'package:labuda/shared/domain/entities/resource_projection.dart';
-import 'package:labuda/domains/social/content/presentation/providers/content_notifier.dart';
-import 'package:labuda/domains/social/content/presentation/providers/content_state.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/social/content/data/content_providers.dart';
+import 'package:hishumi/domains/social/content/data/content_repository_impl.dart';
+import 'package:hishumi/domains/social/content/data/dto/content_dto.dart';
+import 'package:hishumi/domains/social/content/data/mappers/content_mapper.dart';
+import 'package:hishumi/domains/social/content/data/remote/content_api_datasource.dart';
+import 'package:hishumi/shared/domain/entities/resource_projection.dart';
+import 'package:hishumi/domains/social/content/presentation/providers/content_notifier.dart';
+import 'package:hishumi/domains/social/content/presentation/providers/content_state.dart';
 
 class _NoopApiClient implements ApiClient {
   @override

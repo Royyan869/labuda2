@@ -1,7 +1,7 @@
 package capability
 
 import (
-	"github.com/labuda/backend/internal/platform/capability/entity"
+	"github.com/hishumi/backend/internal/platform/capability/entity"
 )
 
 // ============================================================

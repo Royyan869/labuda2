@@ -25,9 +25,9 @@
 ///   - no client-side money derivation.
 library;
 
-import 'package:labuda/domains/commerce/transaction/order/domain/entities/order.dart'
+import 'package:hishumi/domains/commerce/transaction/order/domain/entities/order.dart'
     show DecisionContract;
-import 'package:labuda/domains/commerce/transaction/order/domain/entities/order_status.dart'
+import 'package:hishumi/domains/commerce/transaction/order/domain/entities/order_status.dart'
     show OrderStatus, OrderStatusExtension;
 
 // ==================== ORDER API RESPONSE DTOS ====================

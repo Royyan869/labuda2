@@ -5,7 +5,7 @@
 library;
 
 import 'package:equatable/equatable.dart';
-import 'package:labuda/core/common/types/payment_types.dart';
+import 'package:hishumi/core/common/types/payment_types.dart';
 
 /// Main payment entity
 class Payment extends Equatable {

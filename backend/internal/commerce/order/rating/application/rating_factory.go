@@ -2,7 +2,7 @@ package application
 
 import (
 
-	"github.com/labuda/backend/internal/commerce/order/rating/infrastructure/repository"
+	"github.com/hishumi/backend/internal/commerce/order/rating/infrastructure/repository"
 )
 
 // RatingDomainFactory provides controlled access to rating domain interfaces.

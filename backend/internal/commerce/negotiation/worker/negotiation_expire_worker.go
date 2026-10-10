@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	negotiationApp "github.com/labuda/backend/internal/commerce/negotiation/application"
+	negotiationApp "github.com/hishumi/backend/internal/commerce/negotiation/application"
 	"go.uber.org/zap"
 )
 

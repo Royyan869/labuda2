@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/governance/viewercontext"
-	"github.com/labuda/backend/internal/social/content/entity"
+	"github.com/hishumi/backend/internal/governance/viewercontext"
+	"github.com/hishumi/backend/internal/social/content/entity"
 )
 
 // S4 — Comment read governance: block filter + deleted-author lifecycle.

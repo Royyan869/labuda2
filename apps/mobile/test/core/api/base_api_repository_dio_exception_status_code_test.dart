@@ -21,10 +21,10 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:labuda/core/api/api_client.dart';
-import 'package:labuda/core/api/base_api_repository.dart';
-import 'package:labuda/core/api/exceptions/api_exception.dart';
-import 'package:labuda/core/common/result.dart';
+import 'package:hishumi/core/api/api_client.dart';
+import 'package:hishumi/core/api/base_api_repository.dart';
+import 'package:hishumi/core/api/exceptions/api_exception.dart';
+import 'package:hishumi/core/common/result.dart';
 
 /// Mirrors production `ApiClient.extractException`: ErrorInterceptor attaches
 /// the typed ApiException to `DioException.error`, and ApiClient hands it back.

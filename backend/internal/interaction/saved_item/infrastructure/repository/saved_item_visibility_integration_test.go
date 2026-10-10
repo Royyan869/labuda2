@@ -9,9 +9,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
-	savedItemEntity "github.com/labuda/backend/internal/interaction/saved_item/entity"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/testdb"
+	savedItemEntity "github.com/hishumi/backend/internal/interaction/saved_item/entity"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/testdb"
 )
 
 func TestSavedVisibility_OnlyActiveExistingCommerce(t *testing.T) {

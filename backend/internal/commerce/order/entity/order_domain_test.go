@@ -7,8 +7,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 
-	orderentity "github.com/labuda/backend/internal/commerce/order/entity"
-	"github.com/labuda/backend/pkg/money"
+	orderentity "github.com/hishumi/backend/internal/commerce/order/entity"
+	"github.com/hishumi/backend/pkg/money"
 )
 
 // ============================================================================

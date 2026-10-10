@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	subscriptionEntity "github.com/labuda/backend/internal/commerce/subscription/entity"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/money"
+	subscriptionEntity "github.com/hishumi/backend/internal/commerce/subscription/entity"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/money"
 )
 
 // =============================================================================

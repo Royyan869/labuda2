@@ -7,12 +7,12 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/shared/domain/entities/resource_projection.dart';
-import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction_bid.dart';
-import 'package:labuda/shared/governance/content_lifecycle.dart';
-import 'package:labuda/shared/widgets/profile_avatar.dart';
-import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_detail_primitives.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/shared/domain/entities/resource_projection.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/domain/entities/auction_bid.dart';
+import 'package:hishumi/shared/governance/content_lifecycle.dart';
+import 'package:hishumi/shared/widgets/profile_avatar.dart';
+import 'package:hishumi/domains/commerce/catalog/shared/presentation/widgets/commerce_detail_primitives.dart';
 
 /// Bid history widget for auction detail
 class AuctionBidHistory extends StatelessWidget {

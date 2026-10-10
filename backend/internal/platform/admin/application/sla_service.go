@@ -8,12 +8,12 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/pkg/db"
-	disputeApp "github.com/labuda/backend/internal/governance/dispute/application"
-	"github.com/labuda/backend/internal/governance/dispute/entity"
-	disputeRepo "github.com/labuda/backend/internal/governance/dispute/repository"
-	supportEntity "github.com/labuda/backend/internal/governance/support/entity"
-	supportRepo "github.com/labuda/backend/internal/governance/support/repository"
+	"github.com/hishumi/backend/pkg/db"
+	disputeApp "github.com/hishumi/backend/internal/governance/dispute/application"
+	"github.com/hishumi/backend/internal/governance/dispute/entity"
+	disputeRepo "github.com/hishumi/backend/internal/governance/dispute/repository"
+	supportEntity "github.com/hishumi/backend/internal/governance/support/entity"
+	supportRepo "github.com/hishumi/backend/internal/governance/support/repository"
 )
 
 // SLAService aggregates SLA metrics from disputes and support tickets.

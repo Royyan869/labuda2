@@ -16,12 +16,12 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"go.uber.org/zap/zaptest"
 
-	notificationentity "github.com/labuda/backend/internal/interaction/notification/entity"
-	notificationrepository "github.com/labuda/backend/internal/interaction/notification/infrastructure/repository"
-	"github.com/labuda/backend/internal/interaction/notification/policy"
-	platformevent "github.com/labuda/backend/internal/platform/event"
-	"github.com/labuda/backend/internal/platform/events"
-	dbpkg "github.com/labuda/backend/pkg/db"
+	notificationentity "github.com/hishumi/backend/internal/interaction/notification/entity"
+	notificationrepository "github.com/hishumi/backend/internal/interaction/notification/infrastructure/repository"
+	"github.com/hishumi/backend/internal/interaction/notification/policy"
+	platformevent "github.com/hishumi/backend/internal/platform/event"
+	"github.com/hishumi/backend/internal/platform/events"
+	dbpkg "github.com/hishumi/backend/pkg/db"
 )
 
 func (m *mockBlockCheckerChat) ExistsBlock(_ context.Context, _, _ uuid.UUID) (bool, error) {

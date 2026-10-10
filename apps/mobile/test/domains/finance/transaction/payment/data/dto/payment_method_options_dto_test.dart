@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/domains/finance/transaction/payment/data/dto/payment_dto.dart';
+import 'package:hishumi/domains/finance/transaction/payment/data/dto/payment_dto.dart';
 
 /// FIN-R01E-C / FIN-R01E-D — payment-method presentation contract.
 ///

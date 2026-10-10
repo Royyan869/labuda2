@@ -26,11 +26,11 @@ library;
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/system/notification/data/notification_providers.dart';
-import 'package:labuda/domains/system/notification/presentation/providers/notification_list_provider.dart';
-import 'package:labuda/domains/system/notification/presentation/providers/notification_realtime_sync_provider.dart';
-import 'package:labuda/domains/system/notification/presentation/providers/unread_count_provider.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/system/notification/data/notification_providers.dart';
+import 'package:hishumi/domains/system/notification/presentation/providers/notification_list_provider.dart';
+import 'package:hishumi/domains/system/notification/presentation/providers/notification_realtime_sync_provider.dart';
+import 'package:hishumi/domains/system/notification/presentation/providers/unread_count_provider.dart';
 
 // Flutter
 import 'package:flutter/material.dart';

@@ -1,8 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/core/src/router/route_paths.dart';
-import 'package:labuda/domains/user/identity/authentication/domain/entities/auth_user.dart';
-import 'package:labuda/domains/user/identity/authentication/presentation/providers/auth_state.dart';
+import 'package:hishumi/core/core.dart';
 
 // =============================================================================
 // Regression tests for Google signup completion defects
@@ -42,7 +39,7 @@ void main() {
         'u1',
       );
       expect(
-        (completionState as AuthStateRequiresProfileCompletion).email,
+        completionState.email,
         'g@test.com',
       );
     });

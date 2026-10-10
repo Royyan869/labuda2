@@ -1,5 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:labuda/core/core.dart';
+import 'package:hishumi/core/core.dart';
 import '../../domain/entities/firebase_principal.dart';
 
 /// Sign Up Repository - Handles user registration operations

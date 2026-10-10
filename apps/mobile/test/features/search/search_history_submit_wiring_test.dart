@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/features/search/search/domain/entities/search_history.dart';
-import 'package:labuda/features/search/search/domain/repositories/search_history_repository.dart';
-import 'package:labuda/features/search/search/presentation/providers/providers.dart';
-import 'package:labuda/features/search/search/presentation/screens/search_screen.dart';
-import 'package:labuda/shared/providers/auth_status_providers.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/features/search/search/domain/entities/search_history.dart';
+import 'package:hishumi/features/search/search/domain/repositories/search_history_repository.dart';
+import 'package:hishumi/features/search/search/presentation/providers/providers.dart';
+import 'package:hishumi/features/search/search/presentation/screens/search_screen.dart';
+import 'package:hishumi/shared/providers/auth_status_providers.dart';
 
 class _FakeSearchHistoryRepository implements SearchHistoryRepository {
   _FakeSearchHistoryRepository(this._history);

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/features/search/search/domain/entities/search_result.dart';
-import 'package:labuda/features/search/search/presentation/utils/search_result_type_helper.dart';
-import 'package:labuda/features/search/search/presentation/widgets/global_search_bar.dart';
+import 'package:hishumi/features/search/search/domain/entities/search_result.dart';
+import 'package:hishumi/features/search/search/presentation/utils/search_result_type_helper.dart';
+import 'package:hishumi/features/search/search/presentation/widgets/global_search_bar.dart';
 
 void main() {
   test('content label is rendered as Content', () {

@@ -5,14 +5,14 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/core/src/auth/app_role.dart';
-import 'package:labuda/domains/social/comment/domain/entities/comment.dart';
-import 'package:labuda/domains/social/comment/presentation/widgets/comment_card.dart';
-import 'package:labuda/domains/social/like/domain/entities/like.dart';
-import 'package:labuda/domains/social/like/domain/repositories/like_repository.dart';
-import 'package:labuda/domains/social/like/presentation/providers/like_notifier.dart';
-import 'package:labuda/domains/user/identity/authentication/authentication.dart';
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/core/src/auth/app_role.dart';
+import 'package:hishumi/domains/social/comment/domain/entities/comment.dart';
+import 'package:hishumi/domains/social/comment/presentation/widgets/comment_card.dart';
+import 'package:hishumi/domains/social/like/domain/entities/like.dart';
+import 'package:hishumi/domains/social/like/domain/repositories/like_repository.dart';
+import 'package:hishumi/domains/social/like/presentation/providers/like_notifier.dart';
+import 'package:hishumi/domains/user/identity/authentication/authentication.dart';
 
 // ---------------------------------------------------------------------------
 // Fakes

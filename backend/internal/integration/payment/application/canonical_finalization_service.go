@@ -5,12 +5,12 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	orderapp "github.com/labuda/backend/internal/commerce/order/application"
-	orderRepoImpl "github.com/labuda/backend/internal/commerce/order/infrastructure/repository"
-	escrowApp "github.com/labuda/backend/internal/core/escrow/application"
-	financeApp "github.com/labuda/backend/internal/finance/application"
-	"github.com/labuda/backend/internal/integration/payment/infrastructure/repository"
-	"github.com/labuda/backend/pkg/db"
+	orderapp "github.com/hishumi/backend/internal/commerce/order/application"
+	orderRepoImpl "github.com/hishumi/backend/internal/commerce/order/infrastructure/repository"
+	escrowApp "github.com/hishumi/backend/internal/core/escrow/application"
+	financeApp "github.com/hishumi/backend/internal/finance/application"
+	"github.com/hishumi/backend/internal/integration/payment/infrastructure/repository"
+	"github.com/hishumi/backend/pkg/db"
 	"go.uber.org/zap"
 )
 

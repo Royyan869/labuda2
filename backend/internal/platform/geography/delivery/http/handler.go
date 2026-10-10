@@ -5,8 +5,8 @@ package http
 
 import (
 	"github.com/gin-gonic/gin"
-	geography "github.com/labuda/backend/internal/platform/geography"
-	"github.com/labuda/backend/internal/platform/response"
+	geography "github.com/hishumi/backend/internal/platform/geography"
+	"github.com/hishumi/backend/internal/platform/response"
 	"go.uber.org/zap"
 )
 

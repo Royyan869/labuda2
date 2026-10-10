@@ -10,8 +10,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/labuda/backend/internal/config"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/config"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // TestTruncateAll_UsesFreshCleanupConnection proves teardown no longer depends

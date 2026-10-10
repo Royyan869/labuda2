@@ -6,9 +6,9 @@
 library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/shared/models/wilayah_models.dart';
-import 'package:labuda/shared/services/geography_api_service.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/shared/models/wilayah_models.dart';
+import 'package:hishumi/shared/services/geography_api_service.dart';
 
 /// The canonical Geography API service.
 final geographyApiServiceProvider = Provider<GeographyApiService>((ref) {

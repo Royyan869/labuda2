@@ -12,12 +12,12 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
-	auctionEntity "github.com/labuda/backend/internal/commerce/auction/entity"
-	auctioninfra "github.com/labuda/backend/internal/commerce/auction/infrastructure/repository"
-	fpsinfra "github.com/labuda/backend/internal/commerce/forsale/infrastructure/repository"
-	fpsRepo "github.com/labuda/backend/internal/commerce/forsale/repository"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/testdb"
+	auctionEntity "github.com/hishumi/backend/internal/commerce/auction/entity"
+	auctioninfra "github.com/hishumi/backend/internal/commerce/auction/infrastructure/repository"
+	fpsinfra "github.com/hishumi/backend/internal/commerce/forsale/infrastructure/repository"
+	fpsRepo "github.com/hishumi/backend/internal/commerce/forsale/repository"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/testdb"
 )
 
 // TestMigration000044_UpDownReplay verifies products.status/products.sold_at /

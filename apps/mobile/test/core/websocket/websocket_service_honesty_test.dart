@@ -17,8 +17,8 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
-import 'package:labuda/core/websocket/websocket_message.dart';
-import 'package:labuda/core/websocket/websocket_service.dart';
+import 'package:hishumi/core/websocket/websocket_message.dart';
+import 'package:hishumi/core/websocket/websocket_service.dart';
 
 // ---------------------------------------------------------------------------
 // Fake channel/sink that throws synchronously on every send so the

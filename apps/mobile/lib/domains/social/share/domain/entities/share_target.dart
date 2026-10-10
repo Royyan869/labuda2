@@ -1,8 +1,8 @@
-/// Base URL for public share links other than profiles.
-const String kPublicShareBaseUrl = 'https://labuda-79de2.web.app';
-
-/// Public web base for profile sharing and QR codes.
-const String kPublicProfileBaseUrl = 'https://labuda.app';
+/// Canonical public base URL for every externally shared HiShumi link
+/// (profile, content, for-sale, auction). Single authority: the Owner
+/// decision H.4.6-B/C fixes this to https://hishumi.com — Firebase
+/// `*.web.app` hostnames must never be used as permanent share domains.
+const String kPublicBaseUrl = 'https://hishumi.com';
 
 /// Entity representing content that can be shared externally
 /// Domain entity - pure, no Flutter dependencies
@@ -37,14 +37,14 @@ class ShareTarget {
       buffer.writeln(description);
     }
     buffer.writeln();
-    buffer.writeln('Lihat selengkapnya di LABUDA App:');
+    buffer.writeln('Lihat selengkapnya di HiShumi App:');
     buffer.writeln(publicShareUrl);
     return buffer.toString();
   }
 
   /// Generate public share URL for external sharing.
   String generatePublicShareUrl([String? baseUrl]) {
-    final base = baseUrl ?? kPublicShareBaseUrl;
+    final base = baseUrl ?? kPublicBaseUrl;
     switch (type) {
       case ExternalShareType.post:
         return '$base/content/$id';
@@ -55,7 +55,7 @@ class ShareTarget {
       case ExternalShareType.auction:
         return '$base/auction/$id';
       case ExternalShareType.profile:
-        return '${baseUrl ?? kPublicProfileBaseUrl}/profile/$id';
+        return '${baseUrl ?? kPublicBaseUrl}/profile/$id';
     }
   }
 

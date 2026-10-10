@@ -1,4 +1,4 @@
-import 'package:labuda/core/src/theme/app_theme.dart';
+import 'package:hishumi/core/src/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'detail_chip_types.dart';
 

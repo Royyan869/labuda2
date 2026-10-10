@@ -28,14 +28,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/core/src/router/modules/seller_module.dart';
-import 'package:labuda/domains/commerce/transaction/order/order.dart';
-import 'package:labuda/domains/commerce/pricing/promotion/data/dto/promotion_contract_dto.dart';
-import 'package:labuda/domains/commerce/pricing/promotion/data/repositories/promotion_contract_repository.dart';
-import 'package:labuda/domains/commerce/pricing/promotion/presentation/providers/canonical_promotion_providers.dart';
-import 'package:labuda/domains/commerce/pricing/promotion/presentation/screens/canonical_promotion_list_screen.dart';
-import 'package:labuda/shared/services/logger_service.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/core/src/router/modules/seller_module.dart';
+import 'package:hishumi/domains/commerce/transaction/order/order.dart';
+import 'package:hishumi/domains/commerce/pricing/promotion/data/dto/promotion_contract_dto.dart';
+import 'package:hishumi/domains/commerce/pricing/promotion/data/repositories/promotion_contract_repository.dart';
+import 'package:hishumi/domains/commerce/pricing/promotion/presentation/providers/canonical_promotion_providers.dart';
+import 'package:hishumi/domains/commerce/pricing/promotion/presentation/screens/canonical_promotion_list_screen.dart';
+import 'package:hishumi/shared/services/logger_service.dart';
 
 // ============================================================================
 // Fake ApiClient — records every path; canned responses; optional pending gate

@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/domains/social/share/domain/entities/share_target.dart';
-import 'package:labuda/shared/attachment/entities/share_reference.dart';
+import 'package:hishumi/domains/social/share/domain/entities/share_target.dart';
+import 'package:hishumi/shared/attachment/entities/share_reference.dart';
 
 void main() {
   test('profile share reference resolves to internal viewed-profile route', () {
@@ -23,11 +23,11 @@ void main() {
 
     expect(
       target.publicShareUrl,
-      equals('$kPublicProfileBaseUrl/profile/user-42'),
+      equals('$kPublicBaseUrl/profile/user-42'),
     );
     expect(
       target.shareText,
-      contains('$kPublicProfileBaseUrl/profile/user-42'),
+      contains('$kPublicBaseUrl/profile/user-42'),
     );
   });
 }

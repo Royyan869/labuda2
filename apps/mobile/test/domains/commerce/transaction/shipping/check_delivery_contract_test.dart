@@ -1,11 +1,11 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/api/api_client.dart';
-import 'package:labuda/core/api/exceptions/api_exception.dart';
-import 'package:labuda/domains/commerce/transaction/shipping/data/dto/shipping_dto.dart';
-import 'package:labuda/domains/commerce/transaction/shipping/data/mappers/shipping_mapper.dart';
-import 'package:labuda/domains/commerce/transaction/shipping/data/remote/shipping_remote_datasource.dart';
-import 'package:labuda/domains/commerce/transaction/shipping/domain/domain.dart';
+import 'package:hishumi/core/api/api_client.dart';
+import 'package:hishumi/core/api/exceptions/api_exception.dart';
+import 'package:hishumi/domains/commerce/transaction/shipping/data/dto/shipping_dto.dart';
+import 'package:hishumi/domains/commerce/transaction/shipping/data/mappers/shipping_mapper.dart';
+import 'package:hishumi/domains/commerce/transaction/shipping/data/remote/shipping_remote_datasource.dart';
+import 'package:hishumi/domains/commerce/transaction/shipping/domain/domain.dart';
 
 // Canonical distinct UUIDs for ID-confusion proof.
 const _productId = '11111111-1111-1111-1111-111111111111';

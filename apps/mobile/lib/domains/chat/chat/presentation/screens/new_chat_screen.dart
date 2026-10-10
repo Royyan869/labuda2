@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/shared/shared.dart';
-import 'package:labuda/features/search/search/domain/entities/user_search.dart';
-import 'package:labuda/domains/chat/chat/chat.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/shared/shared.dart';
+import 'package:hishumi/features/search/search/domain/entities/user_search.dart';
+import 'package:hishumi/domains/chat/chat/chat.dart';
 import '../providers/new_chat_user_search_provider.dart';
 import '../widgets/new_chat_user_list_widget.dart';
 

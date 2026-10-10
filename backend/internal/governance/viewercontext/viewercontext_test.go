@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/governance/viewercontext"
+	"github.com/hishumi/backend/internal/governance/viewercontext"
 )
 
 // TestNewAnonymous verifies the canonical AnonymousViewer construction

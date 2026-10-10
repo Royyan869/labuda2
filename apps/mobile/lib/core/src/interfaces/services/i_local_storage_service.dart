@@ -1,4 +1,4 @@
-import 'package:labuda/core/common/result.dart';
+import 'package:hishumi/core/common/result.dart';
 
 abstract class ILocalStorageService {
   Future<Result<void>> initialize();
@@ -44,12 +44,12 @@ abstract class ILocalStorageService {
   Future<Result<String?>> getRestrictedToken();
   Future<Result<void>> clearRestrictedToken();
 
-  // Canonical Labuda credential operations
-  Future<Result<void>> saveLabudaCredential(String accessToken, String refreshToken);
-  Future<Result<String?>> readLabudaAccessToken();
-  Future<Result<String?>> readLabudaRefreshToken();
-  Future<Result<void>> clearLabudaCredential();
-  Future<Result<bool>> hasLabudaCredential();
+  // Canonical HiShumi credential operations
+  Future<Result<void>> saveHiShumiCredential(String accessToken, String refreshToken);
+  Future<Result<String?>> readHiShumiAccessToken();
+  Future<Result<String?>> readHiShumiRefreshToken();
+  Future<Result<void>> clearHiShumiCredential();
+  Future<Result<bool>> hasHiShumiCredential();
 }
 
 class StorageKeys {
@@ -57,7 +57,7 @@ class StorageKeys {
   static const String refreshToken = 'refresh_token';
   static const String restrictedToken = 'restricted_token';
   // REMOVED: userSession — legacy auth session snapshot; credentials are the
-  // canonical session source (saveLabudaCredential / readLabuda*).
+  // canonical session source (saveHiShumiCredential / readHiShumi*).
   static const String userPreferences = 'user_preferences';
   // REMOVED: onboardingCompleted - was never used, app entry is controlled by AuthController
   static const String themeMode = 'theme_mode';

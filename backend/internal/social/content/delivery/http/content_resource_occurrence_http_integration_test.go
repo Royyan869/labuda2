@@ -14,9 +14,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
-	contententity "github.com/labuda/backend/internal/social/content/entity"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/testdb"
+	contententity "github.com/hishumi/backend/internal/social/content/entity"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/testdb"
 )
 
 func TestCreateContent_CanonicalResourceOccurrenceBindingAndNegativeContracts(t *testing.T) {

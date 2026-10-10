@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/domains/commerce/transaction/shipping/domain/domain.dart';
+import 'package:hishumi/domains/commerce/transaction/shipping/domain/domain.dart';
 
 void main() {
   group('Shipping one-package request integer serialization', () {

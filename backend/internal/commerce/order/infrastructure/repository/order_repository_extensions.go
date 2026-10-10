@@ -8,11 +8,11 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/commerce/order/entity"
-	orderrepo "github.com/labuda/backend/internal/commerce/order/repository"
-	addressentity "github.com/labuda/backend/internal/identity/address/entity"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/money"
+	"github.com/hishumi/backend/internal/commerce/order/entity"
+	orderrepo "github.com/hishumi/backend/internal/commerce/order/repository"
+	addressentity "github.com/hishumi/backend/internal/identity/address/entity"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/money"
 )
 
 func quoteBlockingOrderStatuses() []string {

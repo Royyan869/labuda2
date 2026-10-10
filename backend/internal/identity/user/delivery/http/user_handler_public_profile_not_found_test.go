@@ -11,9 +11,9 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
-	userApp "github.com/labuda/backend/internal/identity/user/application"
-	userEntity "github.com/labuda/backend/internal/identity/user/domain/entity"
-	"github.com/labuda/backend/pkg/db"
+	userApp "github.com/hishumi/backend/internal/identity/user/application"
+	userEntity "github.com/hishumi/backend/internal/identity/user/domain/entity"
+	"github.com/hishumi/backend/pkg/db"
 	"go.uber.org/zap"
 )
 

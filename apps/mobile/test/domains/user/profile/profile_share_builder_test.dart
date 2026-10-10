@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/domains/user/profile/presentation/screens/profile_screen/profile_share_builder.dart';
-import 'package:labuda/shared/governance/content_lifecycle.dart';
+import 'package:hishumi/domains/user/profile/presentation/screens/profile_screen/profile_share_builder.dart';
+import 'package:hishumi/shared/governance/content_lifecycle.dart';
 
 void main() {
   test('active canonical profile builds a canonical profile share target', () {
@@ -15,9 +15,9 @@ void main() {
     expect(target, isNotNull);
     expect(target!.id, 'user-42');
     expect(target.title, '@user_deadbeef');
-    expect(target.description, 'Lihat profil @user_deadbeef di LABUDA');
+    expect(target.description, 'Lihat profil @user_deadbeef di HiShumi');
     expect(target.imageUrl, 'https://cdn.example.com/avatar.jpg');
-    expect(target.publicShareUrl, 'https://labuda.app/profile/user-42');
+    expect(target.publicShareUrl, 'https://hishumi.com/profile/user-42');
   });
 
   test('genuine stored user_deadbeef remains valid and not synthetic', () {

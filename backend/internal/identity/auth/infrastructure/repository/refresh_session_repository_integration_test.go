@@ -10,10 +10,10 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
-	authentity "github.com/labuda/backend/internal/identity/auth/entity"
-	authrepo "github.com/labuda/backend/internal/identity/auth/infrastructure/repository"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/testdb"
+	authentity "github.com/hishumi/backend/internal/identity/auth/entity"
+	authrepo "github.com/hishumi/backend/internal/identity/auth/infrastructure/repository"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/testdb"
 )
 
 // --- helpers ---

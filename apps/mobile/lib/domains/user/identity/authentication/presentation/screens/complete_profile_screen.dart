@@ -2,8 +2,8 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/shared/helpers/canonical_username_validator.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/shared/helpers/canonical_username_validator.dart';
 
 import '../widgets/username_field.dart';
 

@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/api/api.dart';
-import 'package:labuda/domains/user/identity/authentication/data/datasources/auth_api_datasource.dart';
+import 'package:hishumi/core/api/api.dart';
+import 'package:hishumi/domains/user/identity/authentication/data/datasources/auth_api_datasource.dart';
 
 class _RecordingApiClient implements ApiClient {
   String? lastPath;
@@ -35,9 +35,6 @@ class _RecordingApiClient implements ApiClient {
   }) {
     throw UnimplementedError();
   }
-
-  @override
-  bool isNetworkError(DioException e) => false;
 
   @override
   bool isNotFound(DioException e) => false;

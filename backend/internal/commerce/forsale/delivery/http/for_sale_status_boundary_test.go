@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/commerce/forsale/entity"
-	"github.com/labuda/backend/internal/pkg/sellerdisplay"
+	"github.com/hishumi/backend/internal/commerce/forsale/entity"
+	"github.com/hishumi/backend/internal/pkg/sellerdisplay"
 )
 
 // SCOPE 3 — for_sale status boundary.

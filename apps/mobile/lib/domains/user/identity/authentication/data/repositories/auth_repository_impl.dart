@@ -1,7 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/user/profile/data/models/api/user_api_models.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/user/profile/data/datasources/user_api_datasource.dart';
+import 'package:hishumi/domains/user/profile/data/models/api/user_api_models.dart';
 import '../../domain/entities/user_profile_patch.dart';
 import '../../domain/entities/firebase_principal.dart';
 import '../repositories/auth_core_repository.dart';
@@ -26,6 +27,7 @@ class AuthRepositoryImpl implements IAuthRepository {
     GoogleSignIn? googleSignIn,
     ILocalStorageService? localStorage,
     required AuthApiDatasource apiDatasource,
+    UserApiDatasource? userDatasource,
   }) : _coreRepository = AuthCoreRepository(firebaseAuth: firebaseAuth),
        _googleRepository = AuthGoogleRepository(
          firebaseAuth: firebaseAuth,
@@ -35,6 +37,11 @@ class AuthRepositoryImpl implements IAuthRepository {
        _profileRepository = AuthProfileRepository(
          firebaseAuth: firebaseAuth,
          apiDatasource: apiDatasource,
+         // CANONICAL /users/me: the shared UserApiDatasource implementation.
+         // Default derives from the SAME ApiClient so direct constructions
+         // (tests/host) keep one endpoint authority without extra wiring.
+         userDatasource:
+             userDatasource ?? UserApiDatasource(apiDatasource.apiClient),
          localStorage: localStorage,
        );
 
@@ -109,9 +116,6 @@ class AuthRepositoryImpl implements IAuthRepository {
       _profileRepository.resetPassword(email: email);
 
   @override
-  Future<Result<void>> verifyEmail() => _profileRepository.verifyEmail();
-
-  @override
   Future<Result<void>> sendEmailVerification() =>
       _profileRepository.sendEmailVerification();
 
@@ -166,20 +170,8 @@ class AuthRepositoryImpl implements IAuthRepository {
       _profileRepository.getUserById(userId);
 
   @override
-  Future<Result<List<AuthUser>>> searchUsers({
-    required String query,
-    int limit = 20,
-  }) => _profileRepository.searchUsers(query: query, limit: limit);
-
-  @override
   Future<Result<void>> deactivateAccount({
     required String userId,
     required String reason,
   }) => _profileRepository.deactivateAccount(userId: userId, reason: reason);
-
-  @override
-  Future<Result<AuthUser>> updateUserRole({
-    required String userId,
-    required UserRole newRole,
-  }) => _profileRepository.updateUserRole(userId: userId, newRole: newRole);
 }

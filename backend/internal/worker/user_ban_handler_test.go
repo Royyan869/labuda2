@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 
-	orderEntity "github.com/labuda/backend/internal/commerce/order/entity"
+	orderEntity "github.com/hishumi/backend/internal/commerce/order/entity"
 )
 
 // newTestBanHandler returns a zero-dependency handler suitable for pure-logic tests.

@@ -7,7 +7,7 @@ import (
 
 // Shadow telemetry surface.
 //
-// All metrics live under the `labuda_evaluator_shadow_` namespace and are
+// All metrics live under the `hishumi_evaluator_shadow_` namespace and are
 // registered exactly once via the package-level promauto registrations
 // below. Cardinality discipline (Phase C Task E):
 //
@@ -21,7 +21,7 @@ import (
 //
 // No user_id, item_id, author_id, or per-tenant dimension is ever emitted.
 
-const metricNamespace = "labuda_evaluator_shadow"
+const metricNamespace = "hishumi_evaluator_shadow"
 
 var (
 	metricRequestTotal = promauto.NewCounterVec(prometheus.CounterOpts{

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/domains/social/content/domain/entities/content.dart';
-import 'package:labuda/core/src/theme/app_theme.dart';
+import 'package:hishumi/domains/social/content/domain/entities/content.dart';
+import 'package:hishumi/core/src/theme/app_theme.dart';
 import 'app_image.dart';
 import 'carousel_video_player.dart';
 import 'carousel_indicators.dart';

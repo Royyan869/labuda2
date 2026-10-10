@@ -1,4 +1,4 @@
-import 'package:labuda/core/common/result.dart';
+import 'package:hishumi/core/common/result.dart';
 
 /// Canonical product-analytics authority for Labuda mobile.
 ///

@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/shared/providers/auth_status_providers.dart';
-import 'package:labuda/features/search/search/presentation/providers/search_history_notifier.dart';
-import 'package:labuda/features/search/search/presentation/providers/search_history_state.dart';
-import 'package:labuda/features/search/search/presentation/widgets/global_search_bar.dart';
-import 'package:labuda/features/search/search/presentation/widgets/search_history_list.dart';
-import 'package:labuda/features/search/search/presentation/widgets/search_suggestions_list.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/shared/providers/auth_status_providers.dart';
+import 'package:hishumi/features/search/search/presentation/providers/search_history_notifier.dart';
+import 'package:hishumi/features/search/search/presentation/providers/search_history_state.dart';
+import 'package:hishumi/features/search/search/presentation/widgets/global_search_bar.dart';
+import 'package:hishumi/features/search/search/presentation/widgets/search_history_list.dart';
+import 'package:hishumi/features/search/search/presentation/widgets/search_suggestions_list.dart';
 
 /// Main search screen with search bar, history, and suggestions
 ///

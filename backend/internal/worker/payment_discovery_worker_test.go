@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	paymentRepo "github.com/labuda/backend/internal/integration/payment/infrastructure/repository"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/midtrans"
+	paymentRepo "github.com/hishumi/backend/internal/integration/payment/infrastructure/repository"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/midtrans"
 	"github.com/stretchr/testify/assert"
 )
 

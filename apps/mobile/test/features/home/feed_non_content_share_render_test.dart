@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/features/home/domain/entities/feed_item.dart';
-import 'package:labuda/features/home/presentation/providers/feed_renderers.dart';
-import 'package:labuda/shared/object/presentation/widgets/object_preview_card.dart';
-import 'package:labuda/shared/domain/entities/resource_projection.dart';
-import 'package:labuda/domains/social/content/presentation/widgets/content_resource_projection_card.dart';
-import 'package:labuda/domains/user/identity/authentication/presentation/providers/auth_controller.dart';
-import 'package:labuda/domains/user/identity/authentication/presentation/providers/auth_state.dart';
-import 'package:labuda/shared/widgets/repost_attribution_bar.dart';
+import 'package:hishumi/features/home/domain/entities/feed_item.dart';
+import 'package:hishumi/features/home/presentation/providers/feed_renderers.dart';
+import 'package:hishumi/shared/object/presentation/widgets/object_preview_card.dart';
+import 'package:hishumi/shared/domain/entities/resource_projection.dart';
+import 'package:hishumi/domains/social/content/presentation/widgets/content_resource_projection_card.dart';
+import 'package:hishumi/domains/user/identity/authentication/presentation/providers/auth_controller.dart';
+import 'package:hishumi/domains/user/identity/authentication/presentation/providers/auth_state.dart';
+import 'package:hishumi/shared/widgets/repost_attribution_bar.dart';
 
 /// Guest auth state: the feed footer reads the auth controller, and a guest
 /// state keeps this harness free of the apiClient wiring main.dart owns.

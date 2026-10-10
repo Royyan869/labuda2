@@ -153,7 +153,7 @@ export function LoginPage() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-primary">LABUDA</h1>
+          <h1 className="text-3xl font-bold text-primary">HiShumi</h1>
           <p className="text-muted-foreground mt-2">Admin Dashboard</p>
         </div>
 
@@ -175,7 +175,7 @@ export function LoginPage() {
               onChange={(e) => setEmail(e.target.value)}
               required
               disabled={anyLoading}
-              placeholder="admin@labuda.com"
+              placeholder="admin@example.com"
             />
 
             <Input
@@ -240,7 +240,7 @@ export function LoginPage() {
         </div>
 
         {/* Version Info */}
-        <p className="text-center type-secondary mt-6">LABUDA Admin Dashboard v1.0.0</p>
+        <p className="text-center type-secondary mt-6">HiShumi Admin Dashboard v1.0.0</p>
       </div>
     </div>
   );

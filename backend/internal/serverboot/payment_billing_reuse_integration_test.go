@@ -7,12 +7,12 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	billingentity "github.com/labuda/backend/internal/finance/billing/entity"
-	billingrepo "github.com/labuda/backend/internal/finance/billing/infrastructure/repository"
-	paymentrepo "github.com/labuda/backend/internal/integration/payment/infrastructure/repository"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/midtrans"
-	"github.com/labuda/backend/pkg/money"
+	billingentity "github.com/hishumi/backend/internal/finance/billing/entity"
+	billingrepo "github.com/hishumi/backend/internal/finance/billing/infrastructure/repository"
+	paymentrepo "github.com/hishumi/backend/internal/integration/payment/infrastructure/repository"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/midtrans"
+	"github.com/hishumi/backend/pkg/money"
 	"github.com/stretchr/testify/require"
 )
 

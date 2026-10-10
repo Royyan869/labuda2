@@ -6,13 +6,13 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	negotiationApp "github.com/labuda/backend/internal/commerce/negotiation/application"
-	negotiationEntity "github.com/labuda/backend/internal/commerce/negotiation/entity"
-	"github.com/labuda/backend/internal/commerce/order/entity"
-	"github.com/labuda/backend/internal/identity/auth"
-	paymentrepo "github.com/labuda/backend/internal/integration/payment/infrastructure/repository"
-	outboxrepo "github.com/labuda/backend/internal/platform/outbox/infrastructure/repository"
-	"github.com/labuda/backend/pkg/db"
+	negotiationApp "github.com/hishumi/backend/internal/commerce/negotiation/application"
+	negotiationEntity "github.com/hishumi/backend/internal/commerce/negotiation/entity"
+	"github.com/hishumi/backend/internal/commerce/order/entity"
+	"github.com/hishumi/backend/internal/identity/auth"
+	paymentrepo "github.com/hishumi/backend/internal/integration/payment/infrastructure/repository"
+	outboxrepo "github.com/hishumi/backend/internal/platform/outbox/infrastructure/repository"
+	"github.com/hishumi/backend/pkg/db"
 	"go.uber.org/zap"
 )
 

@@ -3,7 +3,7 @@ import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/api/interceptors/auth_interceptor.dart';
+import 'package:hishumi/core/api/interceptors/auth_interceptor.dart';
 
 class _CaptureAdapter implements HttpClientAdapter {
   String? lastAuthorizationHeader;
@@ -32,7 +32,7 @@ class _CaptureAdapter implements HttpClientAdapter {
 void main() {
   // PUBLIC BROWSE — VIEWER-IDENTITY CONTRACT (convergence):
   // /api/v1/users/:id is a public browse endpoint (unauthenticated users may
-  // read public profiles), and the backend group is optional-auth: the Labuda
+  // read public profiles), and the backend group is optional-auth: the HiShumi
   // token travels whenever it exists so viewer-scoped facts resolve for a
   // logged-in viewer. The intercept policy for /users/* paths is:
   //   - /api/v1/users/me               → auth-required  (own profile)
@@ -45,7 +45,7 @@ void main() {
       final adapter = _CaptureAdapter();
       final dio = Dio()..httpClientAdapter = adapter;
       dio.interceptors.add(
-        AuthInterceptor(labudaTokenFetcher: () async => 'fresh-token'),
+        AuthInterceptor(hishumiTokenFetcher: () async => 'fresh-token'),
       );
 
       // Any user-ID path (including former "trending") → identity travels
@@ -68,7 +68,7 @@ void main() {
       final adapter = _CaptureAdapter();
       final dio = Dio()..httpClientAdapter = adapter;
       dio.interceptors.add(
-        AuthInterceptor(labudaTokenFetcher: () async => 'fresh-token'),
+        AuthInterceptor(hishumiTokenFetcher: () async => 'fresh-token'),
       );
 
     // check-username is explicitly auth-required (v1 auth group)
@@ -86,7 +86,7 @@ void main() {
     final adapter = _CaptureAdapter();
     final dio = Dio()..httpClientAdapter = adapter;
     dio.interceptors.add(
-      AuthInterceptor(labudaTokenFetcher: () async => 'fresh-token'),
+      AuthInterceptor(hishumiTokenFetcher: () async => 'fresh-token'),
     );
 
     await dio.get<dynamic>('/api/v1/users/me');

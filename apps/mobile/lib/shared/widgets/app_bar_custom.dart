@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/shared/shared.dart';
+import 'package:hishumi/shared/shared.dart';
 
 /// Wrapper AppBar yang konsisten — chrome DARI THEME, bukan dari call site.
 ///

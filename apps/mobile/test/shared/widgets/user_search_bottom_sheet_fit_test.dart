@@ -32,11 +32,11 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/api/api_client.dart';
-import 'package:labuda/core/src/theme/app_theme.dart';
-import 'package:labuda/features/search/search/search.dart';
-import 'package:labuda/shared/widgets/app_bottom_sheet_base.dart';
-import 'package:labuda/shared/widgets/user_search_bottom_sheet.dart';
+import 'package:hishumi/core/api/api_client.dart';
+import 'package:hishumi/core/src/theme/app_theme.dart';
+import 'package:hishumi/features/search/search/search.dart';
+import 'package:hishumi/shared/widgets/app_bottom_sheet_base.dart';
+import 'package:hishumi/shared/widgets/user_search_bottom_sheet.dart';
 
 const double _systemTop = 24;
 const double _keyboard = 300;

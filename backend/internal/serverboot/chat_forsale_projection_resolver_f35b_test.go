@@ -9,11 +9,11 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	fpsEntity "github.com/labuda/backend/internal/commerce/forsale/entity"
-	commerceshared "github.com/labuda/backend/internal/commerce/shared"
-	"github.com/labuda/backend/internal/governance/viewercontext"
-	chatApp "github.com/labuda/backend/internal/interaction/chat/application"
-	chatEntity "github.com/labuda/backend/internal/interaction/chat/entity"
+	fpsEntity "github.com/hishumi/backend/internal/commerce/forsale/entity"
+	commerceshared "github.com/hishumi/backend/internal/commerce/shared"
+	"github.com/hishumi/backend/internal/governance/viewercontext"
+	chatApp "github.com/hishumi/backend/internal/interaction/chat/application"
+	chatEntity "github.com/hishumi/backend/internal/interaction/chat/entity"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

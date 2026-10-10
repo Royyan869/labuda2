@@ -97,7 +97,7 @@ export 'widgets/mentions/mention_text_field.dart'; // ⭐ TextField with mention
 export 'widgets/mentions/mention_suggestion_overlay.dart'; // ⭐ Mention suggestion dropdown (R2.2 MIGRATED: now imports from search domain)
 // ✅ R2.2 REMOVED: mention_search_api_provider.dart - MIGRATED to features/search/presentation/providers/mention_providers.dart
 // ✅ R2.2 REMOVED: mention_resolver_api_provider.dart - MIGRATED to features/search/presentation/providers/mention_providers.dart
-// Import from search domain instead: import 'package:labuda/features/search/search/search.dart' show mentionUserSearchProvider, mentionResolverProvider;
+// Import from search domain instead: import 'package:hishumi/features/search/search/search.dart' show mentionUserSearchProvider, mentionResolverProvider;
 export 'providers/core_providers.dart'; // ⭐ Core providers (ApiClient, ILoggerService)
 export 'widgets/detail_chip_widget.dart'; // ⭐ Detail chip component
 export 'widgets/user_header_widget.dart'; // ⭐ Reusable user header component

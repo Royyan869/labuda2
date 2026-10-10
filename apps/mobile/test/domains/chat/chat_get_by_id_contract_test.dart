@@ -2,24 +2,24 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:dio/dio.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/chat/chat/data/remote/chat_api_datasource.dart';
-import 'package:labuda/domains/chat/chat/data/repositories/chat_repository_impl.dart';
-import 'package:labuda/domains/chat/chat/domain/entities/chat_entities.dart';
-import 'package:labuda/domains/chat/chat/domain/repositories/chat_repository.dart';
-import 'package:labuda/domains/chat/chat/presentation/providers/chat_providers.dart';
-import 'package:labuda/domains/chat/chat/presentation/providers/chat_state.dart'
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/chat/chat/data/remote/chat_api_datasource.dart';
+import 'package:hishumi/domains/chat/chat/data/repositories/chat_repository_impl.dart';
+import 'package:hishumi/domains/chat/chat/domain/entities/chat_entities.dart';
+import 'package:hishumi/domains/chat/chat/domain/repositories/chat_repository.dart';
+import 'package:hishumi/domains/chat/chat/presentation/providers/chat_providers.dart';
+import 'package:hishumi/domains/chat/chat/presentation/providers/chat_state.dart'
     as chat_state;
-import 'package:labuda/domains/chat/chat/presentation/screens/chat_detail_screen.dart';
-import 'package:labuda/domains/commerce/negotiation/negotiation/presentation/providers/negotiation_notifier.dart';
-import 'package:labuda/domains/commerce/negotiation/negotiation/presentation/providers/negotiation_providers.dart';
-import 'package:labuda/domains/commerce/negotiation/negotiation/presentation/providers/negotiation_state.dart';
-import 'package:labuda/domains/user/identity/authentication/domain/entities/account_status.dart';
-import 'package:labuda/generated/app_localizations.dart';
-import 'package:labuda/shared/governance/content_lifecycle.dart';
-import 'package:labuda/shared/providers/auth_status_providers.dart'
+import 'package:hishumi/domains/chat/chat/presentation/screens/chat_detail_screen.dart';
+import 'package:hishumi/domains/commerce/negotiation/negotiation/presentation/providers/negotiation_notifier.dart';
+import 'package:hishumi/domains/commerce/negotiation/negotiation/presentation/providers/negotiation_providers.dart';
+import 'package:hishumi/domains/commerce/negotiation/negotiation/presentation/providers/negotiation_state.dart';
+import 'package:hishumi/domains/user/identity/authentication/domain/entities/account_status.dart';
+import 'package:hishumi/generated/app_localizations.dart';
+import 'package:hishumi/shared/governance/content_lifecycle.dart';
+import 'package:hishumi/shared/providers/auth_status_providers.dart'
     show currentUserIdProvider;
-import 'package:labuda/shared/providers/block_state_provider.dart';
+import 'package:hishumi/shared/providers/block_state_provider.dart';
 
 const _chatId = '00000000-0000-0000-0000-00000000c123';
 const _currentUserId = '00000000-0000-0000-0000-00000000a111';

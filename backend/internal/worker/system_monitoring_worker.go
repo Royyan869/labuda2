@@ -15,7 +15,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
 
-	"github.com/labuda/backend/internal/monitoring"
+	"github.com/hishumi/backend/internal/monitoring"
 )
 
 const (

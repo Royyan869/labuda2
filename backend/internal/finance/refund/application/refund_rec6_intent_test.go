@@ -16,9 +16,9 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/finance/refund/entity"
-	"github.com/labuda/backend/internal/finance/refund/repository"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/finance/refund/entity"
+	"github.com/hishumi/backend/internal/finance/refund/repository"
+	"github.com/hishumi/backend/pkg/db"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

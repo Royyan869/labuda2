@@ -18,12 +18,12 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/system/support/domain/domain.dart';
-import 'package:labuda/domains/system/support/presentation/presentation.dart';
-import 'package:labuda/generated/app_localizations.dart';
-import 'package:labuda/generated/app_localizations_en.dart';
-import 'package:labuda/generated/app_localizations_id.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/system/support/domain/domain.dart';
+import 'package:hishumi/domains/system/support/presentation/presentation.dart';
+import 'package:hishumi/generated/app_localizations.dart';
+import 'package:hishumi/generated/app_localizations_en.dart';
+import 'package:hishumi/generated/app_localizations_id.dart';
 
 const _enFile = 'lib/l10n/app_en.arb';
 const _idFile = 'lib/l10n/app_id.arb';

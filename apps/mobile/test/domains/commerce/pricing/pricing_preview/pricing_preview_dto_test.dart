@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/domains/commerce/pricing/pricing_preview/data/dto/pricing_preview_dto.dart';
+import 'package:hishumi/domains/commerce/pricing/pricing_preview/data/dto/pricing_preview_dto.dart';
 
 // Distinct-ID constants so tests fail if wrong ID is sent in the wrong field.
 const _productId = '11111111-1111-1111-1111-111111111111';

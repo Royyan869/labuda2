@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
-import 'package:labuda/shared/domain/entities/resource_projection.dart';
-import 'package:labuda/features/search/search/domain/entities/user_search.dart';
+import 'package:hishumi/shared/domain/entities/resource_projection.dart';
+import 'package:hishumi/features/search/search/domain/entities/user_search.dart';
 
 // E9.1 — Walk the canonical PublicCard author lifecycle slot on content
 // search rows. Primary path: `card.author.lifecycle` (nested PublicCard

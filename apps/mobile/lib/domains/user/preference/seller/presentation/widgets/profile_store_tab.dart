@@ -10,13 +10,13 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/commerce/catalog/auction/auction.dart';
-import 'package:labuda/domains/commerce/catalog/auction/presentation/widgets/auction_card.dart';
-import 'package:labuda/domains/commerce/catalog/for_sale/for_sale.dart';
-import 'package:labuda/domains/commerce/catalog/for_sale/presentation/widgets/for_sale_card.dart';
-import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_marketplace_primitives.dart';
-import 'package:labuda/shared/shared.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/auction.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/presentation/widgets/auction_card.dart';
+import 'package:hishumi/domains/commerce/catalog/for_sale/for_sale.dart';
+import 'package:hishumi/domains/commerce/catalog/for_sale/presentation/widgets/for_sale_card.dart';
+import 'package:hishumi/domains/commerce/catalog/shared/presentation/widgets/commerce_marketplace_primitives.dart';
+import 'package:hishumi/shared/shared.dart';
 
 /// Main store tab with sub-tabs for commerce items
 class ProfileStoreTab extends ConsumerStatefulWidget {

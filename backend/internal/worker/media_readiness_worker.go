@@ -7,11 +7,11 @@ import (
 	"sync"
 	"time"
 
-	mediaentity "github.com/labuda/backend/internal/commerce/media/entity"
-	productentity "github.com/labuda/backend/internal/commerce/product/entity"
-	commerceshared "github.com/labuda/backend/internal/commerce/shared"
-	"github.com/labuda/backend/internal/pkg/mediaref"
-	"github.com/labuda/backend/pkg/db"
+	mediaentity "github.com/hishumi/backend/internal/commerce/media/entity"
+	productentity "github.com/hishumi/backend/internal/commerce/product/entity"
+	commerceshared "github.com/hishumi/backend/internal/commerce/shared"
+	"github.com/hishumi/backend/internal/pkg/mediaref"
+	"github.com/hishumi/backend/pkg/db"
 	"go.uber.org/zap"
 )
 

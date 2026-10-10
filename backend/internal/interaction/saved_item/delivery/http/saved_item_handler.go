@@ -5,11 +5,11 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	forSaleEntity "github.com/labuda/backend/internal/commerce/forsale/entity"
-	savedItemApp "github.com/labuda/backend/internal/interaction/saved_item/application"
-	savedItemEntity "github.com/labuda/backend/internal/interaction/saved_item/entity"
-	"github.com/labuda/backend/internal/platform/response"
-	"github.com/labuda/backend/pkg/db"
+	forSaleEntity "github.com/hishumi/backend/internal/commerce/forsale/entity"
+	savedItemApp "github.com/hishumi/backend/internal/interaction/saved_item/application"
+	savedItemEntity "github.com/hishumi/backend/internal/interaction/saved_item/entity"
+	"github.com/hishumi/backend/internal/platform/response"
+	"github.com/hishumi/backend/pkg/db"
 	"go.uber.org/zap"
 )
 

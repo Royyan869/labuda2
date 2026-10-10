@@ -9,11 +9,11 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
-	forsaleEntity "github.com/labuda/backend/internal/commerce/forsale/entity"
-	forsaleRepo "github.com/labuda/backend/internal/commerce/forsale/infrastructure/repository"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/money"
-	"github.com/labuda/backend/pkg/testdb"
+	forsaleEntity "github.com/hishumi/backend/internal/commerce/forsale/entity"
+	forsaleRepo "github.com/hishumi/backend/internal/commerce/forsale/infrastructure/repository"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/money"
+	"github.com/hishumi/backend/pkg/testdb"
 )
 
 // Product identity & selling-surface exclusivity — integration proof.

@@ -4,7 +4,7 @@
 /// when the resolved read URL rotates or the object is re-signed.
 library;
 
-import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/domain/entities/auction.dart';
 
 const Set<String> _transientQueryKeys = {
   'x-amz-algorithm',

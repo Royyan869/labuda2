@@ -1,6 +1,6 @@
-import 'package:labuda/core/api/base_api_repository.dart';
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/domains/social/rating/data/dto/rating_api_models.dart';
+import 'package:hishumi/core/api/base_api_repository.dart';
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/domains/social/rating/data/dto/rating_api_models.dart';
 
 /// CANONICAL API Datasource for Rating operations
 ///

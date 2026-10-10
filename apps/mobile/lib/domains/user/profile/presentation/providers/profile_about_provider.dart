@@ -1,10 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart'; // For AuthUser and extensions (isSeller, etc.)
-import 'package:labuda/domains/user/identity/authentication/authentication.dart';
-import 'package:labuda/domains/user/profile/domain/entities/profile_entity.dart';
-import 'package:labuda/domains/user/profile/presentation/providers/user_data_provider.dart'
+import 'package:hishumi/core/core.dart'; // For AuthUser and extensions (isSeller, etc.)
+import 'package:hishumi/domains/user/identity/authentication/authentication.dart';
+import 'package:hishumi/domains/user/profile/domain/entities/profile_entity.dart';
+import 'package:hishumi/domains/user/profile/presentation/providers/user_data_provider.dart'
     show userDataProvider;
-import 'package:labuda/domains/user/profile/presentation/providers/profile_stream_provider.dart'
+import 'package:hishumi/domains/user/profile/presentation/providers/profile_stream_provider.dart'
     show profileStreamProvider;
 
 /// Combined data class for Profile About tab

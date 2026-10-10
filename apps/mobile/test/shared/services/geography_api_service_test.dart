@@ -6,8 +6,8 @@
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/api/api.dart';
-import 'package:labuda/shared/services/geography_api_service.dart';
+import 'package:hishumi/core/api/api.dart';
+import 'package:hishumi/shared/services/geography_api_service.dart';
 
 class _FakeApiClient implements ApiClient {
   final List<String> calls = [];

@@ -15,8 +15,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/joho/godotenv"
-	"github.com/labuda/backend/internal/config"
-	"github.com/labuda/backend/pkg/migration"
+	"github.com/hishumi/backend/internal/config"
+	"github.com/hishumi/backend/pkg/migration"
 )
 
 // testOnlyRunTo is a TEST-ONLY helper that applies migrations up to maxVersion.
@@ -93,7 +93,7 @@ func newIsolatedPool(t *testing.T, suffix string) (*pgxpool.Pool, func()) {
 	poolCfg, _ := pgxpool.ParseConfig(baseDSN)
 	poolCfg.MaxConns = 5
 	basePool, _ := pgxpool.NewWithConfig(context.Background(), poolCfg)
-	testDB := fmt.Sprintf("labuda_test_mig_%s_%d", suffix, time.Now().UnixNano())
+	testDB := fmt.Sprintf("hishumi_test_mig_%s_%d", suffix, time.Now().UnixNano())
 	_, _ = basePool.Exec(context.Background(), fmt.Sprintf("CREATE DATABASE %s", testDB))
 	basePool.Close()
 	testDSN := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",

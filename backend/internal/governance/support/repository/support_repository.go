@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/governance/support/entity"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/governance/support/entity"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // Repository defines the persistence interface for support domain.

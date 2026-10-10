@@ -6,10 +6,10 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	productEntity "github.com/labuda/backend/internal/commerce/product/entity"
-	"github.com/labuda/backend/internal/pkg/sellerdisplay"
-	"github.com/labuda/backend/internal/platform/mediaresolve"
-	"github.com/labuda/backend/internal/platform/s3presign"
+	productEntity "github.com/hishumi/backend/internal/commerce/product/entity"
+	"github.com/hishumi/backend/internal/pkg/sellerdisplay"
+	"github.com/hishumi/backend/internal/platform/mediaresolve"
+	"github.com/hishumi/backend/internal/platform/s3presign"
 )
 
 func TestForSaleToResponseWithSeller_TypedMedia_InferredFromURL(t *testing.T) {

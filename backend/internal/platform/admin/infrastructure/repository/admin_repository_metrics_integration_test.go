@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	adminrepo "github.com/labuda/backend/internal/platform/admin/repository"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/testdb"
+	adminrepo "github.com/hishumi/backend/internal/platform/admin/repository"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/testdb"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

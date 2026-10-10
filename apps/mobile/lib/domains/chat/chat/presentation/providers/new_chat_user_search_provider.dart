@@ -15,12 +15,12 @@
 library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/features/search/search/data/dto/search_dto.dart';
-import 'package:labuda/features/search/search/domain/entities/user_search.dart';
-import 'package:labuda/features/search/search/presentation/providers/providers.dart'
+import 'package:hishumi/features/search/search/data/dto/search_dto.dart';
+import 'package:hishumi/features/search/search/domain/entities/user_search.dart';
+import 'package:hishumi/features/search/search/presentation/providers/providers.dart'
     show searchApiServiceProvider;
-import 'package:labuda/features/search/search/data/remote/search_api_service.dart';
-import 'package:labuda/shared/providers/auth_status_providers.dart'
+import 'package:hishumi/features/search/search/data/remote/search_api_service.dart';
+import 'package:hishumi/shared/providers/auth_status_providers.dart'
     show currentUserIdProvider;
 
 /// Canonical new-chat user-search provider.

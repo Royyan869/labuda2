@@ -22,10 +22,10 @@ library;
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/core/websocket/websocket_message.dart';
-import 'package:labuda/domains/system/notification/presentation/providers/notification_list_provider.dart';
-import 'package:labuda/shared/providers/auth_status_providers.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/core/websocket/websocket_message.dart';
+import 'package:hishumi/domains/system/notification/presentation/providers/notification_list_provider.dart';
+import 'package:hishumi/shared/providers/auth_status_providers.dart';
 
 /// Active-notification realtime reconciliation seam. Stateless by design —
 /// it holds no count and creates no authority; it only invalidates the

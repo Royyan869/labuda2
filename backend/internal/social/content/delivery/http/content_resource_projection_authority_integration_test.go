@@ -15,10 +15,10 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/require"
 
-	contententity "github.com/labuda/backend/internal/social/content/entity"
-	"github.com/labuda/backend/internal/social/content/infrastructure/repository"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/testdb"
+	contententity "github.com/hishumi/backend/internal/social/content/entity"
+	"github.com/hishumi/backend/internal/social/content/infrastructure/repository"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/testdb"
 )
 
 type contentHTTPResponseEnvelope struct {

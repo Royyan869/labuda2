@@ -5,7 +5,7 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
+import 'package:hishumi/core/core.dart';
 
 /// Widget that displays repost attribution
 ///

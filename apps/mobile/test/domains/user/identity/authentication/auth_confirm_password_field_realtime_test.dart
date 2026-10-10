@@ -13,7 +13,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/domains/user/identity/authentication/presentation/shared/widgets/auth_password_field.dart';
+import 'package:hishumi/domains/user/identity/authentication/presentation/shared/widgets/auth_password_field.dart';
 
 /// Harness that drives the widget with real controllers and real typing.
 class _Harness {

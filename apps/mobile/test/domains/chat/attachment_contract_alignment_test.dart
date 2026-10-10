@@ -1,10 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/domains/chat/chat/data/mappers/chat_mapper.dart';
-import 'package:labuda/domains/chat/chat/data/dto/attachment_dto.dart';
-import 'package:labuda/domains/chat/chat/data/dto/message_dto.dart';
-import 'package:labuda/domains/chat/chat/presentation/screens/chat_detail_screen.dart';
-import 'package:labuda/shared/attachment/entities/attachment.dart';
-import 'package:labuda/shared/attachment/entities/share_reference.dart';
+import 'package:hishumi/domains/chat/chat/data/mappers/chat_mapper.dart';
+import 'package:hishumi/domains/chat/chat/data/dto/attachment_dto.dart';
+import 'package:hishumi/domains/chat/chat/data/dto/message_dto.dart';
+import 'package:hishumi/domains/chat/chat/presentation/screens/chat_detail_screen.dart';
+import 'package:hishumi/shared/attachment/entities/attachment.dart';
+import 'package:hishumi/shared/attachment/entities/share_reference.dart';
 
 void main() {
   group('Attachment contract alignment', () {

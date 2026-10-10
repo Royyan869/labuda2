@@ -1,6 +1,6 @@
 // Public browse interceptor contract tests.
 //
-// CANONICAL VIEWER-IDENTITY CONTRACT: the Labuda access token is attached to
+// CANONICAL VIEWER-IDENTITY CONTRACT: the HiShumi access token is attached to
 // every request, including the public browse GETs. The backend browse group
 // is optional-auth (no header → anonymous, valid header → authenticated
 // viewer with full context), and viewer-scoped blocks (viewer_capabilities)
@@ -17,7 +17,7 @@ import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/api/interceptors/auth_interceptor.dart';
+import 'package:hishumi/core/api/interceptors/auth_interceptor.dart';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -80,7 +80,7 @@ Dio _buildDio(HttpClientAdapter adapter) {
   final dio = Dio()..httpClientAdapter = adapter;
   dio.options.validateStatus = (_) => true; // don't throw on 4xx/5xx
   dio.interceptors.add(
-    AuthInterceptor(labudaTokenFetcher: () async => 'stub-token'),
+    AuthInterceptor(hishumiTokenFetcher: () async => 'stub-token'),
   );
   return dio;
 }
@@ -99,7 +99,7 @@ void main() {
   // 1. GET /api/v1/for-sale → viewer-scoped browse (token attached)
   // ------------------------------------------------------------------
   test(
-    '1. GET /api/v1/for-sale attaches the Labuda token (viewer identity)',
+    '1. GET /api/v1/for-sale attaches the HiShumi token (viewer identity)',
     () async {
       final adapter = _CaptureAdapter();
       final dio = _buildDio(adapter);
@@ -264,8 +264,8 @@ void main() {
       dio.options.validateStatus = (_) => true;
       dio.interceptors.add(
         AuthInterceptor(
-          // No labudaTokenFetcher — simulates no Labuda session (null token path)
-          labudaTokenFetcher: () async => null,
+          // No hishumiTokenFetcher — simulates no HiShumi session (null token path)
+          hishumiTokenFetcher: () async => null,
         ),
       );
 
@@ -314,7 +314,7 @@ void main() {
     final dio = Dio()..httpClientAdapter = adapter;
     dio.options.validateStatus = (_) => true;
     dio.interceptors.add(
-      AuthInterceptor(labudaTokenFetcher: () async => null),
+      AuthInterceptor(hishumiTokenFetcher: () async => null),
     );
 
     await dio.get<dynamic>('/api/v1/for-sale/84b4b44d-be1b-4443-9c65-10947f86aa26');

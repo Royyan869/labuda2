@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/pkg/publiccard"
+	"github.com/hishumi/backend/internal/pkg/publiccard"
 )
 
 // UserResponse represents the structured user response for /users/me and /users/sync

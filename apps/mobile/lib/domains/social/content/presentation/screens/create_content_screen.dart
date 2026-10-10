@@ -3,17 +3,17 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/shared/shared.dart';
-import 'package:labuda/domains/social/content/presentation/widgets/create_content/content_app_bar.dart';
-import 'package:labuda/domains/social/content/presentation/widgets/create_content/content_event_handlers.dart';
-import 'package:labuda/domains/social/content/presentation/widgets/create_content/content_modals.dart';
-import 'package:labuda/domains/social/content/presentation/widgets/create_content/content_scrollable_content.dart';
-import 'package:labuda/domains/social/content/presentation/widgets/create_content/content_submission_handler.dart';
-import 'package:labuda/domains/social/content/presentation/widgets/create_content/content_toolbar_section.dart';
-import 'package:labuda/domains/social/content/presentation/widgets/create_content/content_type_visibility_header.dart';
-import 'package:labuda/shared/entities/post_location.dart' as loc;
-import 'package:labuda/shared/widgets/user_search_bottom_sheet.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/shared/shared.dart';
+import 'package:hishumi/domains/social/content/presentation/widgets/create_content/content_app_bar.dart';
+import 'package:hishumi/domains/social/content/presentation/widgets/create_content/content_event_handlers.dart';
+import 'package:hishumi/domains/social/content/presentation/widgets/create_content/content_modals.dart';
+import 'package:hishumi/domains/social/content/presentation/widgets/create_content/content_scrollable_content.dart';
+import 'package:hishumi/domains/social/content/presentation/widgets/create_content/content_submission_handler.dart';
+import 'package:hishumi/domains/social/content/presentation/widgets/create_content/content_toolbar_section.dart';
+import 'package:hishumi/domains/social/content/presentation/widgets/create_content/content_type_visibility_header.dart';
+import 'package:hishumi/shared/entities/post_location.dart' as loc;
+import 'package:hishumi/shared/widgets/user_search_bottom_sheet.dart';
 
 class CreateContentScreen extends ConsumerStatefulWidget {
   const CreateContentScreen({super.key});

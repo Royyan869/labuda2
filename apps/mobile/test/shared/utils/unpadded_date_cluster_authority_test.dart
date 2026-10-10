@@ -21,7 +21,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'package:labuda/shared/utils/app_formatters.dart';
+import 'package:hishumi/shared/utils/app_formatters.dart';
 
 const List<String> _obsoleteSites = <String>[
   'lib/shared/widgets/attachment_widget.dart',

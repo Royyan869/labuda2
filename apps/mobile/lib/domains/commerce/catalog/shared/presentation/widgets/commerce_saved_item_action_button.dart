@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_detail_primitives.dart';
-import 'package:labuda/domains/user/preference/saved_item/data/providers/saved_item_query_providers.dart';
-import 'package:labuda/domains/user/preference/saved_item/data/repositories/saved_item_repository.dart';
-import 'package:labuda/domains/user/preference/saved_item/data/repositories/saved_item_repository_provider.dart';
-import 'package:labuda/shared/widgets/app_snackbar.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/commerce/catalog/shared/presentation/widgets/commerce_detail_primitives.dart';
+import 'package:hishumi/domains/user/preference/saved_item/data/providers/saved_item_query_providers.dart';
+import 'package:hishumi/domains/user/preference/saved_item/data/repositories/saved_item_repository.dart';
+import 'package:hishumi/domains/user/preference/saved_item/data/repositories/saved_item_repository_provider.dart';
+import 'package:hishumi/shared/widgets/app_snackbar.dart';
 
 class CommerceSavedItemActionButton extends ConsumerStatefulWidget {
   final String targetType;

@@ -18,8 +18,8 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/shared/widgets/app_dialog.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/shared/widgets/app_dialog.dart';
 
 /// Files migrated onto the authority in slice 1. They must never host a raw
 /// dialog again.

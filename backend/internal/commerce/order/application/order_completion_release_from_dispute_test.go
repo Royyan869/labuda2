@@ -9,9 +9,9 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 
-	"github.com/labuda/backend/internal/commerce/order/entity"
-	orderrepository "github.com/labuda/backend/internal/commerce/order/repository"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/commerce/order/entity"
+	orderrepository "github.com/hishumi/backend/internal/commerce/order/repository"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // ============================================================================

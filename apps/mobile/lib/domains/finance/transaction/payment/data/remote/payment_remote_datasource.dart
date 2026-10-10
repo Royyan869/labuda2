@@ -4,8 +4,8 @@
 /// All HTTP calls to Go backend are isolated here.
 library;
 
-import 'package:labuda/core/api/api.dart';
-import 'package:labuda/core/common/result.dart';
+import 'package:hishumi/core/api/api.dart';
+import 'package:hishumi/core/common/result.dart';
 import '../dto/payment_dto.dart';
 
 /// Payment remote datasource

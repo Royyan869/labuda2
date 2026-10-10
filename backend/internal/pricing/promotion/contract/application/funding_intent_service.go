@@ -8,13 +8,13 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	paymentmethodentity "github.com/labuda/backend/internal/commerce/paymentmethod/entity"
-	"github.com/labuda/backend/internal/finance/billing/application"
-	billingentity "github.com/labuda/backend/internal/finance/billing/entity"
-	contractentity "github.com/labuda/backend/internal/pricing/promotion/contract/entity"
-	contractRepoImpl "github.com/labuda/backend/internal/pricing/promotion/contract/infrastructure/repository"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/money"
+	paymentmethodentity "github.com/hishumi/backend/internal/commerce/paymentmethod/entity"
+	"github.com/hishumi/backend/internal/finance/billing/application"
+	billingentity "github.com/hishumi/backend/internal/finance/billing/entity"
+	contractentity "github.com/hishumi/backend/internal/pricing/promotion/contract/entity"
+	contractRepoImpl "github.com/hishumi/backend/internal/pricing/promotion/contract/infrastructure/repository"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/money"
 	"go.uber.org/zap"
 )
 

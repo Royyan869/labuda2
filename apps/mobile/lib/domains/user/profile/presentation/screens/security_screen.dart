@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/shared/shared.dart';
-import 'package:labuda/shared/helpers/canonical_password_policy.dart';
-import 'package:labuda/shared/helpers/canonical_password_match.dart';
-import 'package:labuda/domains/user/identity/authentication/presentation/shared/widgets/auth_password_field.dart';
-import 'package:labuda/domains/user/identity/authentication/presentation/shared/widgets/auth_button.dart';
-import 'package:labuda/generated/app_localizations.dart';
-import 'package:labuda/domains/user/profile/presentation/shared/shared.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/shared/shared.dart';
+import 'package:hishumi/shared/helpers/canonical_password_policy.dart';
+import 'package:hishumi/shared/helpers/canonical_password_match.dart';
+import 'package:hishumi/domains/user/identity/authentication/presentation/shared/widgets/auth_password_field.dart';
+import 'package:hishumi/domains/user/identity/authentication/presentation/shared/widgets/auth_button.dart';
+import 'package:hishumi/generated/app_localizations.dart';
+import 'package:hishumi/domains/user/profile/presentation/shared/shared.dart';
 
 /// Security Management Screen (Refactored)
 ///
@@ -64,17 +64,28 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authControllerProvider);
+    // AUTH-H2 G2: Change Password availability is decided by the SINGLE
+    // credential authority (hasPasswordCredentialProvider). The password
+    // section renders from this one value — no parallel provider checks.
+    final hasPasswordCredential = ref.watch(hasPasswordCredentialProvider);
 
     return Scaffold(
       appBar: AppBarCustom(title: AppLocalizations.of(context)!.securityTitle),
       body: authState is AuthStateAuthenticated
-          ? ProfileStateView(
-              isLoading: _controller.isLoading,
-              error: _controller.errorMessage,
-              success: _controller.successMessage,
-              onErrorDismiss: _controller.clearError,
-              onSuccessDismiss: _controller.clearSuccess,
-              content: _buildForm(context, authState.user),
+          // AUTH-H2 G3: the screen must LISTEN to its local form controller —
+          // without this, a changePassword failure (which deliberately no
+          // longer mutates the global auth state) had nothing to trigger a
+          // rebuild and the error stayed invisible.
+          ? ListenableBuilder(
+              listenable: _controller,
+              builder: (context, _) => ProfileStateView(
+                isLoading: _controller.isLoading,
+                error: _controller.errorMessage,
+                success: _controller.successMessage,
+                onErrorDismiss: _controller.clearError,
+                onSuccessDismiss: _controller.clearSuccess,
+                content: _buildForm(context, hasPasswordCredential),
+              ),
             )
           : Center(
               child: Text(AppLocalizations.of(context)!.pleaseLoginToManage),
@@ -82,19 +93,23 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
     );
   }
 
-  Widget _buildForm(BuildContext context, AuthUser user) {
+  Widget _buildForm(BuildContext context, bool hasPasswordCredential) {
     return SafeArea(
       child: Form(
         key: _formKey,
         child: ListView(
           padding: const EdgeInsets.all(AppMetrics.p24),
           children: [
-            // Password Section
+            // Password Section — gated on ACTUAL password-credential
+            // availability (AUTH-H2). A Google-only account must never see
+            // an executable Change Password form.
             _buildSectionHeader(
               AppLocalizations.of(context)!.passwordManagement,
             ),
             const SizedBox(height: 16),
-            _buildPasswordSection(context),
+            hasPasswordCredential
+                ? _buildPasswordSection(context)
+                : _buildPasswordManagedByGoogleNotice(context),
             const SizedBox(height: 32),
 
             // Security Settings Section
@@ -111,6 +126,56 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
             _buildAccountManagementSection(context),
           ],
         ),
+      ),
+    );
+  }
+
+  /// AUTH-H2 G2 (rule 3): accounts WITHOUT a HiShumi password credential
+  /// (Google-only, or an identity whose credentials cannot be proven) get a
+  /// clear explanation instead of the form. No account-linking entry point
+  /// is offered here — adding a password is a separate linking concern.
+  Widget _buildPasswordManagedByGoogleNotice(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final scheme = Theme.of(context).colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.all(AppMetrics.p24),
+      decoration: BoxDecoration(
+        color: scheme.surface,
+        borderRadius: BorderRadius.circular(AppShape.r16),
+        border: Border.all(color: scheme.outlineVariant),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.g_mobiledata,
+                color: scheme.onSurface,
+                size: AppIconSize.emphasis,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  l10n.passwordManagedByGoogleTitle,
+                  style: context.typeRoles.titleCompact.copyWith(
+                    color: scheme.onSurface,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            l10n.passwordManagedByGoogleBody,
+            style: context.typeRoles.bodyDense.copyWith(
+              color: scheme.onSurfaceVariant,
+              height: 1.5,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -348,7 +413,10 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
     _controller.setLoading(true);
 
     try {
-      final success = await ref
+      // AUTH-H2 G3: the controller returns the failure message LOCALLY —
+      // a wrong current password never mutates the global auth state, so
+      // the session stays alive and the user stays on this screen.
+      final error = await ref
           .read(authControllerProvider.notifier)
           .changePassword(
             currentPassword: _currentPasswordController.text.trim(),
@@ -356,7 +424,7 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
           );
 
       if (mounted) {
-        if (success) {
+        if (error == null) {
           // Clear form
           _currentPasswordController.clear();
           _newPasswordController.clear();
@@ -374,12 +442,9 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
             _controller.clearSuccess();
           });
         } else {
-          final authState = ref.read(authControllerProvider);
-          if (authState is AuthStateError) {
-            _controller.showError(authState.message);
-          } else {
-            _controller.showError(l10n.failedToChangePassword);
-          }
+          // Failure is rendered INLINE on this screen — never as success,
+          // never as a global auth error.
+          _controller.showError(error);
         }
       }
     } catch (e) {

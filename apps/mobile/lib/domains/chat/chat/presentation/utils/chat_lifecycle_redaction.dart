@@ -16,7 +16,7 @@
 /// redaction placeholder + neutral avatar.
 library;
 
-import 'package:labuda/shared/governance/content_lifecycle.dart';
+import 'package:hishumi/shared/governance/content_lifecycle.dart';
 
 /// Returns the user-facing redaction label for a degraded chat identity.
 /// Active → empty string (caller falls back to the real name). Never throws.

@@ -1,10 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/domains/social/comment/domain/entities/comment.dart';
-import 'package:labuda/domains/social/comment/domain/repositories/comment_repository.dart';
-import 'package:labuda/domains/social/comment/presentation/providers/comment_notifier.dart';
-import 'package:labuda/domains/social/comment/presentation/providers/comment_providers.dart';
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/domains/social/comment/domain/entities/comment.dart';
+import 'package:hishumi/domains/social/comment/domain/repositories/comment_repository.dart';
+import 'package:hishumi/domains/social/comment/presentation/providers/comment_notifier.dart';
+import 'package:hishumi/domains/social/comment/presentation/providers/comment_providers.dart';
 
 // ============================================================================
 // COMMENT PENDING ROW CONTRACT

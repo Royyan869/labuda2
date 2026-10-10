@@ -223,7 +223,7 @@ func sniffDetailEnforcement(metricsPath string) string {
 		return ""
 	}
 	for _, ln := range strings.Split(string(b), "\n") {
-		if !strings.HasPrefix(ln, "labuda_evaluator_content_detail_enforce_mode_total") {
+		if !strings.HasPrefix(ln, "hishumi_evaluator_content_detail_enforce_mode_total") {
 			continue
 		}
 		if i := strings.Index(ln, `mode="`); i >= 0 {
@@ -453,10 +453,10 @@ func synthesizeDetailVerdict(sum *detailSummary) string {
 }
 
 func sniffDetailEnforcementApplied(beforePath, afterPath string) (bool, string) {
-	beforeMap := readFeedSeries(beforePath, "labuda_evaluator_content_detail_enforcement_applied_total")
-	afterMap := readFeedSeries(afterPath, "labuda_evaluator_content_detail_enforcement_applied_total")
+	beforeMap := readFeedSeries(beforePath, "hishumi_evaluator_content_detail_enforcement_applied_total")
+	afterMap := readFeedSeries(afterPath, "hishumi_evaluator_content_detail_enforcement_applied_total")
 	if len(afterMap) == 0 {
-		return false, "no labuda_evaluator_content_detail_enforcement_applied_total series present in the final scrape — counter never incremented; if the legacy 404 gate fired BEFORE the enforce pass, the enforce path was short-circuited (the legacy gate is strictly more conservative than the evaluator on this corpus)"
+		return false, "no hishumi_evaluator_content_detail_enforcement_applied_total series present in the final scrape — counter never incremented; if the legacy 404 gate fired BEFORE the enforce pass, the enforce path was short-circuited (the legacy gate is strictly more conservative than the evaluator on this corpus)"
 	}
 	for labels, after := range afterMap {
 		before := beforeMap[labels]
@@ -472,7 +472,7 @@ func sniffDetailShadowContinuity(activePath, deletedPath string) string {
 	deleted := readDetailShadowRequestTotal(deletedPath)
 	switch {
 	case deleted > active:
-		return fmt.Sprintf("content_detail shadow continuity confirmed: labuda_evaluator_shadow_request_total{surface=content_detail} advanced %g → %g", active, deleted)
+		return fmt.Sprintf("content_detail shadow continuity confirmed: hishumi_evaluator_shadow_request_total{surface=content_detail} advanced %g → %g", active, deleted)
 	case active > 0 && deleted == active:
 		return fmt.Sprintf("content_detail shadow request_total observed at %g but did not advance between active and deleted snapshots", active)
 	case active == 0 && deleted == 0:
@@ -489,7 +489,7 @@ func readDetailShadowRequestTotal(path string) float64 {
 	}
 	var total float64
 	for _, ln := range strings.Split(string(b), "\n") {
-		if !strings.HasPrefix(ln, "labuda_evaluator_shadow_request_total{") {
+		if !strings.HasPrefix(ln, "hishumi_evaluator_shadow_request_total{") {
 			continue
 		}
 		if !strings.Contains(ln, `surface="content_detail"`) {

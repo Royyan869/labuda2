@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/governance/viewercontext"
+	"github.com/hishumi/backend/internal/governance/viewercontext"
 )
 
 // FollowUserCardResponse is the follow-owned HTTP response DTO for

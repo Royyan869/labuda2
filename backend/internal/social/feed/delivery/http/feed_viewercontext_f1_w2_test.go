@@ -6,9 +6,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/governance/viewercontext"
-	capabilityctx "github.com/labuda/backend/internal/platform/capability"
-	capabilityentity "github.com/labuda/backend/internal/platform/capability/entity"
+	"github.com/hishumi/backend/internal/governance/viewercontext"
+	capabilityctx "github.com/hishumi/backend/internal/platform/capability"
+	capabilityentity "github.com/hishumi/backend/internal/platform/capability/entity"
 )
 
 // F1-W2 — constructFeedViewerContext behavior pin.

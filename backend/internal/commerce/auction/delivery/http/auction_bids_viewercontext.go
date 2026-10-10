@@ -5,11 +5,11 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/commerce/auction/entity"
-	"github.com/labuda/backend/internal/governance/viewercontext"
-	"github.com/labuda/backend/internal/pkg/publiccard"
-	capabilityctx "github.com/labuda/backend/internal/platform/capability"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/commerce/auction/entity"
+	"github.com/hishumi/backend/internal/governance/viewercontext"
+	"github.com/hishumi/backend/internal/pkg/publiccard"
+	capabilityctx "github.com/hishumi/backend/internal/platform/capability"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // D14 — Auction bid discovery governance convergence.

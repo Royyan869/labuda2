@@ -11,9 +11,9 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"go.uber.org/zap"
 
-	supportRepo "github.com/labuda/backend/internal/governance/support/repository"
-	"github.com/labuda/backend/internal/worker"
-	"github.com/labuda/backend/pkg/db"
+	supportRepo "github.com/hishumi/backend/internal/governance/support/repository"
+	"github.com/hishumi/backend/internal/worker"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // =============================================================================

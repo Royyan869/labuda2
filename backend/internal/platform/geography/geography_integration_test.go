@@ -6,9 +6,9 @@ import (
 	"context"
 	"testing"
 
-	geography "github.com/labuda/backend/internal/platform/geography"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/testdb"
+	geography "github.com/hishumi/backend/internal/platform/geography"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/testdb"
 	"github.com/stretchr/testify/require"
 )
 

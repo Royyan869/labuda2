@@ -69,12 +69,12 @@
 library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/domains/commerce/catalog/for_sale/domain/entities/for_sale.dart';
-import 'package:labuda/domains/commerce/catalog/for_sale/presentation/providers/for_sale_providers.dart';
-import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction.dart';
-import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction_status.dart';
-import 'package:labuda/domains/commerce/catalog/auction/presentation/providers/auction_providers.dart';
-import 'package:labuda/shared/attachment/entities/attachment.dart';
+import 'package:hishumi/domains/commerce/catalog/for_sale/domain/entities/for_sale.dart';
+import 'package:hishumi/domains/commerce/catalog/for_sale/presentation/providers/for_sale_providers.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/domain/entities/auction.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/domain/entities/auction_status.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/presentation/providers/auction_providers.dart';
+import 'package:hishumi/shared/attachment/entities/attachment.dart';
 
 // =============================================================================
 // FOR SALE ATTACHMENT STATUS RESOLUTION

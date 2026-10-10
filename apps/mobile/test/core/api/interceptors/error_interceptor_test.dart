@@ -2,7 +2,7 @@
 //
 // Verifies that a Dio connectionError (the case that fires when the socket to
 // the configured backend host fails — refused, unreachable, wrong IP, backend
-// down) is converted to a message that says "Cannot reach Labuda server"
+// down) is converted to a message that says "Cannot reach HiShumi server"
 // rather than "No internet connection" — and, since the transport-classification
 // convergence, that the failure carries its CANONICAL code from
 // api_error_codes.dart. Identity is the code, not the wording: the message may
@@ -20,9 +20,9 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:labuda/core/api/api_error_codes.dart';
-import 'package:labuda/core/api/exceptions/api_exception.dart';
-import 'package:labuda/core/api/interceptors/error_interceptor.dart';
+import 'package:hishumi/core/api/api_error_codes.dart';
+import 'package:hishumi/core/api/exceptions/api_exception.dart';
+import 'package:hishumi/core/api/interceptors/error_interceptor.dart';
 
 /// Adapter that fails every request with a given DioException, simulating
 /// the socket-level failure Dio itself reports as connectionError.
@@ -74,7 +74,7 @@ void main() {
         }
 
         expect(apiException, isA<NetworkException>());
-        expect(apiException.message, contains('Cannot reach Labuda server'));
+        expect(apiException.message, contains('Cannot reach HiShumi server'));
         expect(apiException.message, isNot(contains('No internet connection')));
         expect(apiException.code, backendUnreachable);
       },

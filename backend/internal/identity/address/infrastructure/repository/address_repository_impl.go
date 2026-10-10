@@ -6,9 +6,9 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	addressEntity "github.com/labuda/backend/internal/identity/address/entity"
-	addressRepo "github.com/labuda/backend/internal/identity/address/repository"
-	"github.com/labuda/backend/pkg/db"
+	addressEntity "github.com/hishumi/backend/internal/identity/address/entity"
+	addressRepo "github.com/hishumi/backend/internal/identity/address/repository"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // AddressRepositoryImpl handles address persistence using pgx-based DB layer.

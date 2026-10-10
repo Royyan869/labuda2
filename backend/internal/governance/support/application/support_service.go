@@ -9,11 +9,11 @@ import (
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 
-	"github.com/labuda/backend/internal/governance/support/entity"
-	infraRepo "github.com/labuda/backend/internal/governance/support/infrastructure/repository"
-	supportRepo "github.com/labuda/backend/internal/governance/support/repository"
-	chatEntity "github.com/labuda/backend/internal/interaction/chat/entity"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/governance/support/entity"
+	infraRepo "github.com/hishumi/backend/internal/governance/support/infrastructure/repository"
+	supportRepo "github.com/hishumi/backend/internal/governance/support/repository"
+	chatEntity "github.com/hishumi/backend/internal/interaction/chat/entity"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 const (

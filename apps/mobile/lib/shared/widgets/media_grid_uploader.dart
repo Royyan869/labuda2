@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/media/media_upload_config.dart';
-import 'package:labuda/core/media/media_upload_orchestrator.dart';
-import 'package:labuda/shared/widgets/app_image.dart';
-import 'package:labuda/core/src/theme/app_theme.dart';
+import 'package:hishumi/core/media/media_upload_config.dart';
+import 'package:hishumi/core/media/media_upload_orchestrator.dart';
+import 'package:hishumi/shared/widgets/app_image.dart';
+import 'package:hishumi/core/src/theme/app_theme.dart';
 
 /// Shared commerce media grid — foto+video, dipakai for_sale, auction, komentar, chat.
 ///

@@ -3,10 +3,10 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/commerce/transaction/shipping/domain/domain.dart';
-import 'package:labuda/domains/commerce/transaction/shipping/presentation/providers/providers.dart';
-import 'package:labuda/shared/shared.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/commerce/transaction/shipping/domain/domain.dart';
+import 'package:hishumi/domains/commerce/transaction/shipping/presentation/providers/providers.dart';
+import 'package:hishumi/shared/shared.dart';
 
 class ShippingSetupScreen extends ConsumerStatefulWidget {
   /// Canonical edit mode: the screen fetches the full package (option +

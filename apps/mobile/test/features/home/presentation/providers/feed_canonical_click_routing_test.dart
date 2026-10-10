@@ -25,11 +25,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
-import 'package:labuda/core/core.dart';
+import 'package:hishumi/core/core.dart';
 import 'package:visibility_detector/visibility_detector.dart';
-import 'package:labuda/features/home/home.dart';
-import 'package:labuda/features/home/presentation/providers/feed_renderers.dart';
-import 'package:labuda/shared/services/logger_service.dart';
+import 'package:hishumi/features/home/home.dart';
+import 'package:hishumi/features/home/presentation/providers/feed_renderers.dart';
+import 'package:hishumi/shared/services/logger_service.dart';
 
 // ============================================================================
 // Captured request model

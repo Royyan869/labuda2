@@ -1,4 +1,4 @@
-import 'package:labuda/core/src/navigation/i_navigation_registry.dart';
+import 'package:hishumi/core/src/navigation/i_navigation_registry.dart';
 
 /// Implementation of INavigationRegistry
 ///

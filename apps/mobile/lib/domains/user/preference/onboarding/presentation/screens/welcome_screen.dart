@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/shared/shared.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/shared/shared.dart';
 
 /// Welcome screen dengan professional branding dan smooth animations.
 ///
@@ -234,7 +234,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen>
 
         // LABUDA text logo
         Text(
-          'LABUDA',
+          'HiShumi',
           style: Theme.of(context).textTheme.headlineLarge?.copyWith(
             fontWeight: FontWeight.bold,
             letterSpacing: 2.0,

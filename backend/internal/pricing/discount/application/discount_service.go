@@ -33,10 +33,10 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/pricing/discount/entity"
-	repositoryImpl "github.com/labuda/backend/internal/pricing/discount/infrastructure/repository"
-	discountRepo "github.com/labuda/backend/internal/pricing/discount/repository"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/pricing/discount/entity"
+	repositoryImpl "github.com/hishumi/backend/internal/pricing/discount/infrastructure/repository"
+	discountRepo "github.com/hishumi/backend/internal/pricing/discount/repository"
+	"github.com/hishumi/backend/pkg/db"
 	"github.com/shopspring/decimal"
 )
 

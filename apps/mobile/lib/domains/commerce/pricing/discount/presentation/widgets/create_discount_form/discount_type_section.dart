@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:labuda/domains/commerce/pricing/discount/domain/entities/discount_entity.dart';
-import 'package:labuda/shared/utils/money_input_formatter.dart';
-import 'package:labuda/shared/widgets/app_text_field.dart';
-import 'package:labuda/core/src/theme/app_theme.dart';
+import 'package:hishumi/domains/commerce/pricing/discount/domain/entities/discount_entity.dart';
+import 'package:hishumi/shared/utils/money_input_formatter.dart';
+import 'package:hishumi/shared/widgets/app_text_field.dart';
+import 'package:hishumi/core/src/theme/app_theme.dart';
 
 /// Section untuk tipe & nilai discount
 ///

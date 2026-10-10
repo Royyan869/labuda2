@@ -14,9 +14,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/src/theme/app_theme.dart';
-import 'package:labuda/domains/user/identity/authentication/presentation/shared/widgets/auth_button.dart';
-import 'package:labuda/shared/widgets/bottom_action_bar.dart';
+import 'package:hishumi/core/src/theme/app_theme.dart';
+import 'package:hishumi/domains/user/identity/authentication/presentation/shared/widgets/auth_button.dart';
+import 'package:hishumi/shared/widgets/bottom_action_bar.dart';
 
 /// Rendered fill of the first `Material` built by [buttonType].
 Color? _renderedFill(WidgetTester tester, Type buttonType) => tester

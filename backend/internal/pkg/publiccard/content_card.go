@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/pkg/mediaref"
+	"github.com/hishumi/backend/internal/pkg/mediaref"
 )
 
 // ContentCard is the canonical PublicCard exposure for social-content posts

@@ -12,18 +12,18 @@
 library;
 
 // Dart
-import 'package:labuda/core/core.dart' show AppRouter;
-import 'package:labuda/core/interfaces/i_notification_trigger.dart';
-import 'package:labuda/core/navigation/navigation_handler.dart';
-import 'package:labuda/core/src/router/route_paths.dart';
-import 'package:labuda/domains/system/notification/domain/entities/notification_entity.dart';
+import 'package:hishumi/core/core.dart' show AppRouter;
+import 'package:hishumi/core/interfaces/i_notification_trigger.dart';
+import 'package:hishumi/core/navigation/navigation_handler.dart';
+import 'package:hishumi/core/src/router/route_paths.dart';
+import 'package:hishumi/domains/system/notification/domain/entities/notification_entity.dart';
 
 // Flutter
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:labuda/core/src/theme/app_theme.dart';
-import 'package:labuda/shared/widgets/app_snackbar.dart';
+import 'package:hishumi/core/src/theme/app_theme.dart';
+import 'package:hishumi/shared/widgets/app_snackbar.dart';
 
 class NotificationNavigationService {
   final NavigationHandler _navigationHandler;

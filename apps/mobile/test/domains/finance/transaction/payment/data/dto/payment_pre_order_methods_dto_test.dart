@@ -9,7 +9,7 @@
 // The pre-order surface emits `final_payable_amount` (post-fee) and NEVER the
 // ambiguous pre-fee `total_payable_amount`.
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/domains/finance/transaction/payment/data/dto/payment_dto.dart';
+import 'package:hishumi/domains/finance/transaction/payment/data/dto/payment_dto.dart';
 
 void main() {
   group('PreOrderPaymentPricingDto', () {

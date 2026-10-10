@@ -15,15 +15,15 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 
-	"github.com/labuda/backend/internal/audit"
-	auctionApp "github.com/labuda/backend/internal/commerce/auction/application"
-	auctionHTTP "github.com/labuda/backend/internal/commerce/auction/delivery/http"
-	auctionEntity "github.com/labuda/backend/internal/commerce/auction/entity"
-	"github.com/labuda/backend/internal/identity/auth"
-	biddingApp "github.com/labuda/backend/internal/interaction/bidding/application"
-	biddingHTTP "github.com/labuda/backend/internal/interaction/bidding/delivery/http"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/testdb"
+	"github.com/hishumi/backend/internal/audit"
+	auctionApp "github.com/hishumi/backend/internal/commerce/auction/application"
+	auctionHTTP "github.com/hishumi/backend/internal/commerce/auction/delivery/http"
+	auctionEntity "github.com/hishumi/backend/internal/commerce/auction/entity"
+	"github.com/hishumi/backend/internal/identity/auth"
+	biddingApp "github.com/hishumi/backend/internal/interaction/bidding/application"
+	biddingHTTP "github.com/hishumi/backend/internal/interaction/bidding/delivery/http"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/testdb"
 )
 
 type auctionBidRuntimeAuditLogger struct{}

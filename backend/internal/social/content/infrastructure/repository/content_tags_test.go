@@ -18,7 +18,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/labuda/backend/pkg/migration"
+	"github.com/hishumi/backend/pkg/migration"
 )
 
 func readContentRepoImpl(t *testing.T) string {

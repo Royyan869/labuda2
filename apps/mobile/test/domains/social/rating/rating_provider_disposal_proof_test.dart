@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/domains/social/rating/rating.dart';
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/domains/social/rating/rating.dart';
 
 // CANONICAL RATING PROVIDER DISPOSAL TEST
 //

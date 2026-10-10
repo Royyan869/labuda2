@@ -21,10 +21,10 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/identity/auth"
-	contententity "github.com/labuda/backend/internal/social/content/entity"
-	contentrepo "github.com/labuda/backend/internal/social/content/infrastructure/repository"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/identity/auth"
+	contententity "github.com/hishumi/backend/internal/social/content/entity"
+	contentrepo "github.com/hishumi/backend/internal/social/content/infrastructure/repository"
+	"github.com/hishumi/backend/pkg/db"
 	"github.com/stretchr/testify/require"
 )
 

@@ -2,21 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/core/providers/core_providers.dart' show loggerServiceProvider;
-import 'package:labuda/domains/commerce/catalog/auction/data/auction_providers.dart'
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/core/providers/core_providers.dart' show loggerServiceProvider;
+import 'package:hishumi/domains/commerce/catalog/auction/data/auction_providers.dart'
     show auctionRepositoryProvider;
-import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction.dart';
-import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction_status.dart';
-import 'package:labuda/domains/commerce/catalog/auction/domain/repositories/auction_repository.dart';
-import 'package:labuda/domains/commerce/catalog/auction/presentation/widgets/auction_card.dart';
-import 'package:labuda/domains/commerce/catalog/for_sale/domain/entities/for_sale.dart';
-import 'package:labuda/domains/commerce/catalog/for_sale/domain/repositories/for_sale_repository.dart';
-import 'package:labuda/domains/commerce/catalog/for_sale/presentation/providers/for_sale_providers.dart'
+import 'package:hishumi/domains/commerce/catalog/auction/domain/entities/auction.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/domain/entities/auction_status.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/domain/repositories/auction_repository.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/presentation/widgets/auction_card.dart';
+import 'package:hishumi/domains/commerce/catalog/for_sale/domain/entities/for_sale.dart';
+import 'package:hishumi/domains/commerce/catalog/for_sale/domain/repositories/for_sale_repository.dart';
+import 'package:hishumi/domains/commerce/catalog/for_sale/presentation/providers/for_sale_providers.dart'
     show forSaleRepositoryProvider;
-import 'package:labuda/domains/commerce/catalog/for_sale/presentation/widgets/for_sale_card.dart';
-import 'package:labuda/features/marketplace/marketplace.dart';
-import 'package:labuda/shared/services/logger_service.dart';
+import 'package:hishumi/domains/commerce/catalog/for_sale/presentation/widgets/for_sale_card.dart';
+import 'package:hishumi/features/marketplace/marketplace.dart';
+import 'package:hishumi/shared/services/logger_service.dart';
 
 /// Explore tabs are organic-only in the canonical promotion era.
 ///

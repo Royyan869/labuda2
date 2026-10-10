@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/domains/social/comment/domain/entities/comment.dart';
-import 'package:labuda/domains/social/comment/presentation/widgets/comment_card.dart';
-import 'package:labuda/shared/domain/entities/resource_projection.dart';
-import 'package:labuda/domains/social/content/presentation/widgets/content_resource_projection_card.dart';
-import 'package:labuda/shared/attachment/entities/share_reference.dart';
-import 'package:labuda/shared/object/presentation/widgets/object_preview_card.dart';
+import 'package:hishumi/domains/social/comment/domain/entities/comment.dart';
+import 'package:hishumi/domains/social/comment/presentation/widgets/comment_card.dart';
+import 'package:hishumi/shared/domain/entities/resource_projection.dart';
+import 'package:hishumi/domains/social/content/presentation/widgets/content_resource_projection_card.dart';
+import 'package:hishumi/shared/attachment/entities/share_reference.dart';
+import 'package:hishumi/shared/object/presentation/widgets/object_preview_card.dart';
 
 /// Canonical fixtures — the wire shapes the backend projection authority emits
 /// for a commerce-reference comment (see CommentResponse.resource_projection).

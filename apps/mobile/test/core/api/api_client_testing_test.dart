@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/api/api_client.dart';
+import 'package:hishumi/core/api/api_client.dart';
 
 String _readApiClientSource() {
   return File('lib/core/api/api_client.dart').readAsStringSync();

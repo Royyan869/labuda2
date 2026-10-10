@@ -2,7 +2,7 @@
 /// Provides convenient accessors for working with media entities
 library;
 
-import 'package:labuda/domains/social/content/domain/entities/content.dart';
+import 'package:hishumi/domains/social/content/domain/entities/content.dart';
 
 /// Extension on `List<MediaEntity>` for convenient URL extraction
 extension MediaEntityListExtensions on List<MediaEntity> {

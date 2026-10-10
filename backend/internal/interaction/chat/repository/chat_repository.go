@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/interaction/chat/entity"
+	"github.com/hishumi/backend/internal/interaction/chat/entity"
 )
 
 // Repository defines the persistence interface for chat domain.

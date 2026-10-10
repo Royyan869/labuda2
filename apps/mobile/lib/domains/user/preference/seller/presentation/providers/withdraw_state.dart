@@ -3,7 +3,7 @@
 /// Sealed class states for withdraw operations.
 library;
 
-import 'package:labuda/shared/domain/entities/resource_projection.dart';
+import 'package:hishumi/shared/domain/entities/resource_projection.dart';
 
 import '../../domain/entities/withdrawal.dart';
 

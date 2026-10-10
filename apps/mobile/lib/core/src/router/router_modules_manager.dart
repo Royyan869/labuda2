@@ -1,20 +1,20 @@
-import 'package:labuda/core/src/router/modules/base_module.dart';
-import 'package:labuda/core/src/router/modules/onboarding_module.dart';
-import 'package:labuda/core/src/router/modules/auth_module.dart';
-import 'package:labuda/core/src/router/modules/home_module.dart';
-import 'package:labuda/core/src/router/modules/profile_module.dart';
-import 'package:labuda/core/src/router/modules/chat_module.dart';
-import 'package:labuda/core/src/router/modules/content_module.dart';
-import 'package:labuda/core/src/router/modules/auction_module.dart';
-import 'package:labuda/core/src/router/modules/order_module.dart';
-import 'package:labuda/core/src/router/modules/coins_module.dart';
-import 'package:labuda/core/src/router/modules/search_module.dart';
-import 'package:labuda/core/src/router/modules/report_module.dart';
-import 'package:labuda/core/src/router/modules/support_module.dart';
-import 'package:labuda/core/src/router/modules/saved_item_module.dart';
-import 'package:labuda/core/src/router/modules/seller_module.dart';
-import 'package:labuda/core/src/router/modules/for_sale_module.dart';
-import 'package:labuda/domains/commerce/transaction/checkout/presentation/checkout_router_module.dart';
+import 'package:hishumi/core/src/router/modules/base_module.dart';
+import 'package:hishumi/core/src/router/modules/onboarding_module.dart';
+import 'package:hishumi/core/src/router/modules/auth_module.dart';
+import 'package:hishumi/core/src/router/modules/home_module.dart';
+import 'package:hishumi/core/src/router/modules/profile_module.dart';
+import 'package:hishumi/core/src/router/modules/chat_module.dart';
+import 'package:hishumi/core/src/router/modules/content_module.dart';
+import 'package:hishumi/core/src/router/modules/auction_module.dart';
+import 'package:hishumi/core/src/router/modules/order_module.dart';
+import 'package:hishumi/core/src/router/modules/coins_module.dart';
+import 'package:hishumi/core/src/router/modules/search_module.dart';
+import 'package:hishumi/core/src/router/modules/report_module.dart';
+import 'package:hishumi/core/src/router/modules/support_module.dart';
+import 'package:hishumi/core/src/router/modules/saved_item_module.dart';
+import 'package:hishumi/core/src/router/modules/seller_module.dart';
+import 'package:hishumi/core/src/router/modules/for_sale_module.dart';
+import 'package:hishumi/domains/commerce/transaction/checkout/presentation/checkout_router_module.dart';
 import 'package:go_router/go_router.dart';
 
 class RouterModulesManager {

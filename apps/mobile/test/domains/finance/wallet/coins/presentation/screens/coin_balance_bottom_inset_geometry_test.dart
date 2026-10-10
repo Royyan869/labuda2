@@ -28,16 +28,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/core/src/auth/app_role.dart';
-import 'package:labuda/domains/finance/wallet/coins/coins_di.dart';
-import 'package:labuda/domains/finance/wallet/coins/presentation/screens/coin_balance_screen.dart';
-import 'package:labuda/domains/finance/wallet/coins/presentation/widgets/coin_balance_card.dart';
-import 'package:labuda/domains/user/identity/authentication/authentication.dart';
-import 'package:labuda/domains/user/identity/authentication/domain/entities/account_status.dart';
-import 'package:labuda/generated/app_localizations.dart';
-import 'package:labuda/shared/governance/content_lifecycle.dart';
-import 'package:labuda/shared/providers/authenticated_account_provider.dart';
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/core/src/auth/app_role.dart';
+import 'package:hishumi/domains/finance/wallet/coins/coins_di.dart';
+import 'package:hishumi/domains/finance/wallet/coins/presentation/screens/coin_balance_screen.dart';
+import 'package:hishumi/domains/finance/wallet/coins/presentation/widgets/coin_balance_card.dart';
+import 'package:hishumi/domains/user/identity/authentication/authentication.dart';
+import 'package:hishumi/domains/user/identity/authentication/domain/entities/account_status.dart';
+import 'package:hishumi/generated/app_localizations.dart';
+import 'package:hishumi/shared/governance/content_lifecycle.dart';
+import 'package:hishumi/shared/providers/authenticated_account_provider.dart';
 
 const _uid = 'user-1';
 

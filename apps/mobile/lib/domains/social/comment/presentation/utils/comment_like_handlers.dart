@@ -5,10 +5,10 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/shared/widgets/app_snackbar.dart';
-import 'package:labuda/domains/social/comment/domain/entities/comment.dart';
-import 'package:labuda/domains/social/like/domain/entities/like.dart';
-import 'package:labuda/domains/social/like/presentation/providers/like_notifier.dart';
+import 'package:hishumi/shared/widgets/app_snackbar.dart';
+import 'package:hishumi/domains/social/comment/domain/entities/comment.dart';
+import 'package:hishumi/domains/social/like/domain/entities/like.dart';
+import 'package:hishumi/domains/social/like/presentation/providers/like_notifier.dart';
 
 /// Handlers for comment like actions
 class CommentLikeHandlers {

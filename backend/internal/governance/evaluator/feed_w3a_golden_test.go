@@ -5,8 +5,8 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/labuda/backend/internal/governance/viewercontext"
-	feedentity "github.com/labuda/backend/internal/social/feed/entity"
+	"github.com/hishumi/backend/internal/governance/viewercontext"
+	feedentity "github.com/hishumi/backend/internal/social/feed/entity"
 )
 
 // TestEvaluateFeedItem_W3A_PrecedenceGolden is the cell-for-cell golden

@@ -29,9 +29,9 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/system/report/domain/entities/entities.dart';
-import 'package:labuda/domains/system/report/presentation/screens/report_submission_screen.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/system/report/domain/entities/entities.dart';
+import 'package:hishumi/domains/system/report/presentation/screens/report_submission_screen.dart';
 
 /// Submit CTA label (kept exact so the finder binds to the real button).
 const String _ctaLabel = 'Submit Report';

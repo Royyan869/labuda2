@@ -81,7 +81,7 @@ void main() {
           "'Discount Management Guide'",
         ],
         'lib/domains/finance/wallet/coins/presentation/widgets/'
-            'coin_balance_card.dart': ['AppDialog.info', "'Tentang LABUDA Coins'"],
+            'coin_balance_card.dart': ['AppDialog.info', "'Tentang HiShumi Coins'"],
         'lib/domains/user/profile/presentation/screens/address_list_screen.dart':
             ['AppDialog.info', "'Address Information'"],
         'lib/domains/user/preference/seller/presentation/screens/'

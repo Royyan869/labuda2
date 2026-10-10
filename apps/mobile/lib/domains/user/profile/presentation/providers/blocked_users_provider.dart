@@ -1,8 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/user/profile/data/models/blocked_user_model.dart';
-import 'package:labuda/domains/user/profile/data/services/blocked_users_service.dart';
-import 'package:labuda/domains/user/profile/data/profile_providers.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/user/profile/data/models/blocked_user_model.dart';
+import 'package:hishumi/domains/user/profile/data/services/blocked_users_service.dart';
+import 'package:hishumi/domains/user/profile/data/profile_providers.dart';
 
 /// Provider for BlockedUsersService
 /// MIGRATED: Now using ApiClient instead of Firestore

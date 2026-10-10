@@ -25,13 +25,13 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
-	adminApp "github.com/labuda/backend/internal/platform/admin/application"
-	adminInfra "github.com/labuda/backend/internal/platform/admin/infrastructure/repository"
-	"github.com/labuda/backend/internal/platform/capability"
-	capabilityEntity "github.com/labuda/backend/internal/platform/capability/entity"
-	capabilityRepoImpl "github.com/labuda/backend/internal/platform/capability/infrastructure/repository"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/testdb"
+	adminApp "github.com/hishumi/backend/internal/platform/admin/application"
+	adminInfra "github.com/hishumi/backend/internal/platform/admin/infrastructure/repository"
+	"github.com/hishumi/backend/internal/platform/capability"
+	capabilityEntity "github.com/hishumi/backend/internal/platform/capability/entity"
+	capabilityRepoImpl "github.com/hishumi/backend/internal/platform/capability/infrastructure/repository"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/testdb"
 )
 
 type adminUsersListBody struct {

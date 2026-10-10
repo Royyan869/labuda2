@@ -9,8 +9,8 @@ import (
 	"github.com/google/uuid"
 	"go.uber.org/zap/zaptest"
 
-	platformevent "github.com/labuda/backend/internal/platform/event"
-	"github.com/labuda/backend/internal/platform/outbox/infrastructure/repository"
+	platformevent "github.com/hishumi/backend/internal/platform/event"
+	"github.com/hishumi/backend/internal/platform/outbox/infrastructure/repository"
 )
 
 // =============================================================================

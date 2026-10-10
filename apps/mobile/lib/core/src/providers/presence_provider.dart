@@ -1,10 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/providers/core_providers.dart';
-import 'package:labuda/core/src/presence/presence.dart';
-import 'package:labuda/core/src/presence/presence_api_datasource.dart';
-import 'package:labuda/core/websocket/websocket_message.dart';
+import 'package:hishumi/core/providers/core_providers.dart';
+import 'package:hishumi/core/src/presence/presence.dart';
+import 'package:hishumi/core/src/presence/presence_api_datasource.dart';
+import 'package:hishumi/core/websocket/websocket_message.dart';
 
 /// Canonical mobile Presence state.
 /// One authority: Map from userId to Presence with version ordering.

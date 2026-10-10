@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/finance/refund/entity"
-	refundrepo "github.com/labuda/backend/internal/finance/refund/repository"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/finance/refund/entity"
+	refundrepo "github.com/hishumi/backend/internal/finance/refund/repository"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 type refundHistoryRepoStub struct {

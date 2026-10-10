@@ -13,10 +13,10 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/system/support/support.dart';
-import 'package:labuda/generated/app_localizations.dart';
-import 'package:labuda/shared/shared.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/system/support/support.dart';
+import 'package:hishumi/generated/app_localizations.dart';
+import 'package:hishumi/shared/shared.dart';
 
 /// Main Help Center Screen
 class HelpCenterScreen extends StatelessWidget {

@@ -94,7 +94,7 @@ export function DashboardPage() {
   if (loading && !summary) {
     return (
       <div className="space-y-6">
-        <PageHeader title="Dashboard Overview" description="Welcome to LABUDA Admin Dashboard" />
+        <PageHeader title="Dashboard Overview" description="Welcome to HiShumi Admin Dashboard" />
         <AdminLoadingState label="Loading dashboard" />
       </div>
     )
@@ -103,7 +103,7 @@ export function DashboardPage() {
   if (error && !summary) {
     return (
       <div className="space-y-6">
-        <PageHeader title="Dashboard Overview" description="Welcome to LABUDA Admin Dashboard" />
+        <PageHeader title="Dashboard Overview" description="Welcome to HiShumi Admin Dashboard" />
         <AdminErrorState
           title="Failed to Load Dashboard"
           message={error}
@@ -118,7 +118,7 @@ export function DashboardPage() {
       {/* Page Header */}
       <PageHeader
         title="Dashboard Overview"
-        description="Welcome to LABUDA Admin Dashboard"
+        description="Welcome to HiShumi Admin Dashboard"
         actions={
           <>
             {generatedAt && (

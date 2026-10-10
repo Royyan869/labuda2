@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/pkg/money"
+	"github.com/hishumi/backend/pkg/money"
 )
 
 // ShippingCoverage defines geographic coverage for a shipping option at province level.

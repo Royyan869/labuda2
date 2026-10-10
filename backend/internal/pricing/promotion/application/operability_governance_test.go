@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/labuda/backend/internal/pricing/promotion/entity"
+	"github.com/hishumi/backend/internal/pricing/promotion/entity"
 )
 
 // ========================================================================

@@ -34,10 +34,10 @@ func TestForSaleOGSuccess(t *testing.T) {
 	h := &Handler{store: &fakeStore{m: map[string]*metadata{
 		"for_sale": {Title: "Kohaku <A>", Description: "Nice fish", ImageURL: "https://img.example/x.jpg"},
 	}}}
-	r.GET("/og/forSale/:id", h.GetForSale)
+	r.GET("/og/for-sale/:id", h.GetForSale)
 
-	req := httptest.NewRequest(http.MethodGet, "/og/forSale/123", nil)
-	req.Host = "labuda-79de2.web.app"
+	req := httptest.NewRequest(http.MethodGet, "/og/for-sale/123", nil)
+	req.Host = "hishumi.com"
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
@@ -62,18 +62,18 @@ func TestAliasRoutesSuccess(t *testing.T) {
 		"profile": {Title: "@user", Description: "profile desc"},
 		"content": {Title: "@author", Description: "content desc"},
 	}}}
-	r.GET("/forSale/:id", h.GetForSale)
+	r.GET("/for-sale/:id", h.GetForSale)
 	r.GET("/auction/:id", h.GetAuction)
 	r.GET("/profile/:id", h.GetProfile)
 	r.GET("/content/:id", h.GetContent)
-	r.GET("/og/forSale/:id", h.GetForSale)
+	r.GET("/og/for-sale/:id", h.GetForSale)
 
 	for _, path := range []string{
-		"/forSale/1",
+		"/for-sale/1",
 		"/auction/1",
 		"/profile/1",
 		"/content/1",
-		"/og/forSale/1",
+		"/og/for-sale/1",
 	} {
 		req := httptest.NewRequest(http.MethodGet, path, nil)
 		w := httptest.NewRecorder()
@@ -114,21 +114,30 @@ func TestAuctionProfileContentSuccess(t *testing.T) {
 	}
 }
 
-func TestMissingReturnsGenericNot500(t *testing.T) {
+func TestMissingReturnsNotFound(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 	h := &Handler{store: &fakeStore{m: map[string]*metadata{}}}
-	r.GET("/og/forSale/:id", h.GetForSale)
+	r.GET("/og/for-sale/:id", h.GetForSale)
 
-	req := httptest.NewRequest(http.MethodGet, "/og/forSale/missing", nil)
+	req := httptest.NewRequest(http.MethodGet, "/og/for-sale/missing", nil)
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
-	if w.Code != http.StatusOK {
-		t.Fatalf("status=%d want=200", w.Code)
+	// H.4.6-C: a missing resource must not be reported as a misleading
+	// generic 200 — the 404 status carries the signal.
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("status=%d want=404", w.Code)
 	}
-	if !strings.Contains(w.Body.String(), "Labuda") {
-		t.Fatalf("expected generic fallback page")
+	body := w.Body.String()
+	if !strings.Contains(body, "HiShumi") {
+		t.Fatalf("expected generic fallback page, got: %s", body)
+	}
+	// The empty fake store holds no resource data, so nothing stored may
+	// appear. (og:url echoes the caller's own request path by design —
+	// that is not a disclosure.)
+	if strings.Contains(body, "for_sale") || strings.Contains(body, "Nice fish") {
+		t.Fatalf("404 page must not leak stored resource data: %s", body)
 	}
 }
 

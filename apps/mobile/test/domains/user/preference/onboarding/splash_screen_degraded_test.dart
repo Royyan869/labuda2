@@ -7,8 +7,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/user/preference/onboarding/presentation/screens/splash_screen.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/user/preference/onboarding/presentation/screens/splash_screen.dart';
 
 /// Fake controller that starts directly in the given degraded state and
 /// records calls to retryBackendSync()/signOut() instead of touching
@@ -56,7 +56,7 @@ void main() {
 
       expect(find.text('Server Tidak Bisa Dijangkau'), findsOneWidget);
       expect(
-        find.textContaining('Tidak bisa terhubung ke server Labuda'),
+        find.textContaining('Tidak bisa terhubung ke server HiShumi'),
         findsOneWidget,
       );
       expect(find.text('Coba Lagi'), findsOneWidget);

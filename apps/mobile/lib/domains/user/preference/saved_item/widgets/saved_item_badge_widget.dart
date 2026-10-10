@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:labuda/domains/user/preference/saved_item/data/providers/saved_item_query_providers.dart';
-import 'package:labuda/shared/widgets/count_badge.dart';
+import 'package:hishumi/domains/user/preference/saved_item/data/providers/saved_item_query_providers.dart';
+import 'package:hishumi/shared/widgets/count_badge.dart';
 
 /// Saved-items count badge for the app bar.
 ///

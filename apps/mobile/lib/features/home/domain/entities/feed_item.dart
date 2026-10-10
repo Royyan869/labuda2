@@ -15,8 +15,8 @@
 /// Feed projection may have simplified media - resolve full Content for complete media data
 library;
 
-import 'package:labuda/domains/social/content/domain/entities/content.dart'; // For MediaEntity
-import 'package:labuda/shared/governance/content_lifecycle.dart';
+import 'package:hishumi/domains/social/content/domain/entities/content.dart'; // For MediaEntity
+import 'package:hishumi/shared/governance/content_lifecycle.dart';
 
 /// Feed item types
 enum FeedItemType {

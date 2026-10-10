@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/shared/widgets/app_image.dart';
+import 'package:hishumi/shared/widgets/app_image.dart';
 
 /// CANONICAL personal user avatar — the single authority for rendering a
 /// user's avatar anywhere in the app.

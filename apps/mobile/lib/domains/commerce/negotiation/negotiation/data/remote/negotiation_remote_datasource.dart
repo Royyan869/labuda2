@@ -1,4 +1,4 @@
-import 'package:labuda/core/api/api_client.dart';
+import 'package:hishumi/core/api/api_client.dart';
 import '../dto/negotiation_dto.dart';
 
 /// Remote Datasource for Negotiation API calls

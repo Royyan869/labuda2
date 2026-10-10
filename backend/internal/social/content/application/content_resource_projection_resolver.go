@@ -8,14 +8,14 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	auctionentity "github.com/labuda/backend/internal/commerce/auction/entity"
-	fpsentity "github.com/labuda/backend/internal/commerce/forsale/entity"
-	commerceshared "github.com/labuda/backend/internal/commerce/shared"
-	"github.com/labuda/backend/internal/governance/viewercontext"
-	"github.com/labuda/backend/internal/pkg/blockcheck"
-	"github.com/labuda/backend/internal/pkg/publiccard"
-	contententity "github.com/labuda/backend/internal/social/content/entity"
-	"github.com/labuda/backend/pkg/db"
+	auctionentity "github.com/hishumi/backend/internal/commerce/auction/entity"
+	fpsentity "github.com/hishumi/backend/internal/commerce/forsale/entity"
+	commerceshared "github.com/hishumi/backend/internal/commerce/shared"
+	"github.com/hishumi/backend/internal/governance/viewercontext"
+	"github.com/hishumi/backend/internal/pkg/blockcheck"
+	"github.com/hishumi/backend/internal/pkg/publiccard"
+	contententity "github.com/hishumi/backend/internal/social/content/entity"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // ContentResourceProjectionResolver resolves canonical content resource

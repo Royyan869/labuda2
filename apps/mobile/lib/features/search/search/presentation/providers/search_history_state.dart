@@ -1,4 +1,4 @@
-import 'package:labuda/features/search/search/domain/entities/search_history.dart';
+import 'package:hishumi/features/search/search/domain/entities/search_history.dart';
 
 /// Search History State
 class SearchHistoryState {

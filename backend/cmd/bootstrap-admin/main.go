@@ -9,13 +9,13 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/audit"
-	"github.com/labuda/backend/internal/config"
-	"github.com/labuda/backend/internal/platform/bootstrap"
-	"github.com/labuda/backend/internal/platform/capability"
-	capRepo "github.com/labuda/backend/internal/platform/capability/infrastructure/repository"
-	"github.com/labuda/backend/internal/platform/logger"
-	"github.com/labuda/backend/pkg/database"
+	"github.com/hishumi/backend/internal/audit"
+	"github.com/hishumi/backend/internal/config"
+	"github.com/hishumi/backend/internal/platform/bootstrap"
+	"github.com/hishumi/backend/internal/platform/capability"
+	capRepo "github.com/hishumi/backend/internal/platform/capability/infrastructure/repository"
+	"github.com/hishumi/backend/internal/platform/logger"
+	"github.com/hishumi/backend/pkg/database"
 )
 
 func main() {

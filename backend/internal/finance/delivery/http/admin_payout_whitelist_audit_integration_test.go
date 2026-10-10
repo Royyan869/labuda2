@@ -25,11 +25,11 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 
-	financerepo "github.com/labuda/backend/internal/finance/infrastructure/repository"
-	"github.com/labuda/backend/internal/platform/capability"
-	capabilityEntity "github.com/labuda/backend/internal/platform/capability/entity"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/testdb"
+	financerepo "github.com/hishumi/backend/internal/finance/infrastructure/repository"
+	"github.com/hishumi/backend/internal/platform/capability"
+	capabilityEntity "github.com/hishumi/backend/internal/platform/capability/entity"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/testdb"
 )
 
 type auditHTTPResponse struct {

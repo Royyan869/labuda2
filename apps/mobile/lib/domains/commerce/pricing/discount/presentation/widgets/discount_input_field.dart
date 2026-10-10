@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/commerce/pricing/discount/domain/entities/discount_entity.dart';
-import 'package:labuda/domains/commerce/pricing/discount/domain/entities/discount_validation_result.dart';
-import 'package:labuda/domains/commerce/pricing/discount/domain/use_cases/validate_discount_use_case.dart';
-import 'package:labuda/domains/commerce/pricing/discount/presentation/providers/discount_provider.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/commerce/pricing/discount/domain/entities/discount_entity.dart';
+import 'package:hishumi/domains/commerce/pricing/discount/domain/entities/discount_validation_result.dart';
+import 'package:hishumi/domains/commerce/pricing/discount/domain/use_cases/validate_discount_use_case.dart';
+import 'package:hishumi/domains/commerce/pricing/discount/presentation/providers/discount_provider.dart';
 
 /// Widget untuk input kode diskon di checkout.
 class DiscountInputField extends ConsumerStatefulWidget {

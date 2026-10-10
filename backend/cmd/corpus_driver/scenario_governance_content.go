@@ -88,7 +88,7 @@ func runScenarioGovernanceContent(cfg governanceContentConfig) error {
 		cfg.OutputDir = filepath.Join("scenario_logs", "governance-content-"+runID)
 	}
 	if cfg.Keyword == "" {
-		cfg.Keyword = "labudagov" + runID
+		cfg.Keyword = "hishumigov" + runID
 	}
 	if cfg.Timeout == 0 {
 		cfg.Timeout = 15 * time.Second

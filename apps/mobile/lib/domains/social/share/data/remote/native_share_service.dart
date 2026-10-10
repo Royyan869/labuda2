@@ -1,4 +1,4 @@
-import 'package:labuda/core/core.dart';
+import 'package:hishumi/core/core.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/services.dart';

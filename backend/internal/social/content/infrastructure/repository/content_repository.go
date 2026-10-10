@@ -5,7 +5,7 @@ import (
 	"errors"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/social/content/entity"
+	"github.com/hishumi/backend/internal/social/content/entity"
 )
 
 var ErrDuplicateContentResourceOccurrence = errors.New("duplicate content resource occurrence")

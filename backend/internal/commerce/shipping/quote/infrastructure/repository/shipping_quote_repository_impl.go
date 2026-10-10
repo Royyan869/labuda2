@@ -8,10 +8,10 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/labuda/backend/internal/commerce/shipping/quote/entity"
-	shippingQuoteRepo "github.com/labuda/backend/internal/commerce/shipping/quote/repository"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/money"
+	"github.com/hishumi/backend/internal/commerce/shipping/quote/entity"
+	shippingQuoteRepo "github.com/hishumi/backend/internal/commerce/shipping/quote/repository"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/money"
 )
 
 var (

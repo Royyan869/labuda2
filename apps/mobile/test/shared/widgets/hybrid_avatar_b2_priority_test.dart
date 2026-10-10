@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/user/profile/data/datasources/user_api_datasource.dart';
-import 'package:labuda/domains/user/profile/data/profile_providers.dart'
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/user/profile/data/datasources/user_api_datasource.dart';
+import 'package:hishumi/domains/user/profile/data/profile_providers.dart'
     show avatarCacheServiceProvider;
-import 'package:labuda/domains/user/profile/data/services/avatar_cache_service.dart';
-import 'package:labuda/shared/shared.dart';
+import 'package:hishumi/domains/user/profile/data/services/avatar_cache_service.dart';
+import 'package:hishumi/shared/shared.dart';
 
 class _FakeAuthController extends AuthController {
   _FakeAuthController(this._state);

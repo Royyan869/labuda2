@@ -4,23 +4,23 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/core/config/seller_upgrade_config_entity.dart';
-import 'package:labuda/core/config/seller_upgrade_config_provider.dart';
-import 'package:labuda/domains/commerce/transaction/order/order.dart';
-import 'package:labuda/domains/commerce/transaction/shipping/domain/domain.dart';
-import 'package:labuda/domains/commerce/transaction/shipping/presentation/providers/providers.dart'
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/core/config/seller_upgrade_config_entity.dart';
+import 'package:hishumi/core/config/seller_upgrade_config_provider.dart';
+import 'package:hishumi/domains/commerce/transaction/order/order.dart';
+import 'package:hishumi/domains/commerce/transaction/shipping/domain/domain.dart';
+import 'package:hishumi/domains/commerce/transaction/shipping/presentation/providers/providers.dart'
     show shippingNotifierProvider;
-import 'package:labuda/domains/commerce/transaction/shipping/presentation/providers/shipping_notifier.dart';
-import 'package:labuda/domains/commerce/transaction/shipping/presentation/providers/shipping_state.dart';
-import 'package:labuda/domains/user/identity/verification/verification.dart';
-import 'package:labuda/domains/user/preference/seller/domain/entities/seller_earnings.dart';
-import 'package:labuda/domains/user/preference/seller/domain/entities/seller_subscription.dart';
-import 'package:labuda/domains/user/preference/seller/domain/repositories/seller_repository.dart';
-import 'package:labuda/domains/user/preference/seller/presentation/screens/seller_dashboard_screen.dart';
-import 'package:labuda/domains/user/preference/seller/seller_di.dart';
-import 'package:labuda/generated/app_localizations.dart';
-import 'package:labuda/shared/providers/authenticated_account_provider.dart';
+import 'package:hishumi/domains/commerce/transaction/shipping/presentation/providers/shipping_notifier.dart';
+import 'package:hishumi/domains/commerce/transaction/shipping/presentation/providers/shipping_state.dart';
+import 'package:hishumi/domains/user/identity/verification/verification.dart';
+import 'package:hishumi/domains/user/preference/seller/domain/entities/seller_earnings.dart';
+import 'package:hishumi/domains/user/preference/seller/domain/entities/seller_subscription.dart';
+import 'package:hishumi/domains/user/preference/seller/domain/repositories/seller_repository.dart';
+import 'package:hishumi/domains/user/preference/seller/presentation/screens/seller_dashboard_screen.dart';
+import 'package:hishumi/domains/user/preference/seller/seller_di.dart';
+import 'package:hishumi/generated/app_localizations.dart';
+import 'package:hishumi/shared/providers/authenticated_account_provider.dart';
 
 const _sellerId = 'seller-queue-001';
 

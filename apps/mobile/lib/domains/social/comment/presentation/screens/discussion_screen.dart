@@ -17,20 +17,20 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/system/shared/domain/services/time_format_service.dart';
-import 'package:labuda/shared/widgets/app_dialog.dart';
-import 'package:labuda/shared/widgets/app_snackbar.dart';
-import 'package:labuda/domains/social/comment/domain/entities/comment.dart';
-import 'package:labuda/domains/social/comment/presentation/comment_widgets.dart';
-import 'package:labuda/domains/social/comment/presentation/providers/comment_notifier.dart'
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/system/shared/domain/services/time_format_service.dart';
+import 'package:hishumi/shared/widgets/app_dialog.dart';
+import 'package:hishumi/shared/widgets/app_snackbar.dart';
+import 'package:hishumi/domains/social/comment/domain/entities/comment.dart';
+import 'package:hishumi/domains/social/comment/presentation/comment_widgets.dart';
+import 'package:hishumi/domains/social/comment/presentation/providers/comment_notifier.dart'
     show commentProvider;
-import 'package:labuda/domains/social/comment/presentation/providers/comment_state.dart';
-import 'package:labuda/domains/social/content/content.dart';
-import 'package:labuda/shared/governance/content_lifecycle.dart';
-import 'package:labuda/domains/social/like/domain/entities/like.dart';
-import 'package:labuda/domains/social/like/presentation/providers/like_notifier.dart';
-import 'package:labuda/domains/social/comment/presentation/utils/comment_like_handlers.dart';
+import 'package:hishumi/domains/social/comment/presentation/providers/comment_state.dart';
+import 'package:hishumi/domains/social/content/content.dart';
+import 'package:hishumi/shared/governance/content_lifecycle.dart';
+import 'package:hishumi/domains/social/like/domain/entities/like.dart';
+import 'package:hishumi/domains/social/like/presentation/providers/like_notifier.dart';
+import 'package:hishumi/domains/social/comment/presentation/utils/comment_like_handlers.dart';
 
 /// Discussion Screen - Full screen comment surface
 ///

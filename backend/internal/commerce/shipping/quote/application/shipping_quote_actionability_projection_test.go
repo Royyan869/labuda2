@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	shippingQuoteEntity "github.com/labuda/backend/internal/commerce/shipping/quote/entity"
+	shippingQuoteEntity "github.com/hishumi/backend/internal/commerce/shipping/quote/entity"
 )
 
 // CANONICAL SHIPPING QUOTE ACTIONABILITY PROJECTION.

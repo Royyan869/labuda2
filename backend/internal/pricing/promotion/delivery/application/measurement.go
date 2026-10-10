@@ -6,9 +6,9 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	deliveryentity "github.com/labuda/backend/internal/pricing/promotion/delivery/entity"
-	deliveryRepo "github.com/labuda/backend/internal/pricing/promotion/delivery/repository"
-	"github.com/labuda/backend/pkg/db"
+	deliveryentity "github.com/hishumi/backend/internal/pricing/promotion/delivery/entity"
+	deliveryRepo "github.com/hishumi/backend/internal/pricing/promotion/delivery/repository"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // Sentinels for canonical exposure acknowledgement. Unknown exposure and

@@ -5,8 +5,8 @@
 // stays a plain integer (display punctuation is never persisted).
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/shared/domain/entities/resource_projection.dart';
-import 'package:labuda/shared/utils/money_input_formatter.dart';
+import 'package:hishumi/shared/domain/entities/resource_projection.dart';
+import 'package:hishumi/shared/utils/money_input_formatter.dart';
 
 /// Simulates an edit that produced [newText] with the caret at [caret]
 /// (default: end of text) — the shape a real keystroke/paste hands to the

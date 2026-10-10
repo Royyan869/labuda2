@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/features/home/presentation/widgets/main_app_bar.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/features/home/presentation/widgets/main_app_bar.dart';
 
 class _FakeAuthController extends AuthController {
   @override
@@ -11,9 +11,13 @@ class _FakeAuthController extends AuthController {
 
 class _Navigation extends Fake implements NavigationHandler {
   final calls = <String>[];
+  VoidCallback? onSearch;
 
   @override
-  void navigateToSearch() => calls.add('/search');
+  void navigateToSearch() {
+    calls.add('/search');
+    onSearch?.call();
+  }
 
   @override
   void navigateToSignIn() => calls.add('sign-in');
@@ -31,6 +35,39 @@ class _Navigation extends Fake implements NavigationHandler {
   void navigateToNotifications() => calls.add('notifications');
 }
 
+class _SearchPage extends StatelessWidget {
+  const _SearchPage();
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('Search')),
+    body: const SizedBox.expand(),
+  );
+}
+
+/// Production-shaped host: real AppTheme (centerTitle:true) + a Scaffold drawer,
+/// mirroring MainScreen. This is what caught the missing auto-implied leading.
+Widget _host({
+  required _Navigation navigation,
+  required PreferredSizeWidget appBar,
+  Widget? body,
+}) {
+  return ProviderScope(
+    overrides: [
+      authControllerProvider.overrideWith(_FakeAuthController.new),
+      navigationHandlerProvider.overrideWithValue(navigation),
+    ],
+    child: MaterialApp(
+      theme: AppTheme.lightTheme,
+      home: Scaffold(
+        drawer: const Drawer(),
+        appBar: appBar,
+        body: body ?? const SizedBox.expand(),
+      ),
+    ),
+  );
+}
+
 void main() {
   for (final width in [360.0, 393.0, 412.0]) {
     testWidgets('MainAppBar geometry at $width dp', (tester) async {
@@ -39,25 +76,18 @@ void main() {
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
+
       await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            authControllerProvider.overrideWith(_FakeAuthController.new),
-            navigationHandlerProvider.overrideWithValue(navigation),
-          ],
-          child: SizedBox(
-            width: width,
-            height: 800,
-            child: const MaterialApp(home: Scaffold(appBar: MainAppBar())),
-          ),
-        ),
+        _host(navigation: navigation, appBar: const MainAppBar()),
       );
       await tester.pump();
 
-      final buttons = tester
-          .widgetList<IconButton>(find.byType(IconButton))
-          .toList();
-      expect(buttons, hasLength(6));
+      // Exactly six action buttons: the Scaffold drawer must NOT inject a
+      // second, zero-width auto-implied leading hamburger.
+      final buttons = find.byType(IconButton);
+      expect(buttons, findsNWidgets(6));
+      expect(tester.takeException(), isNull);
+
       final buttonHosts = tester
           .widgetList<SizedBox>(find.byType(SizedBox))
           .where((box) => box.width == 56 && box.height == 56)
@@ -96,4 +126,74 @@ void main() {
       expect(navigation.calls, contains('/search'));
     });
   }
+
+  testWidgets('hamburger glyph stays compact (24dp) inside a 56dp button', (
+    tester,
+  ) async {
+    final navigation = _Navigation();
+    await tester.pumpWidget(
+      _host(navigation: navigation, appBar: const MainAppBar()),
+    );
+    await tester.pump();
+
+    final menuIcon = find.byIcon(Icons.menu);
+    expect(menuIcon, findsOneWidget);
+    final iconSize = tester.getSize(menuIcon);
+    expect(iconSize, const Size(24, 24));
+
+    final menuButton = tester.getRect(
+      find.ancestor(of: menuIcon, matching: find.byType(IconButton)),
+    );
+    expect(menuButton.size, const Size(56, 56));
+    // No second (auto-implied) hamburger painted at the left edge.
+    expect(find.byIcon(Icons.menu), findsOneWidget);
+  });
+
+  testWidgets('push Search then pop Home has no layout exception', (
+    tester,
+  ) async {
+    final navigation = _Navigation();
+    final navigatorKey = GlobalKey<NavigatorState>();
+    navigation.onSearch = () => navigatorKey.currentState!.push(
+      MaterialPageRoute<void>(builder: (_) => const _SearchPage()),
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          authControllerProvider.overrideWith(_FakeAuthController.new),
+          navigationHandlerProvider.overrideWithValue(navigation),
+        ],
+        child: MaterialApp(
+          theme: AppTheme.lightTheme,
+          navigatorKey: navigatorKey,
+          home: Scaffold(
+            drawer: const Drawer(),
+            appBar: const MainAppBar(),
+            body: const SizedBox.expand(),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await tester.tap(find.byIcon(Icons.search));
+    for (var i = 0; i < 12; i++) {
+      await tester.pump(const Duration(milliseconds: 30));
+      expect(tester.takeException(), isNull);
+    }
+    expect(find.text('Search'), findsOneWidget);
+
+    navigatorKey.currentState!.pop();
+    for (var i = 0; i < 12; i++) {
+      await tester.pump(const Duration(milliseconds: 30));
+      expect(tester.takeException(), isNull);
+    }
+    // Let the pop transition finish so the Search route is gone, then confirm
+    // Home is intact and still renders exactly its six actions.
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(find.byIcon(Icons.menu), findsOneWidget);
+    expect(find.byType(IconButton), findsNWidgets(6));
+  });
 }

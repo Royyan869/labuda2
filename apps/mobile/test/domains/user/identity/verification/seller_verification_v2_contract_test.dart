@@ -1,13 +1,13 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/api/api_client.dart';
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/core/src/interfaces/services/i_logger_service.dart';
-import 'package:labuda/domains/user/identity/verification/data/remote/verification_v2_datasource.dart';
-import 'package:labuda/domains/user/identity/verification/data/repositories/seller_verification_repository_v2.dart';
-import 'package:labuda/domains/user/identity/verification/presentation/providers/seller_verification_v2_provider.dart';
-import 'package:labuda/domains/user/identity/verification/domain/entities/seller_verification_status.dart';
-import 'package:labuda/domains/user/preference/seller/presentation/widgets/withdraw_dialog.dart';
+import 'package:hishumi/core/api/api_client.dart';
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/core/src/interfaces/services/i_logger_service.dart';
+import 'package:hishumi/domains/user/identity/verification/data/remote/verification_v2_datasource.dart';
+import 'package:hishumi/domains/user/identity/verification/data/repositories/seller_verification_repository_v2.dart';
+import 'package:hishumi/domains/user/identity/verification/presentation/providers/seller_verification_v2_provider.dart';
+import 'package:hishumi/domains/user/identity/verification/domain/entities/seller_verification_status.dart';
+import 'package:hishumi/domains/user/preference/seller/presentation/widgets/withdraw_dialog.dart';
 
 class _NoopLogger implements ILoggerService {
   @override

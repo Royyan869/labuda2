@@ -17,9 +17,9 @@
 // tests exercise that equality directly — it is the exact mechanism the
 // controller's `if (freshUser != currentState.user)` check depends on.
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/domains/user/identity/authentication/domain/entities/account_status.dart';
-import 'package:labuda/domains/user/identity/authentication/domain/entities/seller_tier.dart';
-import 'package:labuda/core/core.dart';
+import 'package:hishumi/domains/user/identity/authentication/domain/entities/account_status.dart';
+import 'package:hishumi/domains/user/identity/authentication/domain/entities/seller_tier.dart';
+import 'package:hishumi/core/core.dart';
 
 AuthUser _seller({
   bool? hasMarketAuthority,

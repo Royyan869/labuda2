@@ -3,12 +3,12 @@ import 'dart:collection';
 
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/api/api_client.dart';
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/domains/social/follow/data/datasources/follow_api_datasource.dart';
-import 'package:labuda/domains/social/follow/data/dto/follow_api_models.dart';
-import 'package:labuda/domains/social/follow/data/repositories/api/follow_repository_api.dart';
-import 'package:labuda/domains/social/follow/domain/entities/follow_entity.dart';
+import 'package:hishumi/core/api/api_client.dart';
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/domains/social/follow/data/datasources/follow_api_datasource.dart';
+import 'package:hishumi/domains/social/follow/data/dto/follow_api_models.dart';
+import 'package:hishumi/domains/social/follow/data/repositories/api/follow_repository_api.dart';
+import 'package:hishumi/domains/social/follow/domain/entities/follow_entity.dart';
 
 class _NoopApiClient extends ApiClient {
   _NoopApiClient() : super(baseUrl: 'https://example.com');

@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/shared/shared.dart';
-import 'package:labuda/generated/app_localizations.dart';
-import 'package:labuda/features/home/presentation/widgets/main_drawer/main_drawer.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/shared/shared.dart';
+import 'package:hishumi/generated/app_localizations.dart';
+import 'package:hishumi/features/home/presentation/widgets/main_drawer/main_drawer.dart';
 // Decoy authority used by the negative contract below: the drawer must ignore
 // the profile stream for store identity, so the stream is only ever injected
 // to prove it is NOT consulted.
-import 'package:labuda/domains/user/profile/presentation/providers/profile_stream_provider.dart';
-import 'package:labuda/domains/user/profile/domain/entities/profile_entity.dart';
-import 'package:labuda/shared/widgets/seller_identity_view.dart';
-import 'package:labuda/shared/widgets/hybrid_avatar.dart';
-import 'package:labuda/shared/widgets/seller_dual_avatar.dart';
+import 'package:hishumi/domains/user/profile/presentation/providers/profile_stream_provider.dart';
+import 'package:hishumi/domains/user/profile/domain/entities/profile_entity.dart';
+import 'package:hishumi/shared/widgets/seller_identity_view.dart';
+import 'package:hishumi/shared/widgets/hybrid_avatar.dart';
+import 'package:hishumi/shared/widgets/seller_dual_avatar.dart';
 
 class _FakeAuthController extends AuthController {
   _FakeAuthController(this._state);

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/api/api_error_codes.dart' as codes;
-import 'package:labuda/core/navigation/navigation_handler.dart';
-import 'package:labuda/core/navigation/navigation_provider.dart';
-import 'package:labuda/shared/widgets/app_snackbar.dart';
+import 'package:hishumi/core/api/api_error_codes.dart' as codes;
+import 'package:hishumi/core/navigation/navigation_handler.dart';
+import 'package:hishumi/core/navigation/navigation_provider.dart';
+import 'package:hishumi/shared/widgets/app_snackbar.dart';
 
 /// Canonical presentation authority for backend commerce restriction errors.
 ///

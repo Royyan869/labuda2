@@ -5,7 +5,7 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/labuda/backend/internal/realtime"
+	"github.com/hishumi/backend/internal/realtime"
 )
 
 // newTestOutboxWorker builds an OutboxWorker for ownership assertions. The

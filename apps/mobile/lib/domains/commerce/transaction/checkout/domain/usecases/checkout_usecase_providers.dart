@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/domains/commerce/transaction/checkout/data/checkout_providers.dart';
-import 'package:labuda/domains/commerce/transaction/checkout/domain/usecases/create_order_usecase.dart';
+import 'package:hishumi/domains/commerce/transaction/checkout/data/checkout_providers.dart';
+import 'package:hishumi/domains/commerce/transaction/checkout/domain/usecases/create_order_usecase.dart';
 
 /// Checkout UseCase Providers
 ///

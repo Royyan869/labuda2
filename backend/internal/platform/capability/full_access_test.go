@@ -3,7 +3,7 @@ package capability
 import (
 	"testing"
 
-	"github.com/labuda/backend/internal/platform/capability/entity"
+	"github.com/hishumi/backend/internal/platform/capability/entity"
 )
 
 // TestFullAccess_RequiresAdminRole proves role is half of the derived state:

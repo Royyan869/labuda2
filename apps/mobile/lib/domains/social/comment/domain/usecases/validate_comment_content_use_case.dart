@@ -1,5 +1,5 @@
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/domains/social/comment/domain/repositories/comment_repository.dart';
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/domains/social/comment/domain/repositories/comment_repository.dart';
 
 /// Validate Comment Content Use Case
 ///

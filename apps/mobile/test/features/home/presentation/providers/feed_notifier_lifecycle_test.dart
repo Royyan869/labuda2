@@ -1,12 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/providers/core_providers.dart';
-import 'package:labuda/domains/user/identity/authentication/authentication.dart';
-import 'package:labuda/features/home/domain/entities/feed_item.dart';
-import 'package:labuda/features/home/domain/entities/feed_page.dart';
-import 'package:labuda/features/home/domain/repositories/home_repository.dart';
-import 'package:labuda/features/home/presentation/providers/feed/feed_notifier.dart';
-import 'package:labuda/shared/services/logger_service.dart';
+import 'package:hishumi/core/providers/core_providers.dart';
+import 'package:hishumi/domains/user/identity/authentication/authentication.dart';
+import 'package:hishumi/features/home/domain/entities/feed_item.dart';
+import 'package:hishumi/features/home/domain/entities/feed_page.dart';
+import 'package:hishumi/features/home/domain/repositories/home_repository.dart';
+import 'package:hishumi/features/home/presentation/providers/feed/feed_notifier.dart';
+import 'package:hishumi/shared/services/logger_service.dart';
 
 class _CountingHomeRepository implements HomeRepository {
   int getFeedPageCalls = 0;

@@ -7,10 +7,10 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/finance"
-	ledgerrepo "github.com/labuda/backend/internal/finance/repository"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/money"
+	"github.com/hishumi/backend/internal/finance"
+	ledgerrepo "github.com/hishumi/backend/internal/finance/repository"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/money"
 )
 
 // LedgerRepository handles double-entry ledger operations using pgx-based DB layer.

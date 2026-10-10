@@ -7,8 +7,8 @@
 /// Shipping-domain intent (`openSellerShippingQuoteSheet`) only.
 library;
 
-import 'package:labuda/domains/commerce/catalog/for_sale/data/dto/shipping_quote_dto.dart';
-import 'package:labuda/domains/commerce/transaction/shipping/data/remote/shipping_remote_datasource.dart';
+import 'package:hishumi/domains/commerce/catalog/for_sale/data/dto/shipping_quote_dto.dart';
+import 'package:hishumi/domains/commerce/transaction/shipping/data/remote/shipping_remote_datasource.dart';
 
 class ShippingQuoteRepository {
   ShippingQuoteRepository(this._datasource);

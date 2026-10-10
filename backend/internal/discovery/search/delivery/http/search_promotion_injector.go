@@ -7,10 +7,10 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/labuda/backend/internal/governance/viewercontext"
-	contractApp "github.com/labuda/backend/internal/pricing/promotion/contract/application"
-	deliveryApp "github.com/labuda/backend/internal/pricing/promotion/delivery/application"
-	promoentity "github.com/labuda/backend/internal/pricing/promotion/entity"
+	"github.com/hishumi/backend/internal/governance/viewercontext"
+	contractApp "github.com/hishumi/backend/internal/pricing/promotion/contract/application"
+	deliveryApp "github.com/hishumi/backend/internal/pricing/promotion/delivery/application"
+	promoentity "github.com/hishumi/backend/internal/pricing/promotion/entity"
 	"go.uber.org/zap"
 )
 

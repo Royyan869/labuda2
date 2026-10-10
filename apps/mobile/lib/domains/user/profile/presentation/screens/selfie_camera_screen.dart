@@ -2,8 +2,8 @@ import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:labuda/shared/widgets/app_snackbar.dart';
-import 'package:labuda/core/src/theme/app_theme.dart';
+import 'package:hishumi/shared/widgets/app_snackbar.dart';
+import 'package:hishumi/core/src/theme/app_theme.dart';
 
 /// Selfie Camera Screen - Capture selfie with KTP in portrait orientation
 ///

@@ -7,11 +7,11 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/identity/auth"
-	"github.com/labuda/backend/internal/platform/response"
-	discountApp "github.com/labuda/backend/internal/pricing/discount/application"
-	discountEntity "github.com/labuda/backend/internal/pricing/discount/entity"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/identity/auth"
+	"github.com/hishumi/backend/internal/platform/response"
+	discountApp "github.com/hishumi/backend/internal/pricing/discount/application"
+	discountEntity "github.com/hishumi/backend/internal/pricing/discount/entity"
+	"github.com/hishumi/backend/pkg/db"
 	"github.com/shopspring/decimal"
 	"go.uber.org/zap"
 )

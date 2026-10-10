@@ -6,10 +6,10 @@ library;
 
 import 'dart:async';
 
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/core/src/interfaces/services/i_logger_service.dart';
-import 'package:labuda/domains/system/support/data/datasources/support_api_datasource.dart';
-import 'package:labuda/domains/system/support/domain/domain.dart';
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/core/src/interfaces/services/i_logger_service.dart';
+import 'package:hishumi/domains/system/support/data/datasources/support_api_datasource.dart';
+import 'package:hishumi/domains/system/support/domain/domain.dart';
 
 /// Implementation of SupportRepository using Go API
 ///

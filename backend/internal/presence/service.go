@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/governance/viewercontext"
-	"github.com/labuda/backend/internal/platform/events"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/governance/viewercontext"
+	"github.com/hishumi/backend/internal/platform/events"
+	"github.com/hishumi/backend/pkg/db"
 	goredis "github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 )

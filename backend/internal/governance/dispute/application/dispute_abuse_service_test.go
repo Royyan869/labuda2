@@ -14,9 +14,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	disputeEntity "github.com/labuda/backend/internal/governance/dispute/entity"
-	disputeRepo "github.com/labuda/backend/internal/governance/dispute/repository"
-	"github.com/labuda/backend/pkg/db"
+	disputeEntity "github.com/hishumi/backend/internal/governance/dispute/entity"
+	disputeRepo "github.com/hishumi/backend/internal/governance/dispute/repository"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // =============================================================================

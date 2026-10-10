@@ -1,10 +1,10 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/core/media/media_upload_config.dart';
-import 'package:labuda/domains/commerce/transaction/order/order.dart';
-import 'package:labuda/shared/widgets/app_snackbar.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/core/media/media_upload_config.dart';
+import 'package:hishumi/domains/commerce/transaction/order/order.dart';
+import 'package:hishumi/shared/widgets/app_snackbar.dart';
 
 /// Handles refund operations for orders
 class OrderRefundHandler {

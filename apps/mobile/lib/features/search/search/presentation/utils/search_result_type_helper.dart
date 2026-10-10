@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/features/search/search/domain/entities/search_result.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/features/search/search/domain/entities/search_result.dart';
 
 /// Helper for search result type UI elements
 class SearchResultTypeHelper {

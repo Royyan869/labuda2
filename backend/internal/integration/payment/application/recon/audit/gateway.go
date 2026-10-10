@@ -20,7 +20,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/labuda/backend/internal/integration/payment/application/recon"
+	"github.com/hishumi/backend/internal/integration/payment/application/recon"
 )
 
 // GatewayQuery is the read-only gateway-status surface the Resolver depends

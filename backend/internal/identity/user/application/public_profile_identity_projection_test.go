@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/governance/viewercontext"
-	"github.com/labuda/backend/internal/identity/user/delivery/http/dto"
-	userEntity "github.com/labuda/backend/internal/identity/user/domain/entity"
+	"github.com/hishumi/backend/internal/governance/viewercontext"
+	"github.com/hishumi/backend/internal/identity/user/delivery/http/dto"
+	userEntity "github.com/hishumi/backend/internal/identity/user/domain/entity"
 )
 
 func TestProjectPublicProfileIdentity(t *testing.T) {

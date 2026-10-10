@@ -11,7 +11,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/labuda/backend/internal/config"
+	"github.com/hishumi/backend/internal/config"
 )
 
 // stubTransport makes the outbound probe fully deterministic and offline: no

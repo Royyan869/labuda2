@@ -5,10 +5,10 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	shippingEntity "github.com/labuda/backend/internal/commerce/shipping/entity"
-	shippingRepo "github.com/labuda/backend/internal/commerce/shipping/infrastructure/repository"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/money"
+	shippingEntity "github.com/hishumi/backend/internal/commerce/shipping/entity"
+	shippingRepo "github.com/hishumi/backend/internal/commerce/shipping/infrastructure/repository"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/money"
 )
 
 // BUSINESS TRUTH (Owner-locked shipping contract):

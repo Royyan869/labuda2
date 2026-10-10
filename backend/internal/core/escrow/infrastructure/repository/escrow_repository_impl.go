@@ -7,9 +7,9 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/labuda/backend/internal/core/escrow/entity"
-	escrowrepo "github.com/labuda/backend/internal/core/escrow/repository"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/core/escrow/entity"
+	escrowrepo "github.com/hishumi/backend/internal/core/escrow/repository"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // isDuplicateKeyError checks if the error is a PostgreSQL unique constraint violation.

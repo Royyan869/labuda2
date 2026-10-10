@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/features/home/home.dart';
-import 'package:labuda/features/marketplace/marketplace.dart';
+import 'package:hishumi/features/home/home.dart';
+import 'package:hishumi/features/marketplace/marketplace.dart';
 
 /// Marketplace Screen - Central hub untuk Product dan Auction
 ///

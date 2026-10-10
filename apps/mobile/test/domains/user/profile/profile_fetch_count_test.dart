@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/user/profile/data/datasources/user_api_datasource.dart';
-import 'package:labuda/domains/user/profile/data/models/api/user_api_models.dart';
-import 'package:labuda/domains/user/profile/data/profile_providers.dart'
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/user/profile/data/datasources/user_api_datasource.dart';
+import 'package:hishumi/domains/user/profile/data/models/api/user_api_models.dart';
+import 'package:hishumi/domains/user/profile/data/profile_providers.dart'
     show userApiDatasourceProvider;
-import 'package:labuda/domains/user/profile/presentation/providers/profile_view_provider.dart';
-import 'package:labuda/shared/services/logger_service.dart';
+import 'package:hishumi/domains/user/profile/presentation/providers/profile_view_provider.dart';
+import 'package:hishumi/shared/services/logger_service.dart';
 
 class _CountingUserApiDatasource extends UserApiDatasource {
   _CountingUserApiDatasource(this._response)

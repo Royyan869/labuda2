@@ -3,14 +3,14 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/user/identity/authentication/data/auth_providers.dart' as auth_data;
-import 'package:labuda/domains/user/identity/authentication/domain/entities/account_status.dart';
-import 'package:labuda/domains/user/profile/data/datasources/user_api_datasource.dart';
-import 'package:labuda/domains/user/profile/data/profile_providers.dart' show userSyncServiceProvider;
-import 'package:labuda/domains/user/profile/data/services/user_sync_service.dart';
-import 'package:labuda/domains/system/notification/data/notification_providers.dart' show fcmServiceProvider;
-import 'package:labuda/domains/system/notification/services/fcm_service.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/user/identity/authentication/data/auth_providers.dart' as auth_data;
+import 'package:hishumi/domains/user/identity/authentication/domain/entities/account_status.dart';
+import 'package:hishumi/domains/user/profile/data/datasources/user_api_datasource.dart';
+import 'package:hishumi/domains/user/profile/data/profile_providers.dart' show userSyncServiceProvider;
+import 'package:hishumi/domains/user/profile/data/services/user_sync_service.dart';
+import 'package:hishumi/domains/system/notification/data/notification_providers.dart' show fcmServiceProvider;
+import 'package:hishumi/domains/system/notification/services/fcm_service.dart';
 
 // ---------------------------------------------------------------------------
 // Fakes
@@ -56,11 +56,11 @@ class _FakeUserSyncService extends UserSyncService {
 class FakeStorage implements ILocalStorageService {
   String? access;
   String? refresh;
-  int clearLabudaCount = 0;
+  int clearHiShumiCount = 0;
   int saveCount = 0;
   FakeStorage({this.access, this.refresh});
   @override
-  Future<Result<void>> saveLabudaCredential(String a, String r) async {
+  Future<Result<void>> saveHiShumiCredential(String a, String r) async {
     access = a;
     refresh = r;
     saveCount++;
@@ -68,19 +68,19 @@ class FakeStorage implements ILocalStorageService {
   }
 
   @override
-  Future<Result<String?>> readLabudaAccessToken() async => Result.success(access);
+  Future<Result<String?>> readHiShumiAccessToken() async => Result.success(access);
   @override
-  Future<Result<String?>> readLabudaRefreshToken() async => Result.success(refresh);
+  Future<Result<String?>> readHiShumiRefreshToken() async => Result.success(refresh);
   @override
-  Future<Result<void>> clearLabudaCredential() async {
+  Future<Result<void>> clearHiShumiCredential() async {
     access = null;
     refresh = null;
-    clearLabudaCount++;
+    clearHiShumiCount++;
     return Result.success(null);
   }
 
   @override
-  Future<Result<bool>> hasLabudaCredential() async =>
+  Future<Result<bool>> hasHiShumiCredential() async =>
       Result.success(access != null && access!.isNotEmpty && refresh != null && refresh!.isNotEmpty);
 
   @override
@@ -187,8 +187,6 @@ class FakeLogger extends Fake implements ILoggerService {
   Future<void> debugSyncException(String uid, String e, String s) async {}
   @override
   Future<void> debugGetCurrentUserSuccess(String uid, bool v) async {}
-  @override
-  dynamic noSuchMethod(Invocation i) => super.noSuchMethod(i);
 }
 
 class FakeAnalytics extends Fake implements IAnalyticsRepository {
@@ -213,9 +211,6 @@ class FakeFcm extends Fake implements FcmService {
   Future<void> cleanup({required String userId}) async {
     cleanupCalls++;
   }
-
-  @override
-  dynamic noSuchMethod(Invocation i) => super.noSuchMethod(i);
 }
 
 
@@ -301,10 +296,10 @@ void main() {
 
       expect(repo.logoutCurrentCalls, 1, reason: 'backend logout attempted before local clear');
       expect(repo.lastRefreshToken, 'old-refresh');
-      expect(storage.clearLabudaCount, 1, reason: 'clearLabudaCredential called exactly once even on failure');
+      expect(storage.clearHiShumiCount, 1, reason: 'clearHiShumiCredential called exactly once even on failure');
       expect(storage.access, isNull);
       expect(storage.refresh, isNull);
-      expect((await storage.hasLabudaCredential()).data, isFalse);
+      expect((await storage.hasHiShumiCredential()).data, isFalse);
       // Firebase cleanup via repository signOut (canonical secondary cleanup)
       expect(repo.signOutCalls, 1, reason: 'Firebase secondary cleanup performed via repository signOut');
       expect(controller.state, isA<AuthStateUnauthenticated>());
@@ -313,12 +308,12 @@ void main() {
       expect(ws.disconnectCalls, greaterThanOrEqualTo(0));
       expect(fcm.cleanupCalls, greaterThanOrEqualTo(0));
 
-      // Startup/Firebase listener cannot resurrect: Firebase currentUser != null but Labuda absent -> unauth
+      // Startup/Firebase listener cannot resurrect: Firebase currentUser != null but HiShumi absent -> unauth
       // Simulate that Firebase still has user after failure (some implementations keep Firebase alive until signOut)
       // Here our harness cleared fakeUser on signOut, but we test the guard separately:
-      final hasLabuda = (await storage.hasLabudaCredential()).data == true;
-      expect(hasLabuda, isFalse);
-      // If Firebase user existed without Labuda, controller must stay unauthenticated (no exchange)
+      final hasHiShumi = (await storage.hasHiShumiCredential()).data == true;
+      expect(hasHiShumi, isFalse);
+      // If Firebase user existed without HiShumi, controller must stay unauthenticated (no exchange)
       // This is proven by the fact that state is unauth and no new credential was created
       expect(controller.state, isA<AuthStateUnauthenticated>());
       expect(storage.saveCount, 0);
@@ -337,7 +332,7 @@ void main() {
       await controller.signOut();
 
       expect(repo.logoutCurrentCalls, 1);
-      expect(storage.clearLabudaCount, 1);
+      expect(storage.clearHiShumiCount, 1);
       expect(storage.access, isNull);
       expect(controller.state, isA<AuthStateUnauthenticated>());
     });
@@ -358,10 +353,10 @@ void main() {
       await controller.signOutAll();
 
       expect(repo.logoutAllCalls, 1);
-      expect(storage.clearLabudaCount, 1);
+      expect(storage.clearHiShumiCount, 1);
       expect(storage.access, isNull);
       expect(storage.refresh, isNull);
-      expect((await storage.hasLabudaCredential()).data, isFalse);
+      expect((await storage.hasHiShumiCredential()).data, isFalse);
       expect(repo.signOutCalls, 1, reason: 'Firebase secondary cleanup via repository signOut');
       expect(controller.state, isA<AuthStateUnauthenticated>());
       expect(ws.disconnectCalls, greaterThanOrEqualTo(0));
@@ -369,21 +364,21 @@ void main() {
   });
 
   group('Blocker9: Firebase resurrection execution proof', () {
-    test('initial Firebase event: user present + Labuda absent + unauthenticated -> NO exchange, remain unauth', () async {
+    test('initial Firebase event: user present + HiShumi absent + unauthenticated -> NO exchange, remain unauth', () async {
       // This tests the guard in _setupFirebaseAuthListener initial event branch
       // We cannot drive the real Firebase stream without complex mocking, but we can
-      // prove the decision logic: hasLabuda==false + unauthenticated should not call syncUser
+      // prove the decision logic: hasHiShumi==false + unauthenticated should not call syncUser
       final storage = FakeStorage(access: null, refresh: null);
-      final hasLabuda = (await storage.hasLabudaCredential()).data == true;
-      expect(hasLabuda, isFalse);
-      // Simulate listener decision: if initial && hasLabuda==false && unauthenticated => return (no exchange)
+      final hasHiShumi = (await storage.hasHiShumiCredential()).data == true;
+      expect(hasHiShumi, isFalse);
+      // Simulate listener decision: if initial && hasHiShumi==false && unauthenticated => return (no exchange)
       bool didExchange = false;
       final state = const AuthState.unauthenticated();
       final isInitial = true;
       final explicitLogin = false;
       final firebaseUserPresent = true;
       if (isInitial && firebaseUserPresent && !explicitLogin) {
-        if (!hasLabuda && state is AuthStateUnauthenticated) {
+        if (!hasHiShumi && state is AuthStateUnauthenticated) {
           didExchange = false;
         } else {
           didExchange = true;
@@ -394,8 +389,8 @@ void main() {
 
     test('post-logout Firebase event: same guard -> NO exchange', () async {
       final storage = FakeStorage(access: null, refresh: null);
-      final hasLabuda = (await storage.hasLabudaCredential()).data == true;
-      expect(hasLabuda, isFalse);
+      final hasHiShumi = (await storage.hasHiShumiCredential()).data == true;
+      expect(hasHiShumi, isFalse);
       bool didExchange = false;
       final state = const AuthState.unauthenticated();
       final isInitial = false;
@@ -403,7 +398,7 @@ void main() {
       // Post-logout branch: !_isExplicitLoginInProgress && !_isInitiatingEmailSignup && !isInitial
       final isExplicit = false;
       if (!isExplicit && !isInitial && firebaseUserPresent) {
-        if (!hasLabuda && state is AuthStateUnauthenticated) {
+        if (!hasHiShumi && state is AuthStateUnauthenticated) {
           didExchange = false;
         }
       }
@@ -411,23 +406,22 @@ void main() {
     });
 
     test('explicit login: Firebase event should allow exchange', () async {
-      final storage = FakeStorage(access: null, refresh: null);
       final isExplicit = true;
       bool allowed = false;
       if (isExplicit) {
-        allowed = true; // listener skips the hasLabuda guard when explicit
+        allowed = true; // listener skips the hasHiShumi guard when explicit
       }
       expect(allowed, isTrue);
     });
 
-    test('AuthController startup Labuda-first: Labuda absent -> no authenticated state', () async {
-      // Prove that _restoreLabudaSession returns false when no credential, and controller stays unauth
+    test('AuthController startup HiShumi-first: HiShumi absent -> no authenticated state', () async {
+      // Prove that _restoreHiShumiSession returns false when no credential, and controller stays unauth
       final storage = FakeStorage(access: null, refresh: null);
-      final hasLabudaBefore = (await storage.hasLabudaCredential()).data == true;
-      expect(hasLabudaBefore, isFalse);
-      // Simulate _doRestoreLabudaSession logic: access missing, refresh missing -> return false
-      final accessRes = await storage.readLabudaAccessToken();
-      final refreshRes = await storage.readLabudaRefreshToken();
+      final hasHiShumiBefore = (await storage.hasHiShumiCredential()).data == true;
+      expect(hasHiShumiBefore, isFalse);
+      // Simulate _doRestoreHiShumiSession logic: access missing, refresh missing -> return false
+      final accessRes = await storage.readHiShumiAccessToken();
+      final refreshRes = await storage.readHiShumiRefreshToken();
       final wouldRestore = (accessRes.data != null && accessRes.data!.isNotEmpty) || (refreshRes.data != null && refreshRes.data!.isNotEmpty);
       expect(wouldRestore, isFalse);
     });

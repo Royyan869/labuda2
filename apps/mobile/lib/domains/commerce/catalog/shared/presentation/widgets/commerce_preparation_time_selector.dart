@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/common/types/preparation_time.dart';
-import 'package:labuda/core/src/theme/app_theme.dart';
+import 'package:hishumi/core/common/types/preparation_time.dart';
+import 'package:hishumi/core/src/theme/app_theme.dart';
 
 /// Preparation-time selector — ONE authority for choosing when the seller can
 /// ship after checkout (owner vocabulary: 1–3 / 4–7 / 8–15 days, default 1–3).

@@ -21,15 +21,15 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/user/identity/authentication/domain/entities/account_status.dart';
-import 'package:labuda/domains/user/profile/domain/entities/profile_entity.dart';
-import 'package:labuda/domains/user/profile/presentation/providers/profile_stream_provider.dart'
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/user/identity/authentication/domain/entities/account_status.dart';
+import 'package:hishumi/domains/user/profile/domain/entities/profile_entity.dart';
+import 'package:hishumi/domains/user/profile/presentation/providers/profile_stream_provider.dart'
     show profileStreamProvider;
-import 'package:labuda/domains/user/profile/presentation/providers/user_data_provider.dart'
+import 'package:hishumi/domains/user/profile/presentation/providers/user_data_provider.dart'
     show userDataProvider;
-import 'package:labuda/domains/user/profile/presentation/screens/profile_screen/profile_about_tab.dart';
-import 'package:labuda/shared/governance/content_lifecycle.dart';
+import 'package:hishumi/domains/user/profile/presentation/screens/profile_screen/profile_about_tab.dart';
+import 'package:hishumi/shared/governance/content_lifecycle.dart';
 
 class _FakeApiClient implements ApiClient {
   const _FakeApiClient();

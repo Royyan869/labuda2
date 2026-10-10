@@ -6,8 +6,8 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	chatApp "github.com/labuda/backend/internal/interaction/chat/application"
-	platformevent "github.com/labuda/backend/internal/platform/event"
+	chatApp "github.com/hishumi/backend/internal/interaction/chat/application"
+	platformevent "github.com/hishumi/backend/internal/platform/event"
 	"go.uber.org/zap"
 )
 

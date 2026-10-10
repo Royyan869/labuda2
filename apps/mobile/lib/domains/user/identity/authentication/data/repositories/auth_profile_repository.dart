@@ -1,11 +1,12 @@
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/user/identity/authentication/domain/entities/auth_user.dart'
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/user/identity/authentication/domain/entities/auth_user.dart'
     as domain;
-import 'package:labuda/domains/user/profile/data/mappers/user_api_mapper.dart';
-import 'package:labuda/domains/user/profile/data/models/api/user_api_models.dart';
-import 'package:labuda/shared/governance/content_lifecycle.dart';
-import 'package:labuda/shared/services/local_storage_service.dart';
+import 'package:hishumi/domains/user/profile/data/datasources/user_api_datasource.dart';
+import 'package:hishumi/domains/user/profile/data/mappers/user_api_mapper.dart';
+import 'package:hishumi/domains/user/profile/data/models/api/user_api_models.dart';
+import 'package:hishumi/shared/governance/content_lifecycle.dart';
+import 'package:hishumi/shared/services/local_storage_service.dart';
 import '../datasources/auth_api_datasource.dart';
 import '../../domain/entities/account_status.dart';
 import '../../domain/entities/seller_tier.dart';
@@ -21,14 +22,20 @@ import '../../domain/entities/user_profile_patch.dart';
 class AuthProfileRepository {
   final FirebaseAuth _firebaseAuth;
   final AuthApiDatasource _apiDatasource;
+  // CANONICAL /users/me AUTHORITY: UserApiDatasource owns the single
+  // endpoint implementation + envelope parser. The former duplicate on
+  // AuthApiDatasource was purged (one endpoint, one parser, one authority).
+  final UserApiDatasource _userDatasource;
   final ILocalStorageService _localStorage;
 
   AuthProfileRepository({
     FirebaseAuth? firebaseAuth,
     required AuthApiDatasource apiDatasource,
+    required UserApiDatasource userDatasource,
     ILocalStorageService? localStorage,
   }) : _firebaseAuth = firebaseAuth ?? FirebaseAuth.instance,
        _apiDatasource = apiDatasource,
+       _userDatasource = userDatasource,
        _localStorage = localStorage ?? LocalStorageService();
 
   Future<Result<void>> resetPassword({required String email}) async {
@@ -39,24 +46,6 @@ class AuthProfileRepository {
       return Result.error(_mapFirebaseError(e));
     } catch (e) {
       return Result.error('Reset password failed: ${e.toString()}');
-    }
-  }
-
-  Future<Result<void>> verifyEmail() async {
-    try {
-      final user = _firebaseAuth.currentUser;
-      if (user != null && !user.emailVerified) {
-        await user.sendEmailVerification();
-        return Result.success(null);
-      } else if (user == null) {
-        return Result.error('User not found');
-      } else {
-        return Result.error('Email already verified');
-      }
-    } on FirebaseAuthException catch (e) {
-      return Result.error(_mapFirebaseError(e));
-    } catch (e) {
-      return Result.error('Verify email failed: ${e.toString()}');
     }
   }
 
@@ -174,7 +163,7 @@ class AuthProfileRepository {
       }
 
       final completeResponse = result.data!;
-      final storeResult = await _localStorage.saveLabudaCredential(
+      final storeResult = await _localStorage.saveHiShumiCredential(
         completeResponse.accessToken,
         completeResponse.refreshToken,
       );
@@ -187,7 +176,7 @@ class AuthProfileRepository {
       // Restricted completion token has been consumed — clear its isolated key
       await _localStorage.clearRestrictedToken();
 
-      final currentUserResult = await _apiDatasource.getCurrentUser();
+      final currentUserResult = await _userDatasource.getCurrentUser();
       if (currentUserResult.isError || currentUserResult.data == null) {
         return Result.error(
           currentUserResult.error ?? 'Failed to load current user profile',
@@ -368,27 +357,6 @@ class AuthProfileRepository {
     return result.map((data) => _mapApiDataToAuthUser(data));
   }
 
-  /// Search users by name or username using backend API
-  Future<Result<List<AuthUser>>> searchUsers({
-    required String query,
-    int limit = 20,
-  }) async {
-    if (query.trim().isEmpty) {
-      return Result.success([]);
-    }
-
-    final result = await _apiDatasource.searchUsers(
-      query: query,
-      page: 1,
-      limit: limit,
-    );
-
-    return result.map(
-      (usersData) =>
-          usersData.map((data) => _mapApiDataToAuthUser(data)).toList(),
-    );
-  }
-
   /// Deactivate user account with reason using backend API
   Future<Result<void>> deactivateAccount({
     required String userId,
@@ -402,18 +370,6 @@ class AuthProfileRepository {
       return Result.error(result.error ?? 'Failed to deactivate account');
     }
     return Result.success(null);
-  }
-
-  /// Update user role (for seller upgrade, admin promotion) using backend API
-  Future<Result<AuthUser>> updateUserRole({
-    required String userId,
-    required UserRole newRole,
-  }) async {
-    final result = await _apiDatasource.updateUserRole(
-      userId: userId,
-      role: newRole.name,
-    );
-    return result.map((data) => _mapApiDataToAuthUser(data));
   }
 
   /// Map backend API response data to AuthUser entity
@@ -584,6 +540,6 @@ class AuthProfileRepository {
   }
 
   Future<void> _clearStoredSessionTokens() async {
-    await _localStorage.clearLabudaCredential();
+    await _localStorage.clearHiShumiCredential();
   }
 }

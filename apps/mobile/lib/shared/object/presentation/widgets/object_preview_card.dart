@@ -19,9 +19,9 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:labuda/shared/attachment/entities/share_reference.dart';
-import 'package:labuda/shared/widgets/app_image.dart';
-import 'package:labuda/core/src/theme/app_theme.dart';
+import 'package:hishumi/shared/attachment/entities/share_reference.dart';
+import 'package:hishumi/shared/widgets/app_image.dart';
+import 'package:hishumi/core/src/theme/app_theme.dart';
 
 /// Displays the cached transport preview of a shared reference.
 ///

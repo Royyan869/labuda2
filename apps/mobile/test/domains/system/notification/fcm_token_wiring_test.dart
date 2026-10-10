@@ -27,11 +27,11 @@ import 'dart:async';
 import 'package:dio/dio.dart' show Response, RequestOptions, DioException;
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:labuda/core/api/api_client.dart';
-import 'package:labuda/domains/system/notification/data/datasources/notification_api_datasource.dart';
-import 'package:labuda/domains/system/notification/data/datasources/notification_remote_datasource.dart';
-import 'package:labuda/domains/system/notification/data/models/api/notification_api_models.dart';
-import 'package:labuda/domains/system/notification/services/fcm_token_manager.dart';
+import 'package:hishumi/core/api/api_client.dart';
+import 'package:hishumi/domains/system/notification/data/datasources/notification_api_datasource.dart';
+import 'package:hishumi/domains/system/notification/data/datasources/notification_remote_datasource.dart';
+import 'package:hishumi/domains/system/notification/data/models/api/notification_api_models.dart';
+import 'package:hishumi/domains/system/notification/services/fcm_token_manager.dart';
 
 // ---------------------------------------------------------------------------
 // Test doubles

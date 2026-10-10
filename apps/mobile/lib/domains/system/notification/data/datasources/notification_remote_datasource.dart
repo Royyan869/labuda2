@@ -9,11 +9,11 @@
 // no-op. The other methods on this class remain compatibility stubs
 // (separately deprecated) and are intentionally out of Tier 3 scope.
 
-import 'package:labuda/core/api/platform/platform_io.dart'
-    if (dart.library.html) 'package:labuda/core/api/platform/platform_web.dart';
-import 'package:labuda/core/src/interfaces/services/i_logger_service.dart';
-import 'package:labuda/domains/system/notification/data/datasources/notification_api_datasource.dart';
-import 'package:labuda/domains/system/notification/data/models/api/notification_api_models.dart';
+import 'package:hishumi/core/api/platform/platform_io.dart'
+    if (dart.library.html) 'package:hishumi/core/api/platform/platform_web.dart';
+import 'package:hishumi/core/src/interfaces/services/i_logger_service.dart';
+import 'package:hishumi/domains/system/notification/data/datasources/notification_api_datasource.dart';
+import 'package:hishumi/domains/system/notification/data/models/api/notification_api_models.dart';
 
 /// Notification Remote Datasource
 ///

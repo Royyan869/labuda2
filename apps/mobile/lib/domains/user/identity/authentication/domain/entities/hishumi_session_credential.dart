@@ -1,23 +1,23 @@
-/// Canonical representation of a Labuda session credential.
+/// Canonical representation of a HiShumi session credential.
 ///
 /// This model holds the platform access and refresh tokens issued by the
-/// Labuda backend after Firebase exchange or profile completion.
+/// HiShumi backend after Firebase exchange or profile completion.
 ///
 /// Firebase ID tokens are NOT part of this model. Firebase credentials are
 /// managed separately by the Firebase SDK.
 ///
-/// A valid [LabudaSessionCredential] always has both tokens present.
+/// A valid [HiShumiSessionCredential] always has both tokens present.
 /// Partial credentials (access only or refresh only) should be represented
-/// as `null` at the [LabudaCredentialStore] level, not as incomplete
-/// [LabudaSessionCredential] instances.
-class LabudaSessionCredential {
-  /// Backend-issued Labuda access JWT.
+/// as `null` at the HiShumi credential store level, not as incomplete
+/// [HiShumiSessionCredential] instances.
+class HiShumiSessionCredential {
+  /// Backend-issued HiShumi access JWT.
   final String accessToken;
 
-  /// Backend-issued Labuda refresh JWT.
+  /// Backend-issued HiShumi refresh JWT.
   final String refreshToken;
 
-  const LabudaSessionCredential({
+  const HiShumiSessionCredential({
     required this.accessToken,
     required this.refreshToken,
   });
@@ -25,7 +25,7 @@ class LabudaSessionCredential {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is LabudaSessionCredential &&
+      other is HiShumiSessionCredential &&
           runtimeType == other.runtimeType &&
           accessToken == other.accessToken &&
           refreshToken == other.refreshToken;
@@ -35,5 +35,5 @@ class LabudaSessionCredential {
 
   @override
   String toString() =>
-      'LabudaSessionCredential(accessToken: [REDACTED], refreshToken: [REDACTED])';
+      'HiShumiSessionCredential(accessToken: [REDACTED], refreshToken: [REDACTED])';
 }

@@ -1,7 +1,7 @@
-import 'package:dio/dio.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/user/profile/data/models/api/user_api_models.dart';
-import 'package:labuda/domains/user/profile/domain/entities/profile_entity.dart';
+﻿import 'package:dio/dio.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/user/profile/data/models/api/user_api_models.dart';
+import 'package:hishumi/domains/user/profile/domain/entities/profile_entity.dart';
 
 /// Data source for User API operations against Go backend
 ///
@@ -142,7 +142,7 @@ class UserApiDatasource extends BaseApiRepository {
     );
   }
 
-  /// Get multiple users by IDs — canonical batch uses sequential GET /users/{id}
+  /// Get multiple users by IDs â€” canonical batch uses sequential GET /users/{id}
   /// (no dedicated POST /users/batch backend route; the single public
   /// projection is the sole truth). Sequential preserves lifecycle/redaction
   /// parity with the single path.
@@ -199,76 +199,7 @@ class UserApiDatasource extends BaseApiRepository {
   // SINGLE username authority and decides availability at the transactional
   // moment (/auth/firebase/exchange or /auth/complete-profile), whose
   // rejections map to inline, screen-local messages. Local validation is
-  // format-only — see CanonicalUsernameValidator.
-
-  /// Update user avatar
-  Future<Result<UserApiResponse>> updateAvatar(
-    String userId,
-    String avatarUrl,
-  ) async {
-    return executeRequest(
-      () => apiClient.patch(
-        '/users/$userId/avatar',
-        data: {'avatar_url': avatarUrl},
-      ),
-      parser: (data) => UserApiResponse.fromJson(data as Map<String, dynamic>),
-    );
-  }
-
-  // ========================================
-  // Role & Account Operations
-  // ========================================
-
-  /// Update user roles (replaces all roles with the provided roles)
-  /// This is the preferred method for managing user roles
-  Future<Result<UserApiResponse>> updateUserRoles({
-    required String userId,
-    required List<String> roles,
-  }) async {
-    return executeRequest(
-      () => apiClient.patch('/users/$userId/role', data: {'roles': roles}),
-      parser: (data) => UserApiResponse.fromJson(data as Map<String, dynamic>),
-    );
-  }
-
-  /// Update user role (e.g., buyer -> seller upgrade)
-  /// DEPRECATED: Use updateUserRoles for multiple roles support
-  Future<Result<UserApiResponse>> updateUserRole({
-    required String userId,
-    required String role,
-  }) async {
-    return executeRequest(
-      () => apiClient.patch(
-        '/users/$userId/role',
-        data: {
-          'roles': [role], // Wrap in array for new endpoint
-        },
-      ),
-      parser: (data) => UserApiResponse.fromJson(data as Map<String, dynamic>),
-    );
-  }
-
-  /// Add roles to user (doesn't remove existing roles)
-  Future<Result<UserApiResponse>> addUserRoles({
-    required String userId,
-    required List<String> roles,
-  }) async {
-    return executeRequest(
-      () => apiClient.post('/users/$userId/roles', data: {'roles': roles}),
-      parser: (data) => UserApiResponse.fromJson(data as Map<String, dynamic>),
-    );
-  }
-
-  /// Remove roles from user
-  Future<Result<UserApiResponse>> removeUserRoles({
-    required String userId,
-    required List<String> roles,
-  }) async {
-    return executeRequest(
-      () => apiClient.delete('/users/$userId/roles', data: {'roles': roles}),
-      parser: (data) => UserApiResponse.fromJson(data as Map<String, dynamic>),
-    );
-  }
+  // format-only â€” see CanonicalUsernameValidator.
 
   /// Deactivate user account
   Future<Result<void>> deactivateAccount({

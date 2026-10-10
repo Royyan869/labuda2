@@ -12,9 +12,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	feedentity "github.com/labuda/backend/internal/social/feed/entity"
-	"github.com/labuda/backend/internal/social/feed/infrastructure/repository"
-	"github.com/labuda/backend/pkg/testdb"
+	feedentity "github.com/hishumi/backend/internal/social/feed/entity"
+	"github.com/hishumi/backend/internal/social/feed/infrastructure/repository"
+	"github.com/hishumi/backend/pkg/testdb"
 )
 
 // setupTestDB creates test database with required tables and data.

@@ -1,8 +1,8 @@
 import 'dart:developer' as developer;
 
 import 'package:flutter/foundation.dart';
-import 'package:labuda/core/src/interfaces/services/i_logger_service.dart';
-import 'package:labuda/core/common/result.dart';
+import 'package:hishumi/core/src/interfaces/services/i_logger_service.dart';
+import 'package:hishumi/core/common/result.dart';
 
 /// Implementation LoggerService dengan `Result<T>` pattern
 ///
@@ -13,7 +13,7 @@ import 'package:labuda/core/common/result.dart';
 /// - Proper error handling dengan try-catch ✅
 /// - Performance optimized ✅
 class LoggerService implements ILoggerService {
-  static const String _appName = 'Labuda';
+  static const String _appName = 'HiShumi';
   LogLevel _currentLogLevel = LogLevel.debug;
   final List<LogEntryImpl> _logs = [];
   static const int _maxLogEntries = 1000; // Prevent memory issues

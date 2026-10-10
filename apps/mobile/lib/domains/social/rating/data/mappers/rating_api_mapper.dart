@@ -1,5 +1,5 @@
-import 'package:labuda/domains/social/rating/domain/entities/rating_entity.dart';
-import 'package:labuda/domains/social/rating/data/dto/rating_api_models.dart';
+import 'package:hishumi/domains/social/rating/domain/entities/rating_entity.dart';
+import 'package:hishumi/domains/social/rating/data/dto/rating_api_models.dart';
 
 /// CANONICAL Rating Mapper
 ///

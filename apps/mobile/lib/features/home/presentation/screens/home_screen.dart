@@ -3,10 +3,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/social/content/domain/entities/content.dart';
-import 'package:labuda/shared/shared.dart';
-import 'package:labuda/features/home/home.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/social/content/domain/entities/content.dart';
+import 'package:hishumi/shared/shared.dart';
+import 'package:hishumi/features/home/home.dart';
 
 /// Home Screen - Feed display dengan Clean Architecture
 ///
@@ -241,14 +241,29 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     // First-use empty: the canonical state carries exactly ONE primary
     // action (explore the marketplace). "Buat Konten" stays a secondary
     // affordance rendered outside the state, so no entry point is lost.
+    //
+    // CONSTRAINT SAFETY: the Home body can be squeezed by `viewInsets` (the
+    // Search keyboard can still be open while Home is revealed on pop). The
+    // canonical `EmptyState` is deliberately non-scrollable, so Home owns the
+    // scrolling here: the state stays centred when there is room and scrolls
+    // when there is not, keeping every action reachable without clipping.
     return Column(
       children: [
         Expanded(
-          child: EmptyState(
-            icon: Icons.emoji_emotions_outlined,
-            title: l10n.homeFirstUseTitle,
-            actionLabel: l10n.exploreMarketplaceAction,
-            onAction: () => _navigateToMarketplace(context),
+          child: LayoutBuilder(
+            builder: (context, constraints) => SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: Center(
+                  child: EmptyState(
+                    icon: Icons.emoji_emotions_outlined,
+                    title: l10n.homeFirstUseTitle,
+                    actionLabel: l10n.exploreMarketplaceAction,
+                    onAction: _navigateToMarketplace,
+                  ),
+                ),
+              ),
+            ),
           ),
         ),
         Padding(
@@ -298,8 +313,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     context.push(RoutePaths.createContent);
   }
 
-  void _navigateToMarketplace(BuildContext context) {
-    context.push(RoutePaths.forSales);
+  void _navigateToMarketplace() {
+    ref
+        .read(pendingTabSwitchProvider.notifier)
+        .setSwitch('marketplace', subTab: 0);
   }
 
   /// CANONICAL page-level load error (PageErrorState). The raw feed

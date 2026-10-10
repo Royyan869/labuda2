@@ -1,4 +1,4 @@
-import 'package:labuda/core/common/result.dart';
+import 'package:hishumi/core/common/result.dart';
 import '../entities/negotiation.dart';
 
 /// Negotiation Repository Interface

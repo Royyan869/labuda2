@@ -7,10 +7,10 @@
 library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/social/rating/data/datasources/rating_api_datasource.dart';
-import 'package:labuda/domains/social/rating/data/repositories/api/rating_repository_api.dart';
-import 'package:labuda/domains/social/rating/domain/repositories/i_rating_repository.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/social/rating/data/datasources/rating_api_datasource.dart';
+import 'package:hishumi/domains/social/rating/data/repositories/api/rating_repository_api.dart';
+import 'package:hishumi/domains/social/rating/domain/repositories/i_rating_repository.dart';
 
 // =============================================================================
 // DATASOURCE PROVIDERS

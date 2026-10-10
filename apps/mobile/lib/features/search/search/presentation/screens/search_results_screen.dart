@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/features/search/search/presentation/providers/search_notifier.dart';
-import 'package:labuda/features/search/search/presentation/providers/search_state.dart';
-import 'package:labuda/features/search/search/domain/entities/search_result.dart';
-import 'package:labuda/features/search/search/presentation/utils/search_result_type_helper.dart';
-import 'package:labuda/features/search/search/presentation/widgets/all_tab_results_view.dart';
-import 'package:labuda/features/search/search/presentation/widgets/global_search_bar.dart';
-import 'package:labuda/features/search/search/presentation/widgets/search_result_item.dart';
-import 'package:labuda/shared/widgets/empty_state.dart';
-import 'package:labuda/shared/widgets/external_link_interstitial.dart';
-import 'package:labuda/shared/widgets/loading_indicator.dart';
-import 'package:labuda/shared/widgets/page_error_state.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/features/search/search/presentation/providers/search_notifier.dart';
+import 'package:hishumi/features/search/search/presentation/providers/search_state.dart';
+import 'package:hishumi/features/search/search/domain/entities/search_result.dart';
+import 'package:hishumi/features/search/search/presentation/utils/search_result_type_helper.dart';
+import 'package:hishumi/features/search/search/presentation/widgets/all_tab_results_view.dart';
+import 'package:hishumi/features/search/search/presentation/widgets/global_search_bar.dart';
+import 'package:hishumi/features/search/search/presentation/widgets/search_result_item.dart';
+import 'package:hishumi/shared/widgets/empty_state.dart';
+import 'package:hishumi/shared/widgets/external_link_interstitial.dart';
+import 'package:hishumi/shared/widgets/loading_indicator.dart';
+import 'package:hishumi/shared/widgets/page_error_state.dart';
 
 /// Screen displaying search results with tabs for different types
 class SearchResultsScreen extends ConsumerStatefulWidget {

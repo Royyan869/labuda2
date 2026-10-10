@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/shared/widgets/empty_state.dart';
-import 'package:labuda/shared/widgets/loading_indicator.dart';
-import 'package:labuda/shared/widgets/page_error_state.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/shared/widgets/empty_state.dart';
+import 'package:hishumi/shared/widgets/loading_indicator.dart';
+import 'package:hishumi/shared/widgets/page_error_state.dart';
 import '../../domain/entities/follow_entity.dart';
 import '../providers/follow_stream_provider.dart';
 import '../widgets/user_card.dart';

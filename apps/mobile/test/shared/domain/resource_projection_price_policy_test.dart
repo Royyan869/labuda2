@@ -17,9 +17,9 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/domains/chat/chat/presentation/widgets/chat_resource_projection_card.dart';
-import 'package:labuda/domains/social/content/presentation/widgets/content_resource_projection_card.dart';
-import 'package:labuda/shared/domain/entities/resource_projection.dart';
+import 'package:hishumi/domains/chat/chat/presentation/widgets/chat_resource_projection_card.dart';
+import 'package:hishumi/domains/social/content/presentation/widgets/content_resource_projection_card.dart';
+import 'package:hishumi/shared/domain/entities/resource_projection.dart';
 
 Map<String, dynamic> _liveEnvelope(String resourceType, String id) => {
   'state': 'LIVE',

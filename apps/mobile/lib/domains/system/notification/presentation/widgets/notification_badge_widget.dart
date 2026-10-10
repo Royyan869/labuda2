@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:labuda/domains/system/notification/presentation/providers/unread_count_provider.dart';
-import 'package:labuda/shared/widgets/count_badge.dart';
+import 'package:hishumi/domains/system/notification/presentation/providers/unread_count_provider.dart';
+import 'package:hishumi/shared/widgets/count_badge.dart';
 
 /// Unread-notifications badge for the app bar.
 ///

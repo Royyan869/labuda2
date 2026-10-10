@@ -9,8 +9,9 @@ package http
 //   - /og/content/:id and /content/:id are unauthenticated public share
 //     endpoints. They have no viewer identity, so the only visibility class
 //     they may project is public.
-//   - A private or followers_only row must therefore degrade to the generic
-//     fallback metadata instead of disclosing caption, media or author.
+//   - A private or followers_only row must therefore answer 404 with
+//     generic metadata instead of disclosing caption, media or author —
+//     and must never be reported as a misleading generic 200 (H.4.6-C).
 //   - Moderation (is_hidden) and lifecycle (status/deleted_at, author
 //     lifecycle) narrow the public set further.
 
@@ -25,8 +26,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
-	pkgdb "github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/testdb"
+	pkgdb "github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/testdb"
 )
 
 func seedOGAuthor(t *testing.T, ctx context.Context, pool *pkgdb.DB) uuid.UUID {
@@ -78,7 +79,7 @@ func seedOGContent(
 	return contentID
 }
 
-func ogContentPreviewBody(t *testing.T, handler *Handler, contentID uuid.UUID) string {
+func ogContentPreview(t *testing.T, handler *Handler, contentID uuid.UUID) (int, string) {
 	t.Helper()
 
 	gin.SetMode(gin.TestMode)
@@ -87,11 +88,10 @@ func ogContentPreviewBody(t *testing.T, handler *Handler, contentID uuid.UUID) s
 
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/og/content/"+contentID.String(), nil)
-	req.Host = "labuda-79de2.web.app"
+	req.Host = "hishumi.com"
 	router.ServeHTTP(w, req)
 
-	require.Equal(t, http.StatusOK, w.Code)
-	return w.Body.String()
+	return w.Code, w.Body.String()
 }
 
 // TestOGContentPreview_RealDB_PublicOnly proves the unauthenticated embedding
@@ -122,13 +122,15 @@ func TestOGContentPreview_RealDB_PublicOnly(t *testing.T) {
 	hiddenContent := seedOGContent(t, ctx, appDB, author, "public", true, hiddenCaption, "")
 
 	// Public content is genuinely projected (the gate is not blanket-deny).
-	publicBody := ogContentPreviewBody(t, handler, publicContent)
+	publicCode, publicBody := ogContentPreview(t, handler, publicContent)
+	require.Equal(t, http.StatusOK, publicCode,
+		"a public content must still answer 200 on the OG surface")
 	require.Contains(t, publicBody, publicCaption,
 		"a public content must still project its caption on the OG surface")
 	require.Contains(t, publicBody, publicMediaURL,
 		"a public content must still project its first media URL on the OG surface")
 
-	// Non-public content must degrade to fallback metadata with no disclosure.
+	// Non-public content must answer 404 with no disclosure.
 	for name, tc := range map[string]struct {
 		id      uuid.UUID
 		secrets []string
@@ -146,9 +148,11 @@ func TestOGContentPreview_RealDB_PublicOnly(t *testing.T) {
 			secrets: []string{hiddenCaption},
 		},
 	} {
-		body := ogContentPreviewBody(t, handler, tc.id)
+		code, body := ogContentPreview(t, handler, tc.id)
+		require.Equal(t, http.StatusNotFound, code,
+			"%s must answer 404, never a misleading generic 200", name)
 		require.Contains(t, body, defaultTitle,
-			"%s must degrade to the generic fallback metadata", name)
+			"%s must keep the generic fallback metadata", name)
 		for _, secret := range tc.secrets {
 			require.NotContains(t, body, secret,
 				"%s content must not leak through the unauthenticated OG surface", name)

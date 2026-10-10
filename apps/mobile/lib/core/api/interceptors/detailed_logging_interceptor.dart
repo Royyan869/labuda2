@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
-import 'package:labuda/core/src/interfaces/services/i_logger_service.dart';
-import 'package:labuda/shared/shared.dart';
+import 'package:hishumi/core/src/interfaces/services/i_logger_service.dart';
+import 'package:hishumi/shared/shared.dart';
 
 /// Interceptor that provides detailed HTTP logging for debugging
 ///

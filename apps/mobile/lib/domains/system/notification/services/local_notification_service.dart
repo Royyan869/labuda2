@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:labuda/domains/system/notification/services/notification_navigation_service.dart';
+import 'package:hishumi/domains/system/notification/services/notification_navigation_service.dart';
 
 /// Local Notification Service
 ///
@@ -63,9 +63,9 @@ class LocalNotificationService {
   /// Create Android notification channel
   Future<void> _createNotificationChannel() async {
     const channel = AndroidNotificationChannel(
-      'labuda_default_channel', // id
+      'hishumi_default_channel', // id
       'General Notifications', // name
-      description: 'Notifications for general activity in Labuda',
+      description: 'Notifications for general activity in HiShumi',
       importance: Importance.high,
       playSound: true,
       enableVibration: true,
@@ -87,9 +87,9 @@ class LocalNotificationService {
     try {
       // Android notification details
       const androidDetails = AndroidNotificationDetails(
-        'labuda_default_channel', // channel id
+        'hishumi_default_channel', // channel id
         'Notifikasi Umum', // channel name
-        channelDescription: 'Notifikasi untuk aktivitas umum di Labuda',
+        channelDescription: 'Notifikasi untuk aktivitas umum di HiShumi',
         importance: Importance.high,
         priority: Priority.high,
         playSound: true,
@@ -133,9 +133,9 @@ class LocalNotificationService {
     try {
       // Android notification with big picture
       final androidDetails = AndroidNotificationDetails(
-        'labuda_default_channel',
+        'hishumi_default_channel',
         'Notifikasi Umum',
-        channelDescription: 'Notifikasi untuk aktivitas umum di Labuda',
+        channelDescription: 'Notifikasi untuk aktivitas umum di HiShumi',
         importance: Importance.high,
         priority: Priority.high,
         playSound: true,

@@ -3,7 +3,7 @@
 ///
 /// Usage:
 /// ```dart
-/// import 'package:labuda/shared/attachment/attachment.dart';
+/// import 'package:hishumi/shared/attachment/attachment.dart';
 /// ```
 library;
 
@@ -16,4 +16,4 @@ export 'entities/share_reference.dart';
 
 // ===== TRUTH RESOLUTION =====
 // Moved to domains/commerce/catalog/shared/
-// Import from: package:labuda/domains/commerce/catalog/shared/attachment_truth_resolver.dart
+// Import from: package:hishumi/domains/commerce/catalog/shared/attachment_truth_resolver.dart

@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/realtime"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/realtime"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // OutboxInserter inserts a durable outbox event inside the caller's

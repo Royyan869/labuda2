@@ -16,11 +16,11 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/labuda/backend/internal/config"
-	authhttp "github.com/labuda/backend/internal/identity/auth/delivery/http"
-	"github.com/labuda/backend/internal/platform/logger"
-	"github.com/labuda/backend/pkg/firebase"
-	"github.com/labuda/backend/pkg/testdb"
+	"github.com/hishumi/backend/internal/config"
+	authhttp "github.com/hishumi/backend/internal/identity/auth/delivery/http"
+	"github.com/hishumi/backend/internal/platform/logger"
+	"github.com/hishumi/backend/pkg/firebase"
+	"github.com/hishumi/backend/pkg/testdb"
 	"go.uber.org/zap"
 )
 

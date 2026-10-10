@@ -4,10 +4,10 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	commerceshared "github.com/labuda/backend/internal/commerce/shared"
-	"github.com/labuda/backend/internal/pkg/mediaref"
-	"github.com/labuda/backend/internal/pkg/publiccard"
-	"github.com/labuda/backend/internal/social/content/entity"
+	commerceshared "github.com/hishumi/backend/internal/commerce/shared"
+	"github.com/hishumi/backend/internal/pkg/mediaref"
+	"github.com/hishumi/backend/internal/pkg/publiccard"
+	"github.com/hishumi/backend/internal/social/content/entity"
 )
 
 // CommentMediaResponse represents a foto+video attachment on a comment.

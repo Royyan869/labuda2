@@ -6,11 +6,11 @@ library;
 
 import 'package:riverpod/riverpod.dart';
 
-import 'package:labuda/domains/system/report/data/data.dart'
+import 'package:hishumi/domains/system/report/data/data.dart'
     show ReportRepositoryException;
-import 'package:labuda/domains/system/report/domain/entities/entities.dart';
-import 'package:labuda/domains/system/report/domain/repositories/report_repository.dart';
-import 'package:labuda/domains/system/report/presentation/providers/report_providers.dart';
+import 'package:hishumi/domains/system/report/domain/entities/entities.dart';
+import 'package:hishumi/domains/system/report/domain/repositories/report_repository.dart';
+import 'package:hishumi/domains/system/report/presentation/providers/report_providers.dart';
 import 'report_state.dart';
 
 /// Report Actions Notifier - handles user report actions

@@ -2,10 +2,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 // Internal
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/user/profile/data/repositories/bank_account_repository_impl.dart';
-import 'package:labuda/domains/user/profile/domain/entities/bank_account_entity.dart';
-import 'package:labuda/domains/user/profile/domain/repositories/i_bank_account_repository.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/user/profile/data/repositories/bank_account_repository_impl.dart';
+import 'package:hishumi/domains/user/profile/domain/entities/bank_account_entity.dart';
+import 'package:hishumi/domains/user/profile/domain/repositories/i_bank_account_repository.dart';
 
 /// Provider for bank account repository
 final bankAccountRepositoryProvider = Provider<IBankAccountRepository>((ref) {

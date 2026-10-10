@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/labuda/backend/internal/platform/capability/entity"
+	"github.com/hishumi/backend/internal/platform/capability/entity"
 )
 
 // TestListUsersByCapability_ActiveCapabilityReturned verifies that users with

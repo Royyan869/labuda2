@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/shared/shared.dart';
-import 'package:labuda/core/core.dart';
+import 'package:hishumi/shared/shared.dart';
+import 'package:hishumi/core/core.dart';
 
 /// Reusable user header widget with avatar, name, username, and timeago
 ///

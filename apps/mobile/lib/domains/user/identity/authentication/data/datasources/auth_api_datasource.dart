@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
-import 'package:labuda/core/api/api.dart';
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/domains/user/profile/data/models/api/user_api_models.dart';
+import 'package:hishumi/core/api/api.dart';
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/domains/user/profile/data/models/api/user_api_models.dart';
 
 /// API Data Source for Authentication operations against Go backend
 ///
@@ -23,6 +23,8 @@ class AuthApiDatasource extends BaseApiRepository {
   // D2 — single canonical exchange: UserApiDatasource.exchangeFirebaseSession is
   // the sole implementation. This datasource does not duplicate request
   // construction/parser/skipAuth. See UserApiDatasource for canonical path.
+  // /users/me likewise has ONE authority: UserApiDatasource.getCurrentUser
+  // (the former duplicate here was purged — one endpoint, one parser).
 
   /// Complete the profile using the restricted backend token.
   Future<Result<FirebaseExchangeCompleteResponse>> completeProfile({
@@ -44,44 +46,11 @@ class AuthApiDatasource extends BaseApiRepository {
     );
   }
 
-  /// Get current authenticated user from /users/me.
-  Future<Result<UserApiResponse>> getCurrentUser() async {
-    return executeRequest(
-      () => apiClient.get('/users/me'),
-      parser: (data) {
-        final json = data as Map<String, dynamic>;
-        final userMap = Map<String, dynamic>.from(
-          json['user'] as Map<String, dynamic>,
-        );
-        final profileData = json['profile'] as Map<String, dynamic>?;
-        if (profileData != null) {
-          userMap['profile'] = profileData;
-        }
-        return UserApiResponse.fromJson(userMap);
-      },
-    );
-  }
-
   /// Get user by ID from backend
   Future<Result<Map<String, dynamic>>> getUserById(String userId) async {
     return executeRequest(
       () => apiClient.get('/users/$userId'),
       parser: (data) => data,
-    );
-  }
-
-  /// Search users by query
-  Future<Result<List<Map<String, dynamic>>>> searchUsers({
-    required String query,
-    int page = 1,
-    int limit = 20,
-  }) async {
-    return executeListRequest(
-      () => apiClient.get(
-        '/users/search',
-        queryParameters: {'q': query, 'page': page, 'limit': limit},
-      ),
-      itemParser: (json) => json,
     );
   }
 
@@ -124,17 +93,6 @@ class AuthApiDatasource extends BaseApiRepository {
     );
   }
 
-  /// Update user role (e.g., buyer -> seller upgrade)
-  Future<Result<Map<String, dynamic>>> updateUserRole({
-    required String userId,
-    required String role,
-  }) async {
-    return executeRequest(
-      () => apiClient.patch('/users/$userId/role', data: {'role': role}),
-      parser: (data) => data,
-    );
-  }
-
   /// Deactivate user account
   Future<Result<Map<String, dynamic>>> deactivateAccount({
     required String userId,
@@ -143,16 +101,6 @@ class AuthApiDatasource extends BaseApiRepository {
     return executeRequest(
       () =>
           apiClient.post('/users/$userId/deactivate', data: {'reason': reason}),
-      parser: (data) => data,
-    );
-  }
-
-  /// Get seller subscription info
-  Future<Result<Map<String, dynamic>>> getSellerSubscription({
-    required String userId,
-  }) async {
-    return executeRequest(
-      () => apiClient.get('/users/$userId/subscription'),
       parser: (data) => data,
     );
   }

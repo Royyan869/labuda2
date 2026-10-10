@@ -3,7 +3,7 @@
 /// this DTO only decodes the returned numbers.
 library;
 
-import 'package:labuda/domains/user/preference/seller/domain/entities/seller_analytics_read.dart';
+import 'package:hishumi/domains/user/preference/seller/domain/entities/seller_analytics_read.dart';
 
 class SellerAnalyticsDto {
   final SellerAnalyticsSummary summary;

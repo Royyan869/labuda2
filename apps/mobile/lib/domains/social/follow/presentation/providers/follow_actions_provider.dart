@@ -1,6 +1,6 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/social/follow/domain/use_cases/providers/use_case_providers.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/social/follow/domain/use_cases/providers/use_case_providers.dart';
 
 part 'follow_actions_provider.g.dart';
 

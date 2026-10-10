@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/pkg/mediaref"
-	"github.com/labuda/backend/internal/pkg/publiccard"
+	"github.com/hishumi/backend/internal/pkg/mediaref"
+	"github.com/hishumi/backend/internal/pkg/publiccard"
 )
 
 // CANONICAL RESOURCE PROJECTION ENVELOPE (scope #3 convergence).

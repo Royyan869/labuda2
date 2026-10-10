@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/shared/widgets/app_bottom_sheet_base.dart';
-import 'package:labuda/domains/user/preference/seller/domain/entities/seller_state.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/shared/widgets/app_bottom_sheet_base.dart';
+import 'package:hishumi/domains/user/preference/seller/domain/entities/seller_state.dart';
 
 /// Create Content Bottom Sheet - Modal for opening the universal content composer
 ///
@@ -141,7 +141,7 @@ class CreateContentBottomSheet extends StatelessWidget {
         _CreateOption(
           icon: Icons.store_outlined,
           label: 'Mulai Jualan',
-          description: 'Mulai jualan koi di LABUDA',
+          description: 'Mulai jualan koi di HiShumi',
           color: context.statusColors.success,
           onTap: () {
             Navigator.pop(context);

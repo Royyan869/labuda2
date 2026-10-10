@@ -20,7 +20,7 @@ library;
 /// - Preview data can be stale - never use for business decisions
 
 import 'package:equatable/equatable.dart';
-import 'package:labuda/shared/object/object_preview.dart' as obj;
+import 'package:hishumi/shared/object/object_preview.dart' as obj;
 
 // ============================================================================
 // Enums

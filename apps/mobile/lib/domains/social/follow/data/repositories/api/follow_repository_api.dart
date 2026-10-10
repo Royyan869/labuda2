@@ -1,10 +1,10 @@
 import 'dart:async';
 
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/social/follow/domain/entities/follow_entity.dart';
-import 'package:labuda/domains/social/follow/domain/repositories/i_follow_repository.dart';
-import 'package:labuda/domains/social/follow/data/datasources/follow_api_datasource.dart';
-import 'package:labuda/domains/social/follow/data/mappers/follow_api_mapper.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/social/follow/domain/entities/follow_entity.dart';
+import 'package:hishumi/domains/social/follow/domain/repositories/i_follow_repository.dart';
+import 'package:hishumi/domains/social/follow/data/datasources/follow_api_datasource.dart';
+import 'package:hishumi/domains/social/follow/data/mappers/follow_api_mapper.dart';
 
 /// API-based implementation of IFollowRepository
 ///

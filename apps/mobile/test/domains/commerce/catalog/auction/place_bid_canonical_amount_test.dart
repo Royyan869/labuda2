@@ -2,10 +2,10 @@ import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/api/api_client.dart';
-import 'package:labuda/domains/commerce/catalog/auction/data/dto/auction_dto.dart';
-import 'package:labuda/domains/commerce/catalog/auction/data/remote/auction_remote_datasource.dart';
-import 'package:labuda/domains/commerce/catalog/auction/presentation/widgets/detail/auction_action_modal.dart';
+import 'package:hishumi/core/api/api_client.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/data/dto/auction_dto.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/data/remote/auction_remote_datasource.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/presentation/widgets/detail/auction_action_modal.dart';
 
 /// PLACE BID CANONICAL NUMERIC CONVERGENCE — proof tests.
 ///

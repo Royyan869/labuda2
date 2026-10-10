@@ -5,7 +5,7 @@
 // IMPORTANT: Coins are LOYALTY POINTS, NOT money.
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/domains/finance/wallet/coins/coins_di.dart';
+import 'package:hishumi/domains/finance/wallet/coins/coins_di.dart';
 
 // ⚠️ ATURAN: Presentation layer TIDAK BOLEH import data layer langsung
 // Gunakan provider dari DI file untuk repository

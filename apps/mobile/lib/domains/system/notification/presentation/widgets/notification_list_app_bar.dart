@@ -8,12 +8,12 @@ library;
 
 // Dart
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/domains/system/notification/domain/entities/notification_entity.dart';
-import 'package:labuda/domains/system/notification/presentation/helpers/notification_dialog_helper.dart';
+import 'package:hishumi/domains/system/notification/domain/entities/notification_entity.dart';
+import 'package:hishumi/domains/system/notification/presentation/helpers/notification_dialog_helper.dart';
 
 // Flutter
 import 'package:flutter/material.dart';
-import 'package:labuda/core/src/theme/app_theme.dart';
+import 'package:hishumi/core/src/theme/app_theme.dart';
 
 class NotificationListAppBar extends ConsumerWidget
     implements PreferredSizeWidget {

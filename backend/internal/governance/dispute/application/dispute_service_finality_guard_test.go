@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	orderEntity "github.com/labuda/backend/internal/commerce/order/entity"
-	"github.com/labuda/backend/internal/identity/auth"
+	orderEntity "github.com/hishumi/backend/internal/commerce/order/entity"
+	"github.com/hishumi/backend/internal/identity/auth"
 )
 
 func TestEnforceAppDisputeFinality_BlocksCompletedForAppCaller(t *testing.T) {

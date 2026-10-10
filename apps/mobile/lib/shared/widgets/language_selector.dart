@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/shared/widgets/app_bottom_sheet_list_selection.dart';
-import 'package:labuda/shared/widgets/app_snackbar.dart';
-import 'package:labuda/generated/app_localizations.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/shared/widgets/app_bottom_sheet_list_selection.dart';
+import 'package:hishumi/shared/widgets/app_snackbar.dart';
+import 'package:hishumi/generated/app_localizations.dart';
 
 /// Reusable Language Selector Component
 ///

@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/commerce/transaction/order/order.dart';
-import 'package:labuda/shared/utils/app_formatters.dart';
-import 'package:labuda/shared/widgets/app_image.dart';
-import 'package:labuda/domains/chat/chat/presentation/providers/chat_providers.dart';
-import 'package:labuda/domains/user/preference/seller/domain/entities/seller_state.dart';
-import 'package:labuda/domains/user/preference/seller/presentation/providers/current_seller_provider.dart';
-import 'package:labuda/domains/user/preference/seller/presentation/widgets/operational_action_queue_section.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/commerce/transaction/order/order.dart';
+import 'package:hishumi/shared/utils/app_formatters.dart';
+import 'package:hishumi/shared/widgets/app_image.dart';
+import 'package:hishumi/domains/chat/chat/presentation/providers/chat_providers.dart';
+import 'package:hishumi/domains/user/preference/seller/domain/entities/seller_state.dart';
+import 'package:hishumi/domains/user/preference/seller/presentation/providers/current_seller_provider.dart';
+import 'package:hishumi/domains/user/preference/seller/presentation/widgets/operational_action_queue_section.dart';
 
 /// Seller Dashboard Screen
 ///
@@ -145,7 +145,7 @@ class _SellerDashboardScreenState extends ConsumerState<SellerDashboardScreen> {
               ),
               const SizedBox(height: 16),
               Text(
-                'Anda perlu membuat profil penjual untuk mulai berjualan di Labuda.',
+                'Anda perlu membuat profil penjual untuk mulai berjualan di HiShumi.',
                 style: context.typeRoles.bodyDense.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),

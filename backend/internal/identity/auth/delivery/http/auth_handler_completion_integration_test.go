@@ -18,10 +18,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/config"
-	"github.com/labuda/backend/internal/identity/auth/application"
-	authhttp "github.com/labuda/backend/internal/identity/auth/delivery/http"
-	"github.com/labuda/backend/internal/platform/logger"
+	"github.com/hishumi/backend/internal/config"
+	"github.com/hishumi/backend/internal/identity/auth/application"
+	authhttp "github.com/hishumi/backend/internal/identity/auth/delivery/http"
+	"github.com/hishumi/backend/internal/platform/logger"
 	"go.uber.org/zap"
 )
 

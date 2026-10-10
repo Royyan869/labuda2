@@ -9,7 +9,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/stretchr/testify/require"
 
-	"github.com/labuda/backend/internal/social/content/entity"
+	"github.com/hishumi/backend/internal/social/content/entity"
 )
 
 // fakeContentRepo captures created/updated content for moderation independence tests.

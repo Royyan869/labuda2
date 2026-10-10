@@ -10,8 +10,8 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
-	contentHTTP "github.com/labuda/backend/internal/social/content/delivery/http"
-	"github.com/labuda/backend/internal/social/content/entity"
+	contentHTTP "github.com/hishumi/backend/internal/social/content/delivery/http"
+	"github.com/hishumi/backend/internal/social/content/entity"
 )
 
 const testUUID = "00000000-0000-0000-0000-000000000001"

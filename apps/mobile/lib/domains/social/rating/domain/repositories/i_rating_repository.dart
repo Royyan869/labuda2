@@ -1,5 +1,5 @@
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/social/rating/domain/entities/rating_entity.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/social/rating/domain/entities/rating_entity.dart';
 
 /// CANONICAL RATING REPOSITORY INTERFACE
 ///

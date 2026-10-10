@@ -17,7 +17,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/labuda/backend/pkg/money"
+	"github.com/hishumi/backend/pkg/money"
 )
 
 // FeeType identifies how a method's buyer payment fee is calculated.

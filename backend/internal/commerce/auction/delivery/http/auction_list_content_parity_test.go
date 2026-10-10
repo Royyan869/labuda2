@@ -5,13 +5,13 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/commerce/auction/entity"
-	productEntity "github.com/labuda/backend/internal/commerce/product/entity"
-	commerceshared "github.com/labuda/backend/internal/commerce/shared"
-	"github.com/labuda/backend/internal/pkg/publiccard"
-	"github.com/labuda/backend/internal/pkg/sellerdisplay"
-	"github.com/labuda/backend/internal/platform/mediaresolve"
-	"github.com/labuda/backend/internal/platform/s3presign"
+	"github.com/hishumi/backend/internal/commerce/auction/entity"
+	productEntity "github.com/hishumi/backend/internal/commerce/product/entity"
+	commerceshared "github.com/hishumi/backend/internal/commerce/shared"
+	"github.com/hishumi/backend/internal/pkg/publiccard"
+	"github.com/hishumi/backend/internal/pkg/sellerdisplay"
+	"github.com/hishumi/backend/internal/platform/mediaresolve"
+	"github.com/hishumi/backend/internal/platform/s3presign"
 )
 
 // CANONICAL TRUTH (owner-locked): the auction payload — list and detail —

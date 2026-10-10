@@ -2,10 +2,10 @@ package http
 
 import (
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/commerce/forsale/entity"
-	negotiationEntity "github.com/labuda/backend/internal/commerce/negotiation/entity"
-	commerceshared "github.com/labuda/backend/internal/commerce/shared"
-	"github.com/labuda/backend/internal/pkg/sellerdisplay"
+	"github.com/hishumi/backend/internal/commerce/forsale/entity"
+	negotiationEntity "github.com/hishumi/backend/internal/commerce/negotiation/entity"
+	commerceshared "github.com/hishumi/backend/internal/commerce/shared"
+	"github.com/hishumi/backend/internal/pkg/sellerdisplay"
 )
 
 // forSaleToDetailResponseWithViewerCapabilities renders the canonical

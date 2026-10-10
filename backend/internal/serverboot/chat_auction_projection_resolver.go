@@ -8,16 +8,16 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	auctionEntity "github.com/labuda/backend/internal/commerce/auction/entity"
-	commerceshared "github.com/labuda/backend/internal/commerce/shared"
-	"github.com/labuda/backend/internal/governance/viewercontext"
-	chatApp "github.com/labuda/backend/internal/interaction/chat/application"
-	chatEntity "github.com/labuda/backend/internal/interaction/chat/entity"
-	"github.com/labuda/backend/internal/pkg/blockcheck"
-	"github.com/labuda/backend/internal/pkg/mediaref"
-	"github.com/labuda/backend/internal/pkg/publiccard"
-	"github.com/labuda/backend/internal/platform/mediaresolve"
-	"github.com/labuda/backend/pkg/db"
+	auctionEntity "github.com/hishumi/backend/internal/commerce/auction/entity"
+	commerceshared "github.com/hishumi/backend/internal/commerce/shared"
+	"github.com/hishumi/backend/internal/governance/viewercontext"
+	chatApp "github.com/hishumi/backend/internal/interaction/chat/application"
+	chatEntity "github.com/hishumi/backend/internal/interaction/chat/entity"
+	"github.com/hishumi/backend/internal/pkg/blockcheck"
+	"github.com/hishumi/backend/internal/pkg/mediaref"
+	"github.com/hishumi/backend/internal/pkg/publiccard"
+	"github.com/hishumi/backend/internal/platform/mediaresolve"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 type auctionProjectionBatchResolver struct {

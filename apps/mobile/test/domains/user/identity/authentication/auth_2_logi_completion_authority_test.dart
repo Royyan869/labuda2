@@ -1,33 +1,31 @@
-// AUTH-2 — Login completion authority / terminal-state semantics regression proof.
+﻿// AUTH-2 â€” Login completion authority / terminal-state semantics regression proof.
 //
 // Proves, against the REAL AuthController state machine, that:
 //   1. Email & Google sign-in converge on one canonical commit path (sync).
 //   2. Explicit completion does NOT depend on listener timing: the initiator
 //      drives _syncWithBackend directly.
 //   3. Backend failure / backend unavailable yield explicit, recoverable
-//      terminal states — never a silent "logged in but stuck on Login".
+//      terminal states â€” never a silent "logged in but stuck on Login".
 //   4. Explicit + listener duplicate calls produce ONE exchange (no double).
 
 import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/api/api_client.dart';
-import 'package:labuda/core/core.dart' hide NotificationEntity;
-import 'package:labuda/domains/user/identity/authentication/data/auth_providers.dart' as auth_data;
-import 'package:labuda/domains/user/identity/authentication/domain/entities/account_status.dart';
-import 'package:labuda/domains/user/identity/authentication/domain/entities/firebase_principal.dart';
-import 'package:labuda/domains/user/identity/authentication/domain/entities/user_profile_patch.dart';
-import 'package:labuda/domains/user/profile/data/datasources/user_api_datasource.dart';
-import 'package:labuda/domains/user/profile/data/models/api/user_api_models.dart';
-import 'package:labuda/domains/user/profile/data/profile_providers.dart' as profile_data
+import 'package:hishumi/core/core.dart' hide NotificationEntity;
+import 'package:hishumi/domains/user/identity/authentication/data/auth_providers.dart' as auth_data;
+import 'package:hishumi/domains/user/identity/authentication/domain/entities/account_status.dart';
+import 'package:hishumi/domains/user/identity/authentication/domain/entities/firebase_principal.dart';
+import 'package:hishumi/domains/user/identity/authentication/domain/entities/user_profile_patch.dart';
+import 'package:hishumi/domains/user/profile/data/datasources/user_api_datasource.dart';
+import 'package:hishumi/domains/user/profile/data/models/api/user_api_models.dart';
+import 'package:hishumi/domains/user/profile/data/profile_providers.dart' as profile_data
     show userSyncServiceProvider;
-import 'package:labuda/domains/user/profile/data/services/user_sync_service.dart';
-import 'package:labuda/domains/system/notification/data/notification_providers.dart'
+import 'package:hishumi/domains/user/profile/data/services/user_sync_service.dart';
+import 'package:hishumi/domains/system/notification/data/notification_providers.dart'
     show fcmServiceProvider;
-import 'package:labuda/domains/system/notification/services/fcm_service.dart';
+import 'package:hishumi/domains/system/notification/services/fcm_service.dart';
 
 // ---------------------------------------------------------------------------
 // Fakes
@@ -62,7 +60,6 @@ class _FakeMetadata extends Fake implements UserMetadata {
 
 class _FakeAuth extends Fake implements FirebaseAuth {
   _FakeAuth(this.user);
-  @override
   final User? user;
   @override
   User? get currentUser => user;
@@ -76,21 +73,21 @@ class _RecordingLocalStorage extends Fake implements ILocalStorageService {
   int saveCalls = 0;
   int clearCalls = 0;
   @override
-  Future<Result<void>> saveLabudaCredential(String a, String r) async {
+  Future<Result<void>> saveHiShumiCredential(String a, String r) async {
     access = a;
     refresh = r;
     saveCalls++;
     return Result.success(null);
   }
   @override
-  Future<Result<String?>> readLabudaAccessToken() async => Result.success(access);
+  Future<Result<String?>> readHiShumiAccessToken() async => Result.success(access);
   @override
-  Future<Result<String?>> readLabudaRefreshToken() async => Result.success(refresh);
+  Future<Result<String?>> readHiShumiRefreshToken() async => Result.success(refresh);
   @override
-  Future<Result<bool>> hasLabudaCredential() async =>
+  Future<Result<bool>> hasHiShumiCredential() async =>
       Result.success(access != null && access!.isNotEmpty);
   @override
-  Future<Result<void>> clearLabudaCredential() async {
+  Future<Result<void>> clearHiShumiCredential() async {
     clearCalls++;
     access = null;
     refresh = null;
@@ -222,7 +219,6 @@ class _NoopFcm extends Fake implements FcmService {
 
 class _Controller extends AuthController {
   _Controller(this.user);
-  @override
   final User? user;
   @override
   User? get activeFirebaseUser => user;
@@ -293,8 +289,6 @@ class _PendingGoogleRepo extends Fake implements IAuthRepository {
   @override
   Future<Result<void>> resetPassword({required String email}) async => Result.success(null);
   @override
-  Future<Result<void>> verifyEmail() async => Result.success(null);
-  @override
   Future<Result<void>> sendEmailVerification() async => Result.success(null);
   @override
   Future<Result<UserProfilePatch>> updateProfile({String? photoUrl, String? phoneNumber, DateTime? phoneVerifiedAt, String? username, String? bio, String? location, String? coverPhotoUrl, String? instagramHandle, String? facebookHandle, String? tiktokHandle, String? twitterHandle, DateTime? dateOfBirth}) async => Result.error('n/a');
@@ -307,13 +301,7 @@ class _PendingGoogleRepo extends Fake implements IAuthRepository {
   @override
   Future<Result<AuthUser?>> getUserById(String userId) async => Result.success(null);
   @override
-  Future<Result<List<AuthUser>>> searchUsers({required String query, int limit = 20}) async => Result.success(const <AuthUser>[]);
-  @override
   Future<Result<void>> deactivateAccount({required String userId, required String reason}) async => Result.success(null);
-  @override
-  Future<Result<AuthUser>> updateUserRole({required String userId, required UserRole newRole}) async => Result.error('n/a');
-  @override
-  Stream<FirebasePrincipal?> get authStateChanges => const Stream<FirebasePrincipal?>.empty();
 }
 
 class _FakeRepo extends Fake implements IAuthRepository {
@@ -338,8 +326,6 @@ class _FakeRepo extends Fake implements IAuthRepository {
   @override
   Future<Result<void>> resetPassword({required String email}) async => Result.success(null);
   @override
-  Future<Result<void>> verifyEmail() async => Result.success(null);
-  @override
   Future<Result<void>> sendEmailVerification() async => Result.success(null);
   @override
   Future<Result<UserProfilePatch>> updateProfile({String? photoUrl, String? phoneNumber, DateTime? phoneVerifiedAt, String? username, String? bio, String? location, String? coverPhotoUrl, String? instagramHandle, String? facebookHandle, String? tiktokHandle, String? twitterHandle, DateTime? dateOfBirth}) async => Result.error('n/a');
@@ -352,13 +338,7 @@ class _FakeRepo extends Fake implements IAuthRepository {
   @override
   Future<Result<AuthUser?>> getUserById(String userId) async => Result.success(null);
   @override
-  Future<Result<List<AuthUser>>> searchUsers({required String query, int limit = 20}) async => Result.success(const <AuthUser>[]);
-  @override
   Future<Result<void>> deactivateAccount({required String userId, required String reason}) async => Result.success(null);
-  @override
-  Future<Result<AuthUser>> updateUserRole({required String userId, required UserRole newRole}) async => Result.error('n/a');
-  @override
-  Stream<FirebasePrincipal?> get authStateChanges => const Stream<FirebasePrincipal?>.empty();
 }
 
 class _TestAuthUser {
@@ -378,7 +358,7 @@ class _TestAuthUser {
       );
 }
 
-ProviderContainer buildContainer(_Controller controller, _RecordingSyncService sync) {
+ProviderContainer _buildContainer(_Controller controller, _RecordingSyncService sync) {
   final user = controller.user!;
   final storage = _RecordingLocalStorage();
   return ProviderContainer(
@@ -401,10 +381,10 @@ ProviderContainer buildContainer(_Controller controller, _RecordingSyncService s
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  test('Email explicit login reaches Authenticated via sync — never stuck', () async {
+  test('Email explicit login reaches Authenticated via sync â€” never stuck', () async {
     final controller = _Controller(_FakeUser('uid-1'));
     final sync = _RecordingSyncService(auth: controller.user!);
-    final container = buildContainer(controller, sync);
+    final container = _buildContainer(controller, sync);
     addTearDown(container.dispose);
 
     container.read(authControllerProvider);
@@ -430,7 +410,7 @@ void main() {
   test('Google explicit login converges onto the same Authenticated state', () async {
     final controller = _Controller(_FakeUser('uid-1'));
     final sync = _RecordingSyncService(auth: controller.user!);
-    final container = buildContainer(controller, sync);
+    final container = _buildContainer(controller, sync);
     addTearDown(container.dispose);
 
     container.read(authControllerProvider);
@@ -450,10 +430,10 @@ void main() {
     expect(sync.exchangeCalls, 1);
   });
 
-  test('Backend failure surfaces explicit recoverable state — not silent stuck', () async {
+  test('Backend failure surfaces explicit recoverable state â€” not silent stuck', () async {
     final controller = _Controller(_FakeUser('uid-1'));
     final sync = _RecordingSyncService(auth: controller.user!);
-    final container = buildContainer(controller, sync);
+    final container = _buildContainer(controller, sync);
     addTearDown(container.dispose);
 
     container.read(authControllerProvider);
@@ -467,10 +447,10 @@ void main() {
         reason: 'backend failure must carry an explicit user-visible message');
   });
 
-  test('Backend unavailable surfaces explicit state — not silent stuck', () async {
+  test('Backend unavailable surfaces explicit state â€” not silent stuck', () async {
     final controller = _Controller(_FakeUser('uid-1'));
     final sync = _RecordingSyncService(auth: controller.user!);
-    final container = buildContainer(controller, sync);
+    final container = _buildContainer(controller, sync);
     addTearDown(container.dispose);
 
     container.read(authControllerProvider);
@@ -486,7 +466,7 @@ void main() {
   test('Profile completion yields canonical RequiresProfileCompletion state', () async {
     final controller = _Controller(_FakeUser('uid-1'));
     final sync = _RecordingSyncService(auth: controller.user!);
-    final container = buildContainer(controller, sync);
+    final container = _buildContainer(controller, sync);
     addTearDown(container.dispose);
 
     container.read(authControllerProvider);
@@ -509,7 +489,7 @@ void main() {
   test(
       'I9 Google sign-in double-tap while first pending does not create duplicate orchestration',
       () async {
-    // G1 race window: first Google Future held pending → second call must be ignored.
+    // G1 race window: first Google Future held pending â†’ second call must be ignored.
     final fakeUser = _FakeUser('uid-1');
     final controller = _Controller(fakeUser);
     final sync = _RecordingSyncService(auth: fakeUser);
@@ -548,7 +528,7 @@ void main() {
     expect(sync.exchangeCalls, 0,
         reason: 'second tap must not trigger exchange');
 
-    // 3) Complete first Firebase Google call — now canonical exchange starts.
+    // 3) Complete first Firebase Google call â€” now canonical exchange starts.
     googleRepo.googleCompleter.complete(Result.success(null));
     await Future<void>.delayed(Duration.zero);
     await Future<void>.delayed(Duration.zero);
@@ -570,7 +550,7 @@ void main() {
     expect(googleRepo.googleCallCount, 1);
     expect(sync.exchangeCalls, 1);
 
-    // 5) Guard must be reset via finally — a third tap after completion must be allowed.
+    // 5) Guard must be reset via finally â€” a third tap after completion must be allowed.
     // Note: after authenticated, _syncedUserId dedup suppresses a second exchange,
     // so third call will increment googleCallCount but not exchangeCalls.
     googleRepo.googleCompleter = Completer<Result<void>>();
@@ -582,7 +562,7 @@ void main() {
     await Future<void>.delayed(Duration.zero);
     await Future<void>.delayed(Duration.zero);
     // Third exchange is deduped by _syncedUserId while still Authenticated, so
-    // pending may be empty — only complete if one was enqueued.
+    // pending may be empty â€” only complete if one was enqueued.
     if (sync.pending.isNotEmpty) {
       sync.completeNext(Result.success(SyncUserResult(
         user: _TestAuthUser.account(),

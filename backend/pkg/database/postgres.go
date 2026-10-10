@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/labuda/backend/internal/config"
-	"github.com/labuda/backend/internal/platform/logger"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/config"
+	"github.com/hishumi/backend/internal/platform/logger"
+	"github.com/hishumi/backend/pkg/db"
 	"go.uber.org/zap"
 )
 

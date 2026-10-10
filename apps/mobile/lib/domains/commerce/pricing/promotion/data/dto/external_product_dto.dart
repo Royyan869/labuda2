@@ -1,9 +1,9 @@
 /// DTOs for external product management APIs.
 library;
 
-import 'package:labuda/domains/commerce/pricing/promotion/domain/entities/external_product.dart';
-import 'package:labuda/domains/commerce/pricing/promotion/domain/entities/external_product_media.dart';
-import 'package:labuda/domains/commerce/pricing/promotion/domain/entities/external_product_review_status.dart';
+import 'package:hishumi/domains/commerce/pricing/promotion/domain/entities/external_product.dart';
+import 'package:hishumi/domains/commerce/pricing/promotion/domain/entities/external_product_media.dart';
+import 'package:hishumi/domains/commerce/pricing/promotion/domain/entities/external_product_review_status.dart';
 
 // =============================================================================
 // RESPONSE DTOs

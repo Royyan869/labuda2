@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 
-	"github.com/labuda/backend/internal/governance/support/entity"
+	"github.com/hishumi/backend/internal/governance/support/entity"
 )
 
 func orderedIDs(tickets []*entity.Ticket) []uuid.UUID {

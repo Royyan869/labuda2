@@ -1,6 +1,6 @@
-import 'package:labuda/core/api/api.dart';
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/domains/user/profile/data/models/api/address_api_models.dart';
+import 'package:hishumi/core/api/api.dart';
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/domains/user/profile/data/models/api/address_api_models.dart';
 
 /// Address API datasource for HTTP operations
 class AddressApiDatasource extends BaseApiRepository {

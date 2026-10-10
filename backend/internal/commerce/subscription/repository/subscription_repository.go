@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	subscriptionEntity "github.com/labuda/backend/internal/commerce/subscription/entity"
-	db "github.com/labuda/backend/pkg/db"
+	subscriptionEntity "github.com/hishumi/backend/internal/commerce/subscription/entity"
+	db "github.com/hishumi/backend/pkg/db"
 )
 
 // SellerSubscriptionRepository defines the persistence operations for seller subscriptions.

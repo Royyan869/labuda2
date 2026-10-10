@@ -1,7 +1,7 @@
 import 'package:get_it/get_it.dart';
-import 'package:labuda/core/src/interfaces/services/i_local_storage_service.dart';
-import 'package:labuda/core/src/interfaces/services/i_logger_service.dart';
-import 'package:labuda/core/websocket/websocket_service.dart';
+import 'package:hishumi/core/src/interfaces/services/i_local_storage_service.dart';
+import 'package:hishumi/core/src/interfaces/services/i_logger_service.dart';
+import 'package:hishumi/core/websocket/websocket_service.dart';
 
 // =============================================================================
 // ARCHITECTURE GUARDRAIL (R5) - SERVICE LOCATOR USAGE RULES
@@ -28,8 +28,8 @@ import 'package:labuda/core/websocket/websocket_service.dart';
 // 3. Bridge providers that internally use generic `sl` but expose Provider API
 //
 // Import canonical providers from:
-// - `package:labuda/core/providers/core_providers.dart` (core services)
-// - `package:labuda/features/feature_name/data/feature_providers.dart` (feature data)
+// - `package:hishumi/core/providers/core_providers.dart` (core services)
+// - `package:hishumi/features/feature_name/data/feature_providers.dart` (feature data)
 // =============================================================================
 
 /// Clean Service Locator sesuai GUIDELINES.md

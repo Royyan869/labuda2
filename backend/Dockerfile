@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 #
-# Labuda backend runtime image.
+# HiShumi backend runtime image.
 #
 # Build context: backend/.
 #
@@ -23,11 +23,11 @@ COPY . .
 
 # Production HTTP server (entrypoint: cmd/core_server/main.go).
 # Statically linked so the minimal runtime image needs no libc/go toolchain.
-RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o bin/labuda-backend ./cmd/core_server
+RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o bin/hishumi-backend ./cmd/core_server
 
 # Migration runner (equivalent to `go run ./cmd/migrate`, compiled for the
 # minimal runtime image which has no Go toolchain).
-RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o bin/labuda-migrate ./cmd/migrate
+RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o bin/hishumi-migrate ./cmd/migrate
 
 # --- Runtime stage -----------------------------------------------------------
 FROM alpine:3.20
@@ -44,10 +44,10 @@ WORKDIR /app/backend
 USER app
 
 # Runtime binaries (statically linked, CGO disabled).
-COPY --from=builder --chown=app:app /app/backend/bin/labuda-backend ./bin/labuda-backend
-COPY --from=builder --chown=app:app /app/backend/bin/labuda-migrate ./bin/labuda-migrate
+COPY --from=builder --chown=app:app /app/backend/bin/hishumi-backend ./bin/hishumi-backend
+COPY --from=builder --chown=app:app /app/backend/bin/hishumi-migrate ./bin/hishumi-migrate
 
-# Migration chain required by ./bin/labuda-migrate at startup.
+# Migration chain required by ./bin/hishumi-migrate at startup.
 COPY --from=builder --chown=app:app /app/backend/migrations ./migrations
 
 # Startup wrapper: materializes the Firebase credential file, then runs

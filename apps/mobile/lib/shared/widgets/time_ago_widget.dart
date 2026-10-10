@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/domains/system/shared/domain/services/time_format_service.dart';
+import 'package:hishumi/domains/system/shared/domain/services/time_format_service.dart';
 
 /// Shared Time Ago Widget untuk menampilkan relative time dengan konsisten
 ///

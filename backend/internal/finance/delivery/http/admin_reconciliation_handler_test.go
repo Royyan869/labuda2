@@ -16,12 +16,12 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 
-	"github.com/labuda/backend/internal/finance/entity"
-	"github.com/labuda/backend/internal/finance/repository"
-	"github.com/labuda/backend/internal/middleware"
-	"github.com/labuda/backend/internal/platform/capability"
-	capabilityEntity "github.com/labuda/backend/internal/platform/capability/entity"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/finance/entity"
+	"github.com/hishumi/backend/internal/finance/repository"
+	"github.com/hishumi/backend/internal/middleware"
+	"github.com/hishumi/backend/internal/platform/capability"
+	capabilityEntity "github.com/hishumi/backend/internal/platform/capability/entity"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // ============================================================================

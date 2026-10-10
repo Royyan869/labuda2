@@ -1,7 +1,7 @@
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/core/src/interfaces/services/i_logger_service.dart';
-import 'package:labuda/domains/commerce/catalog/auction/data/dto/bidding_item_dto.dart';
-import 'package:labuda/domains/commerce/catalog/auction/data/remote/auction_remote_datasource.dart';
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/core/src/interfaces/services/i_logger_service.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/data/dto/bidding_item_dto.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/data/remote/auction_remote_datasource.dart';
 
 class MyBidsRepository {
   final AuctionRemoteDatasource _datasource;

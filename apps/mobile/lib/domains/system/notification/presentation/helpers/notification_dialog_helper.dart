@@ -15,9 +15,9 @@ library;
 
 // Dart
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/domains/system/notification/domain/entities/notification_entity.dart';
-import 'package:labuda/domains/system/notification/presentation/providers/notification_list_provider.dart';
-import 'package:labuda/shared/shared.dart';
+import 'package:hishumi/domains/system/notification/domain/entities/notification_entity.dart';
+import 'package:hishumi/domains/system/notification/presentation/providers/notification_list_provider.dart';
+import 'package:hishumi/shared/shared.dart';
 
 // Flutter
 import 'package:flutter/material.dart';

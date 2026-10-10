@@ -7,7 +7,7 @@
 /// ## Usage
 ///
 /// ```dart
-/// import 'package:labuda/domains/user/identity/authentication/presentation/shared/shared.dart';
+/// import 'package:hishumi/domains/user/identity/authentication/presentation/shared/shared.dart';
 ///
 /// // In your auth screen
 /// final controller = AuthFormController.signIn();

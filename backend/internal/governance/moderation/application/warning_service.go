@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/governance/moderation/entity"
-	"github.com/labuda/backend/internal/governance/moderation/infrastructure/repository"
+	"github.com/hishumi/backend/internal/governance/moderation/entity"
+	"github.com/hishumi/backend/internal/governance/moderation/infrastructure/repository"
 )
 
 // WarningService handles warning business logic.

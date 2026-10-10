@@ -13,7 +13,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
 
-	"github.com/labuda/backend/internal/config"
+	"github.com/hishumi/backend/internal/config"
 )
 
 // --- helpers (unchanged) ---

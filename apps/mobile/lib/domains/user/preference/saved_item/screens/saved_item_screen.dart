@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/shared/domain/entities/resource_projection.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/shared/widgets/empty_state.dart';
-import 'package:labuda/shared/widgets/page_error_state.dart';
-import 'package:labuda/domains/user/preference/saved_item/models/saved_item_model.dart';
-import 'package:labuda/domains/user/preference/saved_item/data/providers/saved_item_query_providers.dart';
-import 'package:labuda/domains/user/preference/saved_item/data/repositories/saved_item_repository_provider.dart';
-import 'package:labuda/shared/widgets/app_image.dart';
+import 'package:hishumi/shared/domain/entities/resource_projection.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/shared/widgets/empty_state.dart';
+import 'package:hishumi/shared/widgets/page_error_state.dart';
+import 'package:hishumi/domains/user/preference/saved_item/models/saved_item_model.dart';
+import 'package:hishumi/domains/user/preference/saved_item/data/providers/saved_item_query_providers.dart';
+import 'package:hishumi/domains/user/preference/saved_item/data/repositories/saved_item_repository_provider.dart';
+import 'package:hishumi/shared/widgets/app_image.dart';
 
 /// Saved-items authority screen.
 ///

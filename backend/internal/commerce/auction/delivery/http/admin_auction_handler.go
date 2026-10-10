@@ -24,12 +24,12 @@ import (
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 
-	"github.com/labuda/backend/internal/audit"
-	auctionApp "github.com/labuda/backend/internal/commerce/auction/application"
-	auctionEntity "github.com/labuda/backend/internal/commerce/auction/entity"
-	"github.com/labuda/backend/internal/middleware"
-	"github.com/labuda/backend/internal/platform/response"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/audit"
+	auctionApp "github.com/hishumi/backend/internal/commerce/auction/application"
+	auctionEntity "github.com/hishumi/backend/internal/commerce/auction/entity"
+	"github.com/hishumi/backend/internal/middleware"
+	"github.com/hishumi/backend/internal/platform/response"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // adminAuctionCanceller is the minimal AuctionService surface this handler

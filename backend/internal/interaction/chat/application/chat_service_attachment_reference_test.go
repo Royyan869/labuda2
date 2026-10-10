@@ -9,9 +9,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
-	commerceResponse "github.com/labuda/backend/internal/commerce/response"
-	socialRepo "github.com/labuda/backend/internal/social/graph"
-	"github.com/labuda/backend/pkg/db"
+	commerceResponse "github.com/hishumi/backend/internal/commerce/response"
+	socialRepo "github.com/hishumi/backend/internal/social/graph"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 type mockAttachmentTx struct {

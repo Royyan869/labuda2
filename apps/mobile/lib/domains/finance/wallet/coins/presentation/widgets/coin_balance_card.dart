@@ -2,10 +2,10 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/shared/widgets/app_dialog.dart';
-import 'package:labuda/domains/finance/wallet/coins/domain/entities/coin_balance.dart';
-import 'package:labuda/shared/domain/entities/resource_projection.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/shared/widgets/app_dialog.dart';
+import 'package:hishumi/domains/finance/wallet/coins/domain/entities/coin_balance.dart';
+import 'package:hishumi/shared/domain/entities/resource_projection.dart';
 
 /// Displays user's Coin balance with visibility toggle and actions.
 ///
@@ -39,7 +39,7 @@ class _CoinBalanceCardState extends State<CoinBalanceCard> {
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          'LABUDA Coins adalah poin loyalitas yang memberikan Anda potongan harga saat checkout.',
+          'HiShumi Coins adalah poin loyalitas yang memberikan Anda potongan harga saat checkout.',
           style: context.typeRoles.bodyDense.copyWith(
             height: 1.5,
             fontWeight: FontWeight.w600,
@@ -121,7 +121,7 @@ class _CoinBalanceCardState extends State<CoinBalanceCard> {
                 ),
                 onPressed: () => AppDialog.info(
                   context: context,
-                  title: 'Tentang LABUDA Coins',
+                  title: 'Tentang HiShumi Coins',
                   content: _buildCoinInfoContent(context),
                   closeLabel: 'Mengerti',
                 ),

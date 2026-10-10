@@ -10,8 +10,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	sellerEntity "github.com/labuda/backend/internal/commerce/seller/entity"
-	"github.com/labuda/backend/pkg/db"
+	sellerEntity "github.com/hishumi/backend/internal/commerce/seller/entity"
+	"github.com/hishumi/backend/pkg/db"
 	"go.uber.org/zap/zaptest"
 )
 

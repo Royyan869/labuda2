@@ -1,21 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart' as core;
-import 'package:labuda/core/src/router/route_paths.dart';
+import 'package:hishumi/core/core.dart' as core;
+import 'package:hishumi/core/src/router/route_paths.dart';
 import 'order_detail/order_confirmation_section.dart';
 import 'order_detail/order_refund_handler.dart';
 import 'order_detail/order_refund_list_section.dart';
 import 'order_detail/order_action_handler.dart';
 import 'order_detail/direct_dispute_dialog.dart';
-import 'package:labuda/core/src/theme/app_theme.dart';
-import 'package:labuda/domains/user/identity/authentication/authentication.dart';
-import 'package:labuda/shared/shared.dart';
-import 'package:labuda/domains/commerce/transaction/order/domain/domain.dart'
+import 'package:hishumi/core/src/theme/app_theme.dart';
+import 'package:hishumi/domains/user/identity/authentication/authentication.dart';
+import 'package:hishumi/shared/shared.dart';
+import 'package:hishumi/domains/commerce/transaction/order/domain/domain.dart'
     as order_domain;
-import 'package:labuda/domains/commerce/transaction/order/order.dart';
-import 'package:labuda/domains/social/rating/rating.dart';
-import 'package:labuda/domains/system/support/presentation/widgets/pre_chat_form_sheet.dart';
+import 'package:hishumi/domains/commerce/transaction/order/order.dart';
+import 'package:hishumi/domains/social/rating/rating.dart';
+import 'package:hishumi/domains/system/support/presentation/widgets/pre_chat_form_sheet.dart';
 import 'order_detail/order_detail_handlers.dart' show OrderDetailHandlersMixin;
 
 /// Order Detail Screen - Detail pesanan dengan status tracking

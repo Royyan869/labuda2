@@ -6,10 +6,10 @@ library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/system/support/domain/domain.dart';
-import 'package:labuda/domains/system/support/data/datasources/support_api_datasource.dart';
-import 'package:labuda/domains/system/support/data/repositories/support_repository_api.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/system/support/domain/domain.dart';
+import 'package:hishumi/domains/system/support/data/datasources/support_api_datasource.dart';
+import 'package:hishumi/domains/system/support/data/repositories/support_repository_api.dart';
 
 part 'support_notifier.g.dart';
 

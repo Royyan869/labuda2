@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/social/content/entity"
-	contentrepo "github.com/labuda/backend/internal/social/content/infrastructure/repository"
+	"github.com/hishumi/backend/internal/social/content/entity"
+	contentrepo "github.com/hishumi/backend/internal/social/content/infrastructure/repository"
 )
 
 type moderationRestoreRepo struct {

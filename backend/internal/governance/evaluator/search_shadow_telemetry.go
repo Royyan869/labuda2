@@ -12,7 +12,7 @@ import (
 // All metrics live under the `search_shadow_` namespace per
 // docs/05-rollout/search-endpoint-telemetry-enum-design.md §13.10 and
 // are registered exactly once via the package-level promauto registrations
-// below. Distinct from the feed seam's `labuda_evaluator_shadow_*`
+// below. Distinct from the feed seam's `hishumi_evaluator_shadow_*`
 // namespace so cross-surface metric collision is impossible.
 //
 // First-seam landing on /search/content registers ONLY the bounded

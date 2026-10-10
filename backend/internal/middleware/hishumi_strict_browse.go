@@ -4,22 +4,22 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/labuda/backend/internal/identity/auth/application"
-	"github.com/labuda/backend/internal/platform/response"
+	"github.com/hishumi/backend/internal/identity/auth/application"
+	"github.com/hishumi/backend/internal/platform/response"
 )
 
-// StrictBrowseLabudaAuthMiddleware is the Labuda counterpart of StrictBrowseAuthMiddleware.
+// StrictBrowseHiShumiAuthMiddleware is the HiShumi counterpart of StrictBrowseAuthMiddleware.
 //
-// Behavior (mirrors StrictBrowseAuth but with Labuda JWT):
+// Behavior (mirrors StrictBrowseAuth but with HiShumi JWT):
 //  1. No Authorization header → anonymous, pass through (no claims)
 //  2. Authorization header present but not "Bearer <token>" → 401
 //  3. Bearer token invalid/expired/wrong type (not access) → 401
-//  4. Bearer token valid Labuda access JWT → inject canonical user_id, pass through
+//  4. Bearer token valid HiShumi access JWT → inject canonical user_id, pass through
 //
 // Use this for public browse routes where unauthenticated readers must be permitted
 // but invalid tokens must be rejected so the client knows to clear stale credentials.
 // Firebase tokens are NOT accepted here — they will be rejected as 401.
-func StrictBrowseLabudaAuthMiddleware(tokenService *application.TokenService) gin.HandlerFunc {
+func StrictBrowseHiShumiAuthMiddleware(tokenService *application.TokenService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 
@@ -39,7 +39,7 @@ func StrictBrowseLabudaAuthMiddleware(tokenService *application.TokenService) gi
 
 		tokenString := parts[1]
 
-		// Case 3: Validate Labuda access token (type + expiry + signature)
+		// Case 3: Validate HiShumi access token (type + expiry + signature)
 		claims, err := tokenService.ValidateAccessToken(tokenString)
 		if err != nil {
 			response.Unauthorized(c, "Invalid or expired access token")

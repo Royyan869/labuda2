@@ -7,14 +7,14 @@ library;
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/commerce/pricing/promotion/data/dto/promotion_contract_dto.dart';
-import 'package:labuda/domains/commerce/pricing/promotion/data/repositories/promotion_contract_repository.dart';
-import 'package:labuda/domains/commerce/pricing/promotion/domain/entities/external_product.dart';
-import 'package:labuda/domains/commerce/pricing/promotion/presentation/providers/canonical_external_product_providers.dart';
-import 'package:labuda/domains/social/comment/presentation/widgets/commerce_resource_picker.dart';
-import 'package:labuda/shared/providers/auth_status_providers.dart';
-import 'package:labuda/shared/widgets/app_bottom_sheet_list_selection.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/commerce/pricing/promotion/data/dto/promotion_contract_dto.dart';
+import 'package:hishumi/domains/commerce/pricing/promotion/data/repositories/promotion_contract_repository.dart';
+import 'package:hishumi/domains/commerce/pricing/promotion/domain/entities/external_product.dart';
+import 'package:hishumi/domains/commerce/pricing/promotion/presentation/providers/canonical_external_product_providers.dart';
+import 'package:hishumi/domains/social/comment/presentation/widgets/commerce_resource_picker.dart';
+import 'package:hishumi/shared/providers/auth_status_providers.dart';
+import 'package:hishumi/shared/widgets/app_bottom_sheet_list_selection.dart';
 
 /// Promotion Contract repository provider — canonical authority promotion_contracts.
 final promotionContractRepositoryProvider =

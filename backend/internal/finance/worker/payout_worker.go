@@ -7,11 +7,11 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/finance"
-	"github.com/labuda/backend/internal/finance/infrastructure/repository"
-	ledgerintf "github.com/labuda/backend/internal/finance/repository"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/money"
+	"github.com/hishumi/backend/internal/finance"
+	"github.com/hishumi/backend/internal/finance/infrastructure/repository"
+	ledgerintf "github.com/hishumi/backend/internal/finance/repository"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/money"
 	"go.uber.org/zap"
 )
 

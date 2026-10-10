@@ -10,13 +10,13 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
-	authEntity "github.com/labuda/backend/internal/identity/auth/entity"
-	authRefreshRepo "github.com/labuda/backend/internal/identity/auth/infrastructure/repository"
-	userApp "github.com/labuda/backend/internal/identity/user/application"
-	userRepoImpl "github.com/labuda/backend/internal/identity/user/infrastructure/repository"
-	outboxRepo "github.com/labuda/backend/internal/platform/outbox/infrastructure/repository"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/testdb"
+	authEntity "github.com/hishumi/backend/internal/identity/auth/entity"
+	authRefreshRepo "github.com/hishumi/backend/internal/identity/auth/infrastructure/repository"
+	userApp "github.com/hishumi/backend/internal/identity/user/application"
+	userRepoImpl "github.com/hishumi/backend/internal/identity/user/infrastructure/repository"
+	outboxRepo "github.com/hishumi/backend/internal/platform/outbox/infrastructure/repository"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/testdb"
 )
 
 func TestSelfDelete_RevokesActiveSessions(t *testing.T) {

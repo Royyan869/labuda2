@@ -7,11 +7,11 @@
 library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/chat/chat/data/dto/chat_room_event_dto.dart';
-import 'package:labuda/domains/chat/chat/data/remote/chat_api_datasource.dart';
-import 'package:labuda/domains/chat/chat/data/repositories/chat_repository_impl.dart';
-import 'package:labuda/domains/chat/chat/domain/repositories/chat_repository.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/chat/chat/data/dto/chat_room_event_dto.dart';
+import 'package:hishumi/domains/chat/chat/data/remote/chat_api_datasource.dart';
+import 'package:hishumi/domains/chat/chat/data/repositories/chat_repository_impl.dart';
+import 'package:hishumi/domains/chat/chat/domain/repositories/chat_repository.dart';
 
 // =============================================================================
 // DATASOURCE PROVIDERS

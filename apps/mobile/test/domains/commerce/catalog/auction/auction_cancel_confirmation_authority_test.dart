@@ -16,12 +16,12 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/core.dart' show AppTheme;
-import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction.dart';
-import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction_status.dart';
-import 'package:labuda/domains/commerce/catalog/auction/presentation/providers/auction_notifier.dart';
-import 'package:labuda/domains/commerce/catalog/auction/presentation/providers/auction_state.dart';
-import 'package:labuda/domains/commerce/catalog/auction/presentation/widgets/detail/auction_detail_handlers.dart';
+import 'package:hishumi/core/core.dart' show AppTheme;
+import 'package:hishumi/domains/commerce/catalog/auction/domain/entities/auction.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/domain/entities/auction_status.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/presentation/providers/auction_notifier.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/presentation/providers/auction_state.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/presentation/widgets/detail/auction_detail_handlers.dart';
 
 const _handlersPath =
     'lib/domains/commerce/catalog/auction/presentation/widgets/detail/'

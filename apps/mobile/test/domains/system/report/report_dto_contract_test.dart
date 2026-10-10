@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/domains/system/report/data/dto/report_dto.dart';
+import 'package:hishumi/domains/system/report/data/dto/report_dto.dart';
 
 void main() {
   // ===========================================================================

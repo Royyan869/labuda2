@@ -1,6 +1,6 @@
-import 'package:labuda/domains/social/share/domain/entities/share_target.dart';
-import 'package:labuda/shared/governance/content_lifecycle.dart';
-import 'package:labuda/shared/helpers/user_identity_formatter.dart';
+import 'package:hishumi/domains/social/share/domain/entities/share_target.dart';
+import 'package:hishumi/shared/governance/content_lifecycle.dart';
+import 'package:hishumi/shared/helpers/user_identity_formatter.dart';
 
 bool canShareProfileIdentity({
   required String? username,
@@ -24,7 +24,7 @@ ShareTarget? buildProfileShareTarget({
   final handle = UserIdentityFormatter.formatHandle(username)!;
   final description = bio != null && bio.trim().isNotEmpty
       ? bio.trim()
-      : 'Lihat profil $handle di LABUDA';
+      : 'Lihat profil $handle di HiShumi';
   final resolvedAvatarUrl = avatarUrl != null && avatarUrl.trim().isNotEmpty
       ? avatarUrl
       : null;

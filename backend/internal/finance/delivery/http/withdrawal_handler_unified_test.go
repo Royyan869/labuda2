@@ -13,9 +13,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
-	financeApp "github.com/labuda/backend/internal/finance/application"
-	financeRepo "github.com/labuda/backend/internal/finance/infrastructure/repository"
-	"github.com/labuda/backend/pkg/db"
+	financeApp "github.com/hishumi/backend/internal/finance/application"
+	financeRepo "github.com/hishumi/backend/internal/finance/infrastructure/repository"
+	"github.com/hishumi/backend/pkg/db"
 	"go.uber.org/zap"
 )
 

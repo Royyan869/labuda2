@@ -8,7 +8,7 @@
 // format is NOT treated as "available" (availability stays backend authority).
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/shared/helpers/canonical_username_validator.dart';
+import 'package:hishumi/shared/helpers/canonical_username_validator.dart';
 
 void main() {
   group('CanonicalUsernameValidator format gate (registration)', () {

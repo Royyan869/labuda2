@@ -7,10 +7,10 @@
 library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/commerce/pricing/promotion/data/repositories/external_product_repository.dart';
-import 'package:labuda/domains/commerce/pricing/promotion/domain/entities/external_product.dart';
-import 'package:labuda/domains/commerce/pricing/promotion/domain/entities/external_product_media.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/commerce/pricing/promotion/data/repositories/external_product_repository.dart';
+import 'package:hishumi/domains/commerce/pricing/promotion/domain/entities/external_product.dart';
+import 'package:hishumi/domains/commerce/pricing/promotion/domain/entities/external_product_media.dart';
 
 /// Canonical external product repository provider.
 final externalProductRepositoryProvider = Provider<ExternalProductRepository>(

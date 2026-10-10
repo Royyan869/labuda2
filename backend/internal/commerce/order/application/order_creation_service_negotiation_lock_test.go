@@ -9,10 +9,10 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
-	negotiationentity "github.com/labuda/backend/internal/commerce/negotiation/entity"
-	negotiationRepo "github.com/labuda/backend/internal/commerce/negotiation/repository"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/money"
+	negotiationentity "github.com/hishumi/backend/internal/commerce/negotiation/entity"
+	negotiationRepo "github.com/hishumi/backend/internal/commerce/negotiation/repository"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/money"
 )
 
 // fakeNegotiationRepo tracks FOR UPDATE calls and returns canned session.

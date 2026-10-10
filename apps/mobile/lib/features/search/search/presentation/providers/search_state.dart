@@ -1,5 +1,5 @@
-import 'package:labuda/features/search/search/domain/entities/search_filters.dart';
-import 'package:labuda/features/search/search/domain/entities/search_result.dart';
+import 'package:hishumi/features/search/search/domain/entities/search_filters.dart';
+import 'package:hishumi/features/search/search/domain/entities/search_result.dart';
 
 /// Search State
 ///

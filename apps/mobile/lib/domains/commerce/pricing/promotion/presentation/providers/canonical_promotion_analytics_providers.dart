@@ -4,9 +4,9 @@
 library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/commerce/pricing/promotion/data/dto/canonical_promotion_analytics_dto.dart';
-import 'package:labuda/domains/commerce/pricing/promotion/data/repositories/canonical_promotion_analytics_repository.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/commerce/pricing/promotion/data/dto/canonical_promotion_analytics_dto.dart';
+import 'package:hishumi/domains/commerce/pricing/promotion/data/repositories/canonical_promotion_analytics_repository.dart';
 
 /// Canonical promotion analytics repository provider.
 final canonicalPromotionAnalyticsRepositoryProvider =

@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/api/api_client.dart';
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/domains/user/profile/data/datasources/address_api_datasource.dart';
-import 'package:labuda/domains/user/profile/data/models/api/address_api_models.dart';
-import 'package:labuda/domains/user/profile/data/repositories/address_repository_api.dart';
+import 'package:hishumi/core/api/api_client.dart';
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/domains/user/profile/data/datasources/address_api_datasource.dart';
+import 'package:hishumi/domains/user/profile/data/models/api/address_api_models.dart';
+import 'package:hishumi/domains/user/profile/data/repositories/address_repository_api.dart';
 
 class _FakeAddressDatasource extends AddressApiDatasource {
   _FakeAddressDatasource({

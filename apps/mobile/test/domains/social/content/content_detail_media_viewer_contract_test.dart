@@ -16,10 +16,10 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/domains/social/content/domain/entities/content.dart';
-import 'package:labuda/shared/widgets/app_image.dart';
-import 'package:labuda/shared/widgets/media_viewer_video_player.dart';
-import 'package:labuda/shared/widgets/media_viewer_widget.dart';
+import 'package:hishumi/domains/social/content/domain/entities/content.dart';
+import 'package:hishumi/shared/widgets/app_image.dart';
+import 'package:hishumi/shared/widgets/media_viewer_video_player.dart';
+import 'package:hishumi/shared/widgets/media_viewer_widget.dart';
 
 MediaEntity _media({
   required String url,

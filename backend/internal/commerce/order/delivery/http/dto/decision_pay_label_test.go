@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/commerce/order/entity"
+	"github.com/hishumi/backend/internal/commerce/order/entity"
 )
 
 func strPtr(s string) *string { return &s }

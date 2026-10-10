@@ -1,9 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/social/comment/data/comment_repository_impl.dart';
-import 'package:labuda/domains/social/comment/data/remote/comment_api_datasource.dart';
-import 'package:labuda/domains/social/comment/domain/repositories/comment_repository.dart';
-import 'package:labuda/domains/social/comment/domain/usecases/validate_comment_content_use_case.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/social/comment/data/comment_repository_impl.dart';
+import 'package:hishumi/domains/social/comment/data/remote/comment_api_datasource.dart';
+import 'package:hishumi/domains/social/comment/domain/repositories/comment_repository.dart';
+import 'package:hishumi/domains/social/comment/domain/usecases/validate_comment_content_use_case.dart';
 
 /// ========================================
 /// Riverpod Providers for Comment Module

@@ -5,7 +5,7 @@
 // never derive lifecycle from timestamps, status, winner, or current time.
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/shared/domain/entities/resource_projection.dart';
+import 'package:hishumi/shared/domain/entities/resource_projection.dart';
 
 Map<String, dynamic> _auctionJson({
   required String lifecycle,

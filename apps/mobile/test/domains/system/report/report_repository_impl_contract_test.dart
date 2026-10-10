@@ -1,11 +1,11 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/api/exceptions/api_exception.dart' as api;
-import 'package:labuda/domains/system/report/data/dto/dto.dart';
-import 'package:labuda/domains/system/report/data/remote/report_api_datasource.dart';
-import 'package:labuda/domains/system/report/data/repositories/report_repository_impl.dart';
-import 'package:labuda/domains/system/report/domain/entities/report.dart';
-import 'package:labuda/domains/system/report/domain/repositories/report_repository.dart';
+import 'package:hishumi/core/api/exceptions/api_exception.dart' as api;
+import 'package:hishumi/domains/system/report/data/dto/dto.dart';
+import 'package:hishumi/domains/system/report/data/remote/report_api_datasource.dart';
+import 'package:hishumi/domains/system/report/data/repositories/report_repository_impl.dart';
+import 'package:hishumi/domains/system/report/domain/entities/report.dart';
+import 'package:hishumi/domains/system/report/domain/repositories/report_repository.dart';
 
 void main() {
   group('ReportRepositoryImpl.getReportsByUser', () {

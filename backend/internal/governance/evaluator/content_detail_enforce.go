@@ -4,8 +4,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 
-	"github.com/labuda/backend/internal/governance/viewercontext"
-	contententity "github.com/labuda/backend/internal/social/content/entity"
+	"github.com/hishumi/backend/internal/governance/viewercontext"
+	contententity "github.com/hishumi/backend/internal/social/content/entity"
 )
 
 // F1-W3B — /contents/:id evaluator fail-CLOSED enforcement helper,
@@ -119,25 +119,25 @@ func EnforceContentDetail(
 }
 
 // D1 — Bounded telemetry counters. Mirror of the
-// labuda_evaluator_feed_* trio. Namespace + name + label sets preserved
+// hishumi_evaluator_feed_* trio. Namespace + name + label sets preserved
 // VERBATIM across the F1-W3B rebuild so existing dashboards are
 // unaffected.
 
 var (
 	contentDetailEnforcementApplied = promauto.NewCounterVec(prometheus.CounterOpts{
-		Namespace: "labuda_evaluator_content_detail",
+		Namespace: "hishumi_evaluator_content_detail",
 		Name:      "enforcement_applied_total",
 		Help:      "Per-request enforcement actions taken by the /contents/:id evaluator. Bounded labels: action in {deny_404, unknown_fail_closed_404}.",
 	}, []string{"action"})
 
 	contentDetailWouldEnforceDecisionTotal = promauto.NewCounterVec(prometheus.CounterOpts{
-		Namespace: "labuda_evaluator_content_detail",
+		Namespace: "hishumi_evaluator_content_detail",
 		Name:      "would_enforce_decision_total",
 		Help:      "Per-request adapter classification emitted by the /contents/:id observability runner. Labels are bounded to the ContentDetailDecisionReason enum.",
 	}, []string{"adapter_reason"})
 
 	contentDetailEnforceModeTotal = promauto.NewCounterVec(prometheus.CounterOpts{
-		Namespace: "labuda_evaluator_content_detail",
+		Namespace: "hishumi_evaluator_content_detail",
 		Name:      "enforce_mode_total",
 		Help:      "Per-request count of the /contents/:id evaluator integration. Always labeled mode=enforce.",
 	}, []string{"mode"})
@@ -146,7 +146,7 @@ var (
 // recordContentDetailWouldEnforceDecision emits the per-request adapter
 // classification. The dominant ALLOW pass-through is intentionally not
 // counted; the agreement cell is captured by
-// labuda_evaluator_shadow_divergence_total{surface="content_detail"}.
+// hishumi_evaluator_shadow_divergence_total{surface="content_detail"}.
 func recordContentDetailWouldEnforceDecision(reason ContentDetailDecisionReason) {
 	if reason == ContentDetailDecisionReasonNone {
 		return

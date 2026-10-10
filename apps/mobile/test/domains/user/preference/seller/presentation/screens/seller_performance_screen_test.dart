@@ -10,11 +10,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/core/src/router/modules/seller_module.dart';
-import 'package:labuda/domains/user/preference/seller/domain/entities/seller_performance.dart';
-import 'package:labuda/domains/user/preference/seller/presentation/screens/seller_performance_screen.dart';
-import 'package:labuda/domains/user/preference/seller/seller_di.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/core/src/router/modules/seller_module.dart';
+import 'package:hishumi/domains/user/preference/seller/domain/entities/seller_performance.dart';
+import 'package:hishumi/domains/user/preference/seller/presentation/screens/seller_performance_screen.dart';
+import 'package:hishumi/domains/user/preference/seller/seller_di.dart';
 
 const _sellerId = 'seller-001';
 

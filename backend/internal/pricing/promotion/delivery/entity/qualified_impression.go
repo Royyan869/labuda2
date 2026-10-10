@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	promoentity "github.com/labuda/backend/internal/pricing/promotion/entity"
+	promoentity "github.com/hishumi/backend/internal/pricing/promotion/entity"
 )
 
 // QualifiedImpression is the canonical immutable billable financial fact of

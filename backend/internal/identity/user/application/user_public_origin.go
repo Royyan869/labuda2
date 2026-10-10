@@ -4,9 +4,9 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	addressInfraRepo "github.com/labuda/backend/internal/identity/address/infrastructure/repository"
-	addressRepo "github.com/labuda/backend/internal/identity/address/repository"
-	"github.com/labuda/backend/pkg/db"
+	addressInfraRepo "github.com/hishumi/backend/internal/identity/address/infrastructure/repository"
+	addressRepo "github.com/hishumi/backend/internal/identity/address/repository"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // publicOriginLineFor resolves the buyer-facing public origin summary

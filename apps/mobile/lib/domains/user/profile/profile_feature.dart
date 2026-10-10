@@ -18,15 +18,15 @@
 //
 // **USAGE:**
 // ```dart
-// import 'package:labuda/domains/user/profile/profile_feature.dart';
+// import 'package:hishumi/domains/user/profile/profile_feature.dart';
 // // Now you have access to: ProfileEntity, IProfileRepository, etc.
 // ```
 //
 // **IMPORT FROM OTHER FEATURES:**
 // Use direct imports to specific files, NOT re-exports:
 // ```dart
-// import 'package:labuda/domains/user/identity/verification/verification.dart';  // ✅
-// import 'package:labuda/domains/user/preference/seller/seller.dart';              // ✅
+// import 'package:hishumi/domains/user/identity/verification/verification.dart';  // ✅
+// import 'package:hishumi/domains/user/preference/seller/seller.dart';              // ✅
 // ```
 // =============================================================================
 
@@ -41,7 +41,7 @@
 //
 // Usage in other features:
 // ```dart
-// import 'package:labuda/domains/user/profile/profile_feature.dart';
+// import 'package:hishumi/domains/user/profile/profile_feature.dart';
 // ```
 
 // ========================================
@@ -163,7 +163,7 @@ export 'presentation/widgets/profile_actions.dart';
 //
 // **Use the barrel file import to access public API:**
 // ```dart
-// import 'package:labuda/domains/user/profile/profile_feature.dart';
+// import 'package:hishumi/domains/user/profile/profile_feature.dart';
 // final profile = ref.watch(profileProvider);
 // ```
 // =============================================================================

@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/labuda/backend/internal/identity/auth"
+	"github.com/hishumi/backend/internal/identity/auth"
 )
 
 // TestMapErrorToResponse_AccountStatusErrors is the PASS_17B regression suite:

@@ -14,15 +14,15 @@ library;
 
 // Dart
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/domains/system/notification/domain/entities/notification_entity.dart';
-import 'package:labuda/domains/system/notification/domain/use_cases/delete_all_notifications_use_case.dart';
-import 'package:labuda/domains/system/notification/domain/use_cases/delete_notification_use_case.dart';
-import 'package:labuda/domains/system/notification/domain/use_cases/delete_read_notifications_use_case.dart';
-import 'package:labuda/domains/system/notification/domain/use_cases/get_notifications_use_case.dart';
-import 'package:labuda/domains/system/notification/domain/use_cases/mark_all_as_read_use_case.dart';
-import 'package:labuda/domains/system/notification/domain/use_cases/mark_as_read_use_case.dart';
-import 'package:labuda/domains/system/notification/data/notification_providers.dart';
-import 'package:labuda/domains/system/notification/presentation/providers/unread_count_provider.dart';
+import 'package:hishumi/domains/system/notification/domain/entities/notification_entity.dart';
+import 'package:hishumi/domains/system/notification/domain/use_cases/delete_all_notifications_use_case.dart';
+import 'package:hishumi/domains/system/notification/domain/use_cases/delete_notification_use_case.dart';
+import 'package:hishumi/domains/system/notification/domain/use_cases/delete_read_notifications_use_case.dart';
+import 'package:hishumi/domains/system/notification/domain/use_cases/get_notifications_use_case.dart';
+import 'package:hishumi/domains/system/notification/domain/use_cases/mark_all_as_read_use_case.dart';
+import 'package:hishumi/domains/system/notification/domain/use_cases/mark_as_read_use_case.dart';
+import 'package:hishumi/domains/system/notification/data/notification_providers.dart';
+import 'package:hishumi/domains/system/notification/presentation/providers/unread_count_provider.dart';
 
 final getNotificationsUseCaseProvider = Provider<GetNotificationsUseCase>((
   ref,

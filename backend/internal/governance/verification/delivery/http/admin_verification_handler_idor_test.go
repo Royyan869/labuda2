@@ -20,11 +20,11 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"go.uber.org/zap"
 
-	verificationApp "github.com/labuda/backend/internal/governance/verification/application"
-	verificationEntity "github.com/labuda/backend/internal/governance/verification/entity"
-	"github.com/labuda/backend/internal/governance/verification/infrastructure/repository"
-	outboxrepo "github.com/labuda/backend/internal/platform/outbox/infrastructure/repository"
-	"github.com/labuda/backend/pkg/db"
+	verificationApp "github.com/hishumi/backend/internal/governance/verification/application"
+	verificationEntity "github.com/hishumi/backend/internal/governance/verification/entity"
+	"github.com/hishumi/backend/internal/governance/verification/infrastructure/repository"
+	outboxrepo "github.com/hishumi/backend/internal/platform/outbox/infrastructure/repository"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // ─── stub presigner ──────────────────────────────────────────────────────────

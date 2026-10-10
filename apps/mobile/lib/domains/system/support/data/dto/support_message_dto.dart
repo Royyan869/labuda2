@@ -3,7 +3,7 @@ library;
 /// Data Transfer Object for Support Message
 /// Used for serialization/deserialization from API
 
-import 'package:labuda/domains/system/support/domain/domain.dart';
+import 'package:hishumi/domains/system/support/domain/domain.dart';
 
 // ============================================
 // // MESSAGE DTO

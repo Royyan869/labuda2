@@ -21,15 +21,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/commerce/pricing/promotion/data/repositories/external_product_repository.dart';
-import 'package:labuda/domains/commerce/pricing/promotion/domain/entities/external_product.dart';
-import 'package:labuda/domains/commerce/pricing/promotion/domain/entities/external_product_media.dart';
-import 'package:labuda/domains/commerce/pricing/promotion/domain/entities/external_product_review_status.dart';
-import 'package:labuda/domains/commerce/pricing/promotion/presentation/screens/external_product_detail_screen.dart';
-import 'package:labuda/domains/commerce/pricing/promotion/presentation/providers/canonical_external_product_providers.dart';
-import 'package:labuda/generated/app_localizations.dart';
-import 'package:labuda/shared/utils/app_formatters.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/commerce/pricing/promotion/data/repositories/external_product_repository.dart';
+import 'package:hishumi/domains/commerce/pricing/promotion/domain/entities/external_product.dart';
+import 'package:hishumi/domains/commerce/pricing/promotion/domain/entities/external_product_media.dart';
+import 'package:hishumi/domains/commerce/pricing/promotion/domain/entities/external_product_review_status.dart';
+import 'package:hishumi/domains/commerce/pricing/promotion/presentation/screens/external_product_detail_screen.dart';
+import 'package:hishumi/domains/commerce/pricing/promotion/presentation/providers/canonical_external_product_providers.dart';
+import 'package:hishumi/generated/app_localizations.dart';
+import 'package:hishumi/shared/utils/app_formatters.dart';
 
 const String _productId = 'ep-date-authority-1';
 const String _screenPath =

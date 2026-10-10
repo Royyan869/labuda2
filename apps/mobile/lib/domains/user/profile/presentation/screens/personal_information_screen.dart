@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/shared/shared.dart';
-import 'package:labuda/shared/helpers/canonical_phone_validator.dart';
-import 'package:labuda/domains/user/profile/presentation/widgets/personal_information_section.dart';
-import 'package:labuda/domains/user/profile/presentation/widgets/phone_verification_dialog.dart';
-import 'package:labuda/domains/user/profile/presentation/shared/shared.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/shared/shared.dart';
+import 'package:hishumi/shared/helpers/canonical_phone_validator.dart';
+import 'package:hishumi/domains/user/profile/presentation/widgets/personal_information_section.dart';
+import 'package:hishumi/domains/user/profile/presentation/widgets/phone_verification_dialog.dart';
+import 'package:hishumi/domains/user/profile/presentation/shared/shared.dart';
 
 /// Personal Information Screen (Refactored)
 ///

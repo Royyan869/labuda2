@@ -2,10 +2,10 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/domains/commerce/transaction/order/order.dart'
+import 'package:hishumi/domains/commerce/transaction/order/order.dart'
     as order_domain;
-import 'package:labuda/domains/commerce/transaction/order/presentation/screens/order_detail/order_action_handler.dart';
-import 'package:labuda/generated/app_localizations.dart';
+import 'package:hishumi/domains/commerce/transaction/order/presentation/screens/order_detail/order_action_handler.dart';
+import 'package:hishumi/generated/app_localizations.dart';
 
 /// Widget test host with the canonical localization wiring (I18N-07): any
 /// label resolution goes through AppLocalizations, so every pump must provide

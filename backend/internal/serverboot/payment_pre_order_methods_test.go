@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	paymentmethodentity "github.com/labuda/backend/internal/commerce/paymentmethod/entity"
-	"github.com/labuda/backend/pkg/money"
+	paymentmethodentity "github.com/hishumi/backend/internal/commerce/paymentmethod/entity"
+	"github.com/hishumi/backend/pkg/money"
 )
 
 // funcBodyFrom returns the source of the function whose signature starts with

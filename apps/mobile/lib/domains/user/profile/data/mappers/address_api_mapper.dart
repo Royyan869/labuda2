@@ -1,6 +1,6 @@
-import 'package:labuda/domains/user/profile/data/models/api/address_api_models.dart';
-import 'package:labuda/domains/user/profile/domain/entities/address_entity.dart';
-import 'package:labuda/shared/shared.dart';
+import 'package:hishumi/domains/user/profile/data/models/api/address_api_models.dart';
+import 'package:hishumi/domains/user/profile/domain/entities/address_entity.dart';
+import 'package:hishumi/shared/shared.dart';
 
 /// Mapper for converting between Address API models and domain entities
 class AddressApiMapper {

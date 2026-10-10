@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/domains/system/report/report.dart';
+import 'package:hishumi/domains/system/report/report.dart';
 
 void main() {
   test('forSale serializes to for_sale for backend requests', () {

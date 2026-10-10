@@ -2,11 +2,11 @@ package http
 
 import (
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/commerce/auction/entity"
-	productEntity "github.com/labuda/backend/internal/commerce/product/entity"
-	commerceshared "github.com/labuda/backend/internal/commerce/shared"
-	"github.com/labuda/backend/internal/pkg/publiccard"
-	"github.com/labuda/backend/internal/pkg/sellerdisplay"
+	"github.com/hishumi/backend/internal/commerce/auction/entity"
+	productEntity "github.com/hishumi/backend/internal/commerce/product/entity"
+	commerceshared "github.com/hishumi/backend/internal/commerce/shared"
+	"github.com/hishumi/backend/internal/pkg/publiccard"
+	"github.com/hishumi/backend/internal/pkg/sellerdisplay"
 )
 
 // auctionToDetailResponseWithSeller renders the canonical detail wire:

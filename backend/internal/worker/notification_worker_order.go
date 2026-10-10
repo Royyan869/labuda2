@@ -6,8 +6,8 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	notificationentity "github.com/labuda/backend/internal/interaction/notification/entity"
-	"github.com/labuda/backend/internal/platform/events"
+	notificationentity "github.com/hishumi/backend/internal/interaction/notification/entity"
+	"github.com/hishumi/backend/internal/platform/events"
 	"go.uber.org/zap"
 )
 

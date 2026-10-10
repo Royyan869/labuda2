@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/system/notification/services/fcm_action_mapper.dart';
-import 'package:labuda/domains/system/notification/services/fcm_message_handler.dart';
-import 'package:labuda/domains/system/notification/services/notification_navigation_service.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/system/notification/services/fcm_action_mapper.dart';
+import 'package:hishumi/domains/system/notification/services/fcm_message_handler.dart';
+import 'package:hishumi/domains/system/notification/services/notification_navigation_service.dart';
 
 Widget _orderRouteApp() {
   return MaterialApp(

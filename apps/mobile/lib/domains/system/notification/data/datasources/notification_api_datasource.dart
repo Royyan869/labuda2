@@ -2,10 +2,10 @@
 // HTTP operations for Notification domain
 
 // External
-import 'package:labuda/core/api/api.dart';
+import 'package:hishumi/core/api/api.dart';
 
 // Internal
-import 'package:labuda/domains/system/notification/data/models/api/notification_api_models.dart';
+import 'package:hishumi/domains/system/notification/data/models/api/notification_api_models.dart';
 
 class NotificationApiDatasource {
   final ApiClient _apiClient;

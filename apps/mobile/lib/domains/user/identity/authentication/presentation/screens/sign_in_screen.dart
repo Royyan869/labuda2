@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/shared/shared.dart';
-import 'package:labuda/shared/helpers/canonical_email_validator.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/shared/shared.dart';
+import 'package:hishumi/shared/helpers/canonical_email_validator.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../shared/shared.dart';
 
@@ -100,7 +100,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen>
   Future<void> _loadRememberMeState() async {
     // Remember-me persistence removed (AuthPersistenceService purged, Slice 1).
     // Email field starts empty; canonical session persistence is via
-    // Labuda credential (ILocalStorageService). Keep method for lifecycle
+    // HiShumi credential (ILocalStorageService). Keep method for lifecycle
     // symmetry but as no-op.
   }
 
@@ -177,12 +177,20 @@ class _SignInScreenState extends ConsumerState<SignInScreen>
   /// AUTH-2 (FAILURE VISIBILITY): Map backend terminal auth states to a
   /// user-visible message.
   ///
-  /// The login controller never sets these states itself; they come from
-  /// [AuthController._syncWithBackend] after an explicit login. Without this
-  /// the UI would show a stopped loading spinner and no error — the "logged in
-  /// but nothing happens" symptom. Returning a message here lets the screen
-  /// render an inline error banner and keep the retry path available.
+  /// Terminal failures after an explicit login (email OR Google) arrive as
+  /// explicit AuthStates: the Google path sets [AuthStateError] directly
+  /// (cancelled picker, invalid credential, account-exists guidance) and the
+  /// email path maps Firebase rejections into it as well. Without this the
+  /// UI showed a stopped loading spinner and no error — the "tapped Sign In
+  /// but nothing happens" symptom — while the Sign-up screen (same flows,
+  /// other entry point) already rendered the same state inline. One
+  /// language, both entry points.
   String? _backendFailureMessage(AuthState authState) {
+    if (authState is AuthStateError) {
+      return authState.message.isNotEmpty
+          ? authState.message
+          : 'Terjadi kesalahan. Coba lagi.';
+    }
     if (authState is AuthStateBackendFailure) {
       return authState.message.isNotEmpty
           ? authState.message
@@ -233,7 +241,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen>
                     // Header (shared widget)
                     AuthHeader.animated(
                       title: 'Welcome Back',
-                      subtitle: 'Sign in to your LABUDA account',
+                      subtitle: 'Sign in to your HiShumi account',
                       fadeAnimation: _fadeAnimation,
                       slideAnimation: _slideAnimation,
                     ),

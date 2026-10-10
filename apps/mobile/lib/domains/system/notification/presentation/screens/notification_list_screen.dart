@@ -13,17 +13,17 @@ library;
 
 // Dart
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/domains/system/notification/domain/entities/notification_entity.dart';
-import 'package:labuda/domains/system/notification/domain/entities/notification_filter.dart';
-import 'package:labuda/domains/system/notification/presentation/providers/navigation_provider.dart';
-import 'package:labuda/domains/system/notification/presentation/providers/notification_filter_provider.dart';
-import 'package:labuda/domains/system/notification/presentation/providers/notification_list_provider.dart';
-import 'package:labuda/domains/system/notification/presentation/widgets/notification_list_content.dart';
-import 'package:labuda/shared/shared.dart';
+import 'package:hishumi/domains/system/notification/domain/entities/notification_entity.dart';
+import 'package:hishumi/domains/system/notification/domain/entities/notification_filter.dart';
+import 'package:hishumi/domains/system/notification/presentation/providers/navigation_provider.dart';
+import 'package:hishumi/domains/system/notification/presentation/providers/notification_filter_provider.dart';
+import 'package:hishumi/domains/system/notification/presentation/providers/notification_list_provider.dart';
+import 'package:hishumi/domains/system/notification/presentation/widgets/notification_list_content.dart';
+import 'package:hishumi/shared/shared.dart';
 
 // Flutter
 import 'package:flutter/material.dart';
-import 'package:labuda/core/src/theme/app_theme.dart';
+import 'package:hishumi/core/src/theme/app_theme.dart';
 
 class NotificationListScreen extends ConsumerWidget {
   final String userId;

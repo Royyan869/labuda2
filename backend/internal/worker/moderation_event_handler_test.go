@@ -8,10 +8,10 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	auctionEntity "github.com/labuda/backend/internal/commerce/auction/entity"
-	forSaleEntity "github.com/labuda/backend/internal/commerce/forsale/entity"
-	platformevent "github.com/labuda/backend/internal/platform/event"
-	"github.com/labuda/backend/pkg/db"
+	auctionEntity "github.com/hishumi/backend/internal/commerce/auction/entity"
+	forSaleEntity "github.com/hishumi/backend/internal/commerce/forsale/entity"
+	platformevent "github.com/hishumi/backend/internal/platform/event"
+	"github.com/hishumi/backend/pkg/db"
 	"go.uber.org/zap/zaptest"
 )
 

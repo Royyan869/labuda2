@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // PromotionRepositoryImpl is the canonical external product repository

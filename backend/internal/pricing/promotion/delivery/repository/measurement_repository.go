@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	deliveryentity "github.com/labuda/backend/internal/pricing/promotion/delivery/entity"
-	"github.com/labuda/backend/pkg/db"
+	deliveryentity "github.com/hishumi/backend/internal/pricing/promotion/delivery/entity"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // Measurement persistence sentinels. Unknown exposure and repeated

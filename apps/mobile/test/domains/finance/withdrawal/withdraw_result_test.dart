@@ -5,7 +5,7 @@
 library;
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/domains/user/preference/seller/domain/entities/withdrawal.dart';
+import 'package:hishumi/domains/user/preference/seller/domain/entities/withdrawal.dart';
 
 void main() {
   group('WithdrawResult.failure — error message preservation', () {

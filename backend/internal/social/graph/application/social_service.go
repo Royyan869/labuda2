@@ -6,10 +6,10 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/platform/events"
-	"github.com/labuda/backend/internal/social/graph"
-	infraRepo "github.com/labuda/backend/internal/social/graph/infrastructure/repository"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/platform/events"
+	"github.com/hishumi/backend/internal/social/graph"
+	infraRepo "github.com/hishumi/backend/internal/social/graph/infrastructure/repository"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // SocialService handles social graph operations.

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/src/theme/app_theme.dart';
-import 'package:labuda/domains/commerce/catalog/for_sale/domain/entities/for_sale.dart';
-import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_marketplace_primitives.dart';
-import 'package:labuda/domains/social/content/domain/entities/content.dart';
+import 'package:hishumi/core/src/theme/app_theme.dart';
+import 'package:hishumi/domains/commerce/catalog/for_sale/domain/entities/for_sale.dart';
+import 'package:hishumi/domains/commerce/catalog/shared/presentation/widgets/commerce_marketplace_primitives.dart';
+import 'package:hishumi/domains/social/content/domain/entities/content.dart';
 
 /// Canonical buyer-facing forSale card — a THIN channel wrapper.
 ///

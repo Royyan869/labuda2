@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	negotiationEntity "github.com/labuda/backend/internal/commerce/negotiation/entity"
+	negotiationEntity "github.com/hishumi/backend/internal/commerce/negotiation/entity"
 )
 
 // CANONICAL NEGOTIATION ACTIONABILITY PROJECTION.

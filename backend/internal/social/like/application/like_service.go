@@ -7,11 +7,11 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/platform/events"
-	"github.com/labuda/backend/internal/social/content/entity"
-	"github.com/labuda/backend/internal/social/like"
-	likeentity "github.com/labuda/backend/internal/social/like/entity"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/platform/events"
+	"github.com/hishumi/backend/internal/social/content/entity"
+	"github.com/hishumi/backend/internal/social/like"
+	likeentity "github.com/hishumi/backend/internal/social/like/entity"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // Transactor represents the ability to execute functions within transactions.

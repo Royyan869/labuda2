@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/commerce/auction/entity"
-	auctionRepo "github.com/labuda/backend/internal/commerce/auction/infrastructure/repository"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/commerce/auction/entity"
+	auctionRepo "github.com/hishumi/backend/internal/commerce/auction/infrastructure/repository"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // BiddingItem represents a user's bidding view for a single auction.

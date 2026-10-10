@@ -5,7 +5,7 @@
 // There is NO fallback to the legacy offset contract (forSales/total/offset).
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/features/search/search/data/dto/search_dto.dart';
+import 'package:hishumi/features/search/search/data/dto/search_dto.dart';
 
 void main() {
   group('ForSaleSearchResponseDto — canonical cursor contract', () {

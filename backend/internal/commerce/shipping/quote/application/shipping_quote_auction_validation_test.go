@@ -6,12 +6,12 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	auctionEntity "github.com/labuda/backend/internal/commerce/auction/entity"
-	forsaleEntity "github.com/labuda/backend/internal/commerce/forsale/entity"
-	shippingQuoteEntity "github.com/labuda/backend/internal/commerce/shipping/quote/entity"
-	chatEntity "github.com/labuda/backend/internal/interaction/chat/entity"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/money"
+	auctionEntity "github.com/hishumi/backend/internal/commerce/auction/entity"
+	forsaleEntity "github.com/hishumi/backend/internal/commerce/forsale/entity"
+	shippingQuoteEntity "github.com/hishumi/backend/internal/commerce/shipping/quote/entity"
+	chatEntity "github.com/hishumi/backend/internal/interaction/chat/entity"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/money"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 )

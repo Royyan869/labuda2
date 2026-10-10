@@ -9,9 +9,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/config"
-	"github.com/labuda/backend/internal/identity/auth/application"
-	"github.com/labuda/backend/internal/platform/logger"
+	"github.com/hishumi/backend/internal/config"
+	"github.com/hishumi/backend/internal/identity/auth/application"
+	"github.com/hishumi/backend/internal/platform/logger"
 	"go.uber.org/zap"
 )
 
@@ -28,13 +28,13 @@ func (w *wsLookup) GetUserIDByID(ctx context.Context, userID uuid.UUID) (uuid.UU
 
 func newTokenServiceForTest() *application.TokenService {
 	cfg := &config.JWTConfig{
-		Secret:     "test-secret-for-ws-labuda-auth-32bytes!!",
+		Secret:     "test-secret-for-ws-hishumi-auth-32bytes!!",
 		Expiration: time.Hour,
 	}
 	return application.NewTokenService(cfg, &logger.Logger{Logger: zap.NewNop()})
 }
 
-func TestWS_LabudaAcceptance(t *testing.T) {
+func TestWS_HiShumiAcceptance(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	svc := newTokenServiceForTest()
 	userID := uuid.New()
@@ -45,7 +45,7 @@ func TestWS_LabudaAcceptance(t *testing.T) {
 	}
 	r := gin.New()
 	grp := r.Group("/api/v1")
-	grp.Use(LabudaAuthMiddleware(svc))
+	grp.Use(HiShumiAuthMiddleware(svc))
 	grp.Use(UserLookupMiddleware(lookup))
 	grp.GET("/ws", func(c *gin.Context) { c.JSON(200, gin.H{"ok": true}) })
 	grp.GET("/ws/stats", func(c *gin.Context) { c.JSON(200, gin.H{"ok": true}) })
@@ -56,7 +56,7 @@ func TestWS_LabudaAcceptance(t *testing.T) {
 		w := httptest.NewRecorder()
 		r.ServeHTTP(w, req)
 		if w.Code != 200 {
-			t.Fatalf("Labuda valid token should be accepted for %s: got %d body %s", path, w.Code, w.Body.String())
+			t.Fatalf("HiShumi valid token should be accepted for %s: got %d body %s", path, w.Code, w.Body.String())
 		}
 	}
 }
@@ -67,7 +67,7 @@ func TestWS_FirebaseRejection(t *testing.T) {
 	lookup := &wsLookup{known: map[uuid.UUID]bool{}}
 	r := gin.New()
 	grp := r.Group("/api/v1")
-	grp.Use(LabudaAuthMiddleware(svc))
+	grp.Use(HiShumiAuthMiddleware(svc))
 	grp.Use(UserLookupMiddleware(lookup))
 	grp.GET("/ws", func(c *gin.Context) { c.JSON(200, gin.H{"ok": true}) })
 
@@ -77,23 +77,23 @@ func TestWS_FirebaseRejection(t *testing.T) {
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 	if w.Code != 401 {
-		t.Fatalf("Firebase token should be rejected by Labuda WS auth: got %d body %s", w.Code, w.Body.String())
+		t.Fatalf("Firebase token should be rejected by HiShumi WS auth: got %d body %s", w.Code, w.Body.String())
 	}
 }
 
-func TestWS_InvalidLabudaTokens(t *testing.T) {
+func TestWS_InvalidHiShumiTokens(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	svc := newTokenServiceForTest()
 	userID := uuid.New()
 	lookup := &wsLookup{known: map[uuid.UUID]bool{userID: true}}
 	r := gin.New()
 	grp := r.Group("/api/v1")
-	grp.Use(LabudaAuthMiddleware(svc))
+	grp.Use(HiShumiAuthMiddleware(svc))
 	grp.Use(UserLookupMiddleware(lookup))
 	grp.GET("/ws", func(c *gin.Context) { c.JSON(200, gin.H{"ok": true}) })
 
 	// 1. Expired
-	expiredCfg := &config.JWTConfig{Secret: "test-secret-for-ws-labuda-auth-32bytes!!", Expiration: -time.Hour}
+	expiredCfg := &config.JWTConfig{Secret: "test-secret-for-ws-hishumi-auth-32bytes!!", Expiration: -time.Hour}
 	expiredSvc := application.NewTokenService(expiredCfg, &logger.Logger{Logger: zap.NewNop()})
 	expiredPair, _ := expiredSvc.GenerateTokenPair(userID, []string{"user"}, nil)
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/ws", nil)
@@ -101,7 +101,7 @@ func TestWS_InvalidLabudaTokens(t *testing.T) {
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 	if w.Code != 401 {
-		t.Fatalf("expired Labuda token should be rejected, got %d", w.Code)
+		t.Fatalf("expired HiShumi token should be rejected, got %d", w.Code)
 	}
 
 	// 2. Tampered signature
@@ -144,7 +144,7 @@ func TestWS_CanonicalUserIdentity(t *testing.T) {
 	lookup := &wsLookup{known: map[uuid.UUID]bool{userID: true}}
 	r := gin.New()
 	grp := r.Group("/api/v1")
-	grp.Use(LabudaAuthMiddleware(svc))
+	grp.Use(HiShumiAuthMiddleware(svc))
 	grp.Use(UserLookupMiddleware(lookup))
 	grp.GET("/ws", func(c *gin.Context) {
 		uid, err := GetUserIDFromContext(c)
@@ -174,7 +174,7 @@ func TestWS_NoAuthHeaderRejected(t *testing.T) {
 	lookup := &wsLookup{known: map[uuid.UUID]bool{}}
 	r := gin.New()
 	grp := r.Group("/api/v1")
-	grp.Use(LabudaAuthMiddleware(svc))
+	grp.Use(HiShumiAuthMiddleware(svc))
 	grp.Use(UserLookupMiddleware(lookup))
 	grp.GET("/ws", func(c *gin.Context) { c.JSON(200, gin.H{"ok": true}) })
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/ws", nil)

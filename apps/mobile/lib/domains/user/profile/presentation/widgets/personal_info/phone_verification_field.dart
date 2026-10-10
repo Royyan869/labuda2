@@ -1,6 +1,6 @@
-import 'package:labuda/core/core.dart';
+import 'package:hishumi/core/core.dart';
 import 'package:flutter/material.dart';
-import 'package:labuda/shared/utils/app_formatters.dart';
+import 'package:hishumi/shared/utils/app_formatters.dart';
 
 /// F5-local fit measure: whether a single-line title + badge pair fits the
 /// incoming width. Local copy (no new shared authority).

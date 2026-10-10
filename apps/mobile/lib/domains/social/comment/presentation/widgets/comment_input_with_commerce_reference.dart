@@ -4,18 +4,18 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:labuda/shared/widgets/pending_commerce_chip.dart';
+import 'package:hishumi/shared/widgets/pending_commerce_chip.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/shared/widgets/app_snackbar.dart';
-import 'package:labuda/shared/widgets/composer_action_buttons.dart';
-import 'package:labuda/domains/commerce/catalog/for_sale/domain/domain.dart';
-import 'package:labuda/domains/social/comment/presentation/widgets/commerce_resource_picker.dart';
-import 'package:labuda/domains/social/comment/presentation/widgets/resource_identity.dart';
-import 'package:labuda/core/media/media_upload_config.dart';
-import 'package:labuda/core/media/media_upload_orchestrator.dart';
-import 'package:labuda/shared/widgets/pending_media_strip.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/shared/widgets/app_snackbar.dart';
+import 'package:hishumi/shared/widgets/composer_action_buttons.dart';
+import 'package:hishumi/domains/commerce/catalog/for_sale/domain/domain.dart';
+import 'package:hishumi/domains/social/comment/presentation/widgets/commerce_resource_picker.dart';
+import 'package:hishumi/domains/social/comment/presentation/widgets/resource_identity.dart';
+import 'package:hishumi/core/media/media_upload_config.dart';
+import 'package:hishumi/core/media/media_upload_orchestrator.dart';
+import 'package:hishumi/shared/widgets/pending_media_strip.dart';
 export 'resource_identity.dart';
 
 /// Canonical comment input with commerce reference capability.

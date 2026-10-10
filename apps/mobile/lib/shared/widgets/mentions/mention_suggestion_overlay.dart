@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/shared/widgets/hybrid_avatar.dart';
-import 'package:labuda/features/search/search/search.dart'; // R3.1: Import mention providers from search domain
-import 'package:labuda/core/core.dart';
+import 'package:hishumi/shared/widgets/hybrid_avatar.dart';
+import 'package:hishumi/features/search/search/search.dart'; // R3.1: Import mention providers from search domain
+import 'package:hishumi/core/core.dart';
 
 /// Overlay widget untuk show user suggestions saat mention
 ///

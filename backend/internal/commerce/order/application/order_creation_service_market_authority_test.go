@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/commerce/forsale/entity"
-	"github.com/labuda/backend/internal/identity/auth"
+	"github.com/hishumi/backend/internal/commerce/forsale/entity"
+	"github.com/hishumi/backend/internal/identity/auth"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

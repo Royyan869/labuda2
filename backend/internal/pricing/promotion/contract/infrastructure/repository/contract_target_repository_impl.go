@@ -6,10 +6,10 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/labuda/backend/internal/pricing/promotion/contract/entity"
-	contractRepo "github.com/labuda/backend/internal/pricing/promotion/contract/repository"
-	promoentity "github.com/labuda/backend/internal/pricing/promotion/entity"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/pricing/promotion/contract/entity"
+	contractRepo "github.com/hishumi/backend/internal/pricing/promotion/contract/repository"
+	promoentity "github.com/hishumi/backend/internal/pricing/promotion/entity"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // ContractTargetRepositoryImpl persists the rolling target queue.

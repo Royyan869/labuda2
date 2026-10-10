@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	promoentity "github.com/labuda/backend/internal/pricing/promotion/entity"
-	"github.com/labuda/backend/pkg/db"
+	promoentity "github.com/hishumi/backend/internal/pricing/promotion/entity"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // TargetEligibility re-reads the CANONICAL commerce target state at

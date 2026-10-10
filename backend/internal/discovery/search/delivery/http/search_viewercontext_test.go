@@ -10,9 +10,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/labuda/backend/internal/governance/viewercontext"
-	capabilityctx "github.com/labuda/backend/internal/platform/capability"
-	capabilityentity "github.com/labuda/backend/internal/platform/capability/entity"
+	"github.com/hishumi/backend/internal/governance/viewercontext"
+	capabilityctx "github.com/hishumi/backend/internal/platform/capability"
+	capabilityentity "github.com/hishumi/backend/internal/platform/capability/entity"
 )
 
 // ============================================================================

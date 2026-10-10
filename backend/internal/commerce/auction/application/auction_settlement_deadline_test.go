@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/commerce/auction/entity"
+	"github.com/hishumi/backend/internal/commerce/auction/entity"
 )
 
 // ============================================================================

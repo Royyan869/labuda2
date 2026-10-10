@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/domains/user/preference/seller/data/dto/seller_analytics_dto.dart';
-import 'package:labuda/domains/user/preference/seller/domain/entities/seller_analytics_read.dart';
+import 'package:hishumi/domains/user/preference/seller/data/dto/seller_analytics_dto.dart';
+import 'package:hishumi/domains/user/preference/seller/domain/entities/seller_analytics_read.dart';
 
 void main() {
   group('SellerAnalyticsDto decode (canonical wire)', () {

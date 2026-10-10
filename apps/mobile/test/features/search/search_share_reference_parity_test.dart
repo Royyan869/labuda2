@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/features/search/search/data/dto/search_dto.dart';
-import 'package:labuda/features/search/search/data/mappers/search_mapper.dart';
+import 'package:hishumi/features/search/search/data/dto/search_dto.dart';
+import 'package:hishumi/features/search/search/data/mappers/search_mapper.dart';
 
 Map<String, dynamic> _baseContentJson({
   String caption = 'Caption text',

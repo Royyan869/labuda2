@@ -8,7 +8,7 @@ import '../entities/seller_performance.dart';
 import '../entities/seller_earnings.dart';
 import '../entities/seller_subscription.dart';
 import '../entities/withdrawal.dart';
-import 'package:labuda/core/common/result.dart';
+import 'package:hishumi/core/common/result.dart';
 
 /// Seller Repository Interface
 ///

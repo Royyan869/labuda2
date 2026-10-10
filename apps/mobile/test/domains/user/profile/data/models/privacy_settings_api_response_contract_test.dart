@@ -4,7 +4,7 @@
 // serializes only the canonical field set the backend persists; the obsolete
 // privacy/website/social-toggle fields no longer exist.
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/domains/user/profile/data/models/api/user_api_models.dart';
+import 'package:hishumi/domains/user/profile/data/models/api/user_api_models.dart';
 
 void main() {
   group('SocialMediaApiResponse', () {

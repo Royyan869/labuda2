@@ -3,10 +3,10 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/domains/social/comment/data/dto/comment_dto.dart';
-import 'package:labuda/domains/social/comment/data/mappers/comment_mapper.dart';
-import 'package:labuda/domains/social/comment/domain/entities/comment.dart';
-import 'package:labuda/shared/governance/content_lifecycle.dart';
+import 'package:hishumi/domains/social/comment/data/dto/comment_dto.dart';
+import 'package:hishumi/domains/social/comment/data/mappers/comment_mapper.dart';
+import 'package:hishumi/domains/social/comment/domain/entities/comment.dart';
+import 'package:hishumi/shared/governance/content_lifecycle.dart';
 
 Map<String, dynamic> _commentJson({
   required String id,

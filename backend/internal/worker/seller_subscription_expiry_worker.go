@@ -7,10 +7,10 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	sellerRepo "github.com/labuda/backend/internal/commerce/seller/repository"
-	"github.com/labuda/backend/internal/commerce/subscription/entity"
-	"github.com/labuda/backend/internal/commerce/subscription/repository"
-	"github.com/labuda/backend/pkg/db"
+	sellerRepo "github.com/hishumi/backend/internal/commerce/seller/repository"
+	"github.com/hishumi/backend/internal/commerce/subscription/entity"
+	"github.com/hishumi/backend/internal/commerce/subscription/repository"
+	"github.com/hishumi/backend/pkg/db"
 	"go.uber.org/zap"
 )
 

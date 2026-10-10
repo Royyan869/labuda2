@@ -4,9 +4,9 @@ import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/api/interceptors/auth_interceptor.dart';
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/core/src/interfaces/services/i_local_storage_service.dart';
+import 'package:hishumi/core/api/interceptors/auth_interceptor.dart';
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/core/src/interfaces/services/i_local_storage_service.dart';
 
 // ---------------------------------------------------------------------------
 // Fakes
@@ -21,7 +21,7 @@ class FakeStorage implements ILocalStorageService {
   FakeStorage({this.access, this.refresh});
 
   @override
-  Future<Result<void>> saveLabudaCredential(String a, String r) async {
+  Future<Result<void>> saveHiShumiCredential(String a, String r) async {
     if (a.isEmpty || r.isEmpty) return Result.error('empty');
     access = a;
     refresh = r;
@@ -30,15 +30,15 @@ class FakeStorage implements ILocalStorageService {
   }
 
   @override
-  Future<Result<String?>> readLabudaAccessToken() async =>
+  Future<Result<String?>> readHiShumiAccessToken() async =>
       Result.success(access);
 
   @override
-  Future<Result<String?>> readLabudaRefreshToken() async =>
+  Future<Result<String?>> readHiShumiRefreshToken() async =>
       Result.success(refresh);
 
   @override
-  Future<Result<void>> clearLabudaCredential() async {
+  Future<Result<void>> clearHiShumiCredential() async {
     access = null;
     refresh = null;
     clearCount++;
@@ -46,7 +46,7 @@ class FakeStorage implements ILocalStorageService {
   }
 
   @override
-  Future<Result<bool>> hasLabudaCredential() async =>
+  Future<Result<bool>> hasHiShumiCredential() async =>
       Result.success(access != null && access!.isNotEmpty && refresh != null && refresh!.isNotEmpty);
 
   @override
@@ -97,8 +97,8 @@ class BlockingRefreshAdapter implements HttpClientAdapter {
           headers: {Headers.contentTypeHeader: ['application/json']});
     }
 
-    // Protected endpoint: first call 401, retry (labuda_retry) 200 if new token attached
-    if (options.extra['labuda_retry'] == true) {
+    // Protected endpoint: first call 401, retry (hishumi_retry) 200 if new token attached
+    if (options.extra['hishumi_retry'] == true) {
       retryCount++;
       final auth = options.headers['Authorization']?.toString();
       if (auth == null || !auth.contains(newAccess)) {
@@ -118,7 +118,7 @@ class BlockingRefreshAdapter implements HttpClientAdapter {
   void close({bool force = false}) {}
 }
 
-Dio buildDio(FakeStorage storage, BlockingRefreshAdapter adapter, {LabudaRefreshExecutor? executor, RequestRetrier? retrier}) {
+Dio buildDio(FakeStorage storage, BlockingRefreshAdapter adapter, {HiShumiRefreshExecutor? executor, RequestRetrier? retrier}) {
   final dio = Dio(BaseOptions(baseUrl: 'https://example.com'))
     ..httpClientAdapter = adapter
     ..options.validateStatus = (s) => s != null && s < 500 && s != 401;
@@ -147,7 +147,7 @@ void main() {
         // Simulate executor persisting new credential (if it were to do so)
         // Our interceptor should treat as stale after blocker released if storage cleared.
         // We intentionally DO save here to prove guard reverts it.
-        await storage.saveLabudaCredential('new-access-exec', 'new-refresh-exec');
+        await storage.saveHiShumiCredential('new-access-exec', 'new-refresh-exec');
         return true;
       }
 
@@ -167,7 +167,7 @@ void main() {
       expect(executorToken, 'old-refresh');
 
       // Logout while executor blocked
-      await storage.clearLabudaCredential();
+      await storage.clearHiShumiCredential();
       expect(storage.access, isNull);
       expect(storage.refresh, isNull);
       final clearCountBefore = storage.clearCount;
@@ -187,7 +187,7 @@ void main() {
       // The final storage must be absent (either not saved or reverted)
       expect(storage.access, isNull, reason: 'access must NOT be saved after logout');
       expect(storage.refresh, isNull, reason: 'refresh must NOT be saved after logout');
-      expect((await storage.hasLabudaCredential()).data, isFalse);
+      expect((await storage.hasHiShumiCredential()).data, isFalse);
       // save was attempted inside executor, but our guard should have cleared it
       // So we assert that after stale handling, storage is still absent.
       // clearCount may have increased by 1 due to revert.
@@ -197,7 +197,7 @@ void main() {
     test('executor not wired in production — proof', () async {
       // Production AuthInterceptor is constructed without refreshExecutor (see lib/core/api/api_client.dart)
       // This test proves the executor is test-only seam and production uses Dio path which has canonical guard.
-      // We assert that searching production for LabudaRefreshExecutor wiring returns no hit.
+      // We assert that searching production for HiShumiRefreshExecutor wiring returns no hit.
       // This is a documentation proof: production api_client.dart constructs AuthInterceptor(localStorage: storage) without executor.
       // The guard we fixed ensures even if executor is wired, invariant holds.
       expect(true, isTrue);
@@ -216,8 +216,8 @@ void main() {
       expect(adapter.refreshCalls, 1, reason: 'refresh should have started and be blocked');
 
       // Logout while refresh blocked
-      await storage.clearLabudaCredential();
-      expect(await storage.hasLabudaCredential().then((r) => r.data), isFalse);
+      await storage.clearHiShumiCredential();
+      expect(await storage.hasHiShumiCredential().then((r) => r.data), isFalse);
 
       blocker.complete();
 
@@ -249,7 +249,7 @@ void main() {
       expect(adapter.refreshCalls, 1, reason: 'concurrent 401 must share single refresh');
       expect(adapter.original401Count, 3);
 
-      await storage.clearLabudaCredential();
+      await storage.clearHiShumiCredential();
       blocker.complete();
 
       final results = await Future.wait([f1, f2, f3].map((f) async {
@@ -268,7 +268,7 @@ void main() {
       expect(storage.access, isNull);
       expect(storage.refresh, isNull);
       expect(adapter.retryCount, 0);
-      expect((await storage.hasLabudaCredential()).data, isFalse);
+      expect((await storage.hasHiShumiCredential()).data, isFalse);
     });
 
     test('refresh succeeds when no logout -> saves and retries', () async {
@@ -310,7 +310,7 @@ void main() {
       expect(adapter.refreshCalls, 1);
 
       // Credentials cleared before refresh completes -> stale
-      await storage.clearLabudaCredential();
+      await storage.clearHiShumiCredential();
 
       blocker.complete();
 
@@ -338,14 +338,14 @@ void main() {
 
       final future = dio.get('/api/v1/users/me');
       await Future.delayed(Duration(milliseconds: 50));
-      await storage.clearLabudaCredential();
+      await storage.clearHiShumiCredential();
       blocker.complete();
       try {
         await future;
       } catch (_) {}
       expect(storage.access, isNull);
       expect(storage.refresh, isNull);
-      expect((await storage.hasLabudaCredential()).data, isFalse);
+      expect((await storage.hasHiShumiCredential()).data, isFalse);
     });
   });
 }

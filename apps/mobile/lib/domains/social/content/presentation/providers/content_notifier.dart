@@ -3,10 +3,10 @@
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'content_state.dart';
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/domains/social/content/data/content_providers.dart';
-import 'package:labuda/domains/social/content/domain/entities/content.dart';
-import 'package:labuda/domains/social/content/domain/repositories/content_repository.dart';
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/domains/social/content/data/content_providers.dart';
+import 'package:hishumi/domains/social/content/domain/entities/content.dart';
+import 'package:hishumi/domains/social/content/domain/repositories/content_repository.dart';
 
 // Re-export providers from data layer to avoid duplication
 // These are now defined in content_providers.dart without sl<>

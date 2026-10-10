@@ -10,11 +10,11 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/governance/verification/application"
-	"github.com/labuda/backend/internal/governance/verification/entity"
-	"github.com/labuda/backend/internal/platform/capability"
-	verificationrepo "github.com/labuda/backend/internal/governance/verification/infrastructure/repository"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/governance/verification/application"
+	"github.com/hishumi/backend/internal/governance/verification/entity"
+	"github.com/hishumi/backend/internal/platform/capability"
+	verificationrepo "github.com/hishumi/backend/internal/governance/verification/infrastructure/repository"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // mockTransactor is a mock implementation of Transactor for testing.

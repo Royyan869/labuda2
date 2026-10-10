@@ -33,13 +33,13 @@ import (
 	"os"
 	"time"
 
-	"github.com/labuda/backend/internal/config"
-	"github.com/labuda/backend/internal/platform/logger"
-	"github.com/labuda/backend/internal/serverboot"
-	"github.com/labuda/backend/pkg/database"
-	"github.com/labuda/backend/pkg/firebase"
-	"github.com/labuda/backend/pkg/midtrans"
-	pkgRedis "github.com/labuda/backend/pkg/redis"
+	"github.com/hishumi/backend/internal/config"
+	"github.com/hishumi/backend/internal/platform/logger"
+	"github.com/hishumi/backend/internal/serverboot"
+	"github.com/hishumi/backend/pkg/database"
+	"github.com/hishumi/backend/pkg/firebase"
+	"github.com/hishumi/backend/pkg/midtrans"
+	pkgRedis "github.com/hishumi/backend/pkg/redis"
 	"go.uber.org/zap"
 )
 

@@ -8,9 +8,9 @@
 // - Every section carries the domain tab it must open via "Lihat Semua".
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/features/search/search/domain/entities/search_result.dart';
-import 'package:labuda/features/search/search/presentation/utils/all_tab_sections.dart';
-import 'package:labuda/features/search/search/presentation/utils/search_result_type_helper.dart';
+import 'package:hishumi/features/search/search/domain/entities/search_result.dart';
+import 'package:hishumi/features/search/search/presentation/utils/all_tab_sections.dart';
+import 'package:hishumi/features/search/search/presentation/utils/search_result_type_helper.dart';
 
 SearchResult _item(SearchResultType type, String id) {
   return SearchResult(

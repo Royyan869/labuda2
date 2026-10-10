@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:labuda/core/core.dart';
+import 'package:hishumi/core/core.dart';
 
 /// Google Authentication Repository - Handles Google sign-in operations
 ///
@@ -115,7 +115,7 @@ class AuthGoogleRepository {
         // Under D4 this is a canonical anomaly: do NOT switch accounts
         // silently — surface it and let the user decide.
         return Result.error(
-          'Akun Google ini sudah terhubung ke akun Labuda lain. '
+          'Akun Google ini sudah terhubung ke akun HiShumi lain. '
           'Masuk dengan metode semula.',
         );
       }

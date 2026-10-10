@@ -13,10 +13,10 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/user/profile/data/services/phone_verification_service.dart';
-import 'package:labuda/domains/user/profile/presentation/providers/phone_verification_provider.dart';
-import 'package:labuda/domains/user/profile/presentation/widgets/phone_verification/otp_input_field.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/user/profile/data/services/phone_verification_service.dart';
+import 'package:hishumi/domains/user/profile/presentation/providers/phone_verification_provider.dart';
+import 'package:hishumi/domains/user/profile/presentation/widgets/phone_verification/otp_input_field.dart';
 
 String _read(String path) => File(path).readAsStringSync();
 

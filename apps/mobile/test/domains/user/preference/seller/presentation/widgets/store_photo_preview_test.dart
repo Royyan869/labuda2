@@ -2,8 +2,8 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/domains/user/preference/seller/presentation/widgets/wizard/store_photo_preview.dart';
-import 'package:labuda/shared/widgets/app_image.dart';
+import 'package:hishumi/domains/user/preference/seller/presentation/widgets/wizard/store_photo_preview.dart';
+import 'package:hishumi/shared/widgets/app_image.dart';
 
 Widget _wrap(Widget child) {
   return MaterialApp(home: Scaffold(body: Center(child: child)));

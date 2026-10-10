@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/labuda/backend/internal/finance"
+	"github.com/hishumi/backend/internal/finance"
 )
 
 // ============================================================================

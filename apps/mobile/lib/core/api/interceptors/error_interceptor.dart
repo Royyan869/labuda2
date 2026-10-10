@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
-import 'package:labuda/core/api/exceptions/api_exception.dart';
-import 'package:labuda/core/src/interfaces/services/i_logger_service.dart';
+import 'package:hishumi/core/api/exceptions/api_exception.dart';
+import 'package:hishumi/core/src/interfaces/services/i_logger_service.dart';
 
 /// Interceptor that converts Dio errors to typed ApiExceptions
 ///

@@ -4,11 +4,11 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	sellerEntity "github.com/labuda/backend/internal/commerce/seller/entity"
-	sellerRepo "github.com/labuda/backend/internal/commerce/seller/repository"
-	subscriptionEntity "github.com/labuda/backend/internal/commerce/subscription/entity"
-	subscriptionRepo "github.com/labuda/backend/internal/commerce/subscription/repository"
-	"github.com/labuda/backend/pkg/db"
+	sellerEntity "github.com/hishumi/backend/internal/commerce/seller/entity"
+	sellerRepo "github.com/hishumi/backend/internal/commerce/seller/repository"
+	subscriptionEntity "github.com/hishumi/backend/internal/commerce/subscription/entity"
+	subscriptionRepo "github.com/hishumi/backend/internal/commerce/subscription/repository"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // SubscriptionService handles seller subscription operations.

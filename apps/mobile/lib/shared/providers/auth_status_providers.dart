@@ -3,16 +3,41 @@
 /// Non-authority auth projections used by routing and UI guards.
 library;
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/user/identity/authentication/domain/entities/firebase_principal.dart';
 import 'authenticated_account_provider.dart';
 
-/// Provider to check if user is authenticated.
+/// SINGLE AUTHORITY: does the CURRENT Firebase identity actually hold a
+/// password credential?
 ///
-/// Returns true only for [AuthStateAuthenticated].
-final isAuthenticatedProvider = Provider<bool>((ref) {
-  final authState = ref.watch(authControllerProvider);
-  return authState is AuthStateAuthenticated;
+/// Credential availability is a FIREBASE identity fact — the linked-provider
+/// list (`User.providerData`) is the only truthful source:
+///   - email/password account        → ['password']            → true
+///   - dual (Google + email/password) → ['google.com','password'] → true
+///   - Google-only account            → ['google.com']          → false
+/// `AuthUser.provider` from the backend is the REGISTRATION-ORIGIN provider
+/// (a single enum value) and must never be used for this decision — it
+/// cannot represent a dual-credential account.
+///
+/// The decision reuses the canonical [FirebasePrincipal.providerIds] capture
+/// so the provider-id mapping lives in exactly one place.
+///
+/// FAIL-CLOSED: no current Firebase user (e.g., a HiShumi-only session after
+/// a mid-session Firebase sign-out, or an unreadable identity) is NOT proof
+/// that a password exists — the Change Password action stays unavailable.
+/// The read is a stateless lookup of the live identity; there is no cache
+/// that could leak a previous user's credential status across logout or an
+/// account switch.
+final hasPasswordCredentialProvider = Provider<bool>((ref) {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null) {
+    return false;
+  }
+  return FirebasePrincipal.fromFirebaseUser(
+    user,
+  ).providerIds.contains('password');
 });
 
 /// Provider to get current user ID for account-scoped keys.
@@ -34,31 +59,9 @@ final isEmailVerifiedProvider = Provider<bool>((ref) {
   return false;
 });
 
-/// Provider to check if user is authenticated but email not verified.
-final isUnverifiedProvider = Provider<bool>((ref) {
-  final isAuthenticated = ref.watch(isAuthenticatedProvider);
-  final isEmailVerified = ref.watch(isEmailVerifiedProvider);
-  return isAuthenticated && !isEmailVerified;
-});
-
 /// Provider to check if backend sync is in progress.
 final isSyncingWithBackendProvider = Provider<bool>((ref) {
   final authState = ref.watch(authControllerProvider);
   return authState is AuthStateFirebaseAuthenticated ||
       authState is AuthStateSyncingWithBackend;
-});
-
-/// Provider to get auth error if any.
-final authErrorProvider = Provider<String?>((ref) {
-  final authState = ref.watch(authControllerProvider);
-  if (authState is AuthStateError) {
-    return authState.message;
-  }
-  return null;
-});
-
-/// Provider to check if current user is admin.
-final isAdminProvider = Provider<bool>((ref) {
-  final user = ref.watch(authenticatedUserProvider);
-  return user?.isAdmin ?? false;
 });

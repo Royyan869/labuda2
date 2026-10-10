@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/shared/shared.dart';
-import 'package:labuda/domains/user/profile/presentation/widgets/bank_account_card_widget.dart';
-import 'package:labuda/domains/user/profile/presentation/widgets/bank_account_empty_state_widget.dart';
-import 'package:labuda/domains/user/profile/presentation/widgets/add_edit_bank_account_dialog.dart';
-import 'package:labuda/domains/user/profile/domain/entities/bank_account_entity.dart';
-import 'package:labuda/domains/user/profile/presentation/providers/bank_account_provider.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/shared/shared.dart';
+import 'package:hishumi/domains/user/profile/presentation/widgets/bank_account_card_widget.dart';
+import 'package:hishumi/domains/user/profile/presentation/widgets/bank_account_empty_state_widget.dart';
+import 'package:hishumi/domains/user/profile/presentation/widgets/add_edit_bank_account_dialog.dart';
+import 'package:hishumi/domains/user/profile/domain/entities/bank_account_entity.dart';
+import 'package:hishumi/domains/user/profile/presentation/providers/bank_account_provider.dart';
 
 /// Bank Account Management Screen untuk seller payment settings
 ///

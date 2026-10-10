@@ -30,8 +30,8 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/domains/commerce/transaction/order/data/mappers/order_mapper.dart';
-import 'package:labuda/domains/commerce/transaction/order/domain/domain.dart'
+import 'package:hishumi/domains/commerce/transaction/order/data/mappers/order_mapper.dart';
+import 'package:hishumi/domains/commerce/transaction/order/domain/domain.dart'
     show PaymentStatus;
 
 /// The gateway's own vocabulary for a payment row. None of these is a canonical

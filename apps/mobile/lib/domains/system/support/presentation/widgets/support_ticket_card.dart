@@ -6,13 +6,13 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/domains/system/support/domain/domain.dart';
-import 'package:labuda/domains/system/shared/domain/services/time_format_service.dart';
-import 'package:labuda/domains/system/support/presentation/utils/support_category_label.dart';
-import 'package:labuda/domains/system/support/presentation/utils/support_priority_label.dart';
-import 'package:labuda/domains/system/support/presentation/utils/support_status_label.dart';
-import 'package:labuda/core/src/localization/l10n_extension.dart';
-import 'package:labuda/core/src/theme/app_theme.dart';
+import 'package:hishumi/domains/system/support/domain/domain.dart';
+import 'package:hishumi/domains/system/shared/domain/services/time_format_service.dart';
+import 'package:hishumi/domains/system/support/presentation/utils/support_category_label.dart';
+import 'package:hishumi/domains/system/support/presentation/utils/support_priority_label.dart';
+import 'package:hishumi/domains/system/support/presentation/utils/support_status_label.dart';
+import 'package:hishumi/core/src/localization/l10n_extension.dart';
+import 'package:hishumi/core/src/theme/app_theme.dart';
 
 // ============================================
 // WIDGET

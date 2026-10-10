@@ -15,12 +15,12 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 
-	orderhttp "github.com/labuda/backend/internal/commerce/order/delivery/http"
-	"github.com/labuda/backend/internal/commerce/order/entity"
-	orderinfra "github.com/labuda/backend/internal/commerce/order/infrastructure/repository"
-	"github.com/labuda/backend/internal/worker"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/testdb"
+	orderhttp "github.com/hishumi/backend/internal/commerce/order/delivery/http"
+	"github.com/hishumi/backend/internal/commerce/order/entity"
+	orderinfra "github.com/hishumi/backend/internal/commerce/order/infrastructure/repository"
+	"github.com/hishumi/backend/internal/worker"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/testdb"
 )
 
 // ============================================================================

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/system/report/domain/entities/entities.dart';
-import 'package:labuda/domains/system/report/presentation/providers/report_providers.dart';
-import 'package:labuda/domains/system/report/presentation/widgets/report_description_field.dart';
-import 'package:labuda/domains/system/report/presentation/widgets/report_reason_selector.dart';
-import 'package:labuda/shared/shared.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/system/report/domain/entities/entities.dart';
+import 'package:hishumi/domains/system/report/presentation/providers/report_providers.dart';
+import 'package:hishumi/domains/system/report/presentation/widgets/report_description_field.dart';
+import 'package:hishumi/domains/system/report/presentation/widgets/report_reason_selector.dart';
+import 'package:hishumi/shared/shared.dart';
 
 /// Report Submission Screen
 ///

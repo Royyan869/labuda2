@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/shared/models/seller_identity_data.dart';
-import 'package:labuda/shared/widgets/hybrid_avatar.dart';
-import 'package:labuda/shared/widgets/seller_dual_avatar.dart';
+import 'package:hishumi/shared/models/seller_identity_data.dart';
+import 'package:hishumi/shared/widgets/hybrid_avatar.dart';
+import 'package:hishumi/shared/widgets/seller_dual_avatar.dart';
 
 /// The ONE identity composite: store name primary, handle secondary.
 ///

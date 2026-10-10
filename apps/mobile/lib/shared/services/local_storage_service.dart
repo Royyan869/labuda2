@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-import 'package:labuda/core/core.dart';
+import 'package:hishumi/core/core.dart';
 
 class LocalStorageService implements ILocalStorageService {
   static final LocalStorageService _instance = LocalStorageService._internal();
@@ -344,7 +344,7 @@ class LocalStorageService implements ILocalStorageService {
 
   // (AUTH-2 PURGE) Legacy token APIs removed:
   // setAuthToken / getAuthToken / setRefreshToken / getRefreshToken /
-  // setUserSession / getUserSession. The canonical Labuda credential
+  // setUserSession / getUserSession. The canonical HiShumi credential
   // boundary below replaces them.
 
   // Restricted profile-completion credential (isolated from normal access token)
@@ -363,9 +363,9 @@ class LocalStorageService implements ILocalStorageService {
     return await removeSecure(StorageKeys.restrictedToken);
   }
 
-  // Canonical Labuda credential operations
+  // Canonical HiShumi credential operations
   @override
-  Future<Result<void>> saveLabudaCredential(
+  Future<Result<void>> saveHiShumiCredential(
     String accessToken,
     String refreshToken,
   ) async {
@@ -383,17 +383,17 @@ class LocalStorageService implements ILocalStorageService {
   }
 
   @override
-  Future<Result<String?>> readLabudaAccessToken() async {
+  Future<Result<String?>> readHiShumiAccessToken() async {
     return await getSecureString(StorageKeys.authToken);
   }
 
   @override
-  Future<Result<String?>> readLabudaRefreshToken() async {
+  Future<Result<String?>> readHiShumiRefreshToken() async {
     return await getSecureString(StorageKeys.refreshToken);
   }
 
   @override
-  Future<Result<void>> clearLabudaCredential() async {
+  Future<Result<void>> clearHiShumiCredential() async {
     final clearAccess = await removeSecure(StorageKeys.authToken);
     final clearRefresh = await removeSecure(StorageKeys.refreshToken);
 
@@ -404,13 +404,13 @@ class LocalStorageService implements ILocalStorageService {
   }
 
   @override
-  Future<Result<bool>> hasLabudaCredential() async {
-    final access = await readLabudaAccessToken();
+  Future<Result<bool>> hasHiShumiCredential() async {
+    final access = await readHiShumiAccessToken();
     if (access.isError || access.data == null || access.data!.isEmpty) {
       return Result.success(false);
     }
 
-    final refresh = await readLabudaRefreshToken();
+    final refresh = await readHiShumiRefreshToken();
     if (refresh.isError || refresh.data == null || refresh.data!.isEmpty) {
       return Result.success(false);
     }

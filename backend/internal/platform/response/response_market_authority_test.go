@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
-	"github.com/labuda/backend/internal/identity/auth"
+	"github.com/hishumi/backend/internal/identity/auth"
 )
 
 // TestMapErrorToResponse_MarketAuthorityRequired proves that

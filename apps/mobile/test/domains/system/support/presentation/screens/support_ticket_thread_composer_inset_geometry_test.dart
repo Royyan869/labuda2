@@ -22,14 +22,14 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/system/support/domain/domain.dart';
-import 'package:labuda/domains/system/support/domain/repositories/support_repository.dart';
-import 'package:labuda/domains/system/support/presentation/presentation.dart';
-import 'package:labuda/domains/user/identity/authentication/domain/entities/account_status.dart';
-import 'package:labuda/generated/app_localizations.dart';
-import 'package:labuda/shared/providers/authenticated_account_provider.dart';
-import 'package:labuda/shared/widgets/composer_action_buttons.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/system/support/domain/domain.dart';
+import 'package:hishumi/domains/system/support/domain/repositories/support_repository.dart';
+import 'package:hishumi/domains/system/support/presentation/presentation.dart';
+import 'package:hishumi/domains/user/identity/authentication/domain/entities/account_status.dart';
+import 'package:hishumi/generated/app_localizations.dart';
+import 'package:hishumi/shared/providers/authenticated_account_provider.dart';
+import 'package:hishumi/shared/widgets/composer_action_buttons.dart';
 
 const _ticketId = 't1';
 

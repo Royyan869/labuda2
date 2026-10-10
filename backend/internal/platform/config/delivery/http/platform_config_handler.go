@@ -5,12 +5,12 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/audit"
-	"github.com/labuda/backend/internal/platform/capability"
-	platformconfigApp "github.com/labuda/backend/internal/platform/config/application"
-	platformconfigEntity "github.com/labuda/backend/internal/platform/config/entity"
-	"github.com/labuda/backend/internal/platform/response"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/audit"
+	"github.com/hishumi/backend/internal/platform/capability"
+	platformconfigApp "github.com/hishumi/backend/internal/platform/config/application"
+	platformconfigEntity "github.com/hishumi/backend/internal/platform/config/entity"
+	"github.com/hishumi/backend/internal/platform/response"
+	"github.com/hishumi/backend/pkg/db"
 	"github.com/shopspring/decimal"
 	"go.uber.org/zap"
 )

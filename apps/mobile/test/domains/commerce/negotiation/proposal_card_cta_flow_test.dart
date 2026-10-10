@@ -14,15 +14,15 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/common/result.dart';
+import 'package:hishumi/core/common/result.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/domains/commerce/negotiation/negotiation/domain/entities/negotiation.dart';
-import 'package:labuda/domains/commerce/negotiation/negotiation/presentation/providers/negotiation_notifier.dart';
-import 'package:labuda/domains/commerce/negotiation/negotiation/presentation/providers/negotiation_providers.dart';
-import 'package:labuda/domains/commerce/negotiation/negotiation/presentation/providers/negotiation_state.dart';
-import 'package:labuda/domains/commerce/negotiation/negotiation/presentation/widgets/negotiation_proposal_card.dart';
-import 'package:labuda/shared/attachment/entities/attachment.dart';
-import 'package:labuda/shared/providers/auth_status_providers.dart';
+import 'package:hishumi/domains/commerce/negotiation/negotiation/domain/entities/negotiation.dart';
+import 'package:hishumi/domains/commerce/negotiation/negotiation/presentation/providers/negotiation_notifier.dart';
+import 'package:hishumi/domains/commerce/negotiation/negotiation/presentation/providers/negotiation_providers.dart';
+import 'package:hishumi/domains/commerce/negotiation/negotiation/presentation/providers/negotiation_state.dart';
+import 'package:hishumi/domains/commerce/negotiation/negotiation/presentation/widgets/negotiation_proposal_card.dart';
+import 'package:hishumi/shared/attachment/entities/attachment.dart';
+import 'package:hishumi/shared/providers/auth_status_providers.dart';
 
 /// Serves a fixed session state without touching the network layer.
 class _StubNegotiationNotifier extends NegotiationNotifier {

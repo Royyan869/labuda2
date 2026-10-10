@@ -10,16 +10,16 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/audit"
-	notifservice "github.com/labuda/backend/internal/interaction/notification/service"
-	"github.com/labuda/backend/internal/middleware"
-	"github.com/labuda/backend/internal/platform/admin/application"
-	"github.com/labuda/backend/internal/platform/admin/repository"
-	"github.com/labuda/backend/internal/platform/capability"
-	capabilityApp "github.com/labuda/backend/internal/platform/capability/application"
-	capabilityEntity "github.com/labuda/backend/internal/platform/capability/entity"
-	"github.com/labuda/backend/internal/platform/capability/invariant"
-	"github.com/labuda/backend/internal/platform/response"
+	"github.com/hishumi/backend/internal/audit"
+	notifservice "github.com/hishumi/backend/internal/interaction/notification/service"
+	"github.com/hishumi/backend/internal/middleware"
+	"github.com/hishumi/backend/internal/platform/admin/application"
+	"github.com/hishumi/backend/internal/platform/admin/repository"
+	"github.com/hishumi/backend/internal/platform/capability"
+	capabilityApp "github.com/hishumi/backend/internal/platform/capability/application"
+	capabilityEntity "github.com/hishumi/backend/internal/platform/capability/entity"
+	"github.com/hishumi/backend/internal/platform/capability/invariant"
+	"github.com/hishumi/backend/internal/platform/response"
 )
 
 // FailedDeliveryQuerier is the minimal interface for querying failed notification

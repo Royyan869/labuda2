@@ -42,8 +42,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/system/report/presentation/screens/report_screen.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/system/report/presentation/screens/report_screen.dart';
 
 const String _invalidMsg = 'Unable to load report information';
 const String _ctaLabel = 'Submit Report';

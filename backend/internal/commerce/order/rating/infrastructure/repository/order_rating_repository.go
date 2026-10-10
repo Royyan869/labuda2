@@ -7,8 +7,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgconn"
-	ratingEntity "github.com/labuda/backend/internal/commerce/order/rating/entity"
-	"github.com/labuda/backend/pkg/db"
+	ratingEntity "github.com/hishumi/backend/internal/commerce/order/rating/entity"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // OrderRatingRepository handles order rating persistence using pgx-based DB layer.

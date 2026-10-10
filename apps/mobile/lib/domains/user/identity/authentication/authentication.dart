@@ -11,7 +11,6 @@ export 'domain/repositories/i_auth_repository.dart';
 // Presentation layer (providers, screens, widgets)
 export 'presentation/providers/auth_controller.dart';
 export 'presentation/providers/auth_state.dart';
-export 'presentation/providers/user_controller.dart';
 export 'presentation/screens/sign_in_screen.dart';
 export 'presentation/screens/sign_up_screen.dart';
 export 'presentation/screens/forgot_password_screen.dart';

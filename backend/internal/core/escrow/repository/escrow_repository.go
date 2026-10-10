@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/core/escrow/entity"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/core/escrow/entity"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // EscrowRepository defines the interface for escrow persistence operations.

@@ -12,10 +12,10 @@ import (
 	"github.com/jackc/pgx/v5"
 	"go.uber.org/zap/zaptest"
 
-	notificationrepository "github.com/labuda/backend/internal/interaction/notification/infrastructure/repository"
-	platformevent "github.com/labuda/backend/internal/platform/event"
-	"github.com/labuda/backend/internal/platform/events"
-	dbpkg "github.com/labuda/backend/pkg/db"
+	notificationrepository "github.com/hishumi/backend/internal/interaction/notification/infrastructure/repository"
+	platformevent "github.com/hishumi/backend/internal/platform/event"
+	"github.com/hishumi/backend/internal/platform/events"
+	dbpkg "github.com/hishumi/backend/pkg/db"
 )
 
 func TestOrderCancelledTimeout_BothPartiesNotified(t *testing.T) {

@@ -3,7 +3,7 @@
 /// Converts between Domain Entities and DTOs.
 library;
 
-import 'package:labuda/domains/user/preference/seller/data/models/api/seller_api_models.dart';
+import 'package:hishumi/domains/user/preference/seller/data/models/api/seller_api_models.dart';
 
 import '../../domain/entities/seller_earnings.dart';
 import '../../domain/entities/seller_performance.dart';

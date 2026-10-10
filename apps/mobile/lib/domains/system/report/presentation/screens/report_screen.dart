@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/system/report/domain/entities/entities.dart';
-import 'package:labuda/domains/system/report/presentation/screens/report_submission_screen.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/system/report/domain/entities/entities.dart';
+import 'package:hishumi/domains/system/report/presentation/screens/report_submission_screen.dart';
 
 /// Report Screen — full-screen entry point for reporting.
 ///

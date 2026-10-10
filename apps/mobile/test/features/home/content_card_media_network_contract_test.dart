@@ -17,12 +17,12 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/social/content/domain/entities/content.dart';
-import 'package:labuda/features/home/domain/entities/feed_item.dart';
-import 'package:labuda/features/home/presentation/providers/feed_renderers.dart';
-import 'package:labuda/features/home/presentation/widgets/feed_media_mosaic.dart';
-import 'package:labuda/shared/widgets/app_image.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/social/content/domain/entities/content.dart';
+import 'package:hishumi/features/home/domain/entities/feed_item.dart';
+import 'package:hishumi/features/home/presentation/providers/feed_renderers.dart';
+import 'package:hishumi/features/home/presentation/widgets/feed_media_mosaic.dart';
+import 'package:hishumi/shared/widgets/app_image.dart';
 
 /// Only the session state is faked — every downstream widget stays production
 /// code. The card footer watches the auth state; unauthenticated keeps the

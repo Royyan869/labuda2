@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:labuda/domains/commerce/catalog/auction/presentation/create_auction_route_contract.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/presentation/create_auction_route_contract.dart';
 
 void main() {
   group('CreateAuctionRouteArgs — caller-aware post-create landing', () {

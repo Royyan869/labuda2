@@ -1,7 +1,7 @@
 library;
 
-import 'package:labuda/core/core.dart' as core;
-import 'package:labuda/shared/widgets/app_dialog.dart';
+import 'package:hishumi/core/core.dart' as core;
+import 'package:hishumi/shared/widgets/app_dialog.dart';
 
 // =============================================================================
 // ORDER ACTION HANDLER - Decision V2 Contract
@@ -19,12 +19,12 @@ import 'package:labuda/shared/widgets/app_dialog.dart';
 // =============================================================================
 
 import 'package:flutter/material.dart';
-import 'package:labuda/core/src/theme/app_theme.dart';
-import 'package:labuda/domains/commerce/transaction/order/domain/domain.dart'
+import 'package:hishumi/core/src/theme/app_theme.dart';
+import 'package:hishumi/domains/commerce/transaction/order/domain/domain.dart'
     as order_domain;
-import 'package:labuda/domains/commerce/transaction/order/order.dart';
-import 'package:labuda/domains/commerce/transaction/order/presentation/widgets/order_action_label_resolver.dart';
-import 'package:labuda/generated/app_localizations.dart';
+import 'package:hishumi/domains/commerce/transaction/order/order.dart';
+import 'package:hishumi/domains/commerce/transaction/order/presentation/widgets/order_action_label_resolver.dart';
+import 'package:hishumi/generated/app_localizations.dart';
 
 /// Order Action Handler - routes backend actions to appropriate handlers
 class OrderActionHandler {

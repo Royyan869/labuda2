@@ -10,8 +10,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/labuda/backend/internal/social/content/entity"
-	contentrepo "github.com/labuda/backend/internal/social/content/infrastructure/repository"
+	"github.com/hishumi/backend/internal/social/content/entity"
+	contentrepo "github.com/hishumi/backend/internal/social/content/infrastructure/repository"
 )
 
 type repostGateTx struct {

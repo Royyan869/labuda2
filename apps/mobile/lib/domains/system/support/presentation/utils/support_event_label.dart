@@ -1,8 +1,8 @@
-import 'package:labuda/domains/system/support/domain/domain.dart';
-import 'package:labuda/domains/system/support/presentation/utils/support_category_label.dart';
-import 'package:labuda/domains/system/support/presentation/utils/support_priority_label.dart';
-import 'package:labuda/domains/system/support/presentation/utils/support_status_label.dart';
-import 'package:labuda/generated/app_localizations.dart';
+import 'package:hishumi/domains/system/support/domain/domain.dart';
+import 'package:hishumi/domains/system/support/presentation/utils/support_category_label.dart';
+import 'package:hishumi/domains/system/support/presentation/utils/support_priority_label.dart';
+import 'package:hishumi/domains/system/support/presentation/utils/support_status_label.dart';
+import 'package:hishumi/generated/app_localizations.dart';
 
 /// I18N-18 — the ONE canonical Support Event display authority.
 ///

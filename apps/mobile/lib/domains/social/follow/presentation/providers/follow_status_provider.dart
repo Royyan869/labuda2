@@ -1,8 +1,8 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:labuda/domains/social/follow/data/follow_providers.dart';
-import 'package:labuda/domains/social/follow/domain/use_cases/providers/use_case_providers.dart';
-import 'package:labuda/domains/social/follow/presentation/providers/follow_stream_provider.dart';
-import 'package:labuda/domains/user/identity/authentication/authentication.dart';
+import 'package:hishumi/domains/social/follow/data/follow_providers.dart';
+import 'package:hishumi/domains/social/follow/domain/use_cases/providers/use_case_providers.dart';
+import 'package:hishumi/domains/social/follow/presentation/providers/follow_stream_provider.dart';
+import 'package:hishumi/domains/user/identity/authentication/authentication.dart';
 
 part 'follow_status_provider.g.dart';
 

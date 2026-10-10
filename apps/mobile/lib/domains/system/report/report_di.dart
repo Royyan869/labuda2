@@ -1,7 +1,7 @@
 /// Report DI Helper
 library;
 
-import 'package:labuda/domains/system/report/presentation/providers/report_providers.dart';
+import 'package:hishumi/domains/system/report/presentation/providers/report_providers.dart';
 
 /// Report DI
 class ReportDI {

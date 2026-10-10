@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/shared/shared.dart';
-import 'package:labuda/shared/models/seller_identity_data.dart';
-import 'package:labuda/generated/app_localizations.dart';
-import 'package:labuda/core/src/theme/app_theme.dart';
+import 'package:hishumi/shared/shared.dart';
+import 'package:hishumi/shared/models/seller_identity_data.dart';
+import 'package:hishumi/generated/app_localizations.dart';
+import 'package:hishumi/core/src/theme/app_theme.dart';
 
 /// Drawer header component
 ///
@@ -120,7 +120,7 @@ class _MainDrawerHeaderState extends ConsumerState<MainDrawerHeader> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
-                            'LABUDA',
+                            'HiShumi',
                             style: context.typeRoles.titleSection.copyWith(
                               color: scheme.onSurface,
                               fontWeight: FontWeight.bold,

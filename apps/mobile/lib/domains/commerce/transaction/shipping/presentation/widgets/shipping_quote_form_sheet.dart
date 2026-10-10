@@ -10,13 +10,13 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/shared/models/wilayah_models.dart';
-import 'package:labuda/shared/utils/money_input_formatter.dart';
-import 'package:labuda/shared/widgets/app_bottom_sheet_base.dart';
-import 'package:labuda/shared/widgets/app_text_field.dart';
-import 'package:labuda/shared/widgets/wilayah/city_dropdown.dart';
-import 'package:labuda/shared/widgets/wilayah/province_dropdown.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/shared/models/wilayah_models.dart';
+import 'package:hishumi/shared/utils/money_input_formatter.dart';
+import 'package:hishumi/shared/widgets/app_bottom_sheet_base.dart';
+import 'package:hishumi/shared/widgets/app_text_field.dart';
+import 'package:hishumi/shared/widgets/wilayah/city_dropdown.dart';
+import 'package:hishumi/shared/widgets/wilayah/province_dropdown.dart';
 
 /// What the seller submitted: all-in cost (smallest currency unit), the
 /// MANDATORY kota/kabupaten destination lock, and an optional note shown to

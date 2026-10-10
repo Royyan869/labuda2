@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/governance/moderation/entity"
+	"github.com/hishumi/backend/internal/governance/moderation/entity"
 )
 
 // AppealRepository defines the interface for appeal persistence operations.

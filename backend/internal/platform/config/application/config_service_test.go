@@ -8,8 +8,8 @@ import (
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/require"
 
-	"github.com/labuda/backend/internal/platform/config/entity"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/platform/config/entity"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // stubConfigRepo is a minimal in-memory repository.Repository for getter tests.

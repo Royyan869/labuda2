@@ -6,7 +6,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/labuda/backend/pkg/testdb"
+	"github.com/hishumi/backend/pkg/testdb"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 )

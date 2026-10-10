@@ -8,10 +8,10 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
-	auctionEntity "github.com/labuda/backend/internal/commerce/auction/entity"
-	forSaleEntity "github.com/labuda/backend/internal/commerce/forsale/entity"
-	"github.com/labuda/backend/internal/commerce/response"
-	"github.com/labuda/backend/pkg/db"
+	auctionEntity "github.com/hishumi/backend/internal/commerce/auction/entity"
+	forSaleEntity "github.com/hishumi/backend/internal/commerce/forsale/entity"
+	"github.com/hishumi/backend/internal/commerce/response"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // ---------------------------------------------------------------------------

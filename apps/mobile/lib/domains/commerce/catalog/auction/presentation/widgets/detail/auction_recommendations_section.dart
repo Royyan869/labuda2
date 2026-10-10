@@ -6,11 +6,11 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:labuda/core/src/router/route_paths.dart';
-import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction.dart';
-import 'package:labuda/shared/utils/media_extensions.dart';
-import 'package:labuda/shared/widgets/app_image.dart';
-import 'package:labuda/core/src/theme/app_theme.dart';
+import 'package:hishumi/core/src/router/route_paths.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/domain/entities/auction.dart';
+import 'package:hishumi/shared/utils/media_extensions.dart';
+import 'package:hishumi/shared/widgets/app_image.dart';
+import 'package:hishumi/core/src/theme/app_theme.dart';
 
 /// Recommendations section widget for auction detail
 class AuctionRecommendationsSection extends StatelessWidget {

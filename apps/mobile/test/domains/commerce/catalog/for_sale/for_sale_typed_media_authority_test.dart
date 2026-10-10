@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/domains/commerce/catalog/for_sale/data/dto/for_sale_dto.dart';
-import 'package:labuda/domains/commerce/catalog/for_sale/data/mappers/for_sale_dto_mapper.dart';
-import 'package:labuda/domains/social/content/domain/entities/content.dart';
+import 'package:hishumi/domains/commerce/catalog/for_sale/data/dto/for_sale_dto.dart';
+import 'package:hishumi/domains/commerce/catalog/for_sale/data/mappers/for_sale_dto_mapper.dart';
+import 'package:hishumi/domains/social/content/domain/entities/content.dart';
 
 Map<String, dynamic> _listingJson() {
   return <String, dynamic>{

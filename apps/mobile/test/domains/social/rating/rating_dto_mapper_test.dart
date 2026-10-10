@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/domains/social/rating/data/dto/rating_api_models.dart';
-import 'package:labuda/domains/social/rating/data/mappers/rating_api_mapper.dart';
+import 'package:hishumi/domains/social/rating/data/dto/rating_api_models.dart';
+import 'package:hishumi/domains/social/rating/data/mappers/rating_api_mapper.dart';
 
 // CANONICAL RATING DTO + MAPPER CONTRACT TEST
 //

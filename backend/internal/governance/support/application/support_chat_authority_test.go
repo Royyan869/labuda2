@@ -13,8 +13,8 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/governance/support/entity"
-	chatEntity "github.com/labuda/backend/internal/interaction/chat/entity"
+	"github.com/hishumi/backend/internal/governance/support/entity"
+	chatEntity "github.com/hishumi/backend/internal/interaction/chat/entity"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"

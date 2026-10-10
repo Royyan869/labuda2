@@ -5,11 +5,11 @@
 library;
 
 import 'package:dio/dio.dart';
-import 'package:labuda/core/api/exceptions/api_exception.dart';
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/core/src/interfaces/services/i_logger_service.dart';
-import 'package:labuda/domains/user/identity/verification/data/remote/verification_v2_datasource.dart';
-import 'package:labuda/domains/user/identity/verification/domain/entities/seller_verification_status.dart';
+import 'package:hishumi/core/api/exceptions/api_exception.dart';
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/core/src/interfaces/services/i_logger_service.dart';
+import 'package:hishumi/domains/user/identity/verification/data/remote/verification_v2_datasource.dart';
+import 'package:hishumi/domains/user/identity/verification/domain/entities/seller_verification_status.dart';
 
 /// Seller verification data — wraps canonical lifecycle status.
 class SellerVerificationData {

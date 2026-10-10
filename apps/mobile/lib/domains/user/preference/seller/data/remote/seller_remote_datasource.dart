@@ -4,9 +4,9 @@
 library;
 
 import 'package:dio/dio.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/user/preference/seller/data/datasources/seller_api_datasource.dart';
-import 'package:labuda/domains/user/preference/seller/data/models/api/seller_api_models.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/user/preference/seller/data/datasources/seller_api_datasource.dart';
+import 'package:hishumi/domains/user/preference/seller/data/models/api/seller_api_models.dart';
 
 import '../dto/seller_dto.dart';
 

@@ -7,10 +7,10 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	contententity "github.com/labuda/backend/internal/social/content/entity"
-	"github.com/labuda/backend/internal/social/like/application"
-	likeentity "github.com/labuda/backend/internal/social/like/entity"
-	"github.com/labuda/backend/pkg/db"
+	contententity "github.com/hishumi/backend/internal/social/content/entity"
+	"github.com/hishumi/backend/internal/social/like/application"
+	likeentity "github.com/hishumi/backend/internal/social/like/entity"
+	"github.com/hishumi/backend/pkg/db"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

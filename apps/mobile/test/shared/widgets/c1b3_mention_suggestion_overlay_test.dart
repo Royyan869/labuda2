@@ -3,19 +3,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/user/profile/data/datasources/user_api_datasource.dart';
-import 'package:labuda/domains/user/profile/data/profile_providers.dart'
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/user/profile/data/datasources/user_api_datasource.dart';
+import 'package:hishumi/domains/user/profile/data/profile_providers.dart'
     show avatarCacheServiceProvider;
-import 'package:labuda/domains/user/profile/data/services/avatar_cache_service.dart';
-import 'package:labuda/features/search/search/domain/entities/user_search.dart';
-import 'package:labuda/features/search/search/presentation/providers/mention_providers.dart'
+import 'package:hishumi/domains/user/profile/data/services/avatar_cache_service.dart';
+import 'package:hishumi/features/search/search/domain/entities/user_search.dart';
+import 'package:hishumi/features/search/search/presentation/providers/mention_providers.dart'
     show mentionUserSearchProvider, MentionSearchParams;
-import 'package:labuda/shared/helpers/canonical_username_validator.dart';
-import 'package:labuda/shared/providers/auth_status_providers.dart'
+import 'package:hishumi/shared/helpers/canonical_username_validator.dart';
+import 'package:hishumi/shared/providers/auth_status_providers.dart'
     show currentUserIdProvider;
-import 'package:labuda/shared/widgets/mentions/mention_suggestion_overlay.dart';
-import 'package:labuda/shared/widgets/hybrid_avatar.dart';
+import 'package:hishumi/shared/widgets/mentions/mention_suggestion_overlay.dart';
+import 'package:hishumi/shared/widgets/hybrid_avatar.dart';
 
 class _FakeUserApiDatasource extends Fake implements UserApiDatasource {}
 class _StubLogger extends Fake implements ILoggerService {

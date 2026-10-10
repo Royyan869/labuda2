@@ -1,5 +1,5 @@
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/core/src/interfaces/services/i_analytics_repository.dart';
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/core/src/interfaces/services/i_analytics_repository.dart';
 import '../services/firebase_analytics_service.dart';
 
 /// Canonical implementation of [IAnalyticsRepository] backed by Firebase

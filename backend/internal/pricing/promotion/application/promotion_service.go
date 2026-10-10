@@ -5,9 +5,9 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/pricing/promotion/entity"
-	"github.com/labuda/backend/internal/pricing/promotion/repository"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/pricing/promotion/entity"
+	"github.com/hishumi/backend/internal/pricing/promotion/repository"
+	"github.com/hishumi/backend/pkg/db"
 	"go.uber.org/zap"
 )
 

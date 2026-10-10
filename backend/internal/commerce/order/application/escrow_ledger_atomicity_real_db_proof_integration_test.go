@@ -7,12 +7,12 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/commerce/order/entity"
-	escrowApp "github.com/labuda/backend/internal/core/escrow/application"
-	financeApp "github.com/labuda/backend/internal/finance/application"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/money"
-	"github.com/labuda/backend/pkg/testdb"
+	"github.com/hishumi/backend/internal/commerce/order/entity"
+	escrowApp "github.com/hishumi/backend/internal/core/escrow/application"
+	financeApp "github.com/hishumi/backend/internal/finance/application"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/money"
+	"github.com/hishumi/backend/pkg/testdb"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 )

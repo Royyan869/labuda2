@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/shared/shared.dart';
-import 'package:labuda/generated/app_localizations.dart';
-import 'package:labuda/core/src/theme/app_theme.dart';
+import 'package:hishumi/shared/shared.dart';
+import 'package:hishumi/generated/app_localizations.dart';
+import 'package:hishumi/core/src/theme/app_theme.dart';
 
 class SettingsAppPreferencesSection extends StatelessWidget {
   final void Function(String route)? onNavigate;

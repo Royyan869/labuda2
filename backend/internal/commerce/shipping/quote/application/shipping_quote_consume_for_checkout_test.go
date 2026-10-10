@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	shippingQuoteEntity "github.com/labuda/backend/internal/commerce/shipping/quote/entity"
-	"github.com/labuda/backend/pkg/db"
+	shippingQuoteEntity "github.com/hishumi/backend/internal/commerce/shipping/quote/entity"
+	"github.com/hishumi/backend/pkg/db"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 )

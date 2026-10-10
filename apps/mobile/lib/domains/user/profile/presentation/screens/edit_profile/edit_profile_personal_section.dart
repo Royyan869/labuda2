@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/shared/shared.dart';
+import 'package:hishumi/shared/shared.dart';
 
 /// Personal Information Fields for Edit Profile
 class EditProfilePersonalSection extends StatelessWidget {

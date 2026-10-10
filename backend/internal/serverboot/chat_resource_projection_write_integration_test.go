@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	contentEntity "github.com/labuda/backend/internal/social/content/entity"
+	contentEntity "github.com/hishumi/backend/internal/social/content/entity"
 	"github.com/stretchr/testify/require"
 )
 

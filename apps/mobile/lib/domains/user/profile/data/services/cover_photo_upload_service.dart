@@ -1,5 +1,5 @@
 import 'dart:io';
-import 'package:labuda/core/core.dart';
+import 'package:hishumi/core/core.dart';
 
 /// Cover Photo Upload Service - Upload profile cover via the canonical
 /// backend media authority (STAGE 4F-1/4F-2).

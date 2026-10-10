@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
-import 'package:labuda/core/src/router/modules/profile_module.dart';
-import 'package:labuda/domains/system/notification/presentation/screens/notification_settings_screen.dart';
+import 'package:hishumi/core/src/router/modules/profile_module.dart';
+import 'package:hishumi/domains/system/notification/presentation/screens/notification_settings_screen.dart';
 
 void main() {
   testWidgets('notification settings screen is read-only', (tester) async {

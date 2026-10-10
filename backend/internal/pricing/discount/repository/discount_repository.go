@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/pricing/discount/entity"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/pricing/discount/entity"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // DiscountRepository defines the interface for discount persistence operations.

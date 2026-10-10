@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/domains/chat/chat/presentation/screens/chat_detail_screen.dart';
-import 'package:labuda/domains/commerce/catalog/for_sale/data/dto/shipping_quote_dto.dart';
-import 'package:labuda/shared/attachment/entities/attachment.dart';
+import 'package:hishumi/domains/chat/chat/presentation/screens/chat_detail_screen.dart';
+import 'package:hishumi/domains/commerce/catalog/for_sale/data/dto/shipping_quote_dto.dart';
+import 'package:hishumi/shared/attachment/entities/attachment.dart';
 
 // Canonical distinct UUIDs for ID-confusion proof tests.
 const _productId = '11111111-1111-1111-1111-111111111111';

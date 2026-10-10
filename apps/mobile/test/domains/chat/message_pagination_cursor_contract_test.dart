@@ -1,14 +1,14 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/api/api_client.dart';
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/domains/chat/chat/data/dto/chat_room_event_dto.dart';
-import 'package:labuda/domains/chat/chat/data/remote/chat_api_datasource.dart';
-import 'package:labuda/domains/chat/chat/domain/entities/chat_entities.dart';
-import 'package:labuda/domains/chat/chat/domain/repositories/chat_repository.dart';
-import 'package:labuda/domains/chat/chat/presentation/providers/chat_notifier.dart';
-import 'package:labuda/domains/chat/chat/data/chat_providers.dart';
+import 'package:hishumi/core/api/api_client.dart';
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/domains/chat/chat/data/dto/chat_room_event_dto.dart';
+import 'package:hishumi/domains/chat/chat/data/remote/chat_api_datasource.dart';
+import 'package:hishumi/domains/chat/chat/domain/entities/chat_entities.dart';
+import 'package:hishumi/domains/chat/chat/domain/repositories/chat_repository.dart';
+import 'package:hishumi/domains/chat/chat/presentation/providers/chat_notifier.dart';
+import 'package:hishumi/domains/chat/chat/data/chat_providers.dart';
 
 class _CaptureApiClient implements ApiClient {
   String? lastPath;

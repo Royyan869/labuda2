@@ -14,8 +14,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/joho/godotenv"
-	"github.com/labuda/backend/internal/config"
-	"github.com/labuda/backend/pkg/migration"
+	"github.com/hishumi/backend/internal/config"
+	"github.com/hishumi/backend/pkg/migration"
 	"github.com/stretchr/testify/require"
 )
 

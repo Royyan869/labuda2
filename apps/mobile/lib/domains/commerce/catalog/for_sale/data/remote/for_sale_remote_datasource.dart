@@ -5,9 +5,9 @@
 library;
 
 import 'package:dio/dio.dart';
-import 'package:labuda/core/api/api.dart';
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/domains/commerce/catalog/for_sale/data/dto/for_sale_dto.dart';
+import 'package:hishumi/core/api/api.dart';
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/domains/commerce/catalog/for_sale/data/dto/for_sale_dto.dart';
 import 'package:uuid/uuid.dart';
 
 /// ForSale remote datasource

@@ -4,9 +4,9 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	chatEntity "github.com/labuda/backend/internal/interaction/chat/entity"
-	chatRepo "github.com/labuda/backend/internal/interaction/chat/repository"
-	"github.com/labuda/backend/pkg/db"
+	chatEntity "github.com/hishumi/backend/internal/interaction/chat/entity"
+	chatRepo "github.com/hishumi/backend/internal/interaction/chat/repository"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // shippingQuoteRoomGetterAdapter bridges the shipping-quote layer's db.Tx-based

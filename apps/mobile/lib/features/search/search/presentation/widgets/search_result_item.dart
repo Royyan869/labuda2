@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/features/search/search/domain/entities/search_result.dart';
-import 'package:labuda/features/search/search/presentation/utils/search_result_type_helper.dart';
-import 'package:labuda/features/search/search/presentation/widgets/search_result_extra_info.dart';
-import 'package:labuda/shared/governance/content_lifecycle.dart';
-import 'package:labuda/shared/governance/seller_inactive_badge.dart';
-import 'package:labuda/shared/widgets/promoted_badge.dart';
-import 'package:labuda/shared/widgets/follow_button.dart';
-import 'package:labuda/shared/widgets/app_image.dart';
-import 'package:labuda/core/src/theme/app_theme.dart';
+import 'package:hishumi/features/search/search/domain/entities/search_result.dart';
+import 'package:hishumi/features/search/search/presentation/utils/search_result_type_helper.dart';
+import 'package:hishumi/features/search/search/presentation/widgets/search_result_extra_info.dart';
+import 'package:hishumi/shared/governance/content_lifecycle.dart';
+import 'package:hishumi/shared/governance/seller_inactive_badge.dart';
+import 'package:hishumi/shared/widgets/promoted_badge.dart';
+import 'package:hishumi/shared/widgets/follow_button.dart';
+import 'package:hishumi/shared/widgets/app_image.dart';
+import 'package:hishumi/core/src/theme/app_theme.dart';
 
 /// Widget to display a single search result item
 class SearchResultItem extends ConsumerWidget {

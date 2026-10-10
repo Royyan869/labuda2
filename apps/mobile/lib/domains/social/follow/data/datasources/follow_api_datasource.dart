@@ -1,7 +1,7 @@
-import 'package:labuda/core/api/base_api_repository.dart';
-import 'package:labuda/core/api/models/common_api_models.dart';
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/domains/social/follow/data/dto/follow_api_models.dart';
+import 'package:hishumi/core/api/base_api_repository.dart';
+import 'package:hishumi/core/api/models/common_api_models.dart';
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/domains/social/follow/data/dto/follow_api_models.dart';
 
 /// API Datasource for Follow, Block, and Mute operations
 ///

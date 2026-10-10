@@ -45,10 +45,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/labuda/backend/internal/integration/payment/infrastructure/repository"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/midtrans"
-	"github.com/labuda/backend/pkg/testdb"
+	"github.com/hishumi/backend/internal/integration/payment/infrastructure/repository"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/midtrans"
+	"github.com/hishumi/backend/pkg/testdb"
 )
 
 // seedUserAndPayment inserts the minimum rows a webhook needs to find a payment:

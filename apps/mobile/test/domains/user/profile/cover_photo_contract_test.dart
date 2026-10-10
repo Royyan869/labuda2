@@ -11,10 +11,10 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/domains/user/profile/data/mappers/user_api_mapper.dart';
-import 'package:labuda/domains/user/profile/data/models/api/user_api_models.dart';
-import 'package:labuda/domains/user/profile/presentation/widgets/profile_cover.dart';
-import 'package:labuda/shared/widgets/app_image.dart';
+import 'package:hishumi/domains/user/profile/data/mappers/user_api_mapper.dart';
+import 'package:hishumi/domains/user/profile/data/models/api/user_api_models.dart';
+import 'package:hishumi/domains/user/profile/presentation/widgets/profile_cover.dart';
+import 'package:hishumi/shared/widgets/app_image.dart';
 
 void main() {
   group('UpdateProfileApiRequest cover serialization', () {

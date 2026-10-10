@@ -1,5 +1,5 @@
 import '../../domain/domain.dart';
-import 'package:labuda/core/common/types/preparation_time.dart';
+import 'package:hishumi/core/common/types/preparation_time.dart';
 import '../models/api/order_api_response_dtos.dart'
     show OrderApiResponse, ActiveRefundApiResponse;
 

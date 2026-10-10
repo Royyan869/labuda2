@@ -23,7 +23,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	chatEntity "github.com/labuda/backend/internal/interaction/chat/entity"
+	chatEntity "github.com/hishumi/backend/internal/interaction/chat/entity"
 )
 
 // TestOtherParticipant_SupportRoomNilAdminExcluded verifies that a support

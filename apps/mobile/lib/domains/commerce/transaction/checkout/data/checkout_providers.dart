@@ -6,12 +6,12 @@
 library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/commerce/transaction/checkout/data/repositories/checkout_repository_impl.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/commerce/transaction/checkout/data/repositories/checkout_repository_impl.dart';
 
 // Re-export repository interface for presentation layer
 // (CheckoutRepository interface is defined in the impl file - pre-existing structure)
-export 'package:labuda/domains/commerce/transaction/checkout/data/repositories/checkout_repository_impl.dart'
+export 'package:hishumi/domains/commerce/transaction/checkout/data/repositories/checkout_repository_impl.dart'
     show CheckoutRepository, CheckoutException;
 
 // =============================================================================

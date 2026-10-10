@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/labuda/backend/internal/commerce/auction/entity"
+	"github.com/hishumi/backend/internal/commerce/auction/entity"
 )
 
 // TestUpdateAuctionLifecycle_NonEditableStatuses_ReturnConflict proves that

@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/labuda/backend/internal/finance/entity"
-	alertentity "github.com/labuda/backend/internal/platform/alert/entity"
+	"github.com/hishumi/backend/internal/finance/entity"
+	alertentity "github.com/hishumi/backend/internal/platform/alert/entity"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"

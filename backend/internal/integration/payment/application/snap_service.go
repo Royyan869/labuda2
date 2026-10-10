@@ -16,7 +16,7 @@ import (
 	"math"
 	"time"
 
-	"github.com/labuda/backend/pkg/midtrans"
+	"github.com/hishumi/backend/pkg/midtrans"
 )
 
 // SnapBuyerInfo carries optional buyer identity fields for Snap CustomerDetails.

@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/core/src/config/google_config.dart';
-import 'package:labuda/shared/shared.dart';
-import 'package:labuda/shared/entities/post_location.dart';
-import 'package:labuda/shared/helpers/canonical_phone_validator.dart';
-import 'package:labuda/domains/user/profile/domain/entities/address_entity.dart';
-import 'package:labuda/domains/user/profile/presentation/providers/notifiers/address_notifier.dart';
-import 'package:labuda/domains/user/profile/presentation/providers/profile_core_provider.dart'
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/core/src/config/google_config.dart';
+import 'package:hishumi/shared/shared.dart';
+import 'package:hishumi/shared/entities/post_location.dart';
+import 'package:hishumi/shared/helpers/canonical_phone_validator.dart';
+import 'package:hishumi/domains/user/profile/domain/entities/address_entity.dart';
+import 'package:hishumi/domains/user/profile/presentation/providers/notifiers/address_notifier.dart';
+import 'package:hishumi/domains/user/profile/presentation/providers/profile_core_provider.dart'
     show profileProvider;
-import 'package:labuda/generated/app_localizations.dart';
+import 'package:hishumi/generated/app_localizations.dart';
 
 /// Address Form Bottom Sheet - Modal for adding/editing address
 ///

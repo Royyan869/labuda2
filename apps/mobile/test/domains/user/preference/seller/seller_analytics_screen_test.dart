@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/user/preference/seller/domain/entities/seller_analytics_read.dart';
-import 'package:labuda/domains/user/preference/seller/presentation/screens/seller_analytics_screen.dart';
-import 'package:labuda/domains/user/preference/seller/seller_di.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/user/preference/seller/domain/entities/seller_analytics_read.dart';
+import 'package:hishumi/domains/user/preference/seller/presentation/screens/seller_analytics_screen.dart';
+import 'package:hishumi/domains/user/preference/seller/seller_di.dart';
 
 void main() {
   group('SellerAnalyticsScreen', () {

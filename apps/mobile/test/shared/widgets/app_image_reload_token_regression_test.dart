@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_marketplace_primitives.dart';
-import 'package:labuda/shared/models/seller_identity_data.dart';
-import 'package:labuda/shared/widgets/app_image.dart';
-import 'package:labuda/shared/widgets/seller_dual_avatar.dart';
+import 'package:hishumi/domains/commerce/catalog/shared/presentation/widgets/commerce_marketplace_primitives.dart';
+import 'package:hishumi/shared/models/seller_identity_data.dart';
+import 'package:hishumi/shared/widgets/app_image.dart';
+import 'package:hishumi/shared/widgets/seller_dual_avatar.dart';
 
 Widget _wrap(Widget child) {
   return MaterialApp(

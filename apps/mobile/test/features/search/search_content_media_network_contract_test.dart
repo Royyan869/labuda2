@@ -15,9 +15,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/features/search/search/domain/entities/search_result.dart';
-import 'package:labuda/features/search/search/presentation/widgets/search_result_item.dart';
-import 'package:labuda/shared/widgets/app_image.dart';
+import 'package:hishumi/features/search/search/domain/entities/search_result.dart';
+import 'package:hishumi/features/search/search/presentation/widgets/search_result_item.dart';
+import 'package:hishumi/shared/widgets/app_image.dart';
 
 Widget _wrap(Widget child) {
   return ProviderScope(

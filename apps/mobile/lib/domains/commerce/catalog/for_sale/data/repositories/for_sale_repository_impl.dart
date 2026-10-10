@@ -4,13 +4,13 @@
 /// No collection dependency.
 library;
 
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/core/media/media_upload_orchestrator.dart';
-import 'package:labuda/core/src/interfaces/services/i_logger_service.dart';
-import 'package:labuda/domains/commerce/catalog/for_sale/data/dto/for_sale_dto.dart';
-import 'package:labuda/domains/commerce/catalog/for_sale/data/mappers/for_sale_dto_mapper.dart';
-import 'package:labuda/domains/commerce/catalog/for_sale/data/remote/for_sale_remote_datasource.dart';
-import 'package:labuda/domains/commerce/catalog/for_sale/domain/domain.dart';
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/core/media/media_upload_orchestrator.dart';
+import 'package:hishumi/core/src/interfaces/services/i_logger_service.dart';
+import 'package:hishumi/domains/commerce/catalog/for_sale/data/dto/for_sale_dto.dart';
+import 'package:hishumi/domains/commerce/catalog/for_sale/data/mappers/for_sale_dto_mapper.dart';
+import 'package:hishumi/domains/commerce/catalog/for_sale/data/remote/for_sale_remote_datasource.dart';
+import 'package:hishumi/domains/commerce/catalog/for_sale/domain/domain.dart';
 
 /// ForSale repository implementation
 ///

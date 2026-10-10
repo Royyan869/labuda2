@@ -8,9 +8,9 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/labuda/backend/internal/finance/entity"
-	"github.com/labuda/backend/internal/finance/repository"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/finance/entity"
+	"github.com/hishumi/backend/internal/finance/repository"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // reconciliationResultRow represents a database row for reconciliation_results.

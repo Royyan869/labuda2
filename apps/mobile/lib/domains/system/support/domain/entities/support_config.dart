@@ -12,7 +12,7 @@ import 'support_ticket.dart';
 /// Support Identity - Generic brand identity untuk support chat
 class SupportIdentity {
   static const String poolId = 'labuda_support_team';
-  static const String displayName = 'LABUDA Support';
+  static const String displayName = 'HiShumi Support';
   static const String tagline = 'Typically replies in 30 minutes';
 
   // Avatar URL
@@ -219,31 +219,31 @@ class StatusConfig {
 class GreetingTemplates {
   /// Friendly style greetings
   static const List<String> friendly = [
-    'Hai, saya Budi dari LABUDA. Ada yang bisa saya bantu? 😊',
-    'Halo! Erna di sini dari LABUDA, siap membantu Anda!',
-    'Hi, saya Sari dari LABUDA Support. Bagaimana saya bisa bantu hari ini?',
+    'Hai, saya Budi dari HiShumi. Ada yang bisa saya bantu? 😊',
+    'Halo! Erna di sini dari HiShumi, siap membantu Anda!',
+    'Hi, saya Sari dari HiShumi Support. Bagaimana saya bisa bantu hari ini?',
     'Hai! Saya Andi, siap untuk membantu Anda 🌱',
-    'Halo, Dewi dari LABUDA Support. Ada kendala yang bisa saya bantu?',
+    'Halo, Dewi dari HiShumi Support. Ada kendala yang bisa saya bantu?',
     'Hi! Rudi di sini, ada yang ingin ditanyakan?',
-    'Hai, saya Lina dari tim LABUDA. Mari saya bantu selesaikan masalah Anda 😊',
-    'Halo! Saya Eko, bagian dari LABUDA Support. Silakan ceritakan kendala Anda!',
+    'Hai, saya Lina dari tim HiShumi. Mari saya bantu selesaikan masalah Anda 😊',
+    'Halo! Saya Eko, bagian dari HiShumi Support. Silakan ceritakan kendala Anda!',
   ];
 
   /// Professional style greetings
   static const List<String> professional = [
-    'Selamat {time}, saya Agus dari LABUDA Customer Support. Bagaimana saya dapat membantu Anda?',
-    'Halo, Fitri dari tim LABUDA Support. Terima kasih telah menghubungi kami. Ada yang bisa saya bantu?',
-    'Salam, saya Hendra dari LABUDA Support Team. Saya siap membantu menyelesaikan masalah Anda.',
-    'Selamat {time}, Maya di sini dari LABUDA. Silakan sampaikan kendala yang Anda alami.',
-    'Halo, saya Bambang dari LABUDA Customer Support. Kami siap membantu Anda.',
+    'Selamat {time}, saya Agus dari HiShumi Customer Support. Bagaimana saya dapat membantu Anda?',
+    'Halo, Fitri dari tim HiShumi Support. Terima kasih telah menghubungi kami. Ada yang bisa saya bantu?',
+    'Salam, saya Hendra dari HiShumi Support Team. Saya siap membantu menyelesaikan masalah Anda.',
+    'Selamat {time}, Maya di sini dari HiShumi. Silakan sampaikan kendala yang Anda alami.',
+    'Halo, saya Bambang dari HiShumi Customer Support. Kami siap membantu Anda.',
   ];
 
   /// Casual style greetings
   static const List<String> casual = [
-    'Hei! Toni di sini dari LABUDA Support 👋 Ada yang bisa dibantu?',
+    'Hei! Toni di sini dari HiShumi Support 👋 Ada yang bisa dibantu?',
     'Hi! Saya Dina dari support team. Gimana, ada masalah apa nih?',
     'Hai! Riko here, siap bantu kamu! Ada kendala apa? 😊',
-    'Halo! Yuni dari LABUDA nih, ada yang perlu bantuan?',
+    'Halo! Yuni dari HiShumi nih, ada yang perlu bantuan?',
     'Hai, saya Arif! Ada yang bisa aku bantu? 🌱',
     'Hi! Nina siap membantu. Ada pertanyaan atau kendala?',
   ];
@@ -322,7 +322,7 @@ class QuickReplies {
       'Semoga masalahnya sudah teratasi ya. Ada hal lain?',
     ],
     'closing': [
-      'Terima kasih sudah menghubungi LABUDA! Semoga harimu menyenangkan 🌱',
+      'Terima kasih sudah menghubungi HiShumi! Semoga harimu menyenangkan 🌱',
       'Terima kasih! Jangan ragu hubungi kami lagi jika ada kendala ya.',
       'Senang bisa membantu! Have a great day! 😊',
     ],

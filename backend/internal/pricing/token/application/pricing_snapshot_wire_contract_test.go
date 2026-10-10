@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/labuda/backend/pkg/money"
+	"github.com/hishumi/backend/pkg/money"
 )
 
 // FIN-R01E-D — POST /pricing/preview money contract.

@@ -17,14 +17,14 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/core.dart' show AppTheme;
-import 'package:labuda/domains/chat/chat/domain/entities/chat_entities.dart';
-import 'package:labuda/domains/chat/chat/presentation/providers/chat_notifier.dart';
-import 'package:labuda/domains/chat/chat/presentation/providers/chat_providers.dart';
-import 'package:labuda/domains/chat/chat/presentation/providers/chat_state.dart';
-import 'package:labuda/domains/chat/chat/presentation/screens/chat_list_screen.dart';
-import 'package:labuda/domains/chat/chat/presentation/widgets/chat_card.dart';
-import 'package:labuda/shared/providers/auth_status_providers.dart'
+import 'package:hishumi/core/core.dart' show AppTheme;
+import 'package:hishumi/domains/chat/chat/domain/entities/chat_entities.dart';
+import 'package:hishumi/domains/chat/chat/presentation/providers/chat_notifier.dart';
+import 'package:hishumi/domains/chat/chat/presentation/providers/chat_providers.dart';
+import 'package:hishumi/domains/chat/chat/presentation/providers/chat_state.dart';
+import 'package:hishumi/domains/chat/chat/presentation/screens/chat_list_screen.dart';
+import 'package:hishumi/domains/chat/chat/presentation/widgets/chat_card.dart';
+import 'package:hishumi/shared/providers/auth_status_providers.dart'
     show currentUserIdProvider;
 
 const _chatListScreenPath =

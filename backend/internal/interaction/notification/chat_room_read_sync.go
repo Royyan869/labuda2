@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/interaction/notification/entity"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/interaction/notification/entity"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // ChatRoomReadSyncer marks a chat room's chat_message notifications as read

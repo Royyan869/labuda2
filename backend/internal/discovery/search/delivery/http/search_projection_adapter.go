@@ -5,13 +5,13 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	auctionentity "github.com/labuda/backend/internal/commerce/auction/entity"
-	productentity "github.com/labuda/backend/internal/commerce/product/entity"
-	commerceshared "github.com/labuda/backend/internal/commerce/shared"
-	"github.com/labuda/backend/internal/discovery/search/entity"
-	"github.com/labuda/backend/internal/pkg/mediaref"
-	"github.com/labuda/backend/internal/pkg/publiccard"
-	"github.com/labuda/backend/internal/platform/mediaresolve"
+	auctionentity "github.com/hishumi/backend/internal/commerce/auction/entity"
+	productentity "github.com/hishumi/backend/internal/commerce/product/entity"
+	commerceshared "github.com/hishumi/backend/internal/commerce/shared"
+	"github.com/hishumi/backend/internal/discovery/search/entity"
+	"github.com/hishumi/backend/internal/pkg/mediaref"
+	"github.com/hishumi/backend/internal/pkg/publiccard"
+	"github.com/hishumi/backend/internal/platform/mediaresolve"
 )
 
 // searchProjectionAdapter centralizes the current search wire assembly.

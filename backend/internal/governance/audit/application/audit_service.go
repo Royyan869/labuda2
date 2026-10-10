@@ -5,9 +5,9 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	auditentity "github.com/labuda/backend/internal/governance/audit/entity"
-	auditrepo "github.com/labuda/backend/internal/governance/audit/repository"
-	"github.com/labuda/backend/pkg/db"
+	auditentity "github.com/hishumi/backend/internal/governance/audit/entity"
+	auditrepo "github.com/hishumi/backend/internal/governance/audit/repository"
+	"github.com/hishumi/backend/pkg/db"
 	"go.uber.org/zap"
 )
 

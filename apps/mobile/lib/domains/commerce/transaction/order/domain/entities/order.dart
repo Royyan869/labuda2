@@ -6,8 +6,8 @@ import 'refund_request.dart';
 import 'order_status.dart';
 import 'order_source.dart';
 import 'shipping_info.dart';
-import 'package:labuda/core/common/types/payment_types.dart';
-import 'package:labuda/core/common/types/preparation_time.dart';
+import 'package:hishumi/core/common/types/payment_types.dart';
+import 'package:hishumi/core/common/types/preparation_time.dart';
 
 // =============================================================================
 // DECISION CONTRACT V2 - Backend is SINGLE SOURCE OF TRUTH

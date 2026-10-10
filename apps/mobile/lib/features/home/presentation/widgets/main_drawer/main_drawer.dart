@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/shared/shared.dart';
-import 'package:labuda/shared/models/seller_identity_data.dart';
-import 'package:labuda/generated/app_localizations.dart';
-import 'package:labuda/features/home/presentation/widgets/main_drawer/drawer_header.dart';
-import 'package:labuda/features/home/presentation/widgets/main_drawer/drawer_footer.dart';
-import 'package:labuda/features/home/presentation/widgets/main_drawer/drawer_item.dart';
-import 'package:labuda/domains/user/preference/seller/domain/entities/seller_state.dart';
-import 'package:labuda/domains/user/preference/seller/presentation/providers/current_seller_provider.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/shared/shared.dart';
+import 'package:hishumi/shared/models/seller_identity_data.dart';
+import 'package:hishumi/generated/app_localizations.dart';
+import 'package:hishumi/features/home/presentation/widgets/main_drawer/drawer_header.dart';
+import 'package:hishumi/features/home/presentation/widgets/main_drawer/drawer_footer.dart';
+import 'package:hishumi/features/home/presentation/widgets/main_drawer/drawer_item.dart';
+import 'package:hishumi/domains/user/preference/seller/domain/entities/seller_state.dart';
+import 'package:hishumi/domains/user/preference/seller/presentation/providers/current_seller_provider.dart';
 
 /// Main drawer widget untuk main screen navigation
 ///

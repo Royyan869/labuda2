@@ -13,7 +13,7 @@
 // All fake/unsupported features have been removed to align with backend truth.
 
 import 'package:equatable/equatable.dart';
-import 'package:labuda/core/api/models/common_api_models.dart';
+import 'package:hishumi/core/api/models/common_api_models.dart';
 
 // =============================================================================
 // CANONICAL Rating Request/Response DTOs

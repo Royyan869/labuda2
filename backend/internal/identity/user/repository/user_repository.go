@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/identity/user/domain/entity"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/identity/user/domain/entity"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // UserRepository defines the interface for user and user profile persistence.

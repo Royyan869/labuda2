@@ -1,10 +1,10 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/api/api_client.dart';
-import 'package:labuda/domains/user/profile/data/datasources/user_api_datasource.dart';
-import 'package:labuda/domains/user/profile/data/services/blocked_users_service.dart';
-import 'package:labuda/domains/user/profile/data/services/user_lookup_service.dart';
-import 'package:labuda/features/search/search/domain/entities/user_search.dart';
+import 'package:hishumi/core/api/api_client.dart';
+import 'package:hishumi/domains/user/profile/data/datasources/user_api_datasource.dart';
+import 'package:hishumi/domains/user/profile/data/services/blocked_users_service.dart';
+import 'package:hishumi/domains/user/profile/data/services/user_lookup_service.dart';
+import 'package:hishumi/features/search/search/domain/entities/user_search.dart';
 
 class _FakeApiClient implements ApiClient {
   _FakeApiClient(this._blockedIds);

@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	productentity "github.com/labuda/backend/internal/commerce/product/entity"
-	commerceshared "github.com/labuda/backend/internal/commerce/shared"
+	productentity "github.com/hishumi/backend/internal/commerce/product/entity"
+	commerceshared "github.com/hishumi/backend/internal/commerce/shared"
 )
 
 // TargetType defines the type of saved item

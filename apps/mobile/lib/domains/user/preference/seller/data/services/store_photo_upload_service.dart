@@ -1,5 +1,5 @@
 import 'dart:io';
-import 'package:labuda/core/core.dart';
+import 'package:hishumi/core/core.dart';
 
 /// Store Photo Upload Service - Upload farm logo to AWS S3
 ///

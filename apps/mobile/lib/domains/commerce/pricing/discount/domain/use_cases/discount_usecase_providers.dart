@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/domains/commerce/pricing/discount/domain/use_cases/validate_discount_update_use_case.dart';
+import 'package:hishumi/domains/commerce/pricing/discount/domain/use_cases/validate_discount_update_use_case.dart';
 
 /// Discount UseCase Providers
 ///

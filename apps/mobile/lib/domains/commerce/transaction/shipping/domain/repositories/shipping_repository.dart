@@ -1,5 +1,5 @@
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/commerce/transaction/shipping/domain/entities/shipping.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/commerce/transaction/shipping/domain/entities/shipping.dart';
 
 /// Shipping Repository Interface
 /// Handles CRUD operations for seller shipping options

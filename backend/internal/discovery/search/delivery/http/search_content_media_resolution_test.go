@@ -5,11 +5,11 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/discovery/search/entity"
-	"github.com/labuda/backend/internal/pkg/mediaref"
-	"github.com/labuda/backend/internal/pkg/publiccard"
-	"github.com/labuda/backend/internal/platform/mediaresolve"
-	"github.com/labuda/backend/internal/platform/s3presign"
+	"github.com/hishumi/backend/internal/discovery/search/entity"
+	"github.com/hishumi/backend/internal/pkg/mediaref"
+	"github.com/hishumi/backend/internal/pkg/publiccard"
+	"github.com/hishumi/backend/internal/platform/mediaresolve"
+	"github.com/hishumi/backend/internal/platform/s3presign"
 )
 
 const testSearchCDNBase = "https://d358tu61i1wrtt.cloudfront.net"

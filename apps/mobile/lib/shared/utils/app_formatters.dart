@@ -1,7 +1,7 @@
 library;
 
 import 'package:intl/intl.dart';
-import 'package:labuda/shared/utils/currency_utils.dart';
+import 'package:hishumi/shared/utils/currency_utils.dart';
 
 /// Centralized Formatting Utility
 ///
@@ -10,7 +10,7 @@ import 'package:labuda/shared/utils/currency_utils.dart';
 ///
 /// Usage:
 /// ```dart
-/// import 'package:labuda/shared/utils/app_formatters.dart';
+/// import 'package:hishumi/shared/utils/app_formatters.dart';
 ///
 /// // Currency format: Rp 1.000.000
 /// AppFormatters.formatCurrency(1000000);

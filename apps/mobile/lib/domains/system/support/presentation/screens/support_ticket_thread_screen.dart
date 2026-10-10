@@ -10,15 +10,15 @@ library;
 import 'package:flutter/material.dart' hide ConnectionState;
 import 'package:flutter/material.dart' as flutter show ConnectionState;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/system/shared/domain/services/time_format_service.dart';
-import 'package:labuda/domains/system/support/domain/domain.dart';
-import 'package:labuda/domains/system/support/presentation/providers/support_providers.dart';
-import 'package:labuda/domains/system/support/presentation/utils/support_category_label.dart';
-import 'package:labuda/domains/system/support/presentation/utils/support_status_label.dart';
-import 'package:labuda/domains/system/support/presentation/widgets/support_activity_timeline.dart';
-import 'package:labuda/shared/shared.dart';
-import 'package:labuda/shared/widgets/composer_action_buttons.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/system/shared/domain/services/time_format_service.dart';
+import 'package:hishumi/domains/system/support/domain/domain.dart';
+import 'package:hishumi/domains/system/support/presentation/providers/support_providers.dart';
+import 'package:hishumi/domains/system/support/presentation/utils/support_category_label.dart';
+import 'package:hishumi/domains/system/support/presentation/utils/support_status_label.dart';
+import 'package:hishumi/domains/system/support/presentation/widgets/support_activity_timeline.dart';
+import 'package:hishumi/shared/shared.dart';
+import 'package:hishumi/shared/widgets/composer_action_buttons.dart';
 
 class SupportTicketThreadScreen extends ConsumerStatefulWidget {
   final String ticketId;

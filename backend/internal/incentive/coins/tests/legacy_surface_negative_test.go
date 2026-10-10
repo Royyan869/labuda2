@@ -4,8 +4,8 @@ import (
 	"reflect"
 	"testing"
 
-	auditapp "github.com/labuda/backend/internal/governance/audit/application"
-	coinsapp "github.com/labuda/backend/internal/incentive/coins/application"
+	auditapp "github.com/hishumi/backend/internal/governance/audit/application"
+	coinsapp "github.com/hishumi/backend/internal/incentive/coins/application"
 )
 
 func TestLegacySpendAuthorityIsAbsent(t *testing.T) {

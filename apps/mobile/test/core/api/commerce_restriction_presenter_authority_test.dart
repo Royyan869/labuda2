@@ -19,10 +19,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:labuda/core/api/api_error_codes.dart' as codes;
-import 'package:labuda/core/api/commerce_restriction_presenter.dart';
-import 'package:labuda/core/navigation/navigation_handler.dart';
-import 'package:labuda/core/navigation/navigation_provider.dart';
+import 'package:hishumi/core/api/api_error_codes.dart' as codes;
+import 'package:hishumi/core/api/commerce_restriction_presenter.dart';
+import 'package:hishumi/core/navigation/navigation_handler.dart';
+import 'package:hishumi/core/navigation/navigation_provider.dart';
 
 /// Records the canonical navigation + snackbar surface without touching the
 /// real router. Only the members under test are overridden; the rest of the

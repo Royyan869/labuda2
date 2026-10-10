@@ -10,11 +10,11 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	shippingQuoteApp "github.com/labuda/backend/internal/commerce/shipping/quote/application"
-	shippingQuoteEntity "github.com/labuda/backend/internal/commerce/shipping/quote/entity"
-	chatEntity "github.com/labuda/backend/internal/interaction/chat/entity"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/money"
+	shippingQuoteApp "github.com/hishumi/backend/internal/commerce/shipping/quote/application"
+	shippingQuoteEntity "github.com/hishumi/backend/internal/commerce/shipping/quote/entity"
+	chatEntity "github.com/hishumi/backend/internal/interaction/chat/entity"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/money"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 )

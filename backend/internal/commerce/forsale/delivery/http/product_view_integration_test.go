@@ -13,13 +13,13 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 
-	forSaleApp "github.com/labuda/backend/internal/commerce/forsale/application"
-	productviewInfraRepo "github.com/labuda/backend/internal/commerce/productview/infrastructure/repository"
-	productviewRepo "github.com/labuda/backend/internal/commerce/productview/repository"
-	"github.com/labuda/backend/internal/platform/capability"
-	capabilityEntity "github.com/labuda/backend/internal/platform/capability/entity"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/testdb"
+	forSaleApp "github.com/hishumi/backend/internal/commerce/forsale/application"
+	productviewInfraRepo "github.com/hishumi/backend/internal/commerce/productview/infrastructure/repository"
+	productviewRepo "github.com/hishumi/backend/internal/commerce/productview/repository"
+	"github.com/hishumi/backend/internal/platform/capability"
+	capabilityEntity "github.com/hishumi/backend/internal/platform/capability/entity"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/testdb"
 )
 
 func seedForSaleViewUser(t *testing.T, ctx context.Context, tdb *testdb.TestDB) uuid.UUID {

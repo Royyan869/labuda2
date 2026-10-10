@@ -1,8 +1,8 @@
 import 'package:get_it/get_it.dart';
-import 'package:labuda/core/api/api_client.dart';
-import 'package:labuda/core/api/config/api_config.dart';
-import 'package:labuda/core/src/interfaces/services/i_local_storage_service.dart';
-import 'package:labuda/core/src/interfaces/services/i_logger_service.dart';
+import 'package:hishumi/core/api/api_client.dart';
+import 'package:hishumi/core/api/config/api_config.dart';
+import 'package:hishumi/core/src/interfaces/services/i_local_storage_service.dart';
+import 'package:hishumi/core/src/interfaces/services/i_logger_service.dart';
 
 /// API Layer Dependency Injection
 ///
@@ -30,14 +30,14 @@ class ApiDI {
   /// Initialize API dependencies
   ///
   /// Must be called after:
-  /// - ILoggerService + ILocalStorageService are registered (AuthInterceptor uses Labuda JWT)
+  /// - ILoggerService + ILocalStorageService are registered (AuthInterceptor uses HiShumi JWT)
   static void init({ApiEnvironment? environment}) {
     // Set environment if provided
     if (environment != null) {
       ApiConfig.setEnvironment(environment);
     }
 
-    // Register ApiClient as lazy singleton — Phase 3B: Labuda JWT authority.
+    // Register ApiClient as lazy singleton — Phase 3B: HiShumi JWT authority.
     if (!_sl.isRegistered<ApiClient>()) {
       _sl.registerLazySingleton<ApiClient>(
         () => ApiClient(

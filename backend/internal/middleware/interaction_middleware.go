@@ -6,11 +6,11 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	userEntity "github.com/labuda/backend/internal/identity/user/domain/entity"
-	userRepo "github.com/labuda/backend/internal/identity/user/infrastructure/repository"
-	userRepository "github.com/labuda/backend/internal/identity/user/repository"
-	"github.com/labuda/backend/internal/platform/response"
-	"github.com/labuda/backend/pkg/db"
+	userEntity "github.com/hishumi/backend/internal/identity/user/domain/entity"
+	userRepo "github.com/hishumi/backend/internal/identity/user/infrastructure/repository"
+	userRepository "github.com/hishumi/backend/internal/identity/user/repository"
+	"github.com/hishumi/backend/internal/platform/response"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 type interactionAuthorityState struct {

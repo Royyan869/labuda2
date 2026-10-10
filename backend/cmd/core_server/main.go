@@ -14,22 +14,22 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/labuda/backend/internal/config"
-	financeApp "github.com/labuda/backend/internal/finance/application"
-	"github.com/labuda/backend/internal/middleware"
-	"github.com/labuda/backend/internal/platform/logger"
-	"github.com/labuda/backend/internal/serverboot"
-	"github.com/labuda/backend/pkg/database"
-	"github.com/labuda/backend/pkg/firebase"
-	"github.com/labuda/backend/pkg/midtrans"
-	"github.com/labuda/backend/pkg/migration"
-	pkgRedis "github.com/labuda/backend/pkg/redis"
+	"github.com/hishumi/backend/internal/config"
+	financeApp "github.com/hishumi/backend/internal/finance/application"
+	"github.com/hishumi/backend/internal/middleware"
+	"github.com/hishumi/backend/internal/platform/logger"
+	"github.com/hishumi/backend/internal/serverboot"
+	"github.com/hishumi/backend/pkg/database"
+	"github.com/hishumi/backend/pkg/firebase"
+	"github.com/hishumi/backend/pkg/midtrans"
+	"github.com/hishumi/backend/pkg/migration"
+	pkgRedis "github.com/hishumi/backend/pkg/redis"
 	"go.uber.org/zap"
 )
 
-// @title           Labuda Core Backend API
+// @title           HiShumi Core Backend API
 // @version         1.0
-// @description     Labuda Financial Core Backend API - Clean Architecture with DDD
+// @description     HiShumi Financial Core Backend API - Clean Architecture with DDD
 // @termsOfService  https://labuda.com/terms
 
 // @contact.name   Labuda Support
@@ -122,7 +122,7 @@ func main() {
 	}
 	defer log.Sync()
 
-	log.Info("Starting Labuda Core Backend",
+	log.Info("Starting HiShumi Core Backend",
 		zap.String("version", cfg.App.Version),
 		zap.String("environment", cfg.Server.Env),
 		zap.String("port", cfg.Server.Port),

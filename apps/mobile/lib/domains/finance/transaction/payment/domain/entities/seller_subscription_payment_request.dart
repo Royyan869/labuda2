@@ -1,4 +1,4 @@
-import 'package:labuda/domains/finance/transaction/payment/domain/entities/payment_request.dart';
+import 'package:hishumi/domains/finance/transaction/payment/domain/entities/payment_request.dart';
 import 'package:uuid/uuid.dart';
 
 /// Payment request for seller subscription upgrade

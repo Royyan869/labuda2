@@ -5,9 +5,9 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	orderentity "github.com/labuda/backend/internal/commerce/order/entity"
-	orderrepository "github.com/labuda/backend/internal/commerce/order/repository"
-	"github.com/labuda/backend/pkg/db"
+	orderentity "github.com/hishumi/backend/internal/commerce/order/entity"
+	orderrepository "github.com/hishumi/backend/internal/commerce/order/repository"
+	"github.com/hishumi/backend/pkg/db"
 	"github.com/stretchr/testify/require"
 )
 

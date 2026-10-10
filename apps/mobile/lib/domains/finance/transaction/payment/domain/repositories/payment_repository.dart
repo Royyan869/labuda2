@@ -4,7 +4,7 @@
 /// Defines contract for payment operations.
 library;
 
-import 'package:labuda/core/common/result.dart';
+import 'package:hishumi/core/common/result.dart';
 import '../entities/payment.dart';
 import '../entities/payment_intent.dart';
 

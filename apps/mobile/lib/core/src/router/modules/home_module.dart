@@ -1,6 +1,6 @@
 import 'package:go_router/go_router.dart';
-import 'package:labuda/core/src/router/route_paths.dart';
-import 'package:labuda/features/home/home.dart';
+import 'package:hishumi/core/src/router/route_paths.dart';
+import 'package:hishumi/features/home/home.dart';
 import 'base_module.dart';
 
 /// Home Module - Uses HomeScreen from home feature

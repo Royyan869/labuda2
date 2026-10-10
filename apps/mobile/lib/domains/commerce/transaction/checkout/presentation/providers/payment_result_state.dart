@@ -10,10 +10,10 @@
 library;
 
 import 'package:equatable/equatable.dart';
-import 'package:labuda/domains/commerce/transaction/order/domain/entities/order.dart';
-import 'package:labuda/domains/commerce/transaction/order/domain/entities/order_status.dart';
-import 'package:labuda/domains/finance/transaction/payment/domain/entities/payment.dart';
-import 'package:labuda/core/common/types/payment_types.dart';
+import 'package:hishumi/domains/commerce/transaction/order/domain/entities/order.dart';
+import 'package:hishumi/domains/commerce/transaction/order/domain/entities/order_status.dart';
+import 'package:hishumi/domains/finance/transaction/payment/domain/entities/payment.dart';
+import 'package:hishumi/core/common/types/payment_types.dart';
 
 /// Payment Result Screen Status
 ///

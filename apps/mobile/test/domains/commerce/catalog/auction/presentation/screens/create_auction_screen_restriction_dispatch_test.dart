@@ -36,16 +36,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:labuda/core/common/types/preparation_time.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/commerce/catalog/auction/domain/domain.dart';
-import 'package:labuda/domains/commerce/catalog/auction/presentation/providers/auction_notifier.dart';
-import 'package:labuda/domains/commerce/catalog/auction/presentation/providers/auction_state.dart';
-import 'package:labuda/domains/commerce/catalog/auction/presentation/screens/create_auction_screen.dart';
-import 'package:labuda/domains/commerce/transaction/shipping/domain/entities/shipping.dart';
-import 'package:labuda/domains/commerce/transaction/shipping/domain/repositories/shipping_repository.dart';
-import 'package:labuda/domains/commerce/transaction/shipping/presentation/providers/providers.dart';
-import 'package:labuda/shared/governance/content_lifecycle.dart';
+import 'package:hishumi/core/common/types/preparation_time.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/domain/domain.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/presentation/providers/auction_notifier.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/presentation/providers/auction_state.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/presentation/screens/create_auction_screen.dart';
+import 'package:hishumi/domains/commerce/transaction/shipping/domain/entities/shipping.dart';
+import 'package:hishumi/domains/commerce/transaction/shipping/domain/repositories/shipping_repository.dart';
+import 'package:hishumi/domains/commerce/transaction/shipping/presentation/providers/providers.dart';
+import 'package:hishumi/shared/governance/content_lifecycle.dart';
 
 const String _screenPath =
     'lib/domains/commerce/catalog/auction/presentation/screens/create_auction_screen.dart';

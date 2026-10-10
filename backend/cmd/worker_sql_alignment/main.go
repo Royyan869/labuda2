@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/labuda/backend/internal/config"
+	"github.com/hishumi/backend/internal/config"
 )
 
 const probeDBPrefix = "labuda_worker_sql_alignment_"

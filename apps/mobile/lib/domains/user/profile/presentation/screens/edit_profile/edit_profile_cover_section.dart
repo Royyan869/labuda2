@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
+import 'package:hishumi/core/core.dart';
 
 /// Cover Photo Section Widget for Edit Profile
 class EditProfileCoverSection extends StatelessWidget {

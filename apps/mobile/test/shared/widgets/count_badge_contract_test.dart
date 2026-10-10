@@ -2,8 +2,8 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/src/theme/app_theme.dart';
-import 'package:labuda/shared/widgets/count_badge.dart';
+import 'package:hishumi/core/src/theme/app_theme.dart';
+import 'package:hishumi/shared/widgets/count_badge.dart';
 
 // ============================================================================
 // COUNT BADGE — SINGLE RENDERER CONTRACT (dedupe cleanup).

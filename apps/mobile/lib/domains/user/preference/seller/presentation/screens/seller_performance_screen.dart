@@ -10,9 +10,9 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/user/preference/seller/domain/entities/seller_performance.dart';
-import 'package:labuda/domains/user/preference/seller/seller_di.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/user/preference/seller/domain/entities/seller_performance.dart';
+import 'package:hishumi/domains/user/preference/seller/seller_di.dart';
 
 class SellerPerformanceScreen extends ConsumerWidget {
   const SellerPerformanceScreen({super.key});
@@ -147,7 +147,7 @@ class _OverviewHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Text(
-      'Ringkasan keandalan dan reputasi Anda sebagai penjual di Labuda.',
+      'Ringkasan keandalan dan reputasi Anda sebagai penjual di HiShumi.',
       style: context.typeRoles.bodyDense.copyWith(
         color: Theme.of(context).colorScheme.onSurfaceVariant,
       ),

@@ -8,9 +8,9 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/labuda/backend/internal/governance/support/entity"
-	supportRepo "github.com/labuda/backend/internal/governance/support/repository"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/governance/support/entity"
+	supportRepo "github.com/hishumi/backend/internal/governance/support/repository"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // SupportRepositoryImpl implements the support repository using pgx.

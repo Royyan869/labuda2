@@ -7,8 +7,8 @@
 library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/domains/social/follow/data/follow_providers.dart';
-import 'package:labuda/domains/social/follow/domain/entities/follow_entity.dart';
+import 'package:hishumi/domains/social/follow/data/follow_providers.dart';
+import 'package:hishumi/domains/social/follow/domain/entities/follow_entity.dart';
 
 /// Stream provider untuk followers real-time
 /// Uses keepAlive to maintain connection while screen is active

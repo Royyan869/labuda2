@@ -3,8 +3,8 @@ package main
 import (
 	"testing"
 
-	"github.com/labuda/backend/internal/config"
-	"github.com/labuda/backend/internal/worker"
+	"github.com/hishumi/backend/internal/config"
+	"github.com/hishumi/backend/internal/worker"
 )
 
 func activeStatus(name string) worker.CriticalWorkerStatus {

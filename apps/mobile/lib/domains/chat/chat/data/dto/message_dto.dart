@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'attachment_dto.dart';
 import 'chat_resource_occurrence_request.dart';
-import 'package:labuda/shared/domain/entities/resource_projection.dart';
+import 'package:hishumi/shared/domain/entities/resource_projection.dart';
 
 /// Message DTO from API
 class MessageDto extends Equatable {

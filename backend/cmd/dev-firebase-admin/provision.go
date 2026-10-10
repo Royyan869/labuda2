@@ -15,7 +15,7 @@ import (
 
 	"firebase.google.com/go/v4/auth"
 
-	"github.com/labuda/backend/pkg/firebase"
+	"github.com/hishumi/backend/pkg/firebase"
 )
 
 // Status is the non-sensitive outcome of a provisioning attempt.

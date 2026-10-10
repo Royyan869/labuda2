@@ -7,13 +7,13 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	supportApp "github.com/labuda/backend/internal/governance/support/application"
-	supportEntity "github.com/labuda/backend/internal/governance/support/entity"
-	supportRepo "github.com/labuda/backend/internal/governance/support/repository"
-	chatEntity "github.com/labuda/backend/internal/interaction/chat/entity"
-	"github.com/labuda/backend/internal/middleware"
-	"github.com/labuda/backend/internal/platform/capability"
-	"github.com/labuda/backend/internal/platform/response"
+	supportApp "github.com/hishumi/backend/internal/governance/support/application"
+	supportEntity "github.com/hishumi/backend/internal/governance/support/entity"
+	supportRepo "github.com/hishumi/backend/internal/governance/support/repository"
+	chatEntity "github.com/hishumi/backend/internal/interaction/chat/entity"
+	"github.com/hishumi/backend/internal/middleware"
+	"github.com/hishumi/backend/internal/platform/capability"
+	"github.com/hishumi/backend/internal/platform/response"
 	"go.uber.org/zap"
 )
 

@@ -9,11 +9,11 @@ import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/api/api_client.dart';
-import 'package:labuda/domains/system/support/data/datasources/support_api_datasource.dart';
-import 'package:labuda/domains/system/support/data/dto/support_ticket_dto.dart';
-import 'package:labuda/domains/system/support/data/repositories/support_repository_api.dart';
-import 'package:labuda/domains/system/support/domain/domain.dart';
+import 'package:hishumi/core/api/api_client.dart';
+import 'package:hishumi/domains/system/support/data/datasources/support_api_datasource.dart';
+import 'package:hishumi/domains/system/support/data/dto/support_ticket_dto.dart';
+import 'package:hishumi/domains/system/support/data/repositories/support_repository_api.dart';
+import 'package:hishumi/domains/system/support/domain/domain.dart';
 
 /// Captures every outgoing request and answers with a canned canonical ticket.
 class _CapturingSupportAdapter implements HttpClientAdapter {

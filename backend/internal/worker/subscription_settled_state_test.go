@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	paymentRepo "github.com/labuda/backend/internal/integration/payment/infrastructure/repository"
+	paymentRepo "github.com/hishumi/backend/internal/integration/payment/infrastructure/repository"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

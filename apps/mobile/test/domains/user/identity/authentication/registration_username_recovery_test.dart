@@ -16,16 +16,16 @@
 import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/user/identity/authentication/data/auth_providers.dart'
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/user/identity/authentication/data/auth_providers.dart'
     as auth_data;
-import 'package:labuda/domains/user/identity/authentication/domain/entities/account_status.dart';
-import 'package:labuda/domains/user/identity/authentication/domain/entities/firebase_principal.dart';
-import 'package:labuda/domains/user/identity/authentication/domain/entities/user_profile_patch.dart';
-import 'package:labuda/domains/user/profile/data/datasources/user_api_datasource.dart';
-import 'package:labuda/domains/user/profile/data/profile_providers.dart'
+import 'package:hishumi/domains/user/identity/authentication/domain/entities/account_status.dart';
+import 'package:hishumi/domains/user/identity/authentication/domain/entities/firebase_principal.dart';
+import 'package:hishumi/domains/user/identity/authentication/domain/entities/user_profile_patch.dart';
+import 'package:hishumi/domains/user/profile/data/datasources/user_api_datasource.dart';
+import 'package:hishumi/domains/user/profile/data/profile_providers.dart'
     show userSyncServiceProvider;
-import 'package:labuda/domains/user/profile/data/services/user_sync_service.dart';
+import 'package:hishumi/domains/user/profile/data/services/user_sync_service.dart';
 
 // ---------------------------------------------------------------------------
 // Fakes (CURRENT interfaces)

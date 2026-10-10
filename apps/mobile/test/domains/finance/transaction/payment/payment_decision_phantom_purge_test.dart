@@ -17,8 +17,8 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/common/types/payment_types.dart';
-import 'package:labuda/domains/finance/transaction/payment/data/dto/payment_dto.dart';
+import 'package:hishumi/core/common/types/payment_types.dart';
+import 'package:hishumi/domains/finance/transaction/payment/data/dto/payment_dto.dart';
 
 /// Satu-satunya rumah decision contract (backend parity).
 const _canonicalContractHome =

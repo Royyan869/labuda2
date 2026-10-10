@@ -5,26 +5,26 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/platform/response"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/platform/response"
+	"github.com/hishumi/backend/pkg/db"
 )
 
-// UserLookupService interface for validating canonical Labuda user ID.
+// UserLookupService interface for validating canonical HiShumi user ID.
 type UserLookupService interface {
 	GetUserIDByID(ctx context.Context, userID uuid.UUID) (uuid.UUID, error)
 }
 
-// UserLookupMiddleware validates that the canonical Labuda user_id exists.
+// UserLookupMiddleware validates that the canonical HiShumi user_id exists.
 //
 // RULES:
 // - IF user not found in database → return "USER_NOT_PROVISIONED" error
 // - DO NOT create users automatically
 // - DO NOT fallback - users must be created through explicit signup flow
 // - Firebase UID is NOT a bearer/auth lookup authority; that path is purged (Slice 2).
-//   Canonical identity is Labuda JWT user_id → DB.
+//   Canonical identity is HiShumi JWT user_id → DB.
 func UserLookupMiddleware(userLookup UserLookupService) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// If canonical user_id is already present (e.g., from LabudaAuthMiddleware), validate existence.
+		// If canonical user_id is already present (e.g., from HiShumiAuthMiddleware), validate existence.
 		if uidVal, hasUserID := c.Get("user_id"); hasUserID {
 			if uid, ok := uidVal.(uuid.UUID); ok && uid != uuid.Nil {
 				if _, err := userLookup.GetUserIDByID(c.Request.Context(), uid); err != nil {
@@ -71,7 +71,7 @@ func NewDBUserLookupService(database *db.DB) *DBUserLookupService {
 	return &DBUserLookupService{db: database}
 }
 
-// GetUserIDByID validates that a canonical Labuda user_id exists.
+// GetUserIDByID validates that a canonical HiShumi user_id exists.
 func (s *DBUserLookupService) GetUserIDByID(ctx context.Context, userID uuid.UUID) (uuid.UUID, error) {
 	var found uuid.UUID
 	err := s.db.Pool().QueryRow(ctx, "SELECT id FROM users WHERE id = $1 AND deleted_at IS NULL", userID).Scan(&found)

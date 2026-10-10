@@ -16,10 +16,10 @@ export 'domain/entities/seller_subscription.dart';
 // ============================================
 // SELLER UPGRADE CONFIG (for use by other modules)
 // ============================================
-export 'package:labuda/core/config/seller_upgrade_config.dart';
-export 'package:labuda/core/config/seller_upgrade_config_entity.dart';
-export 'package:labuda/core/config/seller_upgrade_config_service.dart';
-export 'package:labuda/core/config/seller_upgrade_config_provider.dart';
+export 'package:hishumi/core/config/seller_upgrade_config.dart';
+export 'package:hishumi/core/config/seller_upgrade_config_entity.dart';
+export 'package:hishumi/core/config/seller_upgrade_config_service.dart';
+export 'package:hishumi/core/config/seller_upgrade_config_provider.dart';
 
 // ============================================
 // DOMAIN REPOSITORIES

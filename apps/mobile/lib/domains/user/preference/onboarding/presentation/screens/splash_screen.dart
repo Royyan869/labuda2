@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
+import 'package:hishumi/core/core.dart';
 
 /// Splash screen - Visual Only (No Auth Logic)
 ///
@@ -200,7 +200,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     final scheme = Theme.of(context).colorScheme;
     final isUnavailable = authState is AuthStateBackendUnavailable;
     final message = isUnavailable
-        ? 'Tidak bisa terhubung ke server Labuda. Pastikan backend sedang '
+        ? 'Tidak bisa terhubung ke server HiShumi. Pastikan backend sedang '
               'berjalan dan HP berada di jaringan yang sama.'
         : (authState as AuthStateBackendFailure).message;
 
@@ -310,7 +310,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     return Column(
       children: [
         Text(
-          'LABUDA',
+          'HiShumi',
           style: Theme.of(context).textTheme.headlineLarge?.copyWith(
             fontWeight: FontWeight.bold,
             letterSpacing: 3.0,

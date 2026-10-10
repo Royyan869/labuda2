@@ -9,7 +9,7 @@
 /// ⚠️ COINS OWNERSHIP:
 /// - Coin providers and widgets have been REMOVED from this file
 /// - Coins are now owned by domains/finance/wallet/coins module
-/// - Use import 'package:labuda/domains/finance/wallet/coins/coins.dart';
+/// - Use import 'package:hishumi/domains/finance/wallet/coins/coins.dart';
 library;
 
 // Widgets

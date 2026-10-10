@@ -1,11 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/domains/social/rating/data/datasources/rating_api_datasource.dart';
-import 'package:labuda/domains/social/rating/data/dto/rating_api_models.dart';
-import 'package:labuda/domains/social/rating/data/repositories/api/rating_repository_api.dart';
-import 'package:labuda/domains/social/rating/rating.dart';
-import 'package:labuda/core/api/api_client.dart';
-import 'package:labuda/core/common/result.dart';
+import 'package:hishumi/domains/social/rating/data/datasources/rating_api_datasource.dart';
+import 'package:hishumi/domains/social/rating/data/dto/rating_api_models.dart';
+import 'package:hishumi/domains/social/rating/data/repositories/api/rating_repository_api.dart';
+import 'package:hishumi/domains/social/rating/rating.dart';
+import 'package:hishumi/core/api/api_client.dart';
+import 'package:hishumi/core/common/result.dart';
 
 // CANONICAL RATING DATASOURCE / REPOSITORY CONTRACT TEST
 //

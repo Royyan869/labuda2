@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
-import 'package:labuda/core/api/api_client.dart';
-import 'package:labuda/core/api/exceptions/api_exception.dart';
-import 'package:labuda/core/config/seller_upgrade_config_entity.dart';
+import 'package:hishumi/core/api/api_client.dart';
+import 'package:hishumi/core/api/exceptions/api_exception.dart';
+import 'package:hishumi/core/config/seller_upgrade_config_entity.dart';
 
 /// Service for fetching seller upgrade configuration
 ///

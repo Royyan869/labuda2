@@ -16,10 +16,10 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/shared/attachment/entities/share_reference.dart';
-import 'package:labuda/shared/object/object_preview.dart';
-import 'package:labuda/shared/object/presentation/widgets/object_preview_card.dart';
-import 'package:labuda/shared/widgets/app_image.dart';
+import 'package:hishumi/shared/attachment/entities/share_reference.dart';
+import 'package:hishumi/shared/object/object_preview.dart';
+import 'package:hishumi/shared/object/presentation/widgets/object_preview_card.dart';
+import 'package:hishumi/shared/widgets/app_image.dart';
 
 ShareReference _contentReference({String? imageUrl}) {
   return ShareReference(

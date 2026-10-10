@@ -21,8 +21,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/labuda/backend/internal/serverboot"
-	"github.com/labuda/backend/pkg/database"
+	"github.com/hishumi/backend/internal/serverboot"
+	"github.com/hishumi/backend/pkg/database"
 	"go.uber.org/zap"
 )
 

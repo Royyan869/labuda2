@@ -1,5 +1,5 @@
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/social/follow/domain/entities/follow_entity.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/social/follow/domain/entities/follow_entity.dart';
 
 abstract interface class IFollowRepository {
   Future<Result<bool>> followUser({

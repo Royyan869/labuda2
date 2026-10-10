@@ -7,11 +7,11 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	forsaleEntity "github.com/labuda/backend/internal/commerce/forsale/entity"
-	orderRepo "github.com/labuda/backend/internal/commerce/order/repository"
-	shippingEntity "github.com/labuda/backend/internal/commerce/shipping/entity"
-	shippingRepo "github.com/labuda/backend/internal/commerce/shipping/infrastructure/repository"
-	"github.com/labuda/backend/pkg/db"
+	forsaleEntity "github.com/hishumi/backend/internal/commerce/forsale/entity"
+	orderRepo "github.com/hishumi/backend/internal/commerce/order/repository"
+	shippingEntity "github.com/hishumi/backend/internal/commerce/shipping/entity"
+	shippingRepo "github.com/hishumi/backend/internal/commerce/shipping/infrastructure/repository"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // ProductShippingService handles product-shipping option management.

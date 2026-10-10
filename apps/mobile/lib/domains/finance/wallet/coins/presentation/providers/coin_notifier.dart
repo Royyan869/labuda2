@@ -9,10 +9,10 @@
 library;
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:labuda/domains/finance/wallet/coins/presentation/providers/coin_state.dart';
-import 'package:labuda/domains/finance/wallet/coins/coins_di.dart';
+import 'package:hishumi/domains/finance/wallet/coins/presentation/providers/coin_state.dart';
+import 'package:hishumi/domains/finance/wallet/coins/coins_di.dart';
 // R4.2: Import authenticatedUserProvider directly instead of mega-barrel
-import 'package:labuda/shared/providers/authenticated_account_provider.dart'
+import 'package:hishumi/shared/providers/authenticated_account_provider.dart'
     show authenticatedUserProvider;
 
 part 'coin_notifier.g.dart';

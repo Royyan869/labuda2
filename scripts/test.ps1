@@ -13,7 +13,7 @@ Set-Location "$scriptDir\.."
 Set-Location backend
 
 Write-Host "==> Running tests with isolated test database..."
-Write-Host "    Test DB: labuda_test"
+Write-Host "    Test DB: hishumi_test"
 
 # Set TEST_MODE environment variable
 $env:TEST_MODE = "true"

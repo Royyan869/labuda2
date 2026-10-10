@@ -4,13 +4,13 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/labuda/backend/internal/identity/auth/application"
-	"github.com/labuda/backend/internal/platform/response"
+	"github.com/hishumi/backend/internal/identity/auth/application"
+	"github.com/hishumi/backend/internal/platform/response"
 )
 
-// LabudaAuthMiddleware validates canonical Labuda Access JWTs.
+// HiShumiAuthMiddleware validates canonical HiShumi Access JWTs.
 // It directly sets the canonical user_id in the context.
-func LabudaAuthMiddleware(tokenService *application.TokenService) gin.HandlerFunc {
+func HiShumiAuthMiddleware(tokenService *application.TokenService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {

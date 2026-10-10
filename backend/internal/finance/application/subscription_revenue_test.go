@@ -5,9 +5,9 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	ledgerepo "github.com/labuda/backend/internal/finance/repository"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/money"
+	ledgerepo "github.com/hishumi/backend/internal/finance/repository"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/money"
 )
 
 // TestRecordSubscriptionRevenue_BalancedEntries verifies that the subscription

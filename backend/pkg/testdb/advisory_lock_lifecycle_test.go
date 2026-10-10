@@ -8,7 +8,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/labuda/backend/internal/config"
+	"github.com/hishumi/backend/internal/config"
 )
 
 // TestSetup_ReturnsLiveTestDatabase proves Setup returns a usable test pool

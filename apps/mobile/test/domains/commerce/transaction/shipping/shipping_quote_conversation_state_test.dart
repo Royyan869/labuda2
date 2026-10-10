@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'package:labuda/core/src/theme/app_theme.dart';
-import 'package:labuda/shared/attachment/entities/attachment.dart';
-import 'package:labuda/shared/widgets/attachment_widget.dart';
+import 'package:hishumi/core/src/theme/app_theme.dart';
+import 'package:hishumi/shared/attachment/entities/attachment.dart';
+import 'package:hishumi/shared/widgets/attachment_widget.dart';
 
 /// SHIPPING QUOTE CONVERSATION STATE — buyer actionability is SERVER-OWNED and
 /// the only buyer action is "use this quote for checkout" (no rejection).

@@ -8,7 +8,7 @@
 //
 // Usage in UI:
 // ```dart
-// // TODO: import 'package:labuda/domains/user/profile/presentation/presentation.dart';
+// // TODO: import 'package:hishumi/domains/user/profile/presentation/presentation.dart';
 //
 // // Watch profile state
 // final profileState = ref.watch(profileNotifierProvider);

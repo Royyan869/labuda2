@@ -1,7 +1,7 @@
 import 'package:go_router/go_router.dart';
-import 'package:labuda/core/src/router/route_paths.dart';
-import 'package:labuda/domains/user/preference/saved_item/saved_item.dart';
-import 'package:labuda/core/src/router/modules/base_module.dart';
+import 'package:hishumi/core/src/router/route_paths.dart';
+import 'package:hishumi/domains/user/preference/saved_item/saved_item.dart';
+import 'package:hishumi/core/src/router/modules/base_module.dart';
 
 /// Saved Item module routing implementation
 ///

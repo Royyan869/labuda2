@@ -11,13 +11,13 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/shared/widgets/app_dialog.dart';
-import 'package:labuda/shared/widgets/app_snackbar.dart';
-import 'package:labuda/domains/commerce/pricing/promotion/data/dto/promotion_contract_dto.dart';
-import 'package:labuda/domains/commerce/pricing/promotion/data/repositories/promotion_contract_repository.dart';
-import 'package:labuda/domains/commerce/pricing/promotion/presentation/providers/canonical_promotion_providers.dart';
-import 'package:labuda/shared/utils/app_formatters.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/shared/widgets/app_dialog.dart';
+import 'package:hishumi/shared/widgets/app_snackbar.dart';
+import 'package:hishumi/domains/commerce/pricing/promotion/data/dto/promotion_contract_dto.dart';
+import 'package:hishumi/domains/commerce/pricing/promotion/data/repositories/promotion_contract_repository.dart';
+import 'package:hishumi/domains/commerce/pricing/promotion/presentation/providers/canonical_promotion_providers.dart';
+import 'package:hishumi/shared/utils/app_formatters.dart';
 
 /// Screen that lists the authenticated seller's promotion contracts.
 ///

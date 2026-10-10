@@ -5,14 +5,14 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/user/identity/authentication/domain/entities/account_status.dart';
-import 'package:labuda/domains/user/profile/data/models/blocked_user_model.dart';
-import 'package:labuda/domains/user/profile/data/services/blocked_users_service.dart';
-import 'package:labuda/domains/user/profile/presentation/providers/blocked_users_provider.dart';
-import 'package:labuda/domains/user/profile/presentation/screens/blocked_users_screen.dart';
-import 'package:labuda/shared/governance/content_lifecycle.dart';
-import 'package:labuda/shared/widgets/app_image.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/user/identity/authentication/domain/entities/account_status.dart';
+import 'package:hishumi/domains/user/profile/data/models/blocked_user_model.dart';
+import 'package:hishumi/domains/user/profile/data/services/blocked_users_service.dart';
+import 'package:hishumi/domains/user/profile/presentation/providers/blocked_users_provider.dart';
+import 'package:hishumi/domains/user/profile/presentation/screens/blocked_users_screen.dart';
+import 'package:hishumi/shared/governance/content_lifecycle.dart';
+import 'package:hishumi/shared/widgets/app_image.dart';
 
 class _FakeAuthController extends AuthController {
   _FakeAuthController(this._state);

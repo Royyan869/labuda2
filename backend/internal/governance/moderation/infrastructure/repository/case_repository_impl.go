@@ -8,8 +8,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/labuda/backend/internal/governance/moderation/entity"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/governance/moderation/entity"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // CaseRepositoryImpl is the canonical Case persistence using pgx.

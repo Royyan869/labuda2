@@ -4,8 +4,8 @@ import (
 	"reflect"
 	"testing"
 
-	contentrepo "github.com/labuda/backend/internal/social/content/infrastructure/repository"
-	"github.com/labuda/backend/internal/social/content/repository"
+	contentrepo "github.com/hishumi/backend/internal/social/content/infrastructure/repository"
+	"github.com/hishumi/backend/internal/social/content/repository"
 )
 
 // stubContentRepo embeds the interface so it satisfies every method via a

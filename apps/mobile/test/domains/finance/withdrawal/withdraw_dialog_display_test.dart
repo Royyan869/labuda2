@@ -11,8 +11,8 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/domains/user/identity/verification/presentation/providers/seller_verification_v2_provider.dart';
-import 'package:labuda/domains/user/preference/seller/presentation/widgets/withdraw_dialog.dart';
+import 'package:hishumi/domains/user/identity/verification/presentation/providers/seller_verification_v2_provider.dart';
+import 'package:hishumi/domains/user/preference/seller/presentation/widgets/withdraw_dialog.dart';
 
 class _VerifiedSellerNotifier extends SellerVerificationV2Notifier {
   @override

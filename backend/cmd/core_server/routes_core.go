@@ -7,16 +7,16 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/config"
-	"github.com/labuda/backend/internal/identity/auth/application"
-	"github.com/labuda/backend/internal/middleware"
-	"github.com/labuda/backend/internal/platform/logger"
-	"github.com/labuda/backend/internal/platform/response"
-	"github.com/labuda/backend/internal/serverboot"
-	"github.com/labuda/backend/internal/worker"
-	"github.com/labuda/backend/pkg/database"
-	"github.com/labuda/backend/pkg/firebase"
-	pkgRedis "github.com/labuda/backend/pkg/redis"
+	"github.com/hishumi/backend/internal/config"
+	"github.com/hishumi/backend/internal/identity/auth/application"
+	"github.com/hishumi/backend/internal/middleware"
+	"github.com/hishumi/backend/internal/platform/logger"
+	"github.com/hishumi/backend/internal/platform/response"
+	"github.com/hishumi/backend/internal/serverboot"
+	"github.com/hishumi/backend/internal/worker"
+	"github.com/hishumi/backend/pkg/database"
+	"github.com/hishumi/backend/pkg/firebase"
+	pkgRedis "github.com/hishumi/backend/pkg/redis"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
@@ -124,22 +124,22 @@ func SetupRoutes(
 	router.POST("/api/v1/auth/refresh", deps.AuthHandler.RefreshToken)
 	router.POST("/api/v1/auth/complete-profile", deps.AuthHandler.CompleteProfile)
 
-	// Labuda access JWT authority for protected auth session routes.
-	labudaTokenService := application.NewTokenService(&cfg.JWT, &logger.Logger{Logger: log.Logger})
+	// HiShumi access JWT authority for protected auth session routes.
+	hishumiTokenService := application.NewTokenService(&cfg.JWT, &logger.Logger{Logger: log.Logger})
 
-	// ===== WEBSOCKET BOUNDARY — Phase 5 Labuda canonical =====
-	// WebSocket now uses the same Labuda access JWT authority as REST.
-	// No Firebase fallback, no dual-auth. Validate via LabudaAuthMiddleware
+	// ===== WEBSOCKET BOUNDARY — Phase 5 HiShumi canonical =====
+	// WebSocket now uses the same HiShumi access JWT authority as REST.
+	// No Firebase fallback, no dual-auth. Validate via HiShumiAuthMiddleware
 	// (token_use=access, issuer, expiry, user_id) then UserLookupMiddleware.
 	wsGroup := router.Group("/api/v1")
 	wsGroup.Use(middleware.ErrorHandler(log.Logger))
-	wsGroup.Use(middleware.LabudaAuthMiddleware(labudaTokenService))
+	wsGroup.Use(middleware.HiShumiAuthMiddleware(hishumiTokenService))
 	wsGroup.Use(middleware.UserLookupMiddleware(middleware.NewDBUserLookupService(db.Pgx())))
 	wsGroup.GET("/ws", deps.RealtimeHandler.HandleWebSocket)
 	wsGroup.GET("/ws/stats", deps.RealtimeHandler.GetStats)
 
 	authRoutes := router.Group("/api/v1/auth")
-	authRoutes.Use(middleware.LabudaAuthMiddleware(labudaTokenService))
+	authRoutes.Use(middleware.HiShumiAuthMiddleware(hishumiTokenService))
 	authRoutes.Use(middleware.UserLookupMiddleware(middleware.NewDBUserLookupService(db.Pgx())))
 	authRoutes.POST("/logout", deps.AuthHandler.Logout)
 	authRoutes.POST("/logout-all", deps.AuthHandler.LogoutAll)
@@ -159,7 +159,7 @@ func SetupRoutes(
 	// ViewerContext, and the feed SQL enforces visibility per viewer.
 	v1Browse := router.Group("/api/v1")
 	v1Browse.Use(middleware.ErrorHandler(log.Logger))
-	v1Browse.Use(middleware.StrictBrowseLabudaAuthMiddleware(labudaTokenService))
+	v1Browse.Use(middleware.StrictBrowseHiShumiAuthMiddleware(hishumiTokenService))
 	v1Browse.Use(middleware.UserLookupMiddleware(middleware.NewDBUserLookupService(db.Pgx())))
 	v1Browse.Use(middleware.ActorContextInject(deps.ActorResolver, middleware.ActorContextInjectOptions{Log: log.Logger}))
 	{
@@ -196,7 +196,7 @@ func SetupRoutes(
 
 	// ===== GLOBAL MIDDLEWARE CHAIN FOR /api/v1 =====
 	// All authenticated routes under /api/v1 share the same middleware pipeline:
-	// 1. LabudaAuthMiddleware - Validates canonical Labuda Access JWT (user_id, token_use=access)
+	// 1. HiShumiAuthMiddleware - Validates canonical HiShumi Access JWT (user_id, token_use=access)
 	// 2. UserLookupMiddleware - Validates canonical user_id exists
 	// 3. ActorContextInject - Injects Actor (role + capabilities) into request context
 	//
@@ -209,7 +209,7 @@ func SetupRoutes(
 
 	v1 := router.Group("/api/v1")
 	v1.Use(middleware.ErrorHandler(log.Logger))
-	v1.Use(middleware.LabudaAuthMiddleware(labudaTokenService))
+	v1.Use(middleware.HiShumiAuthMiddleware(hishumiTokenService))
 	v1.Use(middleware.UserLookupMiddleware(middleware.NewDBUserLookupService(db.Pgx())))
 	// CANONICAL AUTHORITY PIPELINE: inject Actor (role + capabilities) into context
 	v1.Use(middleware.ActorContextInject(deps.ActorResolver, middleware.ActorContextInjectOptions{Log: log.Logger}))

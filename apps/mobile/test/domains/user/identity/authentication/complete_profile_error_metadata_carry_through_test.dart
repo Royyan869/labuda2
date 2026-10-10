@@ -23,9 +23,10 @@
 import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/user/identity/authentication/data/datasources/auth_api_datasource.dart';
-import 'package:labuda/domains/user/identity/authentication/data/repositories/auth_profile_repository.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/user/identity/authentication/data/datasources/auth_api_datasource.dart';
+import 'package:hishumi/domains/user/identity/authentication/data/repositories/auth_profile_repository.dart';
+import 'package:hishumi/domains/user/profile/data/datasources/user_api_datasource.dart';
 
 /// ApiClient fake that returns whatever HTTP outcome a test scripts, mirroring
 /// production `ApiClient.extractException` semantics (api_client.dart:195).
@@ -136,7 +137,7 @@ class _StubLocalStorage extends Fake implements ILocalStorageService {
       Result.success('restricted-token');
 
   @override
-  Future<Result<void>> saveLabudaCredential(
+  Future<Result<void>> saveHiShumiCredential(
     String accessToken,
     String refreshToken,
   ) async => Result.success(null);
@@ -145,7 +146,7 @@ class _StubLocalStorage extends Fake implements ILocalStorageService {
   Future<Result<void>> clearRestrictedToken() async => Result.success(null);
 
   @override
-  Future<Result<void>> clearLabudaCredential() async => Result.success(null);
+  Future<Result<void>> clearHiShumiCredential() async => Result.success(null);
 }
 
 Response<dynamic> _response({
@@ -169,6 +170,9 @@ AuthProfileRepository _repository(_ScriptedApiClient client) =>
     AuthProfileRepository(
       firebaseAuth: _NoopFirebaseAuth(),
       apiDatasource: AuthApiDatasource(client),
+      // Canonical /users/me authority (UserApiDatasource) — same scripted
+      // client, one endpoint implementation.
+      userDatasource: UserApiDatasource(client),
       localStorage: _StubLocalStorage(),
     );
 

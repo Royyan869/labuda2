@@ -7,8 +7,8 @@
 // not be told they expired.
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/domains/user/preference/seller/domain/entities/seller_state.dart';
-import 'package:labuda/shared/widgets/create_content_bottom_sheet.dart';
+import 'package:hishumi/domains/user/preference/seller/domain/entities/seller_state.dart';
+import 'package:hishumi/shared/widgets/create_content_bottom_sheet.dart';
 
 Widget _host({required bool isSubscriptionExpired}) {
   return MaterialApp(

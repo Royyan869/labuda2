@@ -47,12 +47,12 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 
-	"github.com/labuda/backend/internal/config"
-	"github.com/labuda/backend/internal/integration/payment/infrastructure/repository"
-	"github.com/labuda/backend/internal/platform/logger"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/midtrans"
-	"github.com/labuda/backend/pkg/testdb"
+	"github.com/hishumi/backend/internal/config"
+	"github.com/hishumi/backend/internal/integration/payment/infrastructure/repository"
+	"github.com/hishumi/backend/internal/platform/logger"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/midtrans"
+	"github.com/hishumi/backend/pkg/testdb"
 )
 
 // testServerKey is a distinctive, non-secret value used to prove that gateway

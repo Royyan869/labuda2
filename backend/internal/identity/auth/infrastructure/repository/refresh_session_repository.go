@@ -12,8 +12,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	authentity "github.com/labuda/backend/internal/identity/auth/entity"
-	"github.com/labuda/backend/pkg/db"
+	authentity "github.com/hishumi/backend/internal/identity/auth/entity"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // ErrSessionNotFound is returned when no matching session row exists.

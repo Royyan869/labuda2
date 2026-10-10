@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/labuda/backend/internal/config"
+	"github.com/hishumi/backend/internal/config"
 )
 
 // canonicalTestCallbackURL is composed from the SAME constant the route mount

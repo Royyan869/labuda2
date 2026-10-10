@@ -73,7 +73,7 @@ const _movedIntoCommerce = <String>[
 ];
 
 /// A directive that names a `commerce/` path. This is the resurrection route:
-/// `import 'package:labuda/domains/commerce/...'` or a relative
+/// `import 'package:hishumi/domains/commerce/...'` or a relative
 /// `import '../../commerce/...'`. A `//` comment explaining the boundary, or a
 /// string that merely names the path, is NOT a dependency.
 final _commerceDirective = RegExp(
@@ -180,7 +180,7 @@ void main() {
 
   test('the detector fires on real resurrection, not on prose (negative proof)', () {
     const packageImport =
-        "import 'package:labuda/domains/commerce/transaction/order/"
+        "import 'package:hishumi/domains/commerce/transaction/order/"
         "domain/entities/order.dart';";
     const relativeImport =
         "import '../../../commerce/transaction/order/data/"
@@ -209,7 +209,7 @@ void main() {
     // The allowed direction must never be flagged.
     expect(
       _commerceDirective.hasMatch(
-        "import 'package:labuda/domains/finance/transaction/payment/"
+        "import 'package:hishumi/domains/finance/transaction/payment/"
         "domain/entities/payment.dart';",
       ),
       isFalse,

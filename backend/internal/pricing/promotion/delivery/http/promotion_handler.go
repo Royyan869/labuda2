@@ -3,10 +3,10 @@ package http
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/audit"
-	"github.com/labuda/backend/internal/middleware"
-	promotionApp "github.com/labuda/backend/internal/pricing/promotion/application"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/audit"
+	"github.com/hishumi/backend/internal/middleware"
+	promotionApp "github.com/hishumi/backend/internal/pricing/promotion/application"
+	"github.com/hishumi/backend/pkg/db"
 	"go.uber.org/zap"
 )
 

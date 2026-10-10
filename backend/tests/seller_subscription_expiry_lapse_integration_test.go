@@ -24,12 +24,12 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
-	auctioninfra "github.com/labuda/backend/internal/commerce/auction/infrastructure/repository"
-	fpsinfra "github.com/labuda/backend/internal/commerce/forsale/infrastructure/repository"
-	platformevent "github.com/labuda/backend/internal/platform/event"
-	"github.com/labuda/backend/internal/worker"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/testdb"
+	auctioninfra "github.com/hishumi/backend/internal/commerce/auction/infrastructure/repository"
+	fpsinfra "github.com/hishumi/backend/internal/commerce/forsale/infrastructure/repository"
+	platformevent "github.com/hishumi/backend/internal/platform/event"
+	"github.com/hishumi/backend/internal/worker"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/testdb"
 )
 
 // expireSellerSubscription flips a fixture seller's (stage6b seeds an active

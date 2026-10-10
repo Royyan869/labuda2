@@ -1,10 +1,10 @@
 // Phase 3B — MOBILE_HTTP_CREDENTIAL_AUTHORITY
-// Canonical tests proving actual header behavior after Labuda JWT migration.
+// Canonical tests proving actual header behavior after HiShumi JWT migration.
 //
 // Requirements (from PHASE 3B spec §9):
-// - Normal authenticated request → Bearer LabudaAccessToken
-// - Firebase separation → normal API uses Labuda, NOT Firebase
-// - No fallback → Labuda missing + Firebase present → MUST NOT silently use Firebase
+// - Normal authenticated request → Bearer HiShumiAccessToken
+// - Firebase separation → normal API uses HiShumi, NOT Firebase
+// - No fallback → HiShumi missing + Firebase present → MUST NOT silently use Firebase
 // - Exchange boundary → Firebase credential remains allowed (skipAuth, body)
 // - Completion boundary → restricted completion credential (skipAuth + Bearer restricted)
 // - Existing request behavior → headers, public, body, etc. not broken
@@ -14,7 +14,7 @@ import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/api/interceptors/auth_interceptor.dart';
+import 'package:hishumi/core/api/interceptors/auth_interceptor.dart';
 
 class _CaptureAdapter implements HttpClientAdapter {
   RequestOptions? lastOptions;
@@ -42,44 +42,44 @@ class _CaptureAdapter implements HttpClientAdapter {
 }
 
 void main() {
-  group('Labuda HTTP credential authority (Phase 3B)', () {
+  group('HiShumi HTTP credential authority (Phase 3B)', () {
     setUp(() {
       AuthInterceptor.resetSessionExpiryGuard();
       AuthInterceptor.setSessionExpiredCallbackForTest(null);
     });
 
-    test('Normal authenticated request: Authorization = Bearer LabudaAccessToken',
+    test('Normal authenticated request: Authorization = Bearer HiShumiAccessToken',
         () async {
       final adapter = _CaptureAdapter();
       final dio = Dio()..httpClientAdapter = adapter;
       dio.interceptors.add(
-        AuthInterceptor(labudaTokenFetcher: () async => 'labuda-access-jwt-abc'),
+        AuthInterceptor(hishumiTokenFetcher: () async => 'hishumi-access-jwt-abc'),
       );
 
       await dio.get<dynamic>('/api/v1/users/me');
 
-      expect(adapter.lastAuth, equals('Bearer labuda-access-jwt-abc'));
+      expect(adapter.lastAuth, equals('Bearer hishumi-access-jwt-abc'));
       // also works for generic normal route
       await dio.get<dynamic>('/api/v1/feed');
-      expect(adapter.lastAuth, equals('Bearer labuda-access-jwt-abc'));
+      expect(adapter.lastAuth, equals('Bearer hishumi-access-jwt-abc'));
     });
 
-    test('Firebase separation: Labuda exists + Firebase exists → uses Labuda, NOT Firebase',
+    test('Firebase separation: HiShumi exists + Firebase exists → uses HiShumi, NOT Firebase',
         () async {
-      const labudaToken = 'labuda-jwt-canonical';
+      const hishumiToken = 'hishumi-jwt-canonical';
       const firebaseToken = 'firebase-jwt-should-not-be-used';
 
       // Simulate that Firebase currentUser.getIdToken would return firebaseToken
       // if fallback existed. We deliberately do NOT pass firebase via interceptor.
-      // The only fetcher wired is Labuda.
+      // The only fetcher wired is HiShumi.
       final adapter = _CaptureAdapter();
       final dio = Dio()..httpClientAdapter = adapter;
       dio.interceptors.add(
-        AuthInterceptor(labudaTokenFetcher: () async => labudaToken),
+        AuthInterceptor(hishumiTokenFetcher: () async => hishumiToken),
       );
 
       await dio.get<dynamic>('/api/v1/users/me');
-      expect(adapter.lastAuth, equals('Bearer $labudaToken'));
+      expect(adapter.lastAuth, equals('Bearer $hishumiToken'));
       expect(adapter.lastAuth, isNot(equals('Bearer $firebaseToken')),
           reason: 'normal API must NOT use Firebase token even if Firebase session active');
 
@@ -87,14 +87,14 @@ void main() {
       expect(adapter.lastAuth, isNot(contains(firebaseToken)));
     });
 
-    test('No fallback: Labuda missing + Firebase exists → MUST NOT silently use Firebase',
+    test('No fallback: HiShumi missing + Firebase exists → MUST NOT silently use Firebase',
         () async {
       final adapter = _CaptureAdapter();
       final dio = Dio()..httpClientAdapter = adapter;
 
-      // Labuda fetcher returns null (missing credential)
+      // HiShumi fetcher returns null (missing credential)
       dio.interceptors.add(
-        AuthInterceptor(labudaTokenFetcher: () async => null),
+        AuthInterceptor(hishumiTokenFetcher: () async => null),
       );
 
       // Firebase "exists" is simulated — but interceptor must NOT read it.
@@ -103,17 +103,17 @@ void main() {
 
       expect(adapter.lastAuth, isNull,
           reason:
-              'when Labuda access token missing, interceptor must NOT silently attach Firebase token');
+              'when HiShumi access token missing, interceptor must NOT silently attach Firebase token');
       // Also for other normal routes
       await dio.get<dynamic>('/api/v1/feed');
       expect(adapter.lastAuth, isNull);
     });
 
-    test('No fallback: empty Labuda token → no Firebase fallback, no Bearer', () async {
+    test('No fallback: empty HiShumi token → no Firebase fallback, no Bearer', () async {
       final adapter = _CaptureAdapter();
       final dio = Dio()..httpClientAdapter = adapter;
       dio.interceptors.add(
-        AuthInterceptor(labudaTokenFetcher: () async => ''),
+        AuthInterceptor(hishumiTokenFetcher: () async => ''),
       );
 
       await dio.get<dynamic>('/api/v1/users/me');
@@ -124,9 +124,9 @@ void main() {
         () async {
       final adapter = _CaptureAdapter();
       final dio = Dio()..httpClientAdapter = adapter;
-      // Even though Labuda token exists, skipAuth routes must NOT attach it.
+      // Even though HiShumi token exists, skipAuth routes must NOT attach it.
       dio.interceptors.add(
-        AuthInterceptor(labudaTokenFetcher: () async => 'labuda-should-not-attach'),
+        AuthInterceptor(hishumiTokenFetcher: () async => 'hishumi-should-not-attach'),
       );
 
       await dio.post<dynamic>(
@@ -136,7 +136,7 @@ void main() {
       );
 
       expect(adapter.lastAuth, isNull,
-          reason: 'exchange is skipAuth — Labuda JWT must NOT be attached');
+          reason: 'exchange is skipAuth — HiShumi JWT must NOT be attached');
 
       // Verify body still carries Firebase token (datasource contract)
       expect(
@@ -149,7 +149,7 @@ void main() {
       final adapter = _CaptureAdapter();
       final dio = Dio()..httpClientAdapter = adapter;
       dio.interceptors.add(
-        AuthInterceptor(labudaTokenFetcher: () async => 'labuda-should-not-overwrite'),
+        AuthInterceptor(hishumiTokenFetcher: () async => 'hishumi-should-not-overwrite'),
       );
 
       await dio.post<dynamic>(
@@ -162,21 +162,21 @@ void main() {
       );
 
       expect(adapter.lastAuth, equals('Bearer restricted-token-xyz'),
-          reason: 'complete-profile must preserve restricted token, not Labuda');
+          reason: 'complete-profile must preserve restricted token, not HiShumi');
     });
 
-    test('/users/me now sends Labuda JWT (backend may still reject — expected)', () async {
+    test('/users/me now sends HiShumi JWT (backend may still reject — expected)', () async {
       final adapter = _CaptureAdapter();
       final dio = Dio()..httpClientAdapter = adapter;
       dio.interceptors.add(
-        AuthInterceptor(labudaTokenFetcher: () async => 'labuda-for-users-me'),
+        AuthInterceptor(hishumiTokenFetcher: () async => 'hishumi-for-users-me'),
       );
 
       await dio.get<dynamic>('/api/v1/users/me');
-      expect(adapter.lastAuth, equals('Bearer labuda-for-users-me'));
+      expect(adapter.lastAuth, equals('Bearer hishumi-for-users-me'));
 
       await dio.get<dynamic>('/users/me');
-      expect(adapter.lastAuth, equals('Bearer labuda-for-users-me'));
+      expect(adapter.lastAuth, equals('Bearer hishumi-for-users-me'));
     });
 
     test('Existing request behavior preserved: headers, content-type, query, body',
@@ -184,7 +184,7 @@ void main() {
       final adapter = _CaptureAdapter();
       final dio = Dio()..httpClientAdapter = adapter;
       dio.interceptors.add(
-        AuthInterceptor(labudaTokenFetcher: () async => 'labuda-jwt'),
+        AuthInterceptor(hishumiTokenFetcher: () async => 'hishumi-jwt'),
       );
 
       await dio.post<dynamic>(
@@ -196,36 +196,36 @@ void main() {
         ),
       );
 
-      expect(adapter.lastAuth, equals('Bearer labuda-jwt'));
+      expect(adapter.lastAuth, equals('Bearer hishumi-jwt'));
       expect(adapter.lastHeaders!['X-Custom'], equals('custom-value'));
       expect(adapter.lastHeaders!['Content-Type'], equals('application/json'));
       expect(adapter.lastOptions!.queryParameters['page'], equals(2));
       expect((adapter.lastOptions!.data as Map)['title'], equals('hello'));
     });
 
-    test('Browse GET carries the Labuda token (viewer identity)', () async {
+    test('Browse GET carries the HiShumi token (viewer identity)', () async {
       final adapter = _CaptureAdapter();
       final dio = Dio()..httpClientAdapter = adapter;
       dio.interceptors.add(
-        AuthInterceptor(labudaTokenFetcher: () async => 'labuda-jwt'),
+        AuthInterceptor(hishumiTokenFetcher: () async => 'hishumi-jwt'),
       );
 
       await dio.get<dynamic>('/api/v1/for-sale');
-      expect(adapter.lastAuth, equals('Bearer labuda-jwt'));
+      expect(adapter.lastAuth, equals('Bearer hishumi-jwt'));
 
       await dio.get<dynamic>('/api/v1/users/some-uuid');
-      expect(adapter.lastAuth, equals('Bearer labuda-jwt'));
+      expect(adapter.lastAuth, equals('Bearer hishumi-jwt'));
 
       // POST to the same prefix behaves identically — one attach rule
       await dio.post<dynamic>('/api/v1/for-sale');
-      expect(adapter.lastAuth, equals('Bearer labuda-jwt'));
+      expect(adapter.lastAuth, equals('Bearer hishumi-jwt'));
     });
 
-    test('skipAuth extra bypasses Labuda even on normal path', () async {
+    test('skipAuth extra bypasses HiShumi even on normal path', () async {
       final adapter = _CaptureAdapter();
       final dio = Dio()..httpClientAdapter = adapter;
       dio.interceptors.add(
-        AuthInterceptor(labudaTokenFetcher: () async => 'labuda-jwt'),
+        AuthInterceptor(hishumiTokenFetcher: () async => 'hishumi-jwt'),
       );
 
       await dio.get<dynamic>(
@@ -235,14 +235,14 @@ void main() {
       expect(adapter.lastAuth, isNull);
     });
 
-    test('Ad-hoc Authorization header without skipAuth is overwritten by Labuda',
+    test('Ad-hoc Authorization header without skipAuth is overwritten by HiShumi',
         () async {
       // This proves canonical authority: caller-provided Bearer is replaced
-      // by Labuda on normal routes. Only skipAuth routes preserve caller header.
+      // by HiShumi on normal routes. Only skipAuth routes preserve caller header.
       final adapter = _CaptureAdapter();
       final dio = Dio()..httpClientAdapter = adapter;
       dio.interceptors.add(
-        AuthInterceptor(labudaTokenFetcher: () async => 'labuda-canonical'),
+        AuthInterceptor(hishumiTokenFetcher: () async => 'hishumi-canonical'),
       );
 
       await dio.get<dynamic>(
@@ -250,15 +250,15 @@ void main() {
         options: Options(headers: {'Authorization': 'Bearer caller-token'}),
       );
 
-      expect(adapter.lastAuth, equals('Bearer labuda-canonical'),
-          reason: 'canonical Labuda authority must overwrite caller Bearer on normal routes');
+      expect(adapter.lastAuth, equals('Bearer hishumi-canonical'),
+          reason: 'canonical HiShumi authority must overwrite caller Bearer on normal routes');
     });
 
-    test('Idempotency-Key header preserved alongside Labuda Authorization', () async {
+    test('Idempotency-Key header preserved alongside HiShumi Authorization', () async {
       final adapter = _CaptureAdapter();
       final dio = Dio()..httpClientAdapter = adapter;
       dio.interceptors.add(
-        AuthInterceptor(labudaTokenFetcher: () async => 'labuda-jwt'),
+        AuthInterceptor(hishumiTokenFetcher: () async => 'hishumi-jwt'),
       );
 
       await dio.post<dynamic>(
@@ -267,7 +267,7 @@ void main() {
         options: Options(headers: {'Idempotency-Key': 'idem-123'}),
       );
 
-      expect(adapter.lastAuth, equals('Bearer labuda-jwt'));
+      expect(adapter.lastAuth, equals('Bearer hishumi-jwt'));
       expect(adapter.lastHeaders!['Idempotency-Key'], equals('idem-123'));
     });
   });

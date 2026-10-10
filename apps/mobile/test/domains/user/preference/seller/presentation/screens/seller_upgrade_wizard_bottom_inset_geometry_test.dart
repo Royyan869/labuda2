@@ -23,23 +23,23 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
-import 'package:labuda/core/config/seller_upgrade_config_entity.dart';
-import 'package:labuda/core/config/seller_upgrade_config_provider.dart'
+import 'package:hishumi/core/config/seller_upgrade_config_entity.dart';
+import 'package:hishumi/core/config/seller_upgrade_config_provider.dart'
     as upgrade_config;
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/user/identity/authentication/domain/entities/account_status.dart';
-import 'package:labuda/domains/user/identity/authentication/domain/entities/seller_tier.dart';
-import 'package:labuda/domains/user/preference/seller/presentation/screens/seller_upgrade_wizard_screen.dart';
-import 'package:labuda/domains/user/preference/seller/presentation/widgets/wizard/seller_wizard_navigation_buttons.dart';
-import 'package:labuda/domains/user/profile/data/profile_providers.dart'
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/user/identity/authentication/domain/entities/account_status.dart';
+import 'package:hishumi/domains/user/identity/authentication/domain/entities/seller_tier.dart';
+import 'package:hishumi/domains/user/preference/seller/presentation/screens/seller_upgrade_wizard_screen.dart';
+import 'package:hishumi/domains/user/preference/seller/presentation/widgets/wizard/seller_wizard_navigation_buttons.dart';
+import 'package:hishumi/domains/user/profile/data/profile_providers.dart'
     show addressRepositoryProvider;
-import 'package:labuda/domains/user/profile/domain/entities/address_entity.dart';
-import 'package:labuda/domains/user/profile/domain/entities/profile_entity.dart'
+import 'package:hishumi/domains/user/profile/domain/entities/address_entity.dart';
+import 'package:hishumi/domains/user/profile/domain/entities/profile_entity.dart'
     show FarmInfo, ProfileEntity, ProfileStats, UserVerificationInfo;
-import 'package:labuda/domains/user/profile/domain/repositories/i_address_repository.dart';
-import 'package:labuda/domains/user/profile/presentation/providers/profile_stream_provider.dart';
-import 'package:labuda/shared/governance/content_lifecycle.dart';
-import 'package:labuda/shared/widgets/bottom_action_bar.dart';
+import 'package:hishumi/domains/user/profile/domain/repositories/i_address_repository.dart';
+import 'package:hishumi/domains/user/profile/presentation/providers/profile_stream_provider.dart';
+import 'package:hishumi/shared/governance/content_lifecycle.dart';
+import 'package:hishumi/shared/widgets/bottom_action_bar.dart';
 
 /// Step-0 primary CTA of the wizard nav bar (registration mode).
 const String _primaryLabel = 'Lanjut Lengkapi Data';

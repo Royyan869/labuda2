@@ -11,12 +11,12 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
-	orderEntity "github.com/labuda/backend/internal/commerce/order/entity"
-	orderRepo "github.com/labuda/backend/internal/commerce/order/infrastructure/repository"
-	disputeEntity "github.com/labuda/backend/internal/governance/dispute/entity"
-	disputeRepo "github.com/labuda/backend/internal/governance/dispute/repository"
-	"github.com/labuda/backend/internal/identity/auth"
-	"github.com/labuda/backend/pkg/db"
+	orderEntity "github.com/hishumi/backend/internal/commerce/order/entity"
+	orderRepo "github.com/hishumi/backend/internal/commerce/order/infrastructure/repository"
+	disputeEntity "github.com/hishumi/backend/internal/governance/dispute/entity"
+	disputeRepo "github.com/hishumi/backend/internal/governance/dispute/repository"
+	"github.com/hishumi/backend/internal/identity/auth"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 type resolveFinalityTx struct {

@@ -2,8 +2,8 @@
 // HTTP operations for Content domain - isolasi ApiClient
 
 import 'package:dio/dio.dart';
-import 'package:labuda/core/api/api.dart';
-import 'package:labuda/domains/social/content/data/dto/content_dto.dart';
+import 'package:hishumi/core/api/api.dart';
+import 'package:hishumi/domains/social/content/data/dto/content_dto.dart';
 import 'package:uuid/uuid.dart';
 
 /// Content API Datasource

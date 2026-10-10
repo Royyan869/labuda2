@@ -1,8 +1,8 @@
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/user/profile/data/datasources/address_api_datasource.dart';
-import 'package:labuda/domains/user/profile/data/mappers/address_api_mapper.dart';
-import 'package:labuda/domains/user/profile/domain/entities/address_entity.dart';
-import 'package:labuda/domains/user/profile/domain/repositories/i_address_repository.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/user/profile/data/datasources/address_api_datasource.dart';
+import 'package:hishumi/domains/user/profile/data/mappers/address_api_mapper.dart';
+import 'package:hishumi/domains/user/profile/domain/entities/address_entity.dart';
+import 'package:hishumi/domains/user/profile/domain/repositories/i_address_repository.dart';
 
 /// API implementation of address repository
 class AddressRepositoryApi implements IAddressRepository {

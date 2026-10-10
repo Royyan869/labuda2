@@ -10,17 +10,17 @@
 import 'package:flutter/material.dart' hide Action;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/src/auth/app_role.dart';
-import 'package:labuda/core/src/theme/app_theme.dart';
-import 'package:labuda/domains/commerce/transaction/order/domain/entities/order.dart'
+import 'package:hishumi/core/src/auth/app_role.dart';
+import 'package:hishumi/core/src/theme/app_theme.dart';
+import 'package:hishumi/domains/commerce/transaction/order/domain/entities/order.dart'
     show Action;
-import 'package:labuda/domains/commerce/transaction/order/order.dart'
+import 'package:hishumi/domains/commerce/transaction/order/order.dart'
     hide Action;
-import 'package:labuda/domains/social/rating/rating.dart';
-import 'package:labuda/domains/user/identity/authentication/domain/entities/account_status.dart';
-import 'package:labuda/domains/user/identity/authentication/authentication.dart';
-import 'package:labuda/generated/app_localizations.dart';
-import 'package:labuda/shared/governance/content_lifecycle.dart';
+import 'package:hishumi/domains/social/rating/rating.dart';
+import 'package:hishumi/domains/user/identity/authentication/domain/entities/account_status.dart';
+import 'package:hishumi/domains/user/identity/authentication/authentication.dart';
+import 'package:hishumi/generated/app_localizations.dart';
+import 'package:hishumi/shared/governance/content_lifecycle.dart';
 
 const String _orderId = 'order-0001';
 const String _buyerId = 'buyer-1';

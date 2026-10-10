@@ -1,7 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:labuda/domains/social/content/domain/entities/content.dart';
-import 'package:labuda/core/core.dart';
+import 'package:hishumi/domains/social/content/domain/entities/content.dart';
+import 'package:hishumi/core/core.dart';
 import 'app_image.dart';
 import 'media_viewer_video_player.dart';
 

@@ -1,8 +1,8 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/observability/crash_reporting.dart';
-import 'package:labuda/core/observability/performance_monitor.dart';
+import 'package:hishumi/core/observability/crash_reporting.dart';
+import 'package:hishumi/core/observability/performance_monitor.dart';
 
 /// Locks the observability foundation wiring and safe no-op behaviour.
 void main() {

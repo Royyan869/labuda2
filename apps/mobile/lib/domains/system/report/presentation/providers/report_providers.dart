@@ -6,20 +6,20 @@ library;
 import 'package:riverpod/riverpod.dart';
 
 // Domain
-import 'package:labuda/domains/system/report/domain/repositories/report_repository.dart';
-import 'package:labuda/domains/system/report/domain/repositories/appeal_repository.dart';
-import 'package:labuda/domains/system/report/domain/repositories/warning_repository.dart';
+import 'package:hishumi/domains/system/report/domain/repositories/report_repository.dart';
+import 'package:hishumi/domains/system/report/domain/repositories/appeal_repository.dart';
+import 'package:hishumi/domains/system/report/domain/repositories/warning_repository.dart';
 
 // Data Layer Providers
-import 'package:labuda/domains/system/report/data/providers.dart' as data;
+import 'package:hishumi/domains/system/report/data/providers.dart' as data;
 
 // Presentation Providers
-import 'package:labuda/domains/system/report/presentation/providers/report/report_state.dart';
-import 'package:labuda/domains/system/report/presentation/providers/report/report_notifier.dart';
-import 'package:labuda/domains/system/report/presentation/providers/appeal/appeal_state.dart';
-import 'package:labuda/domains/system/report/presentation/providers/appeal/appeal_notifier.dart';
+import 'package:hishumi/domains/system/report/presentation/providers/report/report_state.dart';
+import 'package:hishumi/domains/system/report/presentation/providers/report/report_notifier.dart';
+import 'package:hishumi/domains/system/report/presentation/providers/appeal/appeal_state.dart';
+import 'package:hishumi/domains/system/report/presentation/providers/appeal/appeal_notifier.dart';
 
-export 'package:labuda/domains/system/report/data/providers.dart'
+export 'package:hishumi/domains/system/report/data/providers.dart'
     show reportUserNameProviderProvider;
 
 // =====================

@@ -11,7 +11,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
-	"github.com/labuda/backend/pkg/testdb"
+	"github.com/hishumi/backend/pkg/testdb"
 )
 
 // TestConcurrency_SellingSurfaceExclusivity proves that two concurrent

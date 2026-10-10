@@ -12,12 +12,12 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	commerceshared "github.com/labuda/backend/internal/commerce/shared"
-	"github.com/labuda/backend/internal/platform/response"
-	promotionApp "github.com/labuda/backend/internal/pricing/promotion/application"
-	"github.com/labuda/backend/internal/pricing/promotion/entity"
-	"github.com/labuda/backend/internal/pricing/promotion/repository"
-	"github.com/labuda/backend/pkg/db"
+	commerceshared "github.com/hishumi/backend/internal/commerce/shared"
+	"github.com/hishumi/backend/internal/platform/response"
+	promotionApp "github.com/hishumi/backend/internal/pricing/promotion/application"
+	"github.com/hishumi/backend/internal/pricing/promotion/entity"
+	"github.com/hishumi/backend/internal/pricing/promotion/repository"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // CreateExternalProductRequest creates a draft external product.

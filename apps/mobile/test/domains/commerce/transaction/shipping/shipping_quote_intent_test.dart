@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/domains/commerce/transaction/shipping/presentation/shipping_quote_intent.dart';
+import 'package:hishumi/domains/commerce/transaction/shipping/presentation/shipping_quote_intent.dart';
 
 // Canonical distinct UUIDs for ID-confusion proof.
 const _productId = '11111111-1111-1111-1111-111111111111';

@@ -1,7 +1,7 @@
 library;
 
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/commerce/pricing/promotion/data/dto/promotion_contract_dto.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/commerce/pricing/promotion/data/dto/promotion_contract_dto.dart';
 
 abstract class PromotionContractRepository {
   Future<Result<PromotionContractListDto>> listMyContracts();

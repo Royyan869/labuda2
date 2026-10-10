@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/domains/user/profile/profile.dart';
-import 'package:labuda/core/src/theme/app_theme.dart';
+import 'package:hishumi/domains/user/profile/profile.dart';
+import 'package:hishumi/core/src/theme/app_theme.dart';
 
 /// Action buttons for verification dialog
 class VerificationActionButtons extends StatelessWidget {

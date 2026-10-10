@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
-import 'package:labuda/core/core.dart' hide NotificationEntity;
-import 'package:labuda/domains/system/notification/data/mappers/notification_api_mapper.dart';
-import 'package:labuda/domains/system/notification/data/models/api/notification_api_models.dart';
-import 'package:labuda/domains/system/notification/domain/entities/notification_entity.dart';
-import 'package:labuda/domains/system/notification/domain/services/notification_display_service.dart';
-import 'package:labuda/domains/system/notification/services/notification_navigation_service.dart';
+import 'package:hishumi/core/core.dart' hide NotificationEntity;
+import 'package:hishumi/domains/system/notification/data/mappers/notification_api_mapper.dart';
+import 'package:hishumi/domains/system/notification/data/models/api/notification_api_models.dart';
+import 'package:hishumi/domains/system/notification/domain/entities/notification_entity.dart';
+import 'package:hishumi/domains/system/notification/domain/services/notification_display_service.dart';
+import 'package:hishumi/domains/system/notification/services/notification_navigation_service.dart';
 
 class _RecordingNavigationHandler implements NavigationHandler {
   String? lastOrderId;

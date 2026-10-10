@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/social/like/entity"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/social/like/entity"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // ErrUnsupportedTargetType is returned when a mutation is attempted on an

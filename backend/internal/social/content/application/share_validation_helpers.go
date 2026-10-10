@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/labuda/backend/internal/social/content/entity"
+	"github.com/hishumi/backend/internal/social/content/entity"
 )
 
 func validateShareTargetType(targetType entity.ShareTargetType) error {

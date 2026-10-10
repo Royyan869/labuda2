@@ -1,10 +1,10 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:labuda/core/media/media_upload_config.dart';
-import 'package:labuda/core/media/media_upload_orchestrator.dart';
-import 'package:labuda/core/src/config/google_config.dart';
-import 'package:labuda/shared/widgets/interactive_map_picker_bottom_sheet.dart';
-import 'package:labuda/shared/entities/post_location.dart' as loc;
+import 'package:hishumi/core/media/media_upload_config.dart';
+import 'package:hishumi/core/media/media_upload_orchestrator.dart';
+import 'package:hishumi/core/src/config/google_config.dart';
+import 'package:hishumi/shared/widgets/interactive_map_picker_bottom_sheet.dart';
+import 'package:hishumi/shared/entities/post_location.dart' as loc;
 
 /// Handles events for create post screen.
 ///

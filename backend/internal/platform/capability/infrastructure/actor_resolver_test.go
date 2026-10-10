@@ -9,8 +9,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/labuda/backend/internal/platform/capability/entity"
-	capabilityRepo "github.com/labuda/backend/internal/platform/capability/infrastructure/repository"
+	"github.com/hishumi/backend/internal/platform/capability/entity"
+	capabilityRepo "github.com/hishumi/backend/internal/platform/capability/infrastructure/repository"
 )
 
 // mockUserStateQuerier is a mock implementation of UserStateQuerier for testing.

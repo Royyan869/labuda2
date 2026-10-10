@@ -3,17 +3,17 @@ import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/domains/chat/chat/data/chat_providers.dart';
-import 'package:labuda/domains/chat/chat/data/dto/chat_room_event_dto.dart';
-import 'package:labuda/domains/chat/chat/data/dto/chat_resource_occurrence_request.dart';
-import 'package:labuda/domains/chat/chat/data/dto/message_dto.dart';
-import 'package:labuda/domains/chat/chat/domain/entities/chat_entities.dart';
-import 'package:labuda/domains/chat/chat/domain/repositories/chat_repository.dart';
-import 'package:labuda/domains/chat/chat/presentation/providers/chat_notifier.dart';
-import 'package:labuda/domains/system/notification/data/notification_providers.dart';
-import 'package:labuda/domains/system/notification/domain/repositories/i_notification_repository.dart';
-import 'package:labuda/shared/providers/auth_status_providers.dart';
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/domains/chat/chat/data/chat_providers.dart';
+import 'package:hishumi/domains/chat/chat/data/dto/chat_room_event_dto.dart';
+import 'package:hishumi/domains/chat/chat/data/dto/chat_resource_occurrence_request.dart';
+import 'package:hishumi/domains/chat/chat/data/dto/message_dto.dart';
+import 'package:hishumi/domains/chat/chat/domain/entities/chat_entities.dart';
+import 'package:hishumi/domains/chat/chat/domain/repositories/chat_repository.dart';
+import 'package:hishumi/domains/chat/chat/presentation/providers/chat_notifier.dart';
+import 'package:hishumi/domains/system/notification/data/notification_providers.dart';
+import 'package:hishumi/domains/system/notification/domain/repositories/i_notification_repository.dart';
+import 'package:hishumi/shared/providers/auth_status_providers.dart';
 
 // ============================================================================
 // THREAD ORDER AUTHORITY — WRITE PATH

@@ -4,19 +4,19 @@ import 'dart:io';
 import 'package:flutter/material.dart' hide Action;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/core/src/auth/app_role.dart';
-import 'package:labuda/domains/commerce/transaction/order/order.dart'
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/core/src/auth/app_role.dart';
+import 'package:hishumi/domains/commerce/transaction/order/order.dart'
     hide Action;
-import 'package:labuda/domains/commerce/transaction/order/domain/entities/order.dart'
+import 'package:hishumi/domains/commerce/transaction/order/domain/entities/order.dart'
     show Action;
-import 'package:labuda/domains/user/identity/authentication/domain/entities/account_status.dart';
-import 'package:labuda/domains/user/identity/authentication/authentication.dart';
-import 'package:labuda/generated/app_localizations.dart';
-import 'package:labuda/shared/governance/content_lifecycle.dart';
-import 'package:labuda/shared/widgets/empty_state.dart';
-import 'package:labuda/shared/widgets/loading_indicator.dart';
-import 'package:labuda/shared/widgets/page_error_state.dart';
+import 'package:hishumi/domains/user/identity/authentication/domain/entities/account_status.dart';
+import 'package:hishumi/domains/user/identity/authentication/authentication.dart';
+import 'package:hishumi/generated/app_localizations.dart';
+import 'package:hishumi/shared/governance/content_lifecycle.dart';
+import 'package:hishumi/shared/widgets/empty_state.dart';
+import 'package:hishumi/shared/widgets/loading_indicator.dart';
+import 'package:hishumi/shared/widgets/page_error_state.dart';
 
 /// Locks the current V1 invariant: the order list is detail-navigation only.
 /// No backend-driven or local quick-action button (pay/ship/confirm) may
@@ -268,10 +268,11 @@ void main() {
     });
   });
 
-  group('OrderListScreen - seller empty state carries no create For Sale', () {
+  group('OrderListScreen - empty states carry no CTA (owner decision)', () {
     Future<void> pumpEmpty(
       WidgetTester tester, {
       required bool isSeller,
+      OrderStatus? visibleStatus,
     }) async {
       _useTallViewport(tester);
       const statuses = <OrderStatus?>[
@@ -308,9 +309,23 @@ void main() {
       );
       await tester.pump();
       await tester.pump();
+
+      // Switch to the requested status tab when one is asked for.
+      if (visibleStatus != null) {
+        const tabLabels = <OrderStatus, String>{
+          OrderStatus.pending: 'Pending',
+          OrderStatus.paid: 'Paid',
+          OrderStatus.shipped: 'Shipped',
+          OrderStatus.completed: 'Completed',
+        };
+        await tester.tap(find.text(tabLabels[visibleStatus]!));
+        await tester.pumpAndSettle();
+      }
     }
 
-    testWidgets('renders and offers no create For Sale action', (tester) async {
+    testWidgets('seller empty state offers no create/action button', (
+      tester,
+    ) async {
       await pumpEmpty(tester, isSeller: true);
 
       expect(find.text('Belum Ada Pesanan Masuk'), findsOneWidget);
@@ -322,16 +337,36 @@ void main() {
       expect(find.byType(FilledButton), findsNothing);
     });
 
-    testWidgets('keeps the legitimate buyer marketplace action', (
-      tester,
-    ) async {
+    testWidgets('buyer All-tab empty state has no CTA', (tester) async {
       await pumpEmpty(tester, isSeller: false);
 
+      // All tab (status == null): first-use copy is accurate here.
       expect(find.text('Belum Ada Pesanan'), findsOneWidget);
-      expect(find.text('Jelajahi Marketplace'), findsOneWidget);
+      expect(
+        find.text('Mulai berbelanja dari koleksi Koi terbaik'),
+        findsOneWidget,
+      );
+      // OWNER DECISION: no CTA on any Order empty state.
+      expect(find.text('Jelajahi Marketplace'), findsNothing);
+      expect(find.byType(FilledButton), findsNothing);
     });
 
-    test('the screen source carries no create-for-sale entry point', () {
+    testWidgets('buyer status-tab empty state is status-aware, no CTA', (
+      tester,
+    ) async {
+      await pumpEmpty(tester, isSeller: false, visibleStatus: OrderStatus.paid);
+
+      // A status tab being empty must NOT claim "No Orders Yet" — orders may
+      // exist under other statuses. Neutral status-scoped copy instead.
+      expect(find.text('Tidak Ada Pesanan'), findsOneWidget);
+      expect(find.text('Belum ada pesanan dengan status ini'), findsOneWidget);
+      expect(find.text('Belum Ada Pesanan'), findsNothing);
+      // OWNER DECISION: no CTA on any Order empty state.
+      expect(find.text('Jelajahi Marketplace'), findsNothing);
+      expect(find.byType(FilledButton), findsNothing);
+    });
+
+    test('the screen source carries no CTA or for-sale entry point', () {
       final source = File(
         'lib/domains/commerce/transaction/order/presentation/screens/order_list_screen.dart',
       ).readAsStringSync();
@@ -339,6 +374,12 @@ void main() {
       expect(source.contains('Tambah ForSale'), isFalse);
       expect(source.contains('RoutePaths.createForSale'), isFalse);
       expect(source.contains('_handleEmptyStateAction'), isFalse);
+      // OWNER DECISION: the buyer "Explore Marketplace" CTA and its /for-sale
+      // navigation are purged entirely.
+      expect(source.contains('RoutePaths.forSales'), isFalse);
+      expect(source.contains('exploreMarketplaceAction'), isFalse);
+      expect(source.contains('actionLabel'), isFalse);
+      expect(source.contains('onAction'), isFalse);
     });
   });
 
@@ -370,8 +411,11 @@ void main() {
       await _pumpWithRepository(tester, repository: repository);
 
       expect(find.byType(EmptyState), findsOneWidget);
+      // All tab (status == null): first-use copy.
       expect(find.text('Belum Ada Pesanan'), findsOneWidget);
-      expect(find.text('Jelajahi Marketplace'), findsOneWidget);
+      // OWNER DECISION: no CTA on Order empty states.
+      expect(find.text('Jelajahi Marketplace'), findsNothing);
+      expect(find.byType(FilledButton), findsNothing);
       expect(find.byType(PageErrorState), findsNothing);
       expect(find.byType(LoadingIndicator), findsNothing);
     });

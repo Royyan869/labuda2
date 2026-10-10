@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/core/observability/screen_names.dart';
-import 'package:labuda/core/observability/screen_view_route_observer.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/core/observability/screen_names.dart';
+import 'package:hishumi/core/observability/screen_view_route_observer.dart';
 
 class _RecordingAnalyticsRepository implements IAnalyticsRepository {
   final List<String> screens = <String>[];

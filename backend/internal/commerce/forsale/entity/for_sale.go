@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	productEntity "github.com/labuda/backend/internal/commerce/product/entity"
-	"github.com/labuda/backend/pkg/money"
+	productEntity "github.com/hishumi/backend/internal/commerce/product/entity"
+	"github.com/hishumi/backend/pkg/money"
 )
 
 // ForSale represents the selling surface owned by a seller.

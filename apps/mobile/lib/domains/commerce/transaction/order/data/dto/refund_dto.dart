@@ -8,7 +8,7 @@
 /// API endpoint: GET /api/v1/orders/{id}/refunds, GET /api/v1/refunds/{id}
 library;
 
-import 'package:labuda/domains/commerce/transaction/order/domain/entities/refund_request.dart';
+import 'package:hishumi/domains/commerce/transaction/order/domain/entities/refund_request.dart';
 
 // =============================================================================
 // Request DTOs

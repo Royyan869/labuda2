@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/shared/shared.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/shared/shared.dart';
 // R4.2: Import StorePhotoUploadService directly from owner (seller domain)
-import 'package:labuda/domains/user/preference/seller/data/data.dart'
+import 'package:hishumi/domains/user/preference/seller/data/data.dart'
     show StorePhotoUploadService;
-import 'package:labuda/domains/user/profile/domain/entities/profile_entity.dart';
-import 'package:labuda/domains/user/profile/data/services/cover_photo_upload_service.dart';
-import 'package:labuda/domains/user/preference/seller/data/seller_providers.dart'
+import 'package:hishumi/domains/user/profile/domain/entities/profile_entity.dart';
+import 'package:hishumi/domains/user/profile/data/services/cover_photo_upload_service.dart';
+import 'package:hishumi/domains/user/preference/seller/data/seller_providers.dart'
     show sellerRemoteDatasourceProvider;
-import 'package:labuda/domains/user/profile/data/services/avatar_upload_service.dart';
+import 'package:hishumi/domains/user/profile/data/services/avatar_upload_service.dart';
 
 /// Mixin for handling save operations in edit profile screen.
 ///

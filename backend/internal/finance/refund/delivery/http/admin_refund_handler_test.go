@@ -21,10 +21,10 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 
-	"github.com/labuda/backend/internal/audit"
-	refundapp "github.com/labuda/backend/internal/finance/refund/application"
-	"github.com/labuda/backend/internal/finance/refund/entity"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/audit"
+	refundapp "github.com/hishumi/backend/internal/finance/refund/application"
+	"github.com/hishumi/backend/internal/finance/refund/entity"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 func init() {

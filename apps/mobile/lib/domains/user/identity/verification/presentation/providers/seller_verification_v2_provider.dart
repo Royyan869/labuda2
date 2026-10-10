@@ -4,10 +4,10 @@
 library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/user/identity/verification/data/remote/verification_v2_datasource.dart';
-import 'package:labuda/domains/user/identity/verification/data/repositories/seller_verification_repository_v2.dart';
-import 'package:labuda/domains/user/identity/verification/domain/entities/seller_verification_status.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/user/identity/verification/data/remote/verification_v2_datasource.dart';
+import 'package:hishumi/domains/user/identity/verification/data/repositories/seller_verification_repository_v2.dart';
+import 'package:hishumi/domains/user/identity/verification/domain/entities/seller_verification_status.dart';
 
 // =============================================================================
 // STATE

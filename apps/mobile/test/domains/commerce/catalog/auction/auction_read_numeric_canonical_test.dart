@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/domains/commerce/catalog/auction/data/dto/auction_dto.dart';
-import 'package:labuda/domains/commerce/catalog/auction/data/mappers/auction_mapper.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/data/dto/auction_dto.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/data/mappers/auction_mapper.dart';
 
 /// PASS 1 — AUCTION NUMERIC READ CANONICAL CONVERGENCE proof.
 ///

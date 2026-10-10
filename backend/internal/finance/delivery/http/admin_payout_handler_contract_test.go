@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	withdrawrepo "github.com/labuda/backend/internal/finance/infrastructure/repository"
+	withdrawrepo "github.com/hishumi/backend/internal/finance/infrastructure/repository"
 )
 
 func TestWithdrawalToDetail_MapsSellerIdentity(t *testing.T) {

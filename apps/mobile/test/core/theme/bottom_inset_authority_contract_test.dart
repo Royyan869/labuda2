@@ -21,9 +21,9 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/src/theme/app_theme.dart';
-import 'package:labuda/shared/widgets/app_bottom_sheet.dart';
-import 'package:labuda/shared/widgets/bottom_action_bar.dart';
+import 'package:hishumi/core/src/theme/app_theme.dart';
+import 'package:hishumi/shared/widgets/app_bottom_sheet.dart';
+import 'package:hishumi/shared/widgets/bottom_action_bar.dart';
 
 const ValueKey<String> _bodyKey = ValueKey<String>('safe-area-body');
 const ValueKey<String> _sheetContentKey = ValueKey<String>(

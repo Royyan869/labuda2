@@ -8,12 +8,12 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	pkgdb "github.com/labuda/backend/pkg/db"
+	pkgdb "github.com/hishumi/backend/pkg/db"
 )
 
 const (
-	defaultTitle       = "Labuda"
-	defaultDescription = "Labuda is a social commerce platform for trusted buying and selling."
+	defaultTitle       = "HiShumi"
+	defaultDescription = "HiShumi is a social commerce platform for trusted buying and selling."
 )
 
 type metadata struct {
@@ -60,13 +60,25 @@ func (h *Handler) GetContent(c *gin.Context) {
 
 func (h *Handler) serve(c *gin.Context, id string, load func(context.Context, string) (*metadata, error)) {
 	c.Header("Content-Type", "text/html; charset=utf-8")
-	page := fallbackMetadata(buildCanonicalURL(c))
-	if strings.TrimSpace(id) != "" {
-		if m, err := load(c.Request.Context(), id); err == nil && m != nil {
-			page = withFallback(*m, page)
-			page.URL = buildCanonicalURL(c)
-		}
+	// H.4.6-C: a missing, inactive, private, or otherwise non-projectable
+	// resource must NOT be reported as a misleading generic 200. The
+	// store queries already collapse "not found" and "not visible to an
+	// anonymous caller" into the same error path, so a single 404 with
+	// generic metadata is both honest and leak-free: the status carries
+	// the signal and the page discloses nothing about which case applied.
+	if strings.TrimSpace(id) == "" {
+		c.Status(http.StatusNotFound)
+		_ = renderPage(c.Writer, fallbackMetadata(buildCanonicalURL(c)))
+		return
 	}
+	m, err := load(c.Request.Context(), id)
+	if err != nil || m == nil {
+		c.Status(http.StatusNotFound)
+		_ = renderPage(c.Writer, fallbackMetadata(buildCanonicalURL(c)))
+		return
+	}
+	page := withFallback(*m, fallbackMetadata(buildCanonicalURL(c)))
+	page.URL = buildCanonicalURL(c)
 	c.Status(http.StatusOK)
 	_ = renderPage(c.Writer, page)
 }
@@ -105,7 +117,9 @@ func buildCanonicalURL(c *gin.Context) string {
 	}
 	host := c.Request.Host
 	if host == "" {
-		host = "labuda-79de2.web.app"
+		// Test-only fallback (real requests always carry a Host): use the
+		// canonical public domain, never a retired Firebase hostname.
+		host = "hishumi.com"
 	}
 	return fmt.Sprintf("%s://%s%s", scheme, host, c.Request.URL.Path)
 }
@@ -209,7 +223,7 @@ LIMIT 1
 	if err := s.db.Pool().QueryRow(ctx, q, id).Scan(&username, &bio, &avatar); err != nil {
 		return nil, err
 	}
-	description := fmt.Sprintf("See @%s on Labuda.", username)
+	description := fmt.Sprintf("See @%s on HiShumi.", username)
 	if bio != nil && strings.TrimSpace(*bio) != "" {
 		description = compact(*bio, 200)
 	}
@@ -257,11 +271,11 @@ LIMIT 1
 	if err := s.db.Pool().QueryRow(ctx, q, id).Scan(&caption, &username, &media); err != nil {
 		return nil, err
 	}
-	title := "Labuda Content"
+	title := "HiShumi Content"
 	if username != nil && strings.TrimSpace(*username) != "" {
 		title = "@" + *username
 	}
-	description := "See this post on Labuda."
+	description := "See this post on HiShumi."
 	if caption != nil && strings.TrimSpace(*caption) != "" {
 		description = compact(*caption, 200)
 	}

@@ -13,7 +13,7 @@ cd "$(dirname "$0")/.." || exit 1
 cd backend || exit 1
 
 echo "==> Running tests with isolated test database..."
-echo "    Test DB: labuda_test"
+echo "    Test DB: hishumi_test"
 
 # Run tests with TEST_MODE flag
 TEST_MODE=true go test "$@" -v

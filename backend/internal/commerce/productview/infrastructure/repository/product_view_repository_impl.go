@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/commerce/productview/entity"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/commerce/productview/entity"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // ProductViewRepositoryImpl persists Product View events in product_view_events.

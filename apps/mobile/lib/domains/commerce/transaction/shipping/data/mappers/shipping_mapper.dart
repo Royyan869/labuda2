@@ -1,5 +1,5 @@
-import 'package:labuda/domains/commerce/transaction/shipping/data/dto/shipping_dto.dart';
-import 'package:labuda/domains/commerce/transaction/shipping/domain/domain.dart';
+import 'package:hishumi/domains/commerce/transaction/shipping/data/dto/shipping_dto.dart';
+import 'package:hishumi/domains/commerce/transaction/shipping/domain/domain.dart';
 
 /// Mapper untuk Shipping Option Entity ↔ DTO
 class ShippingSetupMapper {

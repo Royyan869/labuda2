@@ -48,36 +48,36 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/core/api/api_error_codes.dart' as api_codes;
-import 'package:labuda/domains/commerce/transaction/checkout/checkout.dart';
-import 'package:labuda/domains/commerce/transaction/checkout/presentation/models/checkout_readiness.dart';
-import 'package:labuda/domains/commerce/transaction/checkout/presentation/utils/checkout_honesty_messages.dart';
-import 'package:labuda/domains/finance/wallet/coins/coins.dart';
-import 'package:labuda/domains/commerce/pricing/discount/domain/entities/discount_entity.dart';
-import 'package:labuda/domains/commerce/pricing/discount/presentation/widgets/discount_input_field.dart';
-import 'package:labuda/domains/chat/chat/presentation/utils/commerce_chat_navigation.dart';
-import 'package:labuda/domains/chat/chat/presentation/models/pending_commerce_attachment.dart';
-import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction.dart';
-import 'package:labuda/domains/commerce/catalog/auction/presentation/providers/auction_providers.dart';
-import 'package:labuda/domains/commerce/catalog/for_sale/domain/entities/for_sale.dart';
-import 'package:labuda/domains/commerce/catalog/for_sale/presentation/providers/for_sale_providers.dart';
-import 'package:labuda/shared/governance/content_lifecycle.dart';
-import 'package:labuda/domains/commerce/transaction/order/domain/domain.dart';
-import 'package:labuda/domains/commerce/transaction/order/presentation/providers/order_providers.dart';
-import 'package:labuda/shared/domain/entities/resource_projection.dart';
-import 'package:labuda/shared/shared.dart';
-import 'package:labuda/domains/finance/transaction/payment/presentation/presentation.dart'
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/core/api/api_error_codes.dart' as api_codes;
+import 'package:hishumi/domains/commerce/transaction/checkout/checkout.dart';
+import 'package:hishumi/domains/commerce/transaction/checkout/presentation/models/checkout_readiness.dart';
+import 'package:hishumi/domains/commerce/transaction/checkout/presentation/utils/checkout_honesty_messages.dart';
+import 'package:hishumi/domains/finance/wallet/coins/coins.dart';
+import 'package:hishumi/domains/commerce/pricing/discount/domain/entities/discount_entity.dart';
+import 'package:hishumi/domains/commerce/pricing/discount/presentation/widgets/discount_input_field.dart';
+import 'package:hishumi/domains/chat/chat/presentation/utils/commerce_chat_navigation.dart';
+import 'package:hishumi/domains/chat/chat/presentation/models/pending_commerce_attachment.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/domain/entities/auction.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/presentation/providers/auction_providers.dart';
+import 'package:hishumi/domains/commerce/catalog/for_sale/domain/entities/for_sale.dart';
+import 'package:hishumi/domains/commerce/catalog/for_sale/presentation/providers/for_sale_providers.dart';
+import 'package:hishumi/shared/governance/content_lifecycle.dart';
+import 'package:hishumi/domains/commerce/transaction/order/domain/domain.dart';
+import 'package:hishumi/domains/commerce/transaction/order/presentation/providers/order_providers.dart';
+import 'package:hishumi/shared/domain/entities/resource_projection.dart';
+import 'package:hishumi/shared/shared.dart';
+import 'package:hishumi/domains/finance/transaction/payment/presentation/presentation.dart'
     show
         PaymentMethodOption,
         PaymentMethodPickerSheet,
         paymentRepositoryProvider,
         PreOrderPaymentMethodOption,
         PreOrderPaymentPricing;
-import 'package:labuda/domains/user/profile/domain/entities/address_entity.dart';
-import 'package:labuda/domains/user/profile/presentation/widgets/address_selection_summary.dart';
-import 'package:labuda/domains/commerce/transaction/shipping/domain/entities/shipping.dart';
-import 'package:labuda/domains/commerce/transaction/shipping/presentation/providers/providers.dart'
+import 'package:hishumi/domains/user/profile/domain/entities/address_entity.dart';
+import 'package:hishumi/domains/user/profile/presentation/widgets/address_selection_summary.dart';
+import 'package:hishumi/domains/commerce/transaction/shipping/domain/entities/shipping.dart';
+import 'package:hishumi/domains/commerce/transaction/shipping/presentation/providers/providers.dart'
     show shippingRepositoryProvider;
 
 part '../widgets/checkout_order_summary_section.dart';

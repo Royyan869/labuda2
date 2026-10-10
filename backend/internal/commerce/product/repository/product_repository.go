@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/commerce/product/entity"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/commerce/product/entity"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // ProductRepository defines persistence operations for canonical product rows.

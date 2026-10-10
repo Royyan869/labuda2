@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/social/like/domain/entities/like.dart';
-import 'package:labuda/domains/social/like/presentation/providers/like_notifier.dart';
-import 'package:labuda/domains/social/content/presentation/utils/content_like_handlers.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/social/like/domain/entities/like.dart';
+import 'package:hishumi/domains/social/like/presentation/providers/like_notifier.dart';
+import 'package:hishumi/domains/social/content/presentation/utils/content_like_handlers.dart';
 
 /// THE canonical content-engagement action producer — like / comment / share.
 ///

@@ -7,10 +7,10 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	sharedpkg "github.com/labuda/backend/internal/commerce/shared"
-	"github.com/labuda/backend/internal/discovery/search/entity"
-	searchRepo "github.com/labuda/backend/internal/discovery/search/repository"
-	"github.com/labuda/backend/pkg/db"
+	sharedpkg "github.com/hishumi/backend/internal/commerce/shared"
+	"github.com/hishumi/backend/internal/discovery/search/entity"
+	searchRepo "github.com/hishumi/backend/internal/discovery/search/repository"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // SearchRepositoryImpl implements the search repository using PostgreSQL full-text search.

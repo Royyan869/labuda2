@@ -10,9 +10,9 @@
 
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:labuda/domains/commerce/catalog/auction/data/dto/auction_dto.dart';
-import 'package:labuda/domains/commerce/catalog/auction/data/mappers/auction_mapper.dart';
-import 'package:labuda/shared/governance/content_lifecycle.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/data/dto/auction_dto.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/data/mappers/auction_mapper.dart';
+import 'package:hishumi/shared/governance/content_lifecycle.dart';
 
 Map<String, dynamic> _baseAuctionJson({Map<String, dynamic>? auction}) {
   final base = <String, dynamic>{

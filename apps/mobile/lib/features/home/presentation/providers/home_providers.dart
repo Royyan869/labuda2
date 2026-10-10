@@ -3,7 +3,7 @@
 library;
 
 // Feed providers - export everything from feed_notifier
-export 'package:labuda/features/home/presentation/providers/feed/feed_notifier.dart';
+export 'package:hishumi/features/home/presentation/providers/feed/feed_notifier.dart';
 
 // Feed renderers - canonical feed card and navigation state (CONTRACT HYGIENE PASS V1)
 // Previously named "tab_switch_provider_stubs.dart" - renamed for honesty

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/shared/widgets/popup_more_options_button.dart';
+import 'package:hishumi/shared/widgets/popup_more_options_button.dart';
 
 /// Shared-widget behavioral contract for PopupMoreOptionsButton Delete action.
 ///

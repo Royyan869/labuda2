@@ -1,6 +1,6 @@
 # PostgreSQL Backup & Restore Scripts
 
-Automatic PostgreSQL backup solution for the Labuda project.
+Automatic PostgreSQL backup solution for the HiShumi project.
 
 ## Features
 
@@ -42,20 +42,20 @@ chmod +x db_backup.sh
 ```powershell
 cd scripts
 # Restore to main database (requires confirmation)
-.\db_restore.ps1 backups\labuda_20250220_030000.dump
+.\db_restore.ps1 backups\hishumi_20250220_030000.dump
 
 # Restore to test database (safe)
-.\db_restore.ps1 backups\labuda_20250220_030000.dump labuda_restore_test
+.\db_restore.ps1 backups\hishumi_20250220_030000.dump hishumi_restore_test
 ```
 
 **Linux/macOS/WSL:**
 ```bash
 cd scripts
 # Restore to main database (requires confirmation)
-./db_restore.sh backups/labuda_20250220_030000.dump
+./db_restore.sh backups/hishumi_20250220_030000.dump
 
 # Restore to test database (safe)
-./db_restore.sh backups/labuda_20250220_030000.dump labuda_restore_test
+./db_restore.sh backups/hishumi_20250220_030000.dump hishumi_restore_test
 ```
 
 ## Setting Up Automatic Daily Backup
@@ -65,7 +65,7 @@ cd scripts
 1. Open Task Scheduler (`taskschd.msc`)
 2. Click "Create Task" on the right
 3. General tab:
-   - Name: `Labuda PostgreSQL Backup`
+    - Name: `HiShumi PostgreSQL Backup`
    - Select "Run whether user is logged in or not"
 4. Triggers tab:
    - Click "New"
@@ -87,7 +87,7 @@ cd scripts
 crontab -e
 
 # Add this line for daily backup at 3:00 AM
-0 3 * * * cd /path/to/labuda/scripts && ./db_backup.sh >> /var/log/labuda_backup.log 2>&1
+0 3 * * * cd /path/to/labuda/scripts && ./db_backup.sh >> /var/log/hishumi_backup.log 2>&1
 ```
 
 ## Configuration
@@ -96,18 +96,18 @@ Edit the backup script to change these settings:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `CONTAINER_NAME` | `labuda-postgres` | Docker container name |
-| `DB_NAME` | `labuda` | Database name |
-| `DB_USER` | `labuda` | Database user |
+| `CONTAINER_NAME` | `hishumi-postgres` | Docker container name |
+| `DB_NAME` | `hishumi` | Database name |
+| `DB_USER` | `hishumi` | Database user |
 | `RETENTION_DAYS` | `7` | Days to keep backups |
 
 ## Backup Location
 
 Backups are stored in: `scripts/backups/`
 
-Format: `labuda_YYYYMMDD_HHMMSS.dump`
+Format: `hishumi_YYYYMMDD_HHMMSS.dump`
 
-Example: `labuda_20250220_030000.dump`
+Example: `hishumi_20250220_030000.dump`
 
 ## Verifying Backups
 
@@ -118,7 +118,7 @@ Example: `labuda_20250220_030000.dump`
 
 2. Verify file contents (list tables):
    ```bash
-   docker exec labuda-postgres pg_restore -l backups/latest.dump
+   docker exec hishumi-postgres pg_restore -l backups/latest.dump
    ```
 
 3. Test restore to a temporary database (see Restore section above)

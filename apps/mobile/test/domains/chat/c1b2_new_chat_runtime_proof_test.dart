@@ -14,25 +14,25 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/core/providers/core_providers.dart'
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/core/providers/core_providers.dart'
     show loggerServiceProvider, webSocketServiceProvider;
-import 'package:labuda/core/src/interfaces/services/i_logger_service.dart';
+import 'package:hishumi/core/src/interfaces/services/i_logger_service.dart';
 // presence_provider import removed — PresenceSubscriptionRegistry purged
-import 'package:labuda/core/websocket/websocket_service.dart';
-import 'package:labuda/domains/chat/chat/chat.dart';
-import 'package:labuda/domains/chat/chat/presentation/providers/new_chat_user_search_provider.dart'
+import 'package:hishumi/core/websocket/websocket_service.dart';
+import 'package:hishumi/domains/chat/chat/chat.dart';
+import 'package:hishumi/domains/chat/chat/presentation/providers/new_chat_user_search_provider.dart'
     show newChatUserSearchProvider;
-import 'package:labuda/domains/user/profile/data/datasources/user_api_datasource.dart';
-import 'package:labuda/domains/user/profile/data/profile_providers.dart'
+import 'package:hishumi/domains/user/profile/data/datasources/user_api_datasource.dart';
+import 'package:hishumi/domains/user/profile/data/profile_providers.dart'
     show avatarCacheServiceProvider;
-import 'package:labuda/domains/user/profile/data/services/avatar_cache_service.dart';
-import 'package:labuda/features/search/search/data/dto/search_dto.dart';
-import 'package:labuda/features/search/search/data/remote/search_api_service.dart';
-import 'package:labuda/features/search/search/domain/entities/user_search.dart';
-import 'package:labuda/features/search/search/presentation/providers/providers.dart'
+import 'package:hishumi/domains/user/profile/data/services/avatar_cache_service.dart';
+import 'package:hishumi/features/search/search/data/dto/search_dto.dart';
+import 'package:hishumi/features/search/search/data/remote/search_api_service.dart';
+import 'package:hishumi/features/search/search/domain/entities/user_search.dart';
+import 'package:hishumi/features/search/search/presentation/providers/providers.dart'
     show searchApiServiceProvider;
-import 'package:labuda/shared/shared.dart';
+import 'package:hishumi/shared/shared.dart';
 
 // =============================================================================
 // Fake / recording dependencies

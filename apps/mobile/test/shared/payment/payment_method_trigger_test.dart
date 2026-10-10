@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/shared/shared.dart';
+import 'package:hishumi/shared/shared.dart';
 
 Widget _host(Widget child) => MaterialApp(home: Scaffold(body: child));
 

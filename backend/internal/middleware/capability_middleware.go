@@ -30,9 +30,9 @@ package middleware
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/labuda/backend/internal/platform/capability"
-	capabilityEntity "github.com/labuda/backend/internal/platform/capability/entity"
-	"github.com/labuda/backend/internal/platform/response"
+	"github.com/hishumi/backend/internal/platform/capability"
+	capabilityEntity "github.com/hishumi/backend/internal/platform/capability/entity"
+	"github.com/hishumi/backend/internal/platform/response"
 )
 
 // RequireCapability creates middleware that requires a specific capability.

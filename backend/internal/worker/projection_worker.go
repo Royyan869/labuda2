@@ -22,10 +22,10 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/labuda/backend/internal/projection"
-	outboxRepo "github.com/labuda/backend/internal/platform/outbox/infrastructure/repository"
-	"github.com/labuda/backend/internal/platform/events"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/projection"
+	outboxRepo "github.com/hishumi/backend/internal/platform/outbox/infrastructure/repository"
+	"github.com/hishumi/backend/internal/platform/events"
+	"github.com/hishumi/backend/pkg/db"
 	"go.uber.org/zap"
 )
 

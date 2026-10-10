@@ -27,8 +27,8 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/pkg/userdisplay"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/pkg/userdisplay"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // UserCard is the minimal canonical public-safe user identity shape that

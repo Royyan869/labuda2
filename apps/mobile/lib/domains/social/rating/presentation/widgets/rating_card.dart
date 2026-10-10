@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/social/rating/domain/entities/rating_entity.dart';
-import 'package:labuda/domains/system/shared/domain/services/time_format_service.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/social/rating/domain/entities/rating_entity.dart';
+import 'package:hishumi/domains/system/shared/domain/services/time_format_service.dart';
 
 /// CANONICAL Rating Card Widget
 ///

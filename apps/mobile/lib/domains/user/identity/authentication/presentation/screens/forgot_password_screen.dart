@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/user/identity/authentication/presentation/shared/shared.dart';
-import 'package:labuda/shared/helpers/canonical_email_validator.dart';
-import 'package:labuda/shared/widgets/app_text_field.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/user/identity/authentication/presentation/shared/shared.dart';
+import 'package:hishumi/shared/helpers/canonical_email_validator.dart';
+import 'package:hishumi/shared/widgets/app_text_field.dart';
 
 /// Forgot Password Screen - State-Driven Refactor
 ///

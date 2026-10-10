@@ -1,7 +1,7 @@
 import 'package:go_router/go_router.dart';
 
-import 'package:labuda/domains/user/identity/authentication/authentication.dart';
-import 'package:labuda/core/src/router/route_paths.dart';
+import 'package:hishumi/domains/user/identity/authentication/authentication.dart';
+import 'package:hishumi/core/src/router/route_paths.dart';
 import 'base_module.dart';
 
 /// Authentication Module

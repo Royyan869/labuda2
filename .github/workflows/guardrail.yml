@@ -14,9 +14,9 @@ jobs:
       postgres:
         image: postgres:16
         env:
-          POSTGRES_USER: labuda
-          POSTGRES_PASSWORD: labuda123
-          POSTGRES_DB: labuda_ci
+          POSTGRES_USER: hishumi
+          POSTGRES_PASSWORD: hishumi_ci_job_pw
+          POSTGRES_DB: hishumi_ci
         ports:
           - 5432:5432
         options: >-
@@ -132,9 +132,9 @@ jobs:
         env:
           DB_HOST: localhost
           DB_PORT: 5432
-          DB_USER: labuda
-          DB_PASSWORD: labuda123
-          DB_NAME: labuda_ci
+          DB_USER: hishumi
+          DB_PASSWORD: hishumi_ci_job_pw
+          DB_NAME: hishumi_ci
           DB_SSLMODE: disable
         run: |
           cd backend && go run ./cmd/migrate
@@ -275,13 +275,47 @@ jobs:
             FAIL=1
           fi
 
-          # Guard 3: .env.example DB credentials must match docker-compose
-          if grep -q "^DB_USER=postgres" backend/.env.example; then
-            echo "❌ FAIL: backend/.env.example DB_USER=postgres does not match docker-compose DB_USER=labuda"
+          # Guard 3: canonical DB identity must match across the chain
+          # (H.4.4-B: database/user hishumi, test hishumi_test, CI hishumi_ci).
+          # .env.example must carry the canonical dev defaults that
+          # docker-compose.yml creates, and the Go defaults plus the test
+          # helper lock key must agree with them. Any drift fails the build.
+          if ! grep -q "^DB_USER=hishumi$" backend/.env.example; then
+            echo "❌ FAIL: backend/.env.example DB_USER must be the canonical hishumi (must match docker-compose POSTGRES_USER)"
             FAIL=1
           fi
-          if grep -q "^DB_NAME=labuda_db" backend/.env.example; then
-            echo "❌ FAIL: backend/.env.example DB_NAME=labuda_db does not match docker-compose DB_NAME=labuda"
+          if ! grep -q "^DB_NAME=hishumi$" backend/.env.example; then
+            echo "❌ FAIL: backend/.env.example DB_NAME must be the canonical hishumi (must match docker-compose POSTGRES_DB)"
+            FAIL=1
+          fi
+          if ! grep -q "^DB_TEST_NAME=hishumi_test$" backend/.env.example; then
+            echo "❌ FAIL: backend/.env.example DB_TEST_NAME must be the canonical hishumi_test"
+            FAIL=1
+          fi
+          if ! grep -q "POSTGRES_USER: hishumi$" docker-compose.yml; then
+            echo "❌ FAIL: docker-compose.yml POSTGRES_USER must be the canonical hishumi"
+            FAIL=1
+          fi
+          if ! grep -q "POSTGRES_DB: hishumi$" docker-compose.yml; then
+            echo "❌ FAIL: docker-compose.yml POSTGRES_DB must be the canonical hishumi"
+            FAIL=1
+          fi
+          if ! grep -q 'getEnv("DB_TEST_NAME", "hishumi_test")' backend/internal/config/config.go; then
+            echo "❌ FAIL: config.go DB_TEST_NAME default must be the canonical hishumi_test"
+            FAIL=1
+          fi
+          if ! grep -q 'testDBMigrationLockKey = "hishumi:testdb:migrations"' backend/pkg/testdb/testdb.go; then
+            echo "❌ FAIL: testdb migration lock key must be the canonical hishumi:testdb:migrations"
+            FAIL=1
+          fi
+          # Ratchet: the retired labuda database identity must not reappear
+          # in the converged runtime/DB chain (binary names, Firebase, S3,
+          # staging URLs, observability namespaces, and applied SQL
+          # migrations are separate scopes and are intentionally excluded;
+          # FIREBASE_PROJECT_ID and S3_BUCKET_NAME in .env.example are
+          # external-resource references owned by those scopes).
+          if grep -rn "labuda" docker-compose.yml backend/.env.example backend/internal/config/config.go backend/pkg/testdb/ backend/internal/config/config_test.go backend/pkg/testdb/testdb_test.go 2>/dev/null | grep -v "FIREBASE_PROJECT_ID\|S3_BUCKET_NAME"; then
+            echo "❌ FAIL: retired labuda database identity found in the converged chain"
             FAIL=1
           fi
 

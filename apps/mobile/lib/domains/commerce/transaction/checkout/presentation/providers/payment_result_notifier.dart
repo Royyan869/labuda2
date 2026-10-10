@@ -12,12 +12,12 @@ library;
 import 'dart:async';
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:labuda/core/core.dart' as core;
-import 'package:labuda/domains/commerce/transaction/order/data/order_providers.dart';
-import 'package:labuda/domains/commerce/transaction/order/domain/entities/order_status.dart';
-import 'package:labuda/core/common/types/payment_types.dart';
-import 'package:labuda/domains/finance/transaction/payment/domain/entities/payment.dart';
-import 'package:labuda/domains/finance/transaction/payment/presentation/providers/payment_providers.dart';
+import 'package:hishumi/core/core.dart' as core;
+import 'package:hishumi/domains/commerce/transaction/order/data/order_providers.dart';
+import 'package:hishumi/domains/commerce/transaction/order/domain/entities/order_status.dart';
+import 'package:hishumi/core/common/types/payment_types.dart';
+import 'package:hishumi/domains/finance/transaction/payment/domain/entities/payment.dart';
+import 'package:hishumi/domains/finance/transaction/payment/presentation/providers/payment_providers.dart';
 import 'payment_result_state.dart';
 
 part 'payment_result_notifier.g.dart';

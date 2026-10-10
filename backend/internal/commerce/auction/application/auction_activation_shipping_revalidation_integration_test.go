@@ -11,11 +11,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/labuda/backend/internal/commerce/auction/entity"
-	shippingRepo "github.com/labuda/backend/internal/commerce/shipping/infrastructure/repository"
-	outboxRepo "github.com/labuda/backend/internal/platform/outbox/infrastructure/repository"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/testdb"
+	"github.com/hishumi/backend/internal/commerce/auction/entity"
+	shippingRepo "github.com/hishumi/backend/internal/commerce/shipping/infrastructure/repository"
+	outboxRepo "github.com/hishumi/backend/internal/platform/outbox/infrastructure/repository"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/testdb"
 	"go.uber.org/zap"
 )
 

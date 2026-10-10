@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/realtime"
+	"github.com/hishumi/backend/internal/realtime"
 	"go.uber.org/zap"
 )
 

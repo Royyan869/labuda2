@@ -7,12 +7,12 @@
 library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/providers/core_providers.dart'
+import 'package:hishumi/core/providers/core_providers.dart'
     show apiClientProvider, loggerServiceProvider, s3ServiceProvider;
-import 'package:labuda/domains/user/preference/seller/data/remote/seller_remote_datasource.dart';
-import 'package:labuda/domains/user/preference/seller/data/repositories/seller_repository_impl.dart';
-import 'package:labuda/domains/user/preference/seller/data/services/store_photo_upload_service.dart';
-import 'package:labuda/domains/user/preference/seller/domain/repositories/seller_repository.dart';
+import 'package:hishumi/domains/user/preference/seller/data/remote/seller_remote_datasource.dart';
+import 'package:hishumi/domains/user/preference/seller/data/repositories/seller_repository_impl.dart';
+import 'package:hishumi/domains/user/preference/seller/data/services/store_photo_upload_service.dart';
+import 'package:hishumi/domains/user/preference/seller/domain/repositories/seller_repository.dart';
 
 // =============================================================================
 // DATASOURCE PROVIDERS

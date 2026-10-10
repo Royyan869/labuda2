@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/commerce/forsale/entity"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/commerce/forsale/entity"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // SearchFilters holds filter criteria for for_sale search.

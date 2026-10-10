@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/shared/services/places_autocomplete_service.dart';
-import 'package:labuda/shared/widgets/address_location_view.dart';
-import 'package:labuda/shared/widgets/bottom_action_bar.dart';
-import 'package:labuda/core/src/theme/app_theme.dart';
+import 'package:hishumi/shared/services/places_autocomplete_service.dart';
+import 'package:hishumi/shared/widgets/address_location_view.dart';
+import 'package:hishumi/shared/widgets/bottom_action_bar.dart';
+import 'package:hishumi/core/src/theme/app_theme.dart';
 
 /// Header untuk Map Picker
 class MapPickerHeader extends StatelessWidget {

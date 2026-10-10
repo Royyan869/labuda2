@@ -1,5 +1,5 @@
 import 'dart:io';
-import 'package:labuda/core/core.dart';
+import 'package:hishumi/core/core.dart';
 
 /// Avatar Upload Service - Upload profile avatar to AWS S3
 ///

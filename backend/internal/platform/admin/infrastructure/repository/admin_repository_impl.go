@@ -9,10 +9,10 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
-	paymentRepo "github.com/labuda/backend/internal/integration/payment/infrastructure/repository"
-	"github.com/labuda/backend/internal/platform/admin/repository"
-	"github.com/labuda/backend/internal/platform/capability/invariant"
-	"github.com/labuda/backend/pkg/db"
+	paymentRepo "github.com/hishumi/backend/internal/integration/payment/infrastructure/repository"
+	"github.com/hishumi/backend/internal/platform/admin/repository"
+	"github.com/hishumi/backend/internal/platform/capability/invariant"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // AdminRepositoryImpl handles admin data persistence using pgx-based DB layer.

@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
-import 'package:labuda/core/api/api_client.dart';
-import 'package:labuda/core/src/interfaces/services/i_logger_service.dart';
+import 'package:hishumi/core/api/api_client.dart';
+import 'package:hishumi/core/src/interfaces/services/i_logger_service.dart';
 
 import '../dto/dto_barrel.dart';
 import '../models/api/order_api_models.dart'

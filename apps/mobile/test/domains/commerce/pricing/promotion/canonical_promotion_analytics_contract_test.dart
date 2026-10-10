@@ -22,10 +22,10 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/commerce/pricing/promotion/data/dto/canonical_promotion_analytics_dto.dart';
-import 'package:labuda/domains/commerce/pricing/promotion/data/repositories/canonical_promotion_analytics_repository.dart';
-import 'package:labuda/domains/commerce/pricing/promotion/presentation/screens/canonical_promotion_analytics_screen.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/commerce/pricing/promotion/data/dto/canonical_promotion_analytics_dto.dart';
+import 'package:hishumi/domains/commerce/pricing/promotion/data/repositories/canonical_promotion_analytics_repository.dart';
+import 'package:hishumi/domains/commerce/pricing/promotion/presentation/screens/canonical_promotion_analytics_screen.dart';
 
 // ============================================================================
 // Fake ApiClient — records every path, returns canned responses, and can

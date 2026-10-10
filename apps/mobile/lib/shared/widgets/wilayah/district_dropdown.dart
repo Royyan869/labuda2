@@ -5,10 +5,10 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/shared/models/wilayah_models.dart';
-import 'package:labuda/shared/providers/wilayah_provider_simple.dart';
-import 'package:labuda/shared/widgets/wilayah/dropdown_state_builders.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/shared/models/wilayah_models.dart';
+import 'package:hishumi/shared/providers/wilayah_provider_simple.dart';
+import 'package:hishumi/shared/widgets/wilayah/dropdown_state_builders.dart';
 
 class DistrictDropdown extends ConsumerWidget {
   final District? selectedDistrict;

@@ -36,11 +36,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	coinsentity "github.com/labuda/backend/internal/incentive/coins/entity"
-	coinsrepopg "github.com/labuda/backend/internal/incentive/coins/infrastructure/repository"
-	coinsrepo "github.com/labuda/backend/internal/incentive/coins/repository"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/testdb"
+	coinsentity "github.com/hishumi/backend/internal/incentive/coins/entity"
+	coinsrepopg "github.com/hishumi/backend/internal/incentive/coins/infrastructure/repository"
+	coinsrepo "github.com/hishumi/backend/internal/incentive/coins/repository"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/testdb"
 )
 
 // ============================================================================

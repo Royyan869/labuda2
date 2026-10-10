@@ -1,23 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/src/localization/l10n_extension.dart';
+import 'package:hishumi/core/src/localization/l10n_extension.dart';
 // E4.3 — import AppColors directly (not via core/core.dart) to keep the
 // dependency surface explicit. The chat-entities `MessageStatus` consumed by
 // this widget must stay the single MessageStatus in scope.
-import 'package:labuda/core/src/theme/app_theme.dart';
-import 'package:labuda/shared/utils/app_formatters.dart';
-import 'package:labuda/core/media/media_upload_orchestrator.dart';
-import 'package:labuda/domains/chat/chat/domain/entities/chat_entities.dart';
-import 'package:labuda/domains/chat/chat/presentation/utils/chat_identity_display.dart';
-import 'package:labuda/domains/chat/chat/presentation/utils/chat_lifecycle_redaction.dart';
-import 'package:labuda/domains/chat/chat/presentation/widgets/chat_resource_projection_card.dart';
-import 'package:labuda/domains/commerce/negotiation/negotiation/presentation/widgets/negotiation_proposal_card.dart';
-import 'package:labuda/shared/governance/content_lifecycle.dart';
-import 'package:labuda/shared/widgets/attachment_widget.dart' as widget_lib;
-import 'package:labuda/shared/object/presentation/widgets/object_preview_card.dart';
-import 'package:labuda/shared/widgets/app_image.dart';
-import 'package:labuda/shared/widgets/media_viewer_widget.dart';
-import 'package:labuda/domains/social/content/domain/entities/content.dart';
+import 'package:hishumi/core/src/theme/app_theme.dart';
+import 'package:hishumi/shared/utils/app_formatters.dart';
+import 'package:hishumi/core/media/media_upload_orchestrator.dart';
+import 'package:hishumi/domains/chat/chat/domain/entities/chat_entities.dart';
+import 'package:hishumi/domains/chat/chat/presentation/utils/chat_identity_display.dart';
+import 'package:hishumi/domains/chat/chat/presentation/utils/chat_lifecycle_redaction.dart';
+import 'package:hishumi/domains/chat/chat/presentation/widgets/chat_resource_projection_card.dart';
+import 'package:hishumi/domains/commerce/negotiation/negotiation/presentation/widgets/negotiation_proposal_card.dart';
+import 'package:hishumi/shared/governance/content_lifecycle.dart';
+import 'package:hishumi/shared/widgets/attachment_widget.dart' as widget_lib;
+import 'package:hishumi/shared/object/presentation/widgets/object_preview_card.dart';
+import 'package:hishumi/shared/widgets/app_image.dart';
+import 'package:hishumi/shared/widgets/media_viewer_widget.dart';
+import 'package:hishumi/domains/social/content/domain/entities/content.dart';
 
 /// Message Bubble Widget
 ///

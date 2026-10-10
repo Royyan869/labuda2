@@ -3,21 +3,21 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:labuda/core/config/seller_upgrade_config_entity.dart';
-import 'package:labuda/core/config/seller_upgrade_config_provider.dart'
+import 'package:hishumi/core/config/seller_upgrade_config_entity.dart';
+import 'package:hishumi/core/config/seller_upgrade_config_provider.dart'
     as config;
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/finance/transaction/payment/domain/entities/payment.dart'
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/finance/transaction/payment/domain/entities/payment.dart'
     show PaymentMethodOption;
-import 'package:labuda/domains/finance/transaction/payment/presentation/providers/payment_providers.dart'
+import 'package:hishumi/domains/finance/transaction/payment/presentation/providers/payment_providers.dart'
     show paymentRemoteDatasourceProvider;
-import 'package:labuda/domains/finance/transaction/payment/presentation/widgets/payment_method_picker_sheet.dart';
-import 'package:labuda/domains/user/preference/seller/data/dto/seller_dto.dart';
-import 'package:labuda/domains/user/preference/seller/data/seller_providers.dart'
+import 'package:hishumi/domains/finance/transaction/payment/presentation/widgets/payment_method_picker_sheet.dart';
+import 'package:hishumi/domains/user/preference/seller/data/dto/seller_dto.dart';
+import 'package:hishumi/domains/user/preference/seller/data/seller_providers.dart'
     show sellerRemoteDatasourceProvider, sellerRepositoryProvider;
-import 'package:labuda/domains/user/preference/seller/domain/entities/seller_state.dart';
-import 'package:labuda/domains/user/preference/seller/domain/entities/seller_subscription.dart';
-import 'package:labuda/shared/shared.dart';
+import 'package:hishumi/domains/user/preference/seller/domain/entities/seller_state.dart';
+import 'package:hishumi/domains/user/preference/seller/domain/entities/seller_subscription.dart';
+import 'package:hishumi/shared/shared.dart';
 
 /// Canonical seller renewal lifecycle.
 ///

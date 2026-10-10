@@ -11,7 +11,7 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
+import 'package:hishumi/core/core.dart';
 
 /// Helper class untuk membuat state builders pada dropdown wilayah
 class DropdownStateBuilders {

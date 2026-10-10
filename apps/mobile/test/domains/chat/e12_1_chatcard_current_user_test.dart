@@ -21,10 +21,10 @@
 
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:labuda/domains/chat/chat/data/dto/chat_dto.dart';
-import 'package:labuda/domains/chat/chat/data/mappers/chat_mapper.dart';
-import 'package:labuda/domains/chat/chat/domain/entities/chat_entities.dart';
-import 'package:labuda/shared/governance/content_lifecycle.dart';
+import 'package:hishumi/domains/chat/chat/data/dto/chat_dto.dart';
+import 'package:hishumi/domains/chat/chat/data/mappers/chat_mapper.dart';
+import 'package:hishumi/domains/chat/chat/domain/entities/chat_entities.dart';
+import 'package:hishumi/shared/governance/content_lifecycle.dart';
 
 // ---------------------------------------------------------------------------
 // Fixtures

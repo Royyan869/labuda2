@@ -45,15 +45,15 @@ library;
 import 'package:equatable/equatable.dart';
 
 // Import MediaEntity from shared entities
-import 'package:labuda/domains/social/content/domain/entities/content.dart';
-import 'package:labuda/shared/domain/entities/resource_projection.dart';
-import 'package:labuda/shared/governance/content_lifecycle.dart';
+import 'package:hishumi/domains/social/content/domain/entities/content.dart';
+import 'package:hishumi/shared/domain/entities/resource_projection.dart';
+import 'package:hishumi/shared/governance/content_lifecycle.dart';
 
 // Import PreparationTime
-import 'package:labuda/core/common/types/preparation_time.dart';
+import 'package:hishumi/core/common/types/preparation_time.dart';
 
 // Canonical commerce detail action authority (per-viewer capabilities).
-import 'package:labuda/domains/commerce/catalog/shared/domain/entities/commerce_viewer_capabilities.dart';
+import 'package:hishumi/domains/commerce/catalog/shared/domain/entities/commerce_viewer_capabilities.dart';
 
 // =============================================================================
 // Enums

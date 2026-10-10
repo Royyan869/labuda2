@@ -2,8 +2,8 @@
 // Application layer state untuk Riverpod Notifier
 
 import 'package:freezed_annotation/freezed_annotation.dart';
-import 'package:labuda/domains/social/content/domain/entities/content.dart';
-import 'package:labuda/domains/social/content/domain/repositories/content_repository.dart';
+import 'package:hishumi/domains/social/content/domain/entities/content.dart';
+import 'package:hishumi/domains/social/content/domain/repositories/content_repository.dart';
 
 part 'content_state.freezed.dart';
 

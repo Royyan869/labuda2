@@ -10,16 +10,16 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
-	orderApp "github.com/labuda/backend/internal/commerce/order/application"
-	orderentity "github.com/labuda/backend/internal/commerce/order/entity"
-	shippingquoteEntity "github.com/labuda/backend/internal/commerce/shipping/quote/entity"
-	platformconfigApp "github.com/labuda/backend/internal/platform/config/application"
-	platformconfigRepo "github.com/labuda/backend/internal/platform/config/infrastructure/repository"
-	pricingtokenApp "github.com/labuda/backend/internal/pricing/token/application"
-	pricingtokenRepo "github.com/labuda/backend/internal/pricing/token/infrastructure/repository"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/money"
-	"github.com/labuda/backend/pkg/testdb"
+	orderApp "github.com/hishumi/backend/internal/commerce/order/application"
+	orderentity "github.com/hishumi/backend/internal/commerce/order/entity"
+	shippingquoteEntity "github.com/hishumi/backend/internal/commerce/shipping/quote/entity"
+	platformconfigApp "github.com/hishumi/backend/internal/platform/config/application"
+	platformconfigRepo "github.com/hishumi/backend/internal/platform/config/infrastructure/repository"
+	pricingtokenApp "github.com/hishumi/backend/internal/pricing/token/application"
+	pricingtokenRepo "github.com/hishumi/backend/internal/pricing/token/infrastructure/repository"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/money"
+	"github.com/hishumi/backend/pkg/testdb"
 )
 
 // ============================================================================

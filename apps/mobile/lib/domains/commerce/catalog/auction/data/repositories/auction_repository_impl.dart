@@ -4,13 +4,13 @@ library;
 
 import 'dart:async';
 import 'dart:collection';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/core/common/types/preparation_time.dart';
-import 'package:labuda/core/utils/polling_monitor.dart';
-import 'package:labuda/domains/commerce/catalog/auction/data/dto/auction_dto.dart';
-import 'package:labuda/domains/commerce/catalog/auction/data/mappers/auction_mapper.dart';
-import 'package:labuda/domains/commerce/catalog/auction/data/remote/auction_remote_datasource.dart';
-import 'package:labuda/domains/commerce/catalog/auction/domain/domain.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/core/common/types/preparation_time.dart';
+import 'package:hishumi/core/utils/polling_monitor.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/data/dto/auction_dto.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/data/mappers/auction_mapper.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/data/remote/auction_remote_datasource.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/domain/domain.dart';
 
 /// Auction Repository Implementation
 ///

@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/db"
 	"go.uber.org/zap/zaptest"
 )
 

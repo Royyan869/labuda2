@@ -13,7 +13,7 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // IsBidirectionallyBlocked checks if a block exists in either direction between

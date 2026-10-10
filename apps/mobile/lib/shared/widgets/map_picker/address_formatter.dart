@@ -1,5 +1,5 @@
 import 'package:geocoding/geocoding.dart';
-import 'package:labuda/shared/services/places_autocomplete_service.dart';
+import 'package:hishumi/shared/services/places_autocomplete_service.dart';
 
 /// Formatter untuk address dari placemarks dan place details
 class AddressFormatter {

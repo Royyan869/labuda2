@@ -6,9 +6,9 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	addressEntity "github.com/labuda/backend/internal/identity/address/entity"
-	addressRepoTypes "github.com/labuda/backend/internal/identity/address/repository"
-	"github.com/labuda/backend/pkg/db"
+	addressEntity "github.com/hishumi/backend/internal/identity/address/entity"
+	addressRepoTypes "github.com/hishumi/backend/internal/identity/address/repository"
+	"github.com/hishumi/backend/pkg/db"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

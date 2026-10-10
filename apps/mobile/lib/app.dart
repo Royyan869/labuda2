@@ -25,7 +25,7 @@ class LabudaApp extends ConsumerWidget {
     final routerConfig = ref.watch(goRouterProvider);
 
     return MaterialApp.router(
-      title: 'LABUDA - Social Commerce Koi',
+      title: 'HiShumi - Social Commerce Koi',
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: themeMode,

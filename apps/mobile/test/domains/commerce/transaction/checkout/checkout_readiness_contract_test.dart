@@ -16,7 +16,7 @@
 // A local price (`forSale.price`) is not an input: it can never make checkout
 // ready.
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/domains/commerce/transaction/checkout/presentation/models/checkout_readiness.dart';
+import 'package:hishumi/domains/commerce/transaction/checkout/presentation/models/checkout_readiness.dart';
 
 /// Builds inputs with explicit, readable defaults: a satisfied precondition
 /// set with a current, unexpired preview carrying a usable token.

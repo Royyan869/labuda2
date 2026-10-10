@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'package:labuda/core/src/theme/app_theme.dart';
+import 'package:hishumi/core/src/theme/app_theme.dart';
 
 /// THE count badge renderer — one authority for every app-bar counter dot.
 ///

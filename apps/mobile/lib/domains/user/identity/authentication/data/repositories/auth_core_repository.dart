@@ -1,5 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:labuda/core/core.dart';
+import 'package:hishumi/core/core.dart';
 
 import '../../domain/entities/firebase_principal.dart';
 
@@ -37,9 +37,9 @@ class AuthCoreRepository {
     }
   }
 
-  /// Firebase-only sign-out. Local Labuda credential termination is owned
+  /// Firebase-only sign-out. Local HiShumi credential termination is owned
   /// exclusively by [AuthController.signOut]/[signOutAll] via
-  /// `clearLabudaCredential()`. This method must NOT call `clear()` or
+  /// `clearHiShumiCredential()`. This method must NOT call `clear()` or
   /// `clearSecure()` (broad storage wipe).
   Future<Result<void>> signOut() async {
     try {

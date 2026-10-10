@@ -17,11 +17,11 @@
 /// ═══════════════════════════════════════════════════════════════════════════════
 library;
 
-import 'package:labuda/domains/commerce/catalog/for_sale/data/dto/for_sale_dto.dart';
-import 'package:labuda/domains/commerce/catalog/for_sale/domain/entities/for_sale.dart';
-import 'package:labuda/domains/social/content/domain/entities/content.dart';
-import 'package:labuda/core/common/types/preparation_time.dart';
-import 'package:labuda/shared/governance/content_lifecycle.dart';
+import 'package:hishumi/domains/commerce/catalog/for_sale/data/dto/for_sale_dto.dart';
+import 'package:hishumi/domains/commerce/catalog/for_sale/domain/entities/for_sale.dart';
+import 'package:hishumi/domains/social/content/domain/entities/content.dart';
+import 'package:hishumi/core/common/types/preparation_time.dart';
+import 'package:hishumi/shared/governance/content_lifecycle.dart';
 
 /// ForSaleDtoMapper
 ///

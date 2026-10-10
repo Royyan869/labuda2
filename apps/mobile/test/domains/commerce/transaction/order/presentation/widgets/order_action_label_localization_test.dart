@@ -3,13 +3,13 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/domains/commerce/transaction/order/domain/domain.dart'
+import 'package:hishumi/domains/commerce/transaction/order/domain/domain.dart'
     as order_domain;
-import 'package:labuda/domains/commerce/transaction/order/presentation/widgets/dynamic_action_buttons.dart';
-import 'package:labuda/domains/commerce/transaction/order/presentation/widgets/order_action_label_resolver.dart';
-import 'package:labuda/generated/app_localizations.dart';
-import 'package:labuda/generated/app_localizations_en.dart';
-import 'package:labuda/generated/app_localizations_id.dart';
+import 'package:hishumi/domains/commerce/transaction/order/presentation/widgets/dynamic_action_buttons.dart';
+import 'package:hishumi/domains/commerce/transaction/order/presentation/widgets/order_action_label_resolver.dart';
+import 'package:hishumi/generated/app_localizations.dart';
+import 'package:hishumi/generated/app_localizations_en.dart';
+import 'package:hishumi/generated/app_localizations_id.dart';
 
 /// I18N-07 — Order Action localization proof.
 ///

@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/chat/chat/domain/entities/chat_entities.dart';
-import 'package:labuda/domains/chat/chat/presentation/utils/chat_identity_display.dart';
-import 'package:labuda/domains/chat/chat/presentation/utils/chat_lifecycle_redaction.dart';
-import 'package:labuda/domains/system/support/domain/domain.dart';
-import 'package:labuda/domains/system/support/presentation/utils/support_category_label.dart';
-import 'package:labuda/shared/governance/content_lifecycle.dart';
-import 'package:labuda/shared/providers/auth_status_providers.dart';
-import 'package:labuda/shared/widgets/profile_avatar.dart';
-import 'package:labuda/domains/system/shared/domain/services/time_format_service.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/chat/chat/domain/entities/chat_entities.dart';
+import 'package:hishumi/domains/chat/chat/presentation/utils/chat_identity_display.dart';
+import 'package:hishumi/domains/chat/chat/presentation/utils/chat_lifecycle_redaction.dart';
+import 'package:hishumi/domains/system/support/domain/domain.dart';
+import 'package:hishumi/domains/system/support/presentation/utils/support_category_label.dart';
+import 'package:hishumi/shared/governance/content_lifecycle.dart';
+import 'package:hishumi/shared/providers/auth_status_providers.dart';
+import 'package:hishumi/shared/widgets/profile_avatar.dart';
+import 'package:hishumi/domains/system/shared/domain/services/time_format_service.dart';
 
 /// Chat Card Widget
 ///

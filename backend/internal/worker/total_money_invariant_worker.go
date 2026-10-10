@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	financeApp "github.com/labuda/backend/internal/finance/application"
+	financeApp "github.com/hishumi/backend/internal/finance/application"
 	"go.uber.org/zap"
 )
 

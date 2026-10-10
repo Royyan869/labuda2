@@ -2,13 +2,13 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:labuda/core/core.dart';
+import 'package:hishumi/core/core.dart';
 import 'package:wechat_assets_picker/wechat_assets_picker.dart';
-import 'package:labuda/shared/ui/src/helpers/media_picker_helper.dart';
-import 'package:labuda/shared/ui/src/screens/custom_camera_screen.dart';
-import 'package:labuda/shared/widgets/app_bottom_sheet_actions.dart';
-import 'package:labuda/shared/widgets/app_snackbar.dart';
-import 'package:labuda/core/services/blurhash_cache_service.dart';
+import 'package:hishumi/shared/ui/src/helpers/media_picker_helper.dart';
+import 'package:hishumi/shared/ui/src/screens/custom_camera_screen.dart';
+import 'package:hishumi/shared/widgets/app_bottom_sheet_actions.dart';
+import 'package:hishumi/shared/widgets/app_snackbar.dart';
+import 'package:hishumi/core/services/blurhash_cache_service.dart';
 import 'media_upload_config.dart';
 
 /// Single canonical orchestrator for foto+video pick → validate → upload → URLs.

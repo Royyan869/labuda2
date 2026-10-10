@@ -3,23 +3,23 @@
 import 'dart:async';
 
 import 'package:dio/dio.dart';
-import 'package:labuda/core/src/interfaces/services/i_local_storage_service.dart';
-import 'package:labuda/core/src/interfaces/services/i_logger_service.dart';
+import 'package:hishumi/core/src/interfaces/services/i_local_storage_service.dart';
+import 'package:hishumi/core/src/interfaces/services/i_logger_service.dart';
 
 typedef SessionExpiredCallback = FutureOr<void> Function();
-typedef LabudaTokenFetcher = Future<String?> Function();
+typedef HiShumiTokenFetcher = Future<String?> Function();
 typedef RequestRetrier = Future<Response<dynamic>> Function(RequestOptions options);
 
-/// Labuda refresh executor for tests — returns true on success, false on failure.
+/// HiShumi refresh executor for tests — returns true on success, false on failure.
 /// Production uses _dio.post with skipAuth.
-typedef LabudaRefreshExecutor = Future<bool> Function(String refreshToken);
+typedef HiShumiRefreshExecutor = Future<bool> Function(String refreshToken);
 
 class AuthInterceptor extends Interceptor {
   final ILoggerService? _logger;
   final ILocalStorageService? _localStorage;
-  final LabudaTokenFetcher? _labudaFetcher;
-  final LabudaTokenFetcher? _refreshFetcher;
-  final LabudaRefreshExecutor? _refreshExecutor;
+  final HiShumiTokenFetcher? _hishumiFetcher;
+  final HiShumiTokenFetcher? _refreshFetcher;
+  final HiShumiRefreshExecutor? _refreshExecutor;
   final RequestRetrier? _requestRetrier;
   Dio? _dio;
 
@@ -32,14 +32,14 @@ class AuthInterceptor extends Interceptor {
   AuthInterceptor({
     ILoggerService? logger,
     ILocalStorageService? localStorage,
-    LabudaTokenFetcher? labudaTokenFetcher,
-    LabudaTokenFetcher? refreshTokenFetcher,
-    LabudaRefreshExecutor? refreshExecutor,
+    HiShumiTokenFetcher? hishumiTokenFetcher,
+    HiShumiTokenFetcher? refreshTokenFetcher,
+    HiShumiRefreshExecutor? refreshExecutor,
     RequestRetrier? requestRetrier,
     Dio? dio,
   })  : _logger = logger,
         _localStorage = localStorage,
-        _labudaFetcher = labudaTokenFetcher,
+        _hishumiFetcher = hishumiTokenFetcher,
         _refreshFetcher = refreshTokenFetcher,
         _refreshExecutor = refreshExecutor,
         _requestRetrier = requestRetrier,
@@ -66,22 +66,22 @@ class AuthInterceptor extends Interceptor {
     };
   }
 
-  Future<String?> _getLabudaToken() async {
-    final fetcher = _labudaFetcher;
+  Future<String?> _getHiShumiToken() async {
+    final fetcher = _hishumiFetcher;
     if (fetcher != null) return fetcher();
     final storage = _localStorage;
     if (storage != null) {
       try {
-        final result = await storage.readLabudaAccessToken();
+        final result = await storage.readHiShumiAccessToken();
         if (result.isSuccess) {
           final token = result.data;
           if (token != null && token.trim().isNotEmpty) return token.trim();
         }
         if (result.isError) {
-          _logger?.warning('AuthInterceptor: readLabudaAccessToken error — ${result.error}');
+          _logger?.warning('AuthInterceptor: readHiShumiAccessToken error — ${result.error}');
         }
       } catch (e, st) {
-        _logger?.error('AuthInterceptor: readLabudaAccessToken threw — $e', stackTrace: st);
+        _logger?.error('AuthInterceptor: readHiShumiAccessToken threw — $e', stackTrace: st);
       }
       return null;
     }
@@ -94,16 +94,16 @@ class AuthInterceptor extends Interceptor {
     final storage = _localStorage;
     if (storage != null) {
       try {
-        final result = await storage.readLabudaRefreshToken();
+        final result = await storage.readHiShumiRefreshToken();
         if (result.isSuccess) {
           final token = result.data;
           if (token != null && token.trim().isNotEmpty) return token.trim();
         }
         if (result.isError) {
-          _logger?.warning('AuthInterceptor: readLabudaRefreshToken error — ${result.error}');
+          _logger?.warning('AuthInterceptor: readHiShumiRefreshToken error — ${result.error}');
         }
       } catch (e, st) {
-        _logger?.error('AuthInterceptor: readLabudaRefreshToken threw — $e', stackTrace: st);
+        _logger?.error('AuthInterceptor: readHiShumiRefreshToken threw — $e', stackTrace: st);
       }
       return null;
     }
@@ -135,23 +135,23 @@ class AuthInterceptor extends Interceptor {
       _logger?.debug('AuthInterceptor: skipping auth for ${options.method} ${options.path} (skipAuth)');
       return handler.next(options);
     }
-    // CANONICAL VIEWER-IDENTITY RULE: the Labuda access token is attached to
+    // CANONICAL VIEWER-IDENTITY RULE: the HiShumi access token is attached to
     // EVERY request that has one — including the public browse GETs. The
     // backend browse group is built on optional auth (StrictBrowse: no header
     // → anonymous, valid header → authenticated viewer with full context), and
     // viewer-scoped blocks (viewer_capabilities) are only correct when the
     // identity travels. A guest simply has no token, so it stays anonymous.
     try {
-      final token = await _getLabudaToken();
+      final token = await _getHiShumiToken();
       if (token != null && token.isNotEmpty) {
         options.headers['Authorization'] = 'Bearer $token';
         _sessionExpirySignaled = false;
-        _logger?.debug('AuthInterceptor: Labuda token attached for ${options.method} ${options.path} (len=${token.length})');
+        _logger?.debug('AuthInterceptor: HiShumi token attached for ${options.method} ${options.path} (len=${token.length})');
       } else {
-        _logger?.debug('AuthInterceptor: No Labuda access token for ${options.path} — sending without Authorization (no Firebase fallback)');
+        _logger?.debug('AuthInterceptor: No HiShumi access token for ${options.path} — sending without Authorization (no Firebase fallback)');
       }
     } catch (e, st) {
-      _logger?.error('AuthInterceptor: Error reading Labuda token for ${options.path} - $e', stackTrace: st);
+      _logger?.error('AuthInterceptor: Error reading HiShumi token for ${options.path} - $e', stackTrace: st);
     }
     handler.next(options);
   }
@@ -176,7 +176,7 @@ class AuthInterceptor extends Interceptor {
     }
 
     // Single-shot per-request marker
-    if (err.requestOptions.extra['labuda_retry'] == true) {
+    if (err.requestOptions.extra['hishumi_retry'] == true) {
       _logger?.warning('AuthInterceptor: Request already retried once — propagating 401');
       return handler.next(err);
     }
@@ -190,14 +190,14 @@ class AuthInterceptor extends Interceptor {
 
     // Refresh succeeded — retry original request once with new token
     try {
-      final newToken = await _getLabudaToken();
+      final newToken = await _getHiShumiToken();
       if (newToken == null || newToken.isEmpty) {
-        _logger?.warning('AuthInterceptor: No Labuda token after refresh — propagating 401');
+        _logger?.warning('AuthInterceptor: No HiShumi token after refresh — propagating 401');
         return handler.next(err);
       }
       final opts = err.requestOptions;
       opts.headers['Authorization'] = 'Bearer $newToken';
-      opts.extra['labuda_retry'] = true;
+      opts.extra['hishumi_retry'] = true;
 
       // Use requestRetrier seam if provided, else dio.fetch via attached Dio
       Response<dynamic> resp;
@@ -278,9 +278,13 @@ class AuthInterceptor extends Interceptor {
         executorResult = await _refreshExecutor!(token);
       } catch (e, st) {
         _logger?.error('AuthInterceptor: refreshExecutor threw — $e', stackTrace: st);
+        unawaited(_signalSessionExpiredOnce('refresh-executor-threw'));
         return false;
       }
-      if (!executorResult) return false;
+      if (!executorResult) {
+        unawaited(_signalSessionExpiredOnce('refresh-executor-failed'));
+        return false;
+      }
       // Race guard even for executor path: if logout/rotation cleared the token while
       // the executor was in flight, the result must be treated as stale.
       // This covers both executor-owns-save and interceptor-owns-save contracts:
@@ -295,12 +299,14 @@ class AuthInterceptor extends Interceptor {
           final storage = _localStorage;
           if (storage != null) {
             try {
-              final curStorage = await storage.readLabudaRefreshToken();
+              final curStorage = await storage.readHiShumiRefreshToken();
               if (curStorage.data != token) {
-                await storage.clearLabudaCredential();
+                await storage.clearHiShumiCredential();
               }
             } catch (_) {}
           }
+          // Deliberate logout/rotation — the sign-out flow already owns the
+          // auth state; no session-expired signal.
           return false;
         }
       } catch (_) {}
@@ -309,18 +315,20 @@ class AuthInterceptor extends Interceptor {
 
     final refreshToken = await _getRefreshToken();
     if (refreshToken == null || refreshToken.isEmpty) {
-      _logger?.warning('AuthInterceptor: No Labuda refresh token — cannot refresh (no Firebase fallback)');
+      _logger?.warning('AuthInterceptor: No HiShumi refresh token — cannot refresh (no Firebase fallback)');
+      // No stored session → anonymous request; nothing to expire.
       return false;
     }
 
     final dio = _dio;
     if (dio == null) {
       _logger?.warning('AuthInterceptor: No Dio attached — cannot execute refresh');
+      unawaited(_signalSessionExpiredOnce('refresh-unwired'));
       return false;
     }
 
     try {
-      _logger?.info('AuthInterceptor: Executing Labuda refresh');
+      _logger?.info('AuthInterceptor: Executing HiShumi refresh');
       final resp = await dio.post(
         '/auth/refresh',
         data: {'refresh_token': refreshToken},
@@ -333,6 +341,7 @@ class AuthInterceptor extends Interceptor {
         if (data.containsKey('success')) {
           if (data['success'] != true) {
             _logger?.warning('AuthInterceptor: Refresh envelope success=false — ${data['error']}');
+            unawaited(_signalSessionExpiredOnce('refresh-rejected'));
             return false;
           }
           final d = data['data'];
@@ -343,49 +352,45 @@ class AuthInterceptor extends Interceptor {
       }
       if (payload == null) {
         _logger?.warning('AuthInterceptor: Refresh response payload null');
+        unawaited(_signalSessionExpiredOnce('refresh-malformed'));
         return false;
       }
       final access = payload['access_token']?.toString().trim();
       final refresh = payload['refresh_token']?.toString().trim();
       if (access == null || access.isEmpty || refresh == null || refresh.isEmpty) {
         _logger?.warning('AuthInterceptor: Refresh payload missing tokens — access=${access?.length} refresh=${refresh?.length}');
+        unawaited(_signalSessionExpiredOnce('refresh-missing-tokens'));
         return false;
       }
       final storage = _localStorage;
       if (storage == null) {
         _logger?.warning('AuthInterceptor: No storage to persist rotated credential');
+        unawaited(_signalSessionExpiredOnce('refresh-unpersistable'));
         return false;
       }
       // Race guard: logout may have cleared/rotated the refresh token while this refresh was in flight
       try {
-        final curRes = await storage.readLabudaRefreshToken();
+        final curRes = await storage.readHiShumiRefreshToken();
         final cur = curRes.data?.trim();
         if (cur != refreshToken) {
           _logger?.warning('AuthInterceptor: Refresh token mismatch (logout/rotation), aborting credential save');
+          // Deliberate logout/rotation — sign-out flow owns the auth state.
           return false;
         }
       } catch (_) {}
-      final saveRes = await storage.saveLabudaCredential(access, refresh);
+      final saveRes = await storage.saveHiShumiCredential(access, refresh);
       if (saveRes.isError) {
-        _logger?.warning('AuthInterceptor: saveLabudaCredential failed — ${saveRes.error}');
+        _logger?.warning('AuthInterceptor: saveHiShumiCredential failed — ${saveRes.error}');
+        unawaited(_signalSessionExpiredOnce('refresh-save-failed'));
         return false;
       }
-      _logger?.info('AuthInterceptor: Labuda credential rotated (new access len=${access.length})');
+      _logger?.info('AuthInterceptor: HiShumi credential rotated (new access len=${access.length})');
       return true;
     } catch (e, st) {
       _logger?.error('AuthInterceptor: Refresh request threw — $e', stackTrace: st);
+      unawaited(_signalSessionExpiredOnce('refresh-unreachable'));
       return false;
     }
-  }
-
-  static Future<Response<dynamic>> _defaultRetrier(RequestOptions options) async {
-    final retryDio = Dio();
-    return retryDio.fetch(options);
-  }
-
-  bool _shouldForceRefreshToken(String path) {
-    final n = _normalizeApiPath(path);
-    return n == '/auth/firebase/exchange' || n == '/users/me';
   }
 
   bool _shouldSkipAuth(RequestOptions options) => options.extra['skipAuth'] == true;

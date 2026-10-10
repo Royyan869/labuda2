@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/interaction/saved_item/entity"
+	"github.com/hishumi/backend/internal/interaction/saved_item/entity"
 )
 
 // SavedItemRepository defines the interface for saved item persistence operations

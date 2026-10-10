@@ -7,13 +7,13 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	commerceshared "github.com/labuda/backend/internal/commerce/shared"
-	"github.com/labuda/backend/internal/governance/viewercontext"
-	"github.com/labuda/backend/internal/identity/auth"
-	"github.com/labuda/backend/internal/platform/response"
-	contentApp "github.com/labuda/backend/internal/social/content/application"
-	"github.com/labuda/backend/internal/social/content/entity"
-	"github.com/labuda/backend/pkg/db"
+	commerceshared "github.com/hishumi/backend/internal/commerce/shared"
+	"github.com/hishumi/backend/internal/governance/viewercontext"
+	"github.com/hishumi/backend/internal/identity/auth"
+	"github.com/hishumi/backend/internal/platform/response"
+	contentApp "github.com/hishumi/backend/internal/social/content/application"
+	"github.com/hishumi/backend/internal/social/content/entity"
+	"github.com/hishumi/backend/pkg/db"
 	"go.uber.org/zap"
 )
 

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
+import 'package:hishumi/core/core.dart';
 
 /// Content type for more options menu
 enum PopupMoreOptionsContentType { content, profile, forSale, auction }

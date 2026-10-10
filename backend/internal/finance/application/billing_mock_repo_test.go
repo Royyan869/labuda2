@@ -4,9 +4,9 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	ledgerepo "github.com/labuda/backend/internal/finance/repository"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/money"
+	ledgerepo "github.com/hishumi/backend/internal/finance/repository"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/money"
 )
 
 // mockBillingLedgerRepo is a minimal LedgerRepository mock shared by finance

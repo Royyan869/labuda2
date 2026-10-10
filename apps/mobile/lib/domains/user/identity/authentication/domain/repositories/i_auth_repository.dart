@@ -1,6 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/user/profile/data/models/api/user_api_models.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/user/profile/data/models/api/user_api_models.dart';
 
 import '../entities/auth_user.dart' as domain;
 import '../entities/firebase_principal.dart';
@@ -60,9 +60,6 @@ abstract class IAuthRepository {
   /// Reset password melalui email
   Future<Result<void>> resetPassword({required String email});
 
-  /// Verifikasi email user
-  Future<Result<void>> verifyEmail();
-
   /// Update profile user
   Future<Result<UserProfilePatch>> updateProfile({
     String? photoUrl,
@@ -102,22 +99,9 @@ abstract class IAuthRepository {
   /// Returns null if user not found
   Future<Result<domain.AuthUser?>> getUserById(String userId);
 
-  /// Search users by name or username
-  /// Returns list of users matching the query
-  Future<Result<List<domain.AuthUser>>> searchUsers({
-    required String query,
-    int limit = 20,
-  });
-
   /// Deactivate user account with reason
   Future<Result<void>> deactivateAccount({
     required String userId,
     required String reason,
-  });
-
-  /// Update user role (for seller upgrade, admin promotion)
-  Future<Result<domain.AuthUser>> updateUserRole({
-    required String userId,
-    required UserRole newRole,
   });
 }

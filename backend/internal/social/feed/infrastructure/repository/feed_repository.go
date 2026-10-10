@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/social/feed/entity"
+	"github.com/hishumi/backend/internal/social/feed/entity"
 )
 
 // FeedRepository defines the interface for feed read operations.

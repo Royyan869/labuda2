@@ -8,9 +8,9 @@
 library;
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/domains/user/preference/seller/domain/entities/withdrawal.dart';
-import 'package:labuda/domains/user/preference/seller/domain/repositories/seller_repository.dart';
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/domains/user/preference/seller/domain/entities/withdrawal.dart';
+import 'package:hishumi/domains/user/preference/seller/domain/repositories/seller_repository.dart';
 
 // ── Test double ───────────────────────────────────────────────────────────────
 

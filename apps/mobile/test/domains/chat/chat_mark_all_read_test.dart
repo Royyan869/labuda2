@@ -1,10 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/domains/chat/chat/data/chat_providers.dart';
-import 'package:labuda/domains/chat/chat/domain/entities/chat_entities.dart';
-import 'package:labuda/domains/chat/chat/domain/repositories/chat_repository.dart';
-import 'package:labuda/domains/chat/chat/presentation/providers/chat_notifier.dart';
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/domains/chat/chat/data/chat_providers.dart';
+import 'package:hishumi/domains/chat/chat/domain/entities/chat_entities.dart';
+import 'package:hishumi/domains/chat/chat/domain/repositories/chat_repository.dart';
+import 'package:hishumi/domains/chat/chat/presentation/providers/chat_notifier.dart';
 
 class _RecordingRepo implements ChatRepository {
   final List<Chat> chats;

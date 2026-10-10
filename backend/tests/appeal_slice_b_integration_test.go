@@ -2,7 +2,7 @@
 
 // APPEAL SLICE B — POSTGRESQL CORRECTNESS PROOF
 //
-// Tests against real PostgreSQL (labuda_test) to prove:
+// Tests against real PostgreSQL (hishumi_test) to prove:
 //   Test A: Reversal flow (appeal approved → Decision #2 no_violation)
 //   Test B: Upheld flow (appeal rejected → Decision #2 violation)
 //   Test C: Atomicity — single TX for entire ReviewAppeal
@@ -24,12 +24,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/labuda/backend/internal/governance/moderation/application"
-	"github.com/labuda/backend/internal/governance/moderation/entity"
-	"github.com/labuda/backend/internal/governance/moderation/infrastructure/repository"
-	outboxRepo "github.com/labuda/backend/internal/platform/outbox/infrastructure/repository"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/testdb"
+	"github.com/hishumi/backend/internal/governance/moderation/application"
+	"github.com/hishumi/backend/internal/governance/moderation/entity"
+	"github.com/hishumi/backend/internal/governance/moderation/infrastructure/repository"
+	outboxRepo "github.com/hishumi/backend/internal/platform/outbox/infrastructure/repository"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/testdb"
 )
 
 // ============================================================================

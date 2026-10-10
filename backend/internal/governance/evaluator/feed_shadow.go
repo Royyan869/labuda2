@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/labuda/backend/internal/governance/viewercontext"
-	feedentity "github.com/labuda/backend/internal/social/feed/entity"
+	"github.com/hishumi/backend/internal/governance/viewercontext"
+	feedentity "github.com/hishumi/backend/internal/social/feed/entity"
 	"go.uber.org/zap"
 )
 

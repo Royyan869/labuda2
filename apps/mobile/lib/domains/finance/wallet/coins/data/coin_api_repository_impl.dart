@@ -5,12 +5,12 @@
 /// Mobile has no mutation authority.
 library;
 
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/domains/finance/wallet/coins/data/mappers/coin_mapper.dart';
-import 'package:labuda/domains/finance/wallet/coins/data/remote/coin_api_datasource.dart';
-import 'package:labuda/domains/finance/wallet/coins/domain/entities/coin_balance.dart';
-import 'package:labuda/domains/finance/wallet/coins/domain/entities/coin_transaction.dart';
-import 'package:labuda/domains/finance/wallet/coins/domain/repositories/coin_repository.dart';
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/domains/finance/wallet/coins/data/mappers/coin_mapper.dart';
+import 'package:hishumi/domains/finance/wallet/coins/data/remote/coin_api_datasource.dart';
+import 'package:hishumi/domains/finance/wallet/coins/domain/entities/coin_balance.dart';
+import 'package:hishumi/domains/finance/wallet/coins/domain/entities/coin_transaction.dart';
+import 'package:hishumi/domains/finance/wallet/coins/domain/repositories/coin_repository.dart';
 
 class CoinApiRepositoryImpl implements CoinRepository {
   final CoinApiDatasource _datasource;

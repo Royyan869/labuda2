@@ -11,9 +11,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	paymentrepo "github.com/labuda/backend/internal/integration/payment/infrastructure/repository"
-	"github.com/labuda/backend/internal/worker"
-	"github.com/labuda/backend/pkg/midtrans"
+	paymentrepo "github.com/hishumi/backend/internal/integration/payment/infrastructure/repository"
+	"github.com/hishumi/backend/internal/worker"
+	"github.com/hishumi/backend/pkg/midtrans"
 )
 
 // ---------------------------------------------------------------------------

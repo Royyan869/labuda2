@@ -5,9 +5,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/commerce/auction/entity"
-	"github.com/labuda/backend/internal/pkg/publiccard"
-	"github.com/labuda/backend/internal/pkg/sellerdisplay"
+	"github.com/hishumi/backend/internal/commerce/auction/entity"
+	"github.com/hishumi/backend/internal/pkg/publiccard"
+	"github.com/hishumi/backend/internal/pkg/sellerdisplay"
 )
 
 // OWNER TRUTH (parity with the for_sale channel): the auction DETAIL payload

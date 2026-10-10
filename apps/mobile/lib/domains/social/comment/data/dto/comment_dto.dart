@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
-import 'package:labuda/shared/domain/entities/resource_projection.dart';
-import 'package:labuda/shared/attachment/entities/share_reference.dart';
+import 'package:hishumi/shared/domain/entities/resource_projection.dart';
+import 'package:hishumi/shared/attachment/entities/share_reference.dart';
 
 /// API DTO for comment response from backend
 ///

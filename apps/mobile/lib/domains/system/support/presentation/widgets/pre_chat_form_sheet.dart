@@ -7,14 +7,14 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:labuda/core/src/router/route_paths.dart';
-import 'package:labuda/shared/widgets/app_bottom_sheet_base.dart';
-import 'package:labuda/shared/widgets/app_snackbar.dart';
-import 'package:labuda/domains/system/support/domain/domain.dart';
-import 'package:labuda/domains/system/support/presentation/providers/support_providers.dart';
-import 'package:labuda/domains/system/support/presentation/utils/support_category_label.dart';
-import 'package:labuda/core/src/localization/l10n_extension.dart';
-import 'package:labuda/core/src/theme/app_theme.dart';
+import 'package:hishumi/core/src/router/route_paths.dart';
+import 'package:hishumi/shared/widgets/app_bottom_sheet_base.dart';
+import 'package:hishumi/shared/widgets/app_snackbar.dart';
+import 'package:hishumi/domains/system/support/domain/domain.dart';
+import 'package:hishumi/domains/system/support/presentation/providers/support_providers.dart';
+import 'package:hishumi/domains/system/support/presentation/utils/support_category_label.dart';
+import 'package:hishumi/core/src/localization/l10n_extension.dart';
+import 'package:hishumi/core/src/theme/app_theme.dart';
 
 // ============================================
 // WIDGET

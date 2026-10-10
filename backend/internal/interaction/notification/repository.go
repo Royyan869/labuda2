@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/interaction/notification/entity"
+	"github.com/hishumi/backend/internal/interaction/notification/entity"
 )
 
 // Repository defines the interface for notification persistence.

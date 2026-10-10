@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	chatvalidator "github.com/labuda/backend/internal/interaction/chat/attachmentvalidator"
+	chatvalidator "github.com/hishumi/backend/internal/interaction/chat/attachmentvalidator"
 )
 
 func TestBuildNegotiationProposalFromStarted_Canonical(t *testing.T) {

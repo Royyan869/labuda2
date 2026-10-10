@@ -10,7 +10,7 @@
 import 'dart:io';
 
 import 'package:dio/dio.dart';
-import 'package:labuda/core/api/api_error_codes.dart';
+import 'package:hishumi/core/api/api_error_codes.dart';
 
 /// Base class for all API exceptions
 abstract class ApiException implements Exception {
@@ -208,7 +208,7 @@ class ApiExceptionFactory {
         // whose backend is unreachable.
         return const NetworkException(
           message:
-              'Cannot reach Labuda server. Check that the backend is running '
+              'Cannot reach HiShumi server. Check that the backend is running '
               'and the device is on the same network.',
           code: backendUnreachable,
         );

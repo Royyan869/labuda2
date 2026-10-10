@@ -2,13 +2,13 @@ import 'dart:async';
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart' hide ConnectionState;
+import 'package:hishumi/core/core.dart' hide ConnectionState;
 // Explicit alias: `ConnectionState` is ambiguous between the async enum
 // (re-exported by flutter/widgets) and the WebSocket enum (re-exported by
 // core.dart). The socket lifecycle contract uses the WebSocket one.
-import 'package:labuda/core/websocket/websocket_service.dart' as websocket;
-import 'package:labuda/domains/chat/chat/presentation/providers/chat_notifier.dart';
-import 'package:labuda/domains/system/notification/presentation/providers/notification_list_provider.dart';
+import 'package:hishumi/core/websocket/websocket_service.dart' as websocket;
+import 'package:hishumi/domains/chat/chat/presentation/providers/chat_notifier.dart';
+import 'package:hishumi/domains/system/notification/presentation/providers/notification_list_provider.dart';
 
 /// Session-scoped app-lifecycle observer.
 ///

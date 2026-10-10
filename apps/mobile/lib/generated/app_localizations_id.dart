@@ -9,7 +9,7 @@ class AppLocalizationsId extends AppLocalizations {
   AppLocalizationsId([String locale = 'id']) : super(locale);
 
   @override
-  String get appName => 'LABUDA';
+  String get appName => 'HiShumi';
 
   @override
   String get appDescription => 'Komunitas Koi Indonesia';
@@ -25,9 +25,6 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get logoutSuccess => 'Anda telah keluar';
-
-  @override
-  String get loginSuccess => 'Berhasil masuk sebagai';
 
   @override
   String get registerComingSoon => 'Halaman daftar akan segera hadir';
@@ -61,9 +58,6 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get helpSupport => 'Bantuan & Dukungan';
-
-  @override
-  String get aboutLabuda => 'About LABUDA';
 
   @override
   String get comingSoon => 'akan segera hadir';
@@ -219,7 +213,7 @@ class AppLocalizationsId extends AppLocalizations {
       'Pelajari bagaimana kami melindungi data Anda';
 
   @override
-  String get aboutLABUDA => 'Tentang LABUDA';
+  String get aboutHiShumi => 'Tentang HiShumi';
 
   @override
   String get appVersionInformation => 'Versi aplikasi dan informasi';
@@ -299,19 +293,19 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get koiSocialCommercePlatform =>
-      'LABUDA - Platform Koi Social Commerce';
+      'HiShumi - Platform Koi Social Commerce';
 
   @override
   String get version => 'Versi 1.0.0';
 
   @override
   String copyrightLabudaTeam(Object year) {
-    return '© $year Tim LABUDA';
+    return 'Â© $year Tim Labuda';
   }
 
   @override
-  String get labudaDescription =>
-      'LABUDA adalah platform social commerce pertama yang dirancang khusus untuk komunitas koi Indonesia.';
+  String get hishumiDescription =>
+      'HiShumi adalah platform social commerce pertama yang dirancang khusus untuk komunitas koi Indonesia.';
 
   @override
   String get close => 'Tutup';
@@ -536,10 +530,6 @@ class AppLocalizationsId extends AppLocalizations {
   String get passwordUpdatedSuccessfully => 'Kata sandi berhasil diperbarui!';
 
   @override
-  String get failedToChangePassword =>
-      'Gagal mengubah kata sandi. Silakan coba lagi.';
-
-  @override
   String get verificationEmailSent =>
       'Email verifikasi dikirim! Periksa kotak masuk Anda.';
 
@@ -624,7 +614,7 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get primaryPaymentMethodReady =>
-      'Metode pembayaran utama • Siap untuk integrasi';
+      'Metode pembayaran utama â€¢ Siap untuk integrasi';
 
   @override
   String get otherEWallets => 'E-Wallet Lainnya';
@@ -888,9 +878,6 @@ class AppLocalizationsId extends AppLocalizations {
   String get popular => 'POPULER';
 
   @override
-  String get whyBecomeLabudaSeller => 'Mengapa menjadi Penjual LABUDA?';
-
-  @override
   String get reach10kActiveKoiEnthusiasts =>
       'Jangkau 10.000+ penggemar koi aktif';
 
@@ -1125,7 +1112,7 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get articleBecomeSellerContent =>
-      'Untuk menjadi penjual di LABUDA:\n\n1. Buka Pengaturan → Upgrade ke Penjual\n2. Pilih paket (Basic atau Pro)\n3. Isi informasi bisnis\n4. Selesaikan pembayaran langganan\n5. Tunggu persetujuan verifikasi\n\nSetelah disetujui, Anda bisa mulai membuat For Sale untuk koi Anda!';
+      'Untuk menjadi penjual di HiShumi:\n\n1. Buka Pengaturan â†’ Upgrade ke Penjual\n2. Pilih paket (Basic atau Pro)\n3. Isi informasi bisnis\n4. Selesaikan pembayaran langganan\n5. Tunggu persetujuan verifikasi\n\nSetelah disetujui, Anda bisa mulai membuat For Sale untuk koi Anda!';
 
   @override
   String get articleCancelOrder => 'Cara membatalkan pesanan?';
@@ -1168,7 +1155,7 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get articleShippingSetupContent =>
-      'Untuk mengatur pengiriman:\n\n1. Buka Pengaturan → Pengiriman, atau Dasbor Penjual → Atur Pengiriman\n2. Tambahkan opsi pengiriman (kereta, bus, travel, pesawat, atau custom)\n3. Atur cakupan provinsi beserta tarif yang Anda tetapkan untuk setiap provinsi\n4. Aktifkan opsi tersebut agar tersedia untuk For Sale Anda\n5. Saat membuat For Sale, pilih opsi mana yang berlaku untuk For Sale tersebut\n\nPengiriman dikelola sendiri oleh penjual: Anda menentukan opsi, tarif, dan kurir. Untuk kasus khusus (ikan besar, penanganan khusus), kirim penawaran ongkir ke pembeli melalui chat sebagai cadangan.\n\nSelalu gunakan kemasan yang benar dengan oksigen untuk pengiriman koi hidup!';
+      'Untuk mengatur pengiriman:\n\n1. Buka Pengaturan â†’ Pengiriman, atau Dasbor Penjual â†’ Atur Pengiriman\n2. Tambahkan opsi pengiriman (kereta, bus, travel, pesawat, atau custom)\n3. Atur cakupan provinsi beserta tarif yang Anda tetapkan untuk setiap provinsi\n4. Aktifkan opsi tersebut agar tersedia untuk For Sale Anda\n5. Saat membuat For Sale, pilih opsi mana yang berlaku untuk For Sale tersebut\n\nPengiriman dikelola sendiri oleh penjual: Anda menentukan opsi, tarif, dan kurir. Untuk kasus khusus (ikan besar, penanganan khusus), kirim penawaran ongkir ke pembeli melalui chat sebagai cadangan.\n\nSelalu gunakan kemasan yang benar dengan oksigen untuk pengiriman koi hidup!';
 
   @override
   String get articleEditProfile => 'Cara mengedit profil saya?';
@@ -1182,7 +1169,7 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get articleChangePasswordContent =>
-      'Untuk mengubah kata sandi:\n\n1. Buka Pengaturan → Keamanan\n2. Tap \'Ubah Kata Sandi\'\n3. Masukkan kata sandi saat ini\n4. Masukkan kata sandi baru (min 8 karakter)\n5. Konfirmasi kata sandi baru\n6. Tap \'Update Kata Sandi\'\n\nAnda akan keluar dari perangkat lain setelah mengubah kata sandi.';
+      'Untuk mengubah kata sandi:\n\n1. Buka Pengaturan â†’ Keamanan\n2. Tap \'Ubah Kata Sandi\'\n3. Masukkan kata sandi saat ini\n4. Masukkan kata sandi baru (min 8 karakter)\n5. Konfirmasi kata sandi baru\n6. Tap \'Update Kata Sandi\'\n\nAnda akan keluar dari perangkat lain setelah mengubah kata sandi.';
 
   @override
   String get articleSellerVerification => 'Syarat verifikasi penjual';
@@ -1203,7 +1190,7 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get articleAppSlowOrNotLoadingContent =>
-      'Jika aplikasi terasa lambat atau ada layar yang tidak memuat:\n\n1. Cek koneksi internet — coba Wi-Fi atau data seluler\n2. Tutup aplikasi sepenuhnya lalu buka kembali\n3. Pastikan Anda memakai versi aplikasi terbaru\n4. Restart HP\n\nJika masalah berlanjut, hubungi support dan sebutkan layar mana yang bermasalah.';
+      'Jika aplikasi terasa lambat atau ada layar yang tidak memuat:\n\n1. Cek koneksi internet â€” coba Wi-Fi atau data seluler\n2. Tutup aplikasi sepenuhnya lalu buka kembali\n3. Pastikan Anda memakai versi aplikasi terbaru\n4. Restart HP\n\nJika masalah berlanjut, hubungi support dan sebutkan layar mana yang bermasalah.';
 
   @override
   String get articleWithdrawalFailed =>
@@ -1211,14 +1198,14 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get articleWithdrawalFailedContent =>
-      'Jika penarikan Anda gagal:\n\n1. Periksa apakah data rekening bank sudah benar\n2. Pastikan verifikasi penjual (KTP) Anda sudah selesai\n3. Pastikan jumlahnya memenuhi minimum penarikan yang tertera di layar Pendapatan\n\nPenarikan ditinjau admin terlebih dahulu. Setelah disetujui, dana ditransfer ke rekening terdaftar dalam 1-3 hari kerja.\n\nLangkah berikutnya:\n• Buka layar Pendapatan dan cek status penarikan\n• Jika status penarikan gagal, periksa data rekening lalu ajukan permintaan baru\n• Hubungi support jika saldo Anda sudah terpotong tetapi dana belum diterima';
+      'Jika penarikan Anda gagal:\n\n1. Periksa apakah data rekening bank sudah benar\n2. Pastikan verifikasi penjual (KTP) Anda sudah selesai\n3. Pastikan jumlahnya memenuhi minimum penarikan yang tertera di layar Pendapatan\n\nPenarikan ditinjau admin terlebih dahulu. Setelah disetujui, dana ditransfer ke rekening terdaftar dalam 1-3 hari kerja.\n\nLangkah berikutnya:\nâ€¢ Buka layar Pendapatan dan cek status penarikan\nâ€¢ Jika status penarikan gagal, periksa data rekening lalu ajukan permintaan baru\nâ€¢ Hubungi support jika saldo Anda sudah terpotong tetapi dana belum diterima';
 
   @override
   String get articleForSaleNotVisible => 'Kenapa For Sale saya tidak terlihat?';
 
   @override
   String get articleForSaleNotVisibleContent =>
-      'For Sale Anda mungkin tidak terlihat oleh pembeli karena:\n\n1. Sudah terjual — stoknya habis sehingga tidak lagi ditawarkan\n2. Ditarik — For Sale sudah dihapus dari penjualan\n3. Detailnya belum lengkap — pastikan foto, harga, dan opsi pengiriman sudah diisi\n\nFor Sale baru langsung tayang begitu Anda buat — tidak ada tahap review atau persetujuan.\n\nLangkah berikutnya:\n• Buka For Sale Saya dan cek statusnya\n• Lengkapi detail yang kurang lalu simpan lagi\n\nJika For Sale masih aktif tetapi tetap tidak terlihat pembeli, hubungi support.';
+      'For Sale Anda mungkin tidak terlihat oleh pembeli karena:\n\n1. Sudah terjual â€” stoknya habis sehingga tidak lagi ditawarkan\n2. Ditarik â€” For Sale sudah dihapus dari penjualan\n3. Detailnya belum lengkap â€” pastikan foto, harga, dan opsi pengiriman sudah diisi\n\nFor Sale baru langsung tayang begitu Anda buat â€” tidak ada tahap review atau persetujuan.\n\nLangkah berikutnya:\nâ€¢ Buka For Sale Saya dan cek statusnya\nâ€¢ Lengkapi detail yang kurang lalu simpan lagi\n\nJika For Sale masih aktif tetapi tetap tidak terlihat pembeli, hubungi support.';
 
   @override
   String get articleSellerPaymentPending =>
@@ -1226,14 +1213,14 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get articleSellerPaymentPendingContent =>
-      'Pembayaran pesanan sampai ke penjual melalui tahap berikut:\n\n1. Pembayaran selesai → dana ditahan di eskrow selama pesanan berjalan\n2. Pesanan dikirim → dana tetap di eskrow sampai pembeli mengonfirmasi penerimaan\n3. Pesanan selesai → dana dilepas ke pendapatan Anda dan langsung bisa ditarik\n\nCek layar berikut:\n• Status pesanan di Dasbor Penjual\n• Layar Pendapatan untuk saldo yang tersedia\n\nSetelah pembeli menekan \'Terima Barang\' (atau pesanan selesai otomatis), nilai pesanan masuk ke pendapatan Anda dan tidak ada masa tunggu sebelum bisa ditarik.\n\nJika pesanan yang sudah selesai tidak muncul di pendapatan, hubungi support dengan nomor pesanan.';
+      'Pembayaran pesanan sampai ke penjual melalui tahap berikut:\n\n1. Pembayaran selesai â†’ dana ditahan di eskrow selama pesanan berjalan\n2. Pesanan dikirim â†’ dana tetap di eskrow sampai pembeli mengonfirmasi penerimaan\n3. Pesanan selesai â†’ dana dilepas ke pendapatan Anda dan langsung bisa ditarik\n\nCek layar berikut:\nâ€¢ Status pesanan di Dasbor Penjual\nâ€¢ Layar Pendapatan untuk saldo yang tersedia\n\nSetelah pembeli menekan \'Terima Barang\' (atau pesanan selesai otomatis), nilai pesanan masuk ke pendapatan Anda dan tidak ada masa tunggu sebelum bisa ditarik.\n\nJika pesanan yang sudah selesai tidak muncul di pendapatan, hubungi support dengan nomor pesanan.';
 
   @override
   String get articleOrderShipmentHelp => 'Masalah pengiriman dan pelacakan';
 
   @override
   String get articleOrderShipmentHelpContent =>
-      'Untuk masalah pengiriman:\n\n1. Buka detail pesanan\n2. Cek nomor resi di info pengiriman\n3. Lacak paket lewat situs atau aplikasi kurir\n\nMasalah umum:\n• Resi belum update — butuh waktu sebelum kurir mencatat scan pertama\n• Pengiriman terlambat — hubungi penjual lewat chat pesanan untuk update\n• Alamat salah — segera kirim pesan ke penjual\n\nJika paket belum diterima:\n• Cek status pesanan dan konfirmasi pengiriman\n• Hubungi penjual lewat chat pesanan\n• Jika batas waktu pengiriman sudah lewat, buka dispute dari pesanan\n\nMasih bermasalah? Hubungi support dengan nomor pesanan.';
+      'Untuk masalah pengiriman:\n\n1. Buka detail pesanan\n2. Cek nomor resi di info pengiriman\n3. Lacak paket lewat situs atau aplikasi kurir\n\nMasalah umum:\nâ€¢ Resi belum update â€” butuh waktu sebelum kurir mencatat scan pertama\nâ€¢ Pengiriman terlambat â€” hubungi penjual lewat chat pesanan untuk update\nâ€¢ Alamat salah â€” segera kirim pesan ke penjual\n\nJika paket belum diterima:\nâ€¢ Cek status pesanan dan konfirmasi pengiriman\nâ€¢ Hubungi penjual lewat chat pesanan\nâ€¢ Jika batas waktu pengiriman sudah lewat, buka dispute dari pesanan\n\nMasih bermasalah? Hubungi support dengan nomor pesanan.';
 
   @override
   String get articleItemNotReceived =>
@@ -1241,7 +1228,7 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get articleItemNotReceivedContent =>
-      'Jika Anda sudah membayar tetapi belum menerima barang:\n\nLangkah 1: Cek status pesanan\n• Diproses: penjual sedang menyiapkan pesanan Anda\n• Dalam Pengiriman: cek nomor resi pada pesanan\n\nLangkah 2: Hubungi penjual\n• Gunakan tombol \'Chat Penjual\' pada pesanan\n• Tanyakan update pengiriman atau nomor resi\n\nLangkah 3: Manfaatkan masa perlindungan\n• Anda punya 5 hari sejak penjual mengirim untuk konfirmasi terima atau membuka dispute\n• Jika butuh waktu tambahan, gunakan \'Perpanjang Konfirmasi\' satu kali untuk menambah 3 hari\n• Jika penjual tidak kunjung mengirim, pesanan bisa dibatalkan\n\nLangkah berikutnya:\n1. Chat penjual dulu (paling cepat)\n2. Jika tidak ada respons, hubungi support dengan detail pesanan Anda';
+      'Jika Anda sudah membayar tetapi belum menerima barang:\n\nLangkah 1: Cek status pesanan\nâ€¢ Diproses: penjual sedang menyiapkan pesanan Anda\nâ€¢ Dalam Pengiriman: cek nomor resi pada pesanan\n\nLangkah 2: Hubungi penjual\nâ€¢ Gunakan tombol \'Chat Penjual\' pada pesanan\nâ€¢ Tanyakan update pengiriman atau nomor resi\n\nLangkah 3: Manfaatkan masa perlindungan\nâ€¢ Anda punya 5 hari sejak penjual mengirim untuk konfirmasi terima atau membuka dispute\nâ€¢ Jika butuh waktu tambahan, gunakan \'Perpanjang Konfirmasi\' satu kali untuk menambah 3 hari\nâ€¢ Jika penjual tidak kunjung mengirim, pesanan bisa dibatalkan\n\nLangkah berikutnya:\n1. Chat penjual dulu (paling cepat)\n2. Jika tidak ada respons, hubungi support dengan detail pesanan Anda';
 
   @override
   String get sellerTierPro => 'Penjual Pro';
@@ -1342,6 +1329,13 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get emptyOrdersMessage => 'Mulai berbelanja dari koleksi Koi terbaik';
+
+  @override
+  String get emptyOrdersByStatusTitle => 'Tidak Ada Pesanan';
+
+  @override
+  String get emptyOrdersByStatusMessage =>
+      'Belum ada pesanan dengan status ini';
 
   @override
   String get emptyIncomingOrdersTitle => 'Belum Ada Pesanan Masuk';
@@ -1544,4 +1538,11 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get homeFirstUseTitle => '🎯 Kamu ingin apa hari ini?';
+
+  @override
+  String get passwordManagedByGoogleTitle => 'Password dikelola melalui Google';
+
+  @override
+  String get passwordManagedByGoogleBody =>
+      'Kamu masuk dengan Google dan akun ini belum memiliki password HiShumi. Untuk mengubah password, kelola password di akun Google kamu.';
 }

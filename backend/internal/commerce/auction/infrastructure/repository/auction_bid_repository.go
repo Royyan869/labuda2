@@ -7,8 +7,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/labuda/backend/internal/commerce/auction/entity"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/commerce/auction/entity"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // AuctionBidRepository handles auction bid persistence using pgx-based DB layer.

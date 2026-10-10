@@ -8,9 +8,9 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/labuda/backend/internal/interaction/chat/entity"
-	chatRepo "github.com/labuda/backend/internal/interaction/chat/repository"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/interaction/chat/entity"
+	chatRepo "github.com/hishumi/backend/internal/interaction/chat/repository"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // ChatRepositoryImpl implements the chat repository using pgx.

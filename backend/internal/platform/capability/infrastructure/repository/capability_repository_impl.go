@@ -9,10 +9,10 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/labuda/backend/internal/platform/capability/entity"
-	"github.com/labuda/backend/internal/platform/capability/invariant"
-	capabilityRepo "github.com/labuda/backend/internal/platform/capability/repository"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/platform/capability/entity"
+	"github.com/hishumi/backend/internal/platform/capability/invariant"
+	capabilityRepo "github.com/hishumi/backend/internal/platform/capability/repository"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // CapabilityRepositoryImpl handles capability persistence using pgx-based DB layer.

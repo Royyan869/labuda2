@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/platform/capability"
+	"github.com/hishumi/backend/internal/platform/capability"
 )
 
 type reviewCapabilityAuthorizer struct {

@@ -9,9 +9,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/labuda/backend/internal/platform/events"
-	"github.com/labuda/backend/internal/social/graph/application"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/platform/events"
+	"github.com/hishumi/backend/internal/social/graph/application"
+	"github.com/hishumi/backend/pkg/db"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

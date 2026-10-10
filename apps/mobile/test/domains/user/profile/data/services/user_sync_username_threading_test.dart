@@ -14,12 +14,12 @@
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/api/api_client.dart';
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/core/core.dart' show ILocalStorageService;
-import 'package:labuda/domains/user/profile/data/datasources/user_api_datasource.dart';
-import 'package:labuda/domains/user/profile/data/models/api/user_api_models.dart';
-import 'package:labuda/domains/user/profile/data/services/user_sync_service.dart';
+import 'package:hishumi/core/api/api_client.dart';
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/core/core.dart' show ILocalStorageService;
+import 'package:hishumi/domains/user/profile/data/datasources/user_api_datasource.dart';
+import 'package:hishumi/domains/user/profile/data/models/api/user_api_models.dart';
+import 'package:hishumi/domains/user/profile/data/services/user_sync_service.dart';
 
 class _FakeApiClient implements ApiClient {
   @override
@@ -94,8 +94,8 @@ class _FakeFirebaseAuth extends Fake implements FirebaseAuth {
 
 /// Minimal in-memory stand-in for the canonical credential store.
 ///
-/// `UserSyncService.syncUser` persists the Labuda token pair through the
-/// canonical credential boundary (`saveLabudaCredential`) immediately after a
+/// `UserSyncService.syncUser` persists the HiShumi token pair through the
+/// canonical credential boundary (`saveHiShumiCredential`) immediately after a
 /// successful Firebase exchange, BEFORE the /users/me fetch — so this call is
 /// part of the execution path under test and must be satisfied here. Without
 /// it the fake throws `UnimplementedError` and the username-threading
@@ -108,7 +108,7 @@ class _RecordingLocalStorage extends Fake implements ILocalStorageService {
   String? refreshToken;
 
   @override
-  Future<Result<void>> saveLabudaCredential(
+  Future<Result<void>> saveHiShumiCredential(
     String accessToken,
     String refreshToken,
   ) async {
@@ -118,15 +118,15 @@ class _RecordingLocalStorage extends Fake implements ILocalStorageService {
   }
 
   @override
-  Future<Result<String?>> readLabudaAccessToken() async =>
+  Future<Result<String?>> readHiShumiAccessToken() async =>
       Result.success(accessToken);
 
   @override
-  Future<Result<String?>> readLabudaRefreshToken() async =>
+  Future<Result<String?>> readHiShumiRefreshToken() async =>
       Result.success(refreshToken);
 
   @override
-  Future<Result<bool>> hasLabudaCredential() async => Result.success(
+  Future<Result<bool>> hasHiShumiCredential() async => Result.success(
         accessToken?.isNotEmpty == true && refreshToken?.isNotEmpty == true,
       );
 }

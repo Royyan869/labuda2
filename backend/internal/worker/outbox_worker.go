@@ -15,19 +15,19 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	negotiationConsumer "github.com/labuda/backend/internal/commerce/negotiation/consumer"
-	orderApp "github.com/labuda/backend/internal/commerce/order/application"
-	disputeApp "github.com/labuda/backend/internal/governance/dispute/application"
-	moderationRepo "github.com/labuda/backend/internal/governance/moderation/infrastructure/repository"
-	coinsApp "github.com/labuda/backend/internal/incentive/coins/application"
-	chatApp "github.com/labuda/backend/internal/interaction/chat/application"
-	chatConsumer "github.com/labuda/backend/internal/interaction/chat/consumer"
-	platformevent "github.com/labuda/backend/internal/platform/event"
-	"github.com/labuda/backend/internal/platform/events"
-	"github.com/labuda/backend/internal/platform/outbox/infrastructure/repository"
-	"github.com/labuda/backend/internal/presence"
-	"github.com/labuda/backend/internal/realtime"
-	dbpkg "github.com/labuda/backend/pkg/db"
+	negotiationConsumer "github.com/hishumi/backend/internal/commerce/negotiation/consumer"
+	orderApp "github.com/hishumi/backend/internal/commerce/order/application"
+	disputeApp "github.com/hishumi/backend/internal/governance/dispute/application"
+	moderationRepo "github.com/hishumi/backend/internal/governance/moderation/infrastructure/repository"
+	coinsApp "github.com/hishumi/backend/internal/incentive/coins/application"
+	chatApp "github.com/hishumi/backend/internal/interaction/chat/application"
+	chatConsumer "github.com/hishumi/backend/internal/interaction/chat/consumer"
+	platformevent "github.com/hishumi/backend/internal/platform/event"
+	"github.com/hishumi/backend/internal/platform/events"
+	"github.com/hishumi/backend/internal/platform/outbox/infrastructure/repository"
+	"github.com/hishumi/backend/internal/presence"
+	"github.com/hishumi/backend/internal/realtime"
+	dbpkg "github.com/hishumi/backend/pkg/db"
 	"go.uber.org/zap"
 )
 
@@ -911,10 +911,10 @@ func (w *OutboxWorker) SetupPresenceLastSeenHandler(presenceService *presence.Se
 //
 // Usage:
 //
-//	import contentapp "github.com/labuda/backend/internal/social/content/application"
-//	import forsaleapp "github.com/labuda/backend/internal/commerce/forsale/application"
-//	import auctionapp "github.com/labuda/backend/internal/commerce/auction/application"
-//	import userrepo "github.com/labuda/backend/internal/identity/user/repository"
+//	import contentapp "github.com/hishumi/backend/internal/social/content/application"
+//	import forsaleapp "github.com/hishumi/backend/internal/commerce/forsale/application"
+//	import auctionapp "github.com/hishumi/backend/internal/commerce/auction/application"
+//	import userrepo "github.com/hishumi/backend/internal/identity/user/repository"
 //	worker.SetupModerationHandlers(db, contentService, commentService, forSaleService, auctionService, userRepo, notifHandler)
 func (w *OutboxWorker) SetupModerationHandlers(
 	db *dbpkg.DB,
@@ -1001,7 +1001,7 @@ func (w *OutboxWorker) SetupRefundFailedAlertHandler(alertService RefundFailedAl
 //
 // Usage:
 //
-//	import chatApp "github.com/labuda/backend/internal/interaction/chat/application"
+//	import chatApp "github.com/hishumi/backend/internal/interaction/chat/application"
 //	worker.SetupNegotiationHandlers(db, chatService, notifHandler)
 func (w *OutboxWorker) SetupNegotiationHandlers(
 	db *dbpkg.DB,
@@ -1056,7 +1056,7 @@ func (w *OutboxWorker) SetupNegotiationHandlers(
 //
 // Usage:
 //
-//	import chatApp "github.com/labuda/backend/internal/interaction/chat/application"
+//	import chatApp "github.com/hishumi/backend/internal/interaction/chat/application"
 //	worker.SetupOrderChatLinkHandler(chatService)
 func (w *OutboxWorker) SetupOrderChatLinkHandler(
 	chatService *chatApp.Service,
@@ -1090,8 +1090,8 @@ func (w *OutboxWorker) SetupAuctionSettlementFailedHandler(notifHandler EventHan
 //
 // Usage:
 //
-//	import orderApp "github.com/labuda/backend/internal/commerce/order/application"
-//	import disputeApp "github.com/labuda/backend/internal/workflow/dispute/application"
+//	import orderApp "github.com/hishumi/backend/internal/commerce/order/application"
+//	import disputeApp "github.com/hishumi/backend/internal/workflow/dispute/application"
 //	worker.SetupUserBanHandler(db, orderService, disputeService)
 func (w *OutboxWorker) SetupUserBanHandler(
 	db *dbpkg.DB,
@@ -1171,7 +1171,7 @@ func (w *OutboxWorker) SetupModerationWSEvictionHandler(hub WSHub) *OutboxWorker
 //
 // Usage:
 //
-//	import coinsApp "github.com/labuda/backend/internal/incentive/coins/application"
+//	import coinsApp "github.com/hishumi/backend/internal/incentive/coins/application"
 //	worker.SetupCoinsRefundRequiredHandler(db, coinsService)
 func (w *OutboxWorker) SetupCoinsRefundRequiredHandler(
 	db *dbpkg.DB,

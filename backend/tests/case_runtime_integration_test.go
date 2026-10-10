@@ -32,11 +32,11 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 
-	moderationApp "github.com/labuda/backend/internal/governance/moderation/application"
-	moderationHTTP "github.com/labuda/backend/internal/governance/moderation/delivery/http"
-	moderationRepo "github.com/labuda/backend/internal/governance/moderation/infrastructure/repository"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/testdb"
+	moderationApp "github.com/hishumi/backend/internal/governance/moderation/application"
+	moderationHTTP "github.com/hishumi/backend/internal/governance/moderation/delivery/http"
+	moderationRepo "github.com/hishumi/backend/internal/governance/moderation/infrastructure/repository"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/testdb"
 )
 
 func TestCanonicalCaseRuntime(t *testing.T) {

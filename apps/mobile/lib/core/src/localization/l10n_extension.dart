@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/generated/app_localizations.dart';
+import 'package:hishumi/generated/app_localizations.dart';
 
 /// Extension on BuildContext to provide easy access to AppLocalizations.
 ///

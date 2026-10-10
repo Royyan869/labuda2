@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:labuda/domains/commerce/catalog/auction/domain/domain.dart'
+import 'package:hishumi/domains/commerce/catalog/auction/domain/domain.dart'
     show Auction;
-import 'package:labuda/domains/commerce/catalog/auction/presentation/create_auction_route_contract.dart';
-import 'package:labuda/domains/commerce/catalog/auction/presentation/screens/create_auction_screen.dart';
-import 'package:labuda/domains/commerce/catalog/auction/presentation/screens/auction_detail_screen.dart';
-import 'package:labuda/domains/commerce/catalog/auction/presentation/screens/my_bids_screen.dart';
-import 'package:labuda/domains/commerce/catalog/auction/presentation/screens/seller_auction_edit_screen.dart'
+import 'package:hishumi/domains/commerce/catalog/auction/presentation/create_auction_route_contract.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/presentation/screens/create_auction_screen.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/presentation/screens/auction_detail_screen.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/presentation/screens/my_bids_screen.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/presentation/screens/seller_auction_edit_screen.dart'
     show SellerAuctionEditScreen;
-import 'package:labuda/domains/commerce/catalog/auction/presentation/screens/seller_auction_relist_screen.dart'
+import 'package:hishumi/domains/commerce/catalog/auction/presentation/screens/seller_auction_relist_screen.dart'
     show SellerAuctionRelistScreen;
-import 'package:labuda/domains/commerce/catalog/auction/presentation/screens/seller_auctions_screen.dart';
-import 'package:labuda/core/src/router/route_paths.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/presentation/screens/seller_auctions_screen.dart';
+import 'package:hishumi/core/src/router/route_paths.dart';
 import 'base_module.dart';
 
 /// Auction Module - Auction management routes

@@ -7,9 +7,9 @@
 // AuctionMapper.toEntity into the Auction read model — no canonical value may
 // be replaced by 'Unknown' / 0 / 'unknown' / [] / null.
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/common/types/preparation_time.dart';
-import 'package:labuda/domains/commerce/catalog/auction/data/dto/auction_dto.dart';
-import 'package:labuda/domains/commerce/catalog/auction/data/mappers/auction_mapper.dart';
+import 'package:hishumi/core/common/types/preparation_time.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/data/dto/auction_dto.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/data/mappers/auction_mapper.dart';
 
 Map<String, dynamic> _canonicalDetailPayload() => {
   'id': 'auction-1',

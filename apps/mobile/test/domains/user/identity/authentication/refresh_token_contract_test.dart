@@ -15,10 +15,10 @@
 //   This is documented as P2 infrastructure debt (F3D+).
 //   The AuthInterceptor handles 401 via Firebase token force-refresh (not platform JWT).
 // AUTH-2: legacy setAuthToken/setRefreshToken are removed; rotated tokens are
-//   persisted via the canonical credential boundary (saveLabudaCredential).
+//   persisted via the canonical credential boundary (saveHiShumiCredential).
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/domains/user/profile/data/models/api/user_api_models.dart';
+import 'package:hishumi/domains/user/profile/data/models/api/user_api_models.dart';
 
 void main() {
   group('BackendRefreshResponse.fromJson', () {

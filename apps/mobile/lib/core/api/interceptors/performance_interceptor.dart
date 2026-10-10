@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:firebase_performance/firebase_performance.dart';
-import 'package:labuda/core/observability/performance_monitor.dart';
+import 'package:hishumi/core/observability/performance_monitor.dart';
 
 /// Canonical network performance instrumentation for the Dart HTTP client.
 ///
@@ -12,7 +12,7 @@ import 'package:labuda/core/observability/performance_monitor.dart';
 /// Dynamic path segments are normalized to `:id` so metric cardinality stays
 /// bounded, and query strings are dropped so no user input reaches the metric.
 class PerformanceInterceptor extends Interceptor {
-  static const String _metricKey = 'labuda_perf_metric';
+  static const String _metricKey = 'hishumi_perf_metric';
 
   static final RegExp _uuid = RegExp(
     r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-'

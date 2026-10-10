@@ -1,10 +1,10 @@
-import 'package:labuda/domains/chat/chat/data/chat_providers.dart';
-import 'package:labuda/domains/chat/chat/domain/usecases/get_chat_usecase.dart';
-import 'package:labuda/domains/chat/chat/domain/usecases/get_messages_usecase.dart';
-import 'package:labuda/domains/chat/chat/domain/usecases/send_message_usecase.dart';
-import 'package:labuda/domains/chat/chat/domain/usecases/mark_messages_read_usecase.dart';
-import 'package:labuda/domains/chat/chat/domain/usecases/link_order_to_chat_usecase.dart';
-import 'package:labuda/domains/chat/chat/domain/usecases/get_or_create_commerce_chat_usecase.dart';
+import 'package:hishumi/domains/chat/chat/data/chat_providers.dart';
+import 'package:hishumi/domains/chat/chat/domain/usecases/get_chat_usecase.dart';
+import 'package:hishumi/domains/chat/chat/domain/usecases/get_messages_usecase.dart';
+import 'package:hishumi/domains/chat/chat/domain/usecases/send_message_usecase.dart';
+import 'package:hishumi/domains/chat/chat/domain/usecases/mark_messages_read_usecase.dart';
+import 'package:hishumi/domains/chat/chat/domain/usecases/link_order_to_chat_usecase.dart';
+import 'package:hishumi/domains/chat/chat/domain/usecases/get_or_create_commerce_chat_usecase.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Chat UseCase Providers

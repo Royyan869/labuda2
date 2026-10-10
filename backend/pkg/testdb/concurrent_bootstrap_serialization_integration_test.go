@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/labuda/backend/internal/config"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/migration"
+	"github.com/hishumi/backend/internal/config"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/migration"
 	"github.com/stretchr/testify/require"
 )
 

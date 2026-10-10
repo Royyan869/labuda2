@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/shared/shared.dart';
-import 'package:labuda/domains/user/profile/profile.dart'
+import 'package:hishumi/shared/shared.dart';
+import 'package:hishumi/domains/user/profile/profile.dart'
     show phoneVerificationProvider, phoneVerificationServiceProvider;
-import 'package:labuda/domains/user/profile/presentation/widgets/phone_verification/verification_header.dart';
-import 'package:labuda/domains/user/profile/presentation/widgets/phone_verification/phone_display.dart';
-import 'package:labuda/domains/user/profile/presentation/widgets/phone_verification/otp_loading_state.dart';
-import 'package:labuda/domains/user/profile/presentation/widgets/phone_verification/otp_input_field.dart';
-import 'package:labuda/domains/user/profile/presentation/widgets/phone_verification/verification_error_message.dart';
-import 'package:labuda/domains/user/profile/presentation/widgets/phone_verification/verification_action_buttons.dart';
-import 'package:labuda/core/src/theme/app_theme.dart';
+import 'package:hishumi/domains/user/profile/presentation/widgets/phone_verification/verification_header.dart';
+import 'package:hishumi/domains/user/profile/presentation/widgets/phone_verification/phone_display.dart';
+import 'package:hishumi/domains/user/profile/presentation/widgets/phone_verification/otp_loading_state.dart';
+import 'package:hishumi/domains/user/profile/presentation/widgets/phone_verification/otp_input_field.dart';
+import 'package:hishumi/domains/user/profile/presentation/widgets/phone_verification/verification_error_message.dart';
+import 'package:hishumi/domains/user/profile/presentation/widgets/phone_verification/verification_action_buttons.dart';
+import 'package:hishumi/core/src/theme/app_theme.dart';
 
 /// Dialog untuk verifikasi nomor telepon dengan OTP
 class PhoneVerificationDialog extends ConsumerStatefulWidget {

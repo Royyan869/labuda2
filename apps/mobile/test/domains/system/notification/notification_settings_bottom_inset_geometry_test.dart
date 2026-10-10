@@ -32,8 +32,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:labuda/domains/system/notification/presentation/screens/notification_settings_screen.dart';
-import 'package:labuda/shared/widgets/bottom_action_bar.dart';
+import 'package:hishumi/domains/system/notification/presentation/screens/notification_settings_screen.dart';
+import 'package:hishumi/shared/widgets/bottom_action_bar.dart';
 
 /// Design tail below the last meaningful text of the populated body:
 /// the last card's `Padding(p16)` + the ListView `padding(p16)`.

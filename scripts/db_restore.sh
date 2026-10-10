@@ -1,15 +1,15 @@
 #!/bin/bash
 # ============================================
 # PostgreSQL Restore Script (Linux/macOS/WSL)
-# Labuda Project - Database Restore
+# HiShumi Project - Database Restore
 # ============================================
 
 set -e
 
 # Configuration
-CONTAINER_NAME="labuda-postgres"
-DB_NAME="labuda"
-DB_USER="labuda"
+CONTAINER_NAME="hishumi-postgres"
+DB_NAME="hishumi"
+DB_USER="hishumi"
 
 # Colors for output
 RED='\033[0;31m'
@@ -24,8 +24,8 @@ if [ -z "$1" ]; then
     echo "Usage: $0 <backup_file.dump> [target_database_name]"
     echo ""
     echo "Examples:"
-    echo "  $0 backups/labuda_20250220_030000.dump"
-    echo "  $0 backups/labuda_20250220_030000.dump labuda_restore_test"
+  echo "  $0 backups/hishumi_20250220_030000.dump"
+  echo "  $0 backups/hishumi_20250220_030000.dump hishumi_restore_test"
     exit 1
 fi
 
@@ -72,11 +72,11 @@ fi
 
 # Copy backup to container
 echo -e "${CYAN}Copying backup file to container...${NC}"
-docker cp "$BACKUP_FILE" "${CONTAINER_NAME}:/tmp/labuda_restore.dump"
+docker cp "$BACKUP_FILE" "${CONTAINER_NAME}:/tmp/hishumi_restore.dump"
 
 # Restore
 echo -e "${CYAN}Restoring database...${NC}"
-docker exec "$CONTAINER_NAME" pg_restore -U "$DB_USER" -d "$TARGET_DB" -c --if-exists /tmp/labuda_restore.dump
+docker exec "$CONTAINER_NAME" pg_restore -U "$DB_USER" -d "$TARGET_DB" -c --if-exists /tmp/hishumi_restore.dump
 
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}=========================================="
@@ -89,4 +89,4 @@ else
 fi
 
 # Clean up
-docker exec "$CONTAINER_NAME" rm -f /tmp/labuda_restore.dump
+docker exec "$CONTAINER_NAME" rm -f /tmp/hishumi_restore.dump

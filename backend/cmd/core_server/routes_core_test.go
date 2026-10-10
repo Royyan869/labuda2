@@ -14,10 +14,10 @@ import (
 	"github.com/joho/godotenv"
 	goredis "github.com/redis/go-redis/v9"
 
-	"github.com/labuda/backend/internal/config"
-	"github.com/labuda/backend/internal/platform/logger"
-	"github.com/labuda/backend/pkg/database"
-	pkgRedis "github.com/labuda/backend/pkg/redis"
+	"github.com/hishumi/backend/internal/config"
+	"github.com/hishumi/backend/internal/platform/logger"
+	"github.com/hishumi/backend/pkg/database"
+	pkgRedis "github.com/hishumi/backend/pkg/redis"
 )
 
 func init() {

@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/labuda/backend/internal/config"
-	"github.com/labuda/backend/internal/platform/logger"
+	"github.com/hishumi/backend/internal/config"
+	"github.com/hishumi/backend/internal/platform/logger"
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 )

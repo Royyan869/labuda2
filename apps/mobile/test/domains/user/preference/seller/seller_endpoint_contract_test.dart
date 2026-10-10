@@ -1,10 +1,10 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/api/api_client.dart';
-import 'package:labuda/core/api/exceptions/api_exception.dart';
-import 'package:labuda/domains/user/preference/seller/domain/entities/seller_subscription.dart';
-import 'package:labuda/domains/user/preference/seller/data/remote/seller_remote_datasource.dart';
-import 'package:labuda/domains/user/preference/seller/data/repositories/seller_repository_impl.dart';
+import 'package:hishumi/core/api/api_client.dart';
+import 'package:hishumi/core/api/exceptions/api_exception.dart';
+import 'package:hishumi/domains/user/preference/seller/domain/entities/seller_subscription.dart';
+import 'package:hishumi/domains/user/preference/seller/data/remote/seller_remote_datasource.dart';
+import 'package:hishumi/domains/user/preference/seller/data/repositories/seller_repository_impl.dart';
 
 class _RecordingApiClient implements ApiClient {
   String? lastGetPath;

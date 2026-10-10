@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import 'package:chewie/chewie.dart';
 import 'package:visibility_detector/visibility_detector.dart';
-import 'package:labuda/core/src/theme/app_theme.dart';
-import 'package:labuda/shared/widgets/app_bottom_sheet_actions.dart';
-import 'package:labuda/shared/widgets/app_image.dart';
+import 'package:hishumi/core/src/theme/app_theme.dart';
+import 'package:hishumi/shared/widgets/app_bottom_sheet_actions.dart';
+import 'package:hishumi/shared/widgets/app_image.dart';
 
 /// Video Player Widget untuk Media Carousel
 ///

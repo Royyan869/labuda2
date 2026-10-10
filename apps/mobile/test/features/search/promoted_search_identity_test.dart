@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/features/search/search/data/dto/search_dto.dart';
-import 'package:labuda/features/search/search/data/search_repository_impl.dart';
-import 'package:labuda/features/search/search/domain/entities/search_filters.dart';
-import 'package:labuda/features/search/search/data/remote/search_api_service.dart';
+import 'package:hishumi/features/search/search/data/dto/search_dto.dart';
+import 'package:hishumi/features/search/search/data/search_repository_impl.dart';
+import 'package:hishumi/features/search/search/domain/entities/search_filters.dart';
+import 'package:hishumi/features/search/search/data/remote/search_api_service.dart';
 
 class _FakeSearchApiService implements SearchApiService {
   @override

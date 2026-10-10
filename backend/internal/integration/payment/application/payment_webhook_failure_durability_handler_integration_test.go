@@ -34,13 +34,13 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 
-	"github.com/labuda/backend/internal/config"
-	paymentapp "github.com/labuda/backend/internal/integration/payment/application"
-	paymenthttp "github.com/labuda/backend/internal/integration/payment/delivery/http"
-	"github.com/labuda/backend/internal/platform/logger"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/midtrans"
-	"github.com/labuda/backend/pkg/testdb"
+	"github.com/hishumi/backend/internal/config"
+	paymentapp "github.com/hishumi/backend/internal/integration/payment/application"
+	paymenthttp "github.com/hishumi/backend/internal/integration/payment/delivery/http"
+	"github.com/hishumi/backend/internal/platform/logger"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/midtrans"
+	"github.com/hishumi/backend/pkg/testdb"
 )
 
 func TestWebhookFailureDurabilityHandler_Acks200WithoutPersistingUnverifiedInput(t *testing.T) {

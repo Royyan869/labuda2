@@ -8,8 +8,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/shopspring/decimal"
-	"github.com/labuda/backend/internal/platform/config/entity"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/platform/config/entity"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // PlatformConfigRepositoryImpl handles platform config persistence using pgx.

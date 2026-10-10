@@ -14,10 +14,10 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgconn"
-	bankaccountrepo "github.com/labuda/backend/internal/finance/bankaccount/infrastructure/repository"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/migration"
-	"github.com/labuda/backend/pkg/testdb"
+	bankaccountrepo "github.com/hishumi/backend/internal/finance/bankaccount/infrastructure/repository"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/migration"
+	"github.com/hishumi/backend/pkg/testdb"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 )

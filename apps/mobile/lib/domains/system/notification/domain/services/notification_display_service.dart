@@ -4,7 +4,7 @@
 /// This service is pure domain logic with no Flutter dependencies.
 library;
 
-import 'package:labuda/core/interfaces/i_notification_trigger.dart';
+import 'package:hishumi/core/interfaces/i_notification_trigger.dart';
 
 /// Display color enum (pure domain, no Flutter dependency)
 enum NotificationDisplayColor {

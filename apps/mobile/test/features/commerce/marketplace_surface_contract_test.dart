@@ -15,11 +15,15 @@ String _source(String relativePath) {
 ///    a channel may fill slots, never re-implement the frame.
 /// 3. The dormant auction browse screen (placeholder cards, English copy,
 ///    unrouted) is deleted, not left lying around to be resurrected.
+/// 4. The duplicate `/for-sale` browse screen (`ForSaleListScreen`) is
+///    deleted — Marketplace is the sole public browse destination for
+///    For Sale and Auction (Owner decision). Its former search/filter was
+///    page-specific and is NOT migrated; global search from Home remains the
+///    search facility.
 const _publicSurfaces = <String>[
   'lib/features/marketplace/presentation/widgets/marketplace_for_sale_tab.dart',
   'lib/features/marketplace/presentation/widgets/marketplace_auction_tab.dart',
   'lib/domains/user/preference/seller/presentation/widgets/profile_store_tab.dart',
-  'lib/domains/commerce/catalog/for_sale/presentation/screens/for_sale_list_screen.dart',
 ];
 
 const _publicCards = <String>[
@@ -78,6 +82,18 @@ void main() {
       isFalse,
       reason:
           'Unrouted placeholder browse surface — auction discovery lives in MarketplaceAuctionTab',
+    );
+  });
+
+  test('duplicate For Sale browse screen has been removed', () {
+    expect(
+      File(
+        'lib/domains/commerce/catalog/for_sale/presentation/screens/for_sale_list_screen.dart',
+      ).existsSync(),
+      isFalse,
+      reason:
+          'Duplicate /for-sale browse surface — Marketplace is the sole public '
+          'browse destination for For Sale (Owner decision)',
     );
   });
 }

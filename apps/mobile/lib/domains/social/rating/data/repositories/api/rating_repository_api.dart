@@ -1,9 +1,9 @@
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/social/rating/domain/entities/rating_entity.dart';
-import 'package:labuda/domains/social/rating/domain/repositories/i_rating_repository.dart';
-import 'package:labuda/domains/social/rating/data/datasources/rating_api_datasource.dart';
-import 'package:labuda/domains/social/rating/data/dto/rating_api_models.dart';
-import 'package:labuda/domains/social/rating/data/mappers/rating_api_mapper.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/social/rating/domain/entities/rating_entity.dart';
+import 'package:hishumi/domains/social/rating/domain/repositories/i_rating_repository.dart';
+import 'package:hishumi/domains/social/rating/data/datasources/rating_api_datasource.dart';
+import 'package:hishumi/domains/social/rating/data/dto/rating_api_models.dart';
+import 'package:hishumi/domains/social/rating/data/mappers/rating_api_mapper.dart';
 
 /// CANONICAL Rating Repository Implementation
 ///

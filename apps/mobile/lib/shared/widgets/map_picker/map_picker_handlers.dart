@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart' as gmaps;
 import 'package:geocoding/geocoding.dart';
-import 'package:labuda/shared/services/places_autocomplete_service.dart';
-import 'package:labuda/shared/services/location_service.dart';
-import 'package:labuda/shared/widgets/map_picker/address_formatter.dart';
-import 'package:labuda/shared/widgets/app_snackbar.dart';
-import 'package:labuda/core/src/theme/app_theme.dart';
+import 'package:hishumi/shared/services/places_autocomplete_service.dart';
+import 'package:hishumi/shared/services/location_service.dart';
+import 'package:hishumi/shared/widgets/map_picker/address_formatter.dart';
+import 'package:hishumi/shared/widgets/app_snackbar.dart';
+import 'package:hishumi/core/src/theme/app_theme.dart';
 
 /// Handler mixin untuk Map Picker logic
 mixin MapPickerHandlers<T extends StatefulWidget> on State<T> {

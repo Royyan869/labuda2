@@ -1,6 +1,6 @@
 import 'env_config.dart';
 import 'package:flutter/foundation.dart';
-import 'package:labuda/shared/shared.dart';
+import 'package:hishumi/shared/shared.dart';
 
 /// Simplified Feature Flags for Go Backend Migration
 ///

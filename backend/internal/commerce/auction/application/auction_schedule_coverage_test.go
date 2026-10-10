@@ -12,9 +12,9 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	shippingApp "github.com/labuda/backend/internal/commerce/shipping/application"
-	shippingEntity "github.com/labuda/backend/internal/commerce/shipping/entity"
-	"github.com/labuda/backend/pkg/db"
+	shippingApp "github.com/hishumi/backend/internal/commerce/shipping/application"
+	shippingEntity "github.com/hishumi/backend/internal/commerce/shipping/entity"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // ============================================================================

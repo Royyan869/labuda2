@@ -4,16 +4,16 @@ library;
 /// Domain layer - defines kontrak untuk data access
 /// Pure Dart - bebas dari Firebase, Flutter, dan external dependencies
 
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/domains/system/support/domain/entities/support_ticket.dart';
-import 'package:labuda/domains/system/support/domain/entities/support_event.dart';
-import 'package:labuda/domains/system/support/domain/entities/support_message.dart';
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/domains/system/support/domain/entities/support_ticket.dart';
+import 'package:hishumi/domains/system/support/domain/entities/support_event.dart';
+import 'package:hishumi/domains/system/support/domain/entities/support_message.dart';
 
 // Export entities for convenience
-export 'package:labuda/domains/system/support/domain/entities/support_ticket.dart';
-export 'package:labuda/domains/system/support/domain/entities/support_event.dart';
-export 'package:labuda/domains/system/support/domain/entities/support_config.dart';
-export 'package:labuda/domains/system/support/domain/entities/support_message.dart';
+export 'package:hishumi/domains/system/support/domain/entities/support_ticket.dart';
+export 'package:hishumi/domains/system/support/domain/entities/support_event.dart';
+export 'package:hishumi/domains/system/support/domain/entities/support_config.dart';
+export 'package:hishumi/domains/system/support/domain/entities/support_message.dart';
 
 // ============================================
 // REPOSITORY INTERFACE

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/shared/widgets/bottom_action_bar.dart';
+import 'package:hishumi/shared/widgets/bottom_action_bar.dart';
 
 /// Navigation buttons for Seller Wizard — content only. Chrome (surface,
 /// separator, Safe Area, keyboard inset, button height, disabled language) is

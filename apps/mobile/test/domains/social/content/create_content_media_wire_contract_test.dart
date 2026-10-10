@@ -1,8 +1,8 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/domains/social/content/data/mappers/content_mapper.dart';
-import 'package:labuda/domains/social/content/domain/entities/content.dart';
+import 'package:hishumi/domains/social/content/data/mappers/content_mapper.dart';
+import 'package:hishumi/domains/social/content/domain/entities/content.dart';
 
 Map<String, dynamic> _wireJson(dynamic dto) {
   return jsonDecode(jsonEncode(dto.toJson())) as Map<String, dynamic>;

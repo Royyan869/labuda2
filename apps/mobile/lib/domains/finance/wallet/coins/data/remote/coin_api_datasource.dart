@@ -14,9 +14,9 @@
 library;
 
 import 'package:dio/dio.dart';
-import 'package:labuda/core/api/api_client.dart';
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/core/src/interfaces/services/i_logger_service.dart';
+import 'package:hishumi/core/api/api_client.dart';
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/core/src/interfaces/services/i_logger_service.dart';
 import '../dto/coin_dto.dart';
 
 /// Remote datasource for Labuda Coins using Go backend.

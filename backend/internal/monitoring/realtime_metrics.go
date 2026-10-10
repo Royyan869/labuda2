@@ -5,8 +5,8 @@ import (
 )
 
 const (
-	realtimeMetricsNamespace = "labuda_realtime"
-	chatMetricsNamespace     = "labuda_chat"
+	realtimeMetricsNamespace = "hishumi_realtime"
+	chatMetricsNamespace     = "hishumi_chat"
 )
 
 // RealtimeMetrics holds metrics for realtime/WebSocket operations.

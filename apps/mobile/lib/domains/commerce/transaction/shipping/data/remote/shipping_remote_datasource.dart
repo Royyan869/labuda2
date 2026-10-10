@@ -1,6 +1,6 @@
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/commerce/catalog/for_sale/data/dto/shipping_quote_dto.dart';
-import 'package:labuda/domains/commerce/transaction/shipping/data/dto/shipping_dto.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/commerce/catalog/for_sale/data/dto/shipping_quote_dto.dart';
+import 'package:hishumi/domains/commerce/transaction/shipping/data/dto/shipping_dto.dart';
 
 /// Shipping Remote Datasource
 /// API-based datasource menggunakan ApiClient

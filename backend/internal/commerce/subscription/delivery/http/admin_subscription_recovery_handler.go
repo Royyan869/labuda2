@@ -6,12 +6,12 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	subscriptionApp "github.com/labuda/backend/internal/commerce/subscription/application"
-	"github.com/labuda/backend/internal/audit"
-	paymentRepo "github.com/labuda/backend/internal/integration/payment/infrastructure/repository"
-	"github.com/labuda/backend/internal/platform/capability"
-	"github.com/labuda/backend/internal/platform/response"
-	"github.com/labuda/backend/pkg/db"
+	subscriptionApp "github.com/hishumi/backend/internal/commerce/subscription/application"
+	"github.com/hishumi/backend/internal/audit"
+	paymentRepo "github.com/hishumi/backend/internal/integration/payment/infrastructure/repository"
+	"github.com/hishumi/backend/internal/platform/capability"
+	"github.com/hishumi/backend/internal/platform/response"
+	"github.com/hishumi/backend/pkg/db"
 	"go.uber.org/zap"
 )
 

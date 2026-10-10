@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	commerceshared "github.com/labuda/backend/internal/commerce/shared"
-	"github.com/labuda/backend/internal/discovery/search/entity"
+	commerceshared "github.com/hishumi/backend/internal/commerce/shared"
+	"github.com/hishumi/backend/internal/discovery/search/entity"
 )
 
 func TestContentPreviewsToResponseWithProjections_PrefersCanonicalProjection(t *testing.T) {

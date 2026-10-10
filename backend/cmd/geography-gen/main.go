@@ -16,7 +16,7 @@ import (
 	"log"
 	"path/filepath"
 
-	gen "github.com/labuda/backend/internal/platform/geography/generator"
+	gen "github.com/hishumi/backend/internal/platform/geography/generator"
 )
 
 func main() {

@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	pkgredis "github.com/labuda/backend/pkg/redis"
+	pkgredis "github.com/hishumi/backend/pkg/redis"
 	goredis "github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 )

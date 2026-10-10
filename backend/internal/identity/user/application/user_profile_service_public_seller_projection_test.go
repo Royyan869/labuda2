@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	sellerEntity "github.com/labuda/backend/internal/commerce/seller/entity"
-	subscriptionEntity "github.com/labuda/backend/internal/commerce/subscription/entity"
-	userEntity "github.com/labuda/backend/internal/identity/user/domain/entity"
+	sellerEntity "github.com/hishumi/backend/internal/commerce/seller/entity"
+	subscriptionEntity "github.com/hishumi/backend/internal/commerce/subscription/entity"
+	userEntity "github.com/hishumi/backend/internal/identity/user/domain/entity"
 )
 
 func TestGetPublicProfile_SellerStoreImageProjection(t *testing.T) {

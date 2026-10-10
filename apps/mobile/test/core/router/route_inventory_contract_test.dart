@@ -16,7 +16,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
-import 'package:labuda/core/src/router/router_modules_manager.dart';
+import 'package:hishumi/core/src/router/router_modules_manager.dart';
 
 /// Routes that are legitimately reachable ONLY from outside the app (deep
 /// links / external entry) and therefore may have no in-app producer. Keep this

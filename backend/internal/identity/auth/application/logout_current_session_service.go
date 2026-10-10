@@ -12,10 +12,10 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
-	authentity "github.com/labuda/backend/internal/identity/auth/entity"
-	authrepo "github.com/labuda/backend/internal/identity/auth/infrastructure/repository"
-	notificationentity "github.com/labuda/backend/internal/interaction/notification/entity"
-	"github.com/labuda/backend/pkg/db"
+	authentity "github.com/hishumi/backend/internal/identity/auth/entity"
+	authrepo "github.com/hishumi/backend/internal/identity/auth/infrastructure/repository"
+	notificationentity "github.com/hishumi/backend/internal/interaction/notification/entity"
+	"github.com/hishumi/backend/pkg/db"
 	"go.uber.org/zap"
 )
 

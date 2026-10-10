@@ -10,12 +10,12 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	chatApp "github.com/labuda/backend/internal/interaction/chat/application"
-	chatEntity "github.com/labuda/backend/internal/interaction/chat/entity"
-	chatRepo "github.com/labuda/backend/internal/interaction/chat/repository"
-	socialRepo "github.com/labuda/backend/internal/social/graph"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/rate"
+	chatApp "github.com/hishumi/backend/internal/interaction/chat/application"
+	chatEntity "github.com/hishumi/backend/internal/interaction/chat/entity"
+	chatRepo "github.com/hishumi/backend/internal/interaction/chat/repository"
+	socialRepo "github.com/hishumi/backend/internal/social/graph"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/rate"
 	"go.uber.org/zap"
 )
 

@@ -7,11 +7,11 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	orderApp "github.com/labuda/backend/internal/commerce/order/application"
-	orderRepo "github.com/labuda/backend/internal/commerce/order/infrastructure/repository"
-	orderrepository "github.com/labuda/backend/internal/commerce/order/repository"
-	"github.com/labuda/backend/internal/identity/auth"
-	"github.com/labuda/backend/pkg/db"
+	orderApp "github.com/hishumi/backend/internal/commerce/order/application"
+	orderRepo "github.com/hishumi/backend/internal/commerce/order/infrastructure/repository"
+	orderrepository "github.com/hishumi/backend/internal/commerce/order/repository"
+	"github.com/hishumi/backend/internal/identity/auth"
+	"github.com/hishumi/backend/pkg/db"
 	"go.uber.org/zap"
 )
 

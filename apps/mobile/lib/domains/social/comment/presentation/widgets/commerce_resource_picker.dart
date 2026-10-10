@@ -8,17 +8,17 @@ library;
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:labuda/shared/widgets/app_bottom_sheet_base.dart';
-import 'package:labuda/shared/widgets/app_image.dart';
+import 'package:hishumi/shared/widgets/app_bottom_sheet_base.dart';
+import 'package:hishumi/shared/widgets/app_image.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/shared/domain/entities/resource_projection.dart';
-import 'package:labuda/domains/commerce/catalog/auction/domain/domain.dart';
-import 'package:labuda/domains/commerce/catalog/auction/presentation/providers/seller_auctions_pager.dart';
-import 'package:labuda/domains/commerce/catalog/for_sale/domain/domain.dart';
-import 'package:labuda/domains/commerce/catalog/for_sale/presentation/providers/seller_fps_pager.dart';
-import 'package:labuda/domains/social/comment/presentation/widgets/resource_identity.dart';
-import 'package:labuda/shared/utils/media_extensions.dart';
-import 'package:labuda/core/src/theme/app_theme.dart';
+import 'package:hishumi/shared/domain/entities/resource_projection.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/domain/domain.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/presentation/providers/seller_auctions_pager.dart';
+import 'package:hishumi/domains/commerce/catalog/for_sale/domain/domain.dart';
+import 'package:hishumi/domains/commerce/catalog/for_sale/presentation/providers/seller_fps_pager.dart';
+import 'package:hishumi/domains/social/comment/presentation/widgets/resource_identity.dart';
+import 'package:hishumi/shared/utils/media_extensions.dart';
+import 'package:hishumi/core/src/theme/app_theme.dart';
 
 class CommerceResourceSelection {
   final ResourceIdentity resource;

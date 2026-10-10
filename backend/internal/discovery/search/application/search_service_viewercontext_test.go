@@ -6,10 +6,10 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/discovery/search/application"
-	"github.com/labuda/backend/internal/discovery/search/entity"
-	"github.com/labuda/backend/internal/governance/viewercontext"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/discovery/search/application"
+	"github.com/hishumi/backend/internal/discovery/search/entity"
+	"github.com/hishumi/backend/internal/governance/viewercontext"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // fakeSearchRepository is a minimal stand-in implementing only the

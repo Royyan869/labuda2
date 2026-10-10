@@ -2,8 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/core/src/interfaces/services/i_local_storage_service.dart';
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/core/src/interfaces/services/i_local_storage_service.dart';
 
 // Reuse same helpers as restoration test
 String jwtWithExp(DateTime exp) {
@@ -25,10 +25,10 @@ bool isExpired(String t) {
 class FakeStorage implements ILocalStorageService {
   String? access; String? refresh;
   FakeStorage({this.access, this.refresh});
-  @override Future<Result<bool>> hasLabudaCredential() async => Result.success(access != null && access!.isNotEmpty && refresh != null && refresh!.isNotEmpty);
-  @override Future<Result<String?>> readLabudaAccessToken() async => Result.success(access);
-  @override Future<Result<String?>> readLabudaRefreshToken() async => Result.success(refresh);
-  @override Future<Result<void>> saveLabudaCredential(String a, String r) async { access = a; refresh = r; return Result.success(null); }
+  @override Future<Result<bool>> hasHiShumiCredential() async => Result.success(access != null && access!.isNotEmpty && refresh != null && refresh!.isNotEmpty);
+  @override Future<Result<String?>> readHiShumiAccessToken() async => Result.success(access);
+  @override Future<Result<String?>> readHiShumiRefreshToken() async => Result.success(refresh);
+  @override Future<Result<void>> saveHiShumiCredential(String a, String r) async { access = a; refresh = r; return Result.success(null); }
   @override dynamic noSuchMethod(Invocation inv) => super.noSuchMethod(inv);
 }
 
@@ -49,45 +49,45 @@ class RestoreCoordinator {
 
 void main() {
   group('Race scenarios A-I', () {
-    test('A: Firebase initial before Labuda restore cannot create session', () async {
-      // Labuda restore delayed 50ms, Firebase event arrives at 10ms
-      bool labudaRestored = false;
-      bool firebaseCreatedLabuda = false;
-      final coord = RestoreCoordinator(() async { await Future.delayed(Duration(milliseconds: 50)); labudaRestored = true; return false; });
+    test('A: Firebase initial before HiShumi restore cannot create session', () async {
+      // HiShumi restore delayed 50ms, Firebase event arrives at 10ms
+      bool hishumiRestored = false;
+      bool firebaseCreatedHiShumi = false;
+      final coord = RestoreCoordinator(() async { await Future.delayed(Duration(milliseconds: 50)); hishumiRestored = true; return false; });
       // Firebase event arrives early, but must wait for restore authority
       final firebaseFuture = Future.delayed(Duration(milliseconds: 10), () async {
-        if (!labudaRestored) {
-          // must not create Labuda
-          expect(firebaseCreatedLabuda, isFalse);
+        if (!hishumiRestored) {
+          // must not create HiShumi
+          expect(firebaseCreatedHiShumi, isFalse);
         }
       });
       await Future.wait([coord.restore(), firebaseFuture]);
-      expect(labudaRestored, isTrue);
-      expect(firebaseCreatedLabuda, isFalse);
+      expect(hishumiRestored, isTrue);
+      expect(firebaseCreatedHiShumi, isFalse);
     });
 
-    test('B: Labuda restore succeeds, Firebase authenticated -> remains canonical, no duplicate', () async {
+    test('B: HiShumi restore succeeds, Firebase authenticated -> remains canonical, no duplicate', () async {
       final storage = FakeStorage(access: jwtWithExp(DateTime.now().add(Duration(hours: 1))), refresh: 'r');
       expect(isExpired(storage.access!), isFalse);
       // Simulate restore succeeds then Firebase event
-      bool labudaAuth = true;
+      bool hishumiAuth = true;
       bool duplicateExchange = false;
       // Firebase event while authenticated should be ignored
-      if (labudaAuth) {
+      if (hishumiAuth) {
         // listener would return early
         expect(duplicateExchange, isFalse);
       }
-      expect(labudaAuth, isTrue);
+      expect(hishumiAuth, isTrue);
     });
 
-    test('C: No Labuda, Firebase authenticated -> unauthenticated, NO exchange', () async {
+    test('C: No HiShumi, Firebase authenticated -> unauthenticated, NO exchange', () async {
       final storage = FakeStorage(access: null, refresh: null);
-      expect((await storage.hasLabudaCredential()).data, isFalse);
+      expect((await storage.hasHiShumiCredential()).data, isFalse);
       // startup restore returns false, state unauthenticated, Firebase event ignored
       bool exchangeCalled = false;
       // Simulate initial Firebase event guard
-      final hasLabuda = (await storage.hasLabudaCredential()).data == true;
-      if (!hasLabuda) exchangeCalled = false;
+      final hasHiShumi = (await storage.hasHiShumiCredential()).data == true;
+      if (!hasHiShumi) exchangeCalled = false;
       expect(exchangeCalled, isFalse);
     });
 
@@ -117,23 +117,23 @@ void main() {
       expect(count, 1);
     });
 
-    test('F: Firebase null while valid Labuda -> remains authenticated', () async {
+    test('F: Firebase null while valid HiShumi -> remains authenticated', () async {
       final storage = FakeStorage(access: jwtWithExp(DateTime.now().add(Duration(hours: 1))), refresh: 'r');
       expect(isExpired(storage.access!), isFalse);
-      bool labudaAuth = true;
+      bool hishumiAuth = true;
       bool firebaseNull = true;
-      if (firebaseNull && labudaAuth) {
+      if (firebaseNull && hishumiAuth) {
         // should keep
-        expect(labudaAuth, isTrue);
+        expect(hishumiAuth, isTrue);
       }
     });
 
-    test('G: Labuda failed, Firebase authenticated after -> remain unauthenticated', () async {
+    test('G: HiShumi failed, Firebase authenticated after -> remain unauthenticated', () async {
       final storage = FakeStorage(access: null, refresh: null);
-      bool labudaAuth = false;
+      bool hishumiAuth = false;
       bool firebaseAuth = true;
-      bool hasLabuda = (await storage.hasLabudaCredential()).data == true;
-      bool shouldResurrect = hasLabuda && !labudaAuth && firebaseAuth;
+      bool hasHiShumi = (await storage.hasHiShumiCredential()).data == true;
+      bool shouldResurrect = hasHiShumi && !hishumiAuth && firebaseAuth;
       expect(shouldResurrect, isFalse);
     });
 

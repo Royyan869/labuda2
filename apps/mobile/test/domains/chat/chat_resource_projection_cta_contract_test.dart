@@ -18,9 +18,9 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
-import 'package:labuda/domains/chat/chat/presentation/widgets/chat_resource_projection_card.dart';
-import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_marketplace_primitives.dart';
-import 'package:labuda/shared/domain/entities/resource_projection.dart';
+import 'package:hishumi/domains/chat/chat/presentation/widgets/chat_resource_projection_card.dart';
+import 'package:hishumi/domains/commerce/catalog/shared/presentation/widgets/commerce_marketplace_primitives.dart';
+import 'package:hishumi/shared/domain/entities/resource_projection.dart';
 
 Map<String, dynamic> _fpsLiveJson({
   String resourceId = 'fps-cta-1',

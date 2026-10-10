@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/commerce/shipping/entity"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/commerce/shipping/entity"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // ProductShippingSetupRepositoryImpl handles product-shipping link persistence using pgx-based DB layer.

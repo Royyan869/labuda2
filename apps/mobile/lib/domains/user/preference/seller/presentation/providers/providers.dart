@@ -7,7 +7,7 @@
 library;
 
 // Re-export semua providers dari DI file
-export 'package:labuda/domains/user/preference/seller/seller_di.dart';
+export 'package:hishumi/domains/user/preference/seller/seller_di.dart';
 
 // Withdraw provider
 export 'withdraw_notifier.dart';

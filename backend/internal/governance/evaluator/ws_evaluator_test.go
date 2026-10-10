@@ -3,8 +3,8 @@ package evaluator_test
 import (
 	"testing"
 
-	"github.com/labuda/backend/internal/governance/evaluator"
-	"github.com/labuda/backend/internal/governance/viewercontext"
+	"github.com/hishumi/backend/internal/governance/evaluator"
+	"github.com/hishumi/backend/internal/governance/viewercontext"
 )
 
 // =============================================================================

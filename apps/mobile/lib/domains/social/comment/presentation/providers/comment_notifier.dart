@@ -1,9 +1,9 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/social/comment/presentation/providers/comment_providers.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/social/comment/presentation/providers/comment_providers.dart';
 import 'comment_state.dart';
-import 'package:labuda/domains/social/comment/domain/entities/comment.dart';
-import 'package:labuda/domains/social/comment/domain/repositories/comment_repository.dart';
+import 'package:hishumi/domains/social/comment/domain/entities/comment.dart';
+import 'package:hishumi/domains/social/comment/domain/repositories/comment_repository.dart';
 
 part 'comment_notifier.g.dart';
 

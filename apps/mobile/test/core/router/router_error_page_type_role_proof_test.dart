@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
-import 'package:labuda/core/src/router/router_error_page.dart';
-import 'package:labuda/core/src/theme/app_theme.dart';
+import 'package:hishumi/core/src/router/router_error_page.dart';
+import 'package:hishumi/core/src/theme/app_theme.dart';
 
 // ============================================================================
 // TYPOGRAPHY MIGRATION — IRISAN 3 RESOLVER PROOF (plan Tahap 2).

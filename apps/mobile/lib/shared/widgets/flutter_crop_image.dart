@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:crop_your_image/crop_your_image.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/shared/widgets/app_snackbar.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/shared/widgets/app_snackbar.dart';
 
 /// Flutter Image Cropper - Pure Flutter Implementation
 ///

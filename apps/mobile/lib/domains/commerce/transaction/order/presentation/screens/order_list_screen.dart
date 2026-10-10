@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/core/core.dart' as core;
-import 'package:labuda/shared/shared.dart';
-import 'package:labuda/domains/commerce/transaction/order/order.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/core/core.dart' as core;
+import 'package:hishumi/shared/shared.dart';
+import 'package:hishumi/domains/commerce/transaction/order/order.dart';
 
 /// Order List Screen - Daftar pesanan untuk buyer dan seller
 class OrderListScreen extends ConsumerStatefulWidget {
@@ -144,7 +144,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
           else if (orders.isEmpty)
             SliverFillRemaining(
               hasScrollBody: false,
-              child: _buildEmptyState(context, widget.isSeller),
+              child: _buildEmptyState(context, widget.isSeller, status),
             )
           else ...[
             // Resubscribe/refresh with existing data: rows stay, update
@@ -523,20 +523,38 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
     }
   }
 
-  Widget _buildEmptyState(BuildContext context, bool isSeller) {
+  /// OWNER DECISION: Order empty states carry NO CTA — the previous
+  /// "Explore Marketplace" button (which pushed the now-removed `/for-sale`
+  /// browse route) is purged entirely. Do not reintroduce a button or an
+  /// alternative navigation shortcut here.
+  ///
+  /// Messaging is status-aware: the All tab (status == null) may say "No
+  /// Orders Yet" because a truly empty All list means the buyer has never
+  /// ordered. A status-specific tab (Pending/Paid/...) must NOT claim that —
+  /// orders may exist under other statuses — so it uses its own neutral copy.
+  Widget _buildEmptyState(
+    BuildContext context,
+    bool isSeller,
+    OrderStatus? status,
+  ) {
     final l10n = context.l10n;
-    // Buyer action only: browse the marketplace. Incoming Orders (seller)
-    // carries NO create action — For Sale creation lives on the For Sale
-    // page, never on the incoming-orders empty state (owner-locked, test
-    // enforced). The canonical renderer offers at most ONE primary action.
+    if (isSeller) {
+      // Seller incoming-orders empty state is unchanged (no CTA, owner-locked).
+      return EmptyState(
+        icon: Icons.storefront_outlined,
+        title: l10n.emptyIncomingOrdersTitle,
+        subtitle: l10n.emptyIncomingOrdersMessage,
+      );
+    }
+    final isStatusTab = status != null;
     return EmptyState(
-      icon: isSeller ? Icons.storefront_outlined : Icons.shopping_bag_outlined,
-      title: isSeller ? l10n.emptyIncomingOrdersTitle : l10n.emptyOrdersTitle,
-      subtitle: isSeller
-          ? l10n.emptyIncomingOrdersMessage
+      icon: Icons.shopping_bag_outlined,
+      title: isStatusTab
+          ? l10n.emptyOrdersByStatusTitle
+          : l10n.emptyOrdersTitle,
+      subtitle: isStatusTab
+          ? l10n.emptyOrdersByStatusMessage
           : l10n.emptyOrdersMessage,
-      actionLabel: isSeller ? null : l10n.exploreMarketplaceAction,
-      onAction: isSeller ? null : () => context.go(RoutePaths.forSales),
     );
   }
 }

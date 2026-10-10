@@ -6,12 +6,12 @@ import (
 	"testing"
 	"time"
 
-	orderentity "github.com/labuda/backend/internal/commerce/order/entity"
-	chatentity "github.com/labuda/backend/internal/interaction/chat/entity"
+	orderentity "github.com/hishumi/backend/internal/commerce/order/entity"
+	chatentity "github.com/hishumi/backend/internal/interaction/chat/entity"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/db"
 	"go.uber.org/zap"
 )
 

@@ -9,8 +9,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/labuda/backend/internal/finance"
-	paymentRepo "github.com/labuda/backend/internal/integration/payment/infrastructure/repository"
+	"github.com/hishumi/backend/internal/finance"
+	paymentRepo "github.com/hishumi/backend/internal/integration/payment/infrastructure/repository"
 )
 
 type Account struct {

@@ -8,9 +8,9 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	contententity "github.com/labuda/backend/internal/social/content/entity"
-	"github.com/labuda/backend/internal/social/like/entity"
-	"github.com/labuda/backend/pkg/db"
+	contententity "github.com/hishumi/backend/internal/social/content/entity"
+	"github.com/hishumi/backend/internal/social/like/entity"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // CommentRepository defines the minimum comment persistence needed for comment likes.

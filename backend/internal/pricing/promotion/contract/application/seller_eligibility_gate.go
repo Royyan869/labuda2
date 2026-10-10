@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/identity/auth"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/identity/auth"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // ============================================================================

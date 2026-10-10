@@ -1,10 +1,10 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/social/rating/domain/entities/rating_entity.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/social/rating/domain/entities/rating_entity.dart';
 
 // Import data layer providers (already migrated to Riverpod)
 // This re-exports IRatingRepository and provides ratingRepositoryProvider
-import 'package:labuda/domains/social/rating/data/rating_providers.dart';
+import 'package:hishumi/domains/social/rating/data/rating_providers.dart';
 
 part 'rating_provider.g.dart';
 

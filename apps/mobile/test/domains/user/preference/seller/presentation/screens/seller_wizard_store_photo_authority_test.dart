@@ -159,7 +159,7 @@ void main() {
         // domain widget; edit profile must not redefine it.
         expect(
           validators.contains(
-            "import 'package:labuda/domains/user/preference/seller/presentation/widgets/wizard/store_name_form_field.dart';",
+            "import 'package:hishumi/domains/user/preference/seller/presentation/widgets/wizard/store_name_form_field.dart';",
           ),
           isTrue,
         );

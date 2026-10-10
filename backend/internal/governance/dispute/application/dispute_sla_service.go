@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/governance/dispute/entity"
+	"github.com/hishumi/backend/internal/governance/dispute/entity"
 )
 
 // SLA constants

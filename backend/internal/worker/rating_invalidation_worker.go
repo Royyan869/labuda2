@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	ratingApp "github.com/labuda/backend/internal/commerce/order/rating/application"
-	"github.com/labuda/backend/pkg/db"
+	ratingApp "github.com/hishumi/backend/internal/commerce/order/rating/application"
+	"github.com/hishumi/backend/pkg/db"
 	"go.uber.org/zap"
 )
 

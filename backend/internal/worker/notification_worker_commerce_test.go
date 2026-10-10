@@ -11,10 +11,10 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
-	notificationentity "github.com/labuda/backend/internal/interaction/notification/entity"
-	"github.com/labuda/backend/internal/interaction/notification/policy"
-	platformevent "github.com/labuda/backend/internal/platform/event"
-	dbpkg "github.com/labuda/backend/pkg/db"
+	notificationentity "github.com/hishumi/backend/internal/interaction/notification/entity"
+	"github.com/hishumi/backend/internal/interaction/notification/policy"
+	platformevent "github.com/hishumi/backend/internal/platform/event"
+	dbpkg "github.com/hishumi/backend/pkg/db"
 )
 
 func TestAuctionBidPlaced_SellerNotified(t *testing.T) {

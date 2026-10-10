@@ -1,14 +1,14 @@
 import 'package:equatable/equatable.dart';
-import 'package:labuda/shared/governance/content_lifecycle.dart';
-import 'package:labuda/domains/chat/attachment/attachment.dart';
-import 'package:labuda/shared/domain/entities/resource_projection.dart';
+import 'package:hishumi/shared/governance/content_lifecycle.dart';
+import 'package:hishumi/domains/chat/attachment/attachment.dart';
+import 'package:hishumi/shared/domain/entities/resource_projection.dart';
 
 // Support ticket enums — canonical source is the Support/CS domain.
 // Imported for use within this file; re-exported so Chat consumers that
 // reference support fields on Chat entity don't need a second import.
-import 'package:labuda/domains/system/support/domain/entities/support_ticket.dart'
+import 'package:hishumi/domains/system/support/domain/entities/support_ticket.dart'
     show SupportCategory, SupportPriority, SupportStatus;
-export 'package:labuda/domains/system/support/domain/entities/support_ticket.dart'
+export 'package:hishumi/domains/system/support/domain/entities/support_ticket.dart'
     show SupportCategory, SupportPriority, SupportStatus;
 
 /// Chat Type - tipe chat untuk mention logic
@@ -119,7 +119,7 @@ extension MessageTypeExtension on MessageType {
 }
 
 // SupportCategory, SupportPriority, SupportStatus — re-exported from
-// package:labuda/domains/system/support/domain/entities/support_ticket.dart
+// package:hishumi/domains/system/support/domain/entities/support_ticket.dart
 // (see top-level export directive).  Do NOT redefine them here.
 
 /// Chat Entity - untuk komunikasi buyer-seller

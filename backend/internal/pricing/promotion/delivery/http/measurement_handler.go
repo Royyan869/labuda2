@@ -6,9 +6,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/middleware"
-	"github.com/labuda/backend/internal/platform/response"
-	deliveryApp "github.com/labuda/backend/internal/pricing/promotion/delivery/application"
+	"github.com/hishumi/backend/internal/middleware"
+	"github.com/hishumi/backend/internal/platform/response"
+	deliveryApp "github.com/hishumi/backend/internal/pricing/promotion/delivery/application"
 	"go.uber.org/zap"
 )
 

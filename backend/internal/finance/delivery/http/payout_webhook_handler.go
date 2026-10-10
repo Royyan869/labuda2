@@ -5,12 +5,12 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/labuda/backend/internal/finance/infrastructure/repository"
-	"github.com/labuda/backend/internal/finance/worker"
-	"github.com/labuda/backend/internal/platform/response"
-	outboxrepo "github.com/labuda/backend/internal/platform/outbox/infrastructure/repository"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/database"
+	"github.com/hishumi/backend/internal/finance/infrastructure/repository"
+	"github.com/hishumi/backend/internal/finance/worker"
+	"github.com/hishumi/backend/internal/platform/response"
+	outboxrepo "github.com/hishumi/backend/internal/platform/outbox/infrastructure/repository"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/database"
 	"go.uber.org/zap"
 )
 

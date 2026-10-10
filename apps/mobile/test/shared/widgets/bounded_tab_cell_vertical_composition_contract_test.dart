@@ -40,8 +40,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/src/theme/app_theme.dart';
-import 'package:labuda/shared/widgets/empty_state.dart';
+import 'package:hishumi/core/src/theme/app_theme.dart';
+import 'package:hishumi/shared/widgets/empty_state.dart';
 
 /// The canonical non-scrollable semantic-state renderers (and the generic
 /// centering/column boxes used in their place). A `SliverFillRemaining` whose

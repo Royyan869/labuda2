@@ -9,11 +9,11 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/commerce/auction/entity"
-	"github.com/labuda/backend/internal/governance/viewercontext"
-	"github.com/labuda/backend/internal/pkg/publiccard"
-	capabilityctx "github.com/labuda/backend/internal/platform/capability"
-	capabilityentity "github.com/labuda/backend/internal/platform/capability/entity"
+	"github.com/hishumi/backend/internal/commerce/auction/entity"
+	"github.com/hishumi/backend/internal/governance/viewercontext"
+	"github.com/hishumi/backend/internal/pkg/publiccard"
+	capabilityctx "github.com/hishumi/backend/internal/platform/capability"
+	capabilityentity "github.com/hishumi/backend/internal/platform/capability/entity"
 )
 
 // D14 — bid wire-shape forensic tests.

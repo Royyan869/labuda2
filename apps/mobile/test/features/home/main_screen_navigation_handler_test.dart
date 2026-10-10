@@ -7,10 +7,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/user/identity/authentication/domain/entities/account_status.dart';
-import 'package:labuda/features/home/presentation/handlers/main_screen_navigation_handler.dart';
-import 'package:labuda/shared/governance/content_lifecycle.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/user/identity/authentication/domain/entities/account_status.dart';
+import 'package:hishumi/features/home/presentation/handlers/main_screen_navigation_handler.dart';
+import 'package:hishumi/shared/governance/content_lifecycle.dart';
 
 class _FakeAuthController extends AuthController {
   @override

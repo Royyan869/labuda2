@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/domains/social/follow/domain/entities/follow_entity.dart';
-import 'package:labuda/core/src/theme/app_theme.dart';
+import 'package:hishumi/domains/social/follow/domain/entities/follow_entity.dart';
+import 'package:hishumi/core/src/theme/app_theme.dart';
 
 class FollowStatsWidget extends StatelessWidget {
   final FollowStats stats;

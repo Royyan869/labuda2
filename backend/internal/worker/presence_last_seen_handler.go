@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	platformevent "github.com/labuda/backend/internal/platform/event"
-	"github.com/labuda/backend/internal/presence"
+	platformevent "github.com/hishumi/backend/internal/platform/event"
+	"github.com/hishumi/backend/internal/presence"
 	"go.uber.org/zap"
 )
 

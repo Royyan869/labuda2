@@ -1,6 +1,6 @@
 // Package testdb provides isolated database testing infrastructure.
 //
-// It ensures tests use a separate test database (labuda_test) instead of
+// It ensures tests use a separate test database (hishumi_test) instead of
 // the development database, preventing test data from polluting development.
 //
 // USAGE:
@@ -32,10 +32,10 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
 
-	"github.com/labuda/backend/internal/config"
-	"github.com/labuda/backend/internal/platform/geography"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/migration"
+	"github.com/hishumi/backend/internal/config"
+	"github.com/hishumi/backend/internal/platform/geography"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/migration"
 )
 
 var (
@@ -43,7 +43,7 @@ var (
 	migrateErr  error
 )
 
-const testDBMigrationLockKey = "labuda:testdb:migrations"
+const testDBMigrationLockKey = "hishumi:testdb:migrations"
 
 // testDBBootstrapBeforeReset is a test hook that fires after the advisory lock
 // has been acquired and before the disposable schema is reset.
@@ -59,7 +59,7 @@ type TestDB struct {
 // Setup creates and initializes a test database connection.
 //
 // It:
-//  1. Connects to the test database (labuda_test by default)
+//  1. Connects to the test database (hishumi_test by default)
 //  2. Runs migrations if not already run (cached per test run)
 //  3. Returns a cleanup function that truncates all tables
 //
@@ -136,7 +136,7 @@ func Setup(t *testing.T, cfg *config.Config) (*TestDB, func()) {
 	pool, err := pgxpool.NewWithConfig(poolCtx, poolConfig)
 	if err != nil {
 		releaseLifecycleLock()
-		t.Fatalf("Failed to connect to test database '%s': %v\n\nHINT: Ensure test database exists:\n  createdb -U %s -h %s -p %s %s\n  Or use docker exec:\n  docker exec -it labuda-postgres createdb -U labuda labuda_test",
+		t.Fatalf("Failed to connect to test database '%s': %v\n\nHINT: Ensure test database exists:\n  createdb -U %s -h %s -p %s %s\n  Or use docker exec:\n  docker exec -it hishumi-postgres createdb -U hishumi hishumi_test",
 			testDBName, err, cfg.Database.User, cfg.Database.Host, cfg.Database.Port, testDBName)
 	}
 
@@ -417,7 +417,7 @@ func runMigrations(cfg *config.Config, t *testing.T) error {
 
 // runMigrationsWithLogger resets the test database schema and applies all
 // pending migrations. It acquires its own advisory lock to serialize
-// concurrent callers across test binaries that share labuda_test.
+// concurrent callers across test binaries that share hishumi_test.
 //
 // NOTE: This function is also called directly by
 // TestConcurrentBootstrapSerialization, so it must retain its own lock

@@ -5,15 +5,15 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	auctionEntity "github.com/labuda/backend/internal/commerce/auction/entity"
-	"github.com/labuda/backend/internal/commerce/auction/infrastructure/repository"
-	forSaleEntity "github.com/labuda/backend/internal/commerce/forsale/entity"
-	forSaleRepoImpl "github.com/labuda/backend/internal/commerce/forsale/infrastructure/repository"
-	forSaleRepo "github.com/labuda/backend/internal/commerce/forsale/repository"
-	"github.com/labuda/backend/internal/identity/auth"
-	savedItemEntity "github.com/labuda/backend/internal/interaction/saved_item/entity"
-	savedItemRepo "github.com/labuda/backend/internal/interaction/saved_item/repository"
-	"github.com/labuda/backend/pkg/db"
+	auctionEntity "github.com/hishumi/backend/internal/commerce/auction/entity"
+	"github.com/hishumi/backend/internal/commerce/auction/infrastructure/repository"
+	forSaleEntity "github.com/hishumi/backend/internal/commerce/forsale/entity"
+	forSaleRepoImpl "github.com/hishumi/backend/internal/commerce/forsale/infrastructure/repository"
+	forSaleRepo "github.com/hishumi/backend/internal/commerce/forsale/repository"
+	"github.com/hishumi/backend/internal/identity/auth"
+	savedItemEntity "github.com/hishumi/backend/internal/interaction/saved_item/entity"
+	savedItemRepo "github.com/hishumi/backend/internal/interaction/saved_item/repository"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // SavedItemService handles saved item operations (for_sale + auction)

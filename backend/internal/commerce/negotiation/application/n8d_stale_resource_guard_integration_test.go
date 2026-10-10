@@ -11,10 +11,10 @@ import (
 
 	"github.com/google/uuid"
 
-	negotiationApp "github.com/labuda/backend/internal/commerce/negotiation/application"
-	negotiationEntity "github.com/labuda/backend/internal/commerce/negotiation/entity"
-	negotiationImpl "github.com/labuda/backend/internal/commerce/negotiation/infrastructure/repository"
-	"github.com/labuda/backend/pkg/db"
+	negotiationApp "github.com/hishumi/backend/internal/commerce/negotiation/application"
+	negotiationEntity "github.com/hishumi/backend/internal/commerce/negotiation/entity"
+	negotiationImpl "github.com/hishumi/backend/internal/commerce/negotiation/infrastructure/repository"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // TestN8D_CounterRejectedWhenForSaleSold proves unavailable/sold → SendCounterOffer rejected.

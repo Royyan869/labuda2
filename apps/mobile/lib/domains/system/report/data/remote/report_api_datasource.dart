@@ -4,7 +4,7 @@
 /// This isolates all API calls to a single class.
 library;
 
-import 'package:labuda/core/api/api_client.dart';
+import 'package:hishumi/core/api/api_client.dart';
 import 'package:dio/dio.dart';
 import '../dto/dto.dart';
 

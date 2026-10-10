@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/domains/commerce/transaction/order/domain/domain.dart'
+import 'package:hishumi/domains/commerce/transaction/order/domain/domain.dart'
     as order_domain;
-import 'package:labuda/domains/commerce/transaction/order/presentation/widgets/dynamic_action_buttons.dart';
-import 'package:labuda/generated/app_localizations.dart';
+import 'package:hishumi/domains/commerce/transaction/order/presentation/widgets/dynamic_action_buttons.dart';
+import 'package:hishumi/generated/app_localizations.dart';
 
 /// Widget test host with the canonical localization wiring (I18N-07):
 /// labels come from AppLocalizations, so every pump must provide delegates.

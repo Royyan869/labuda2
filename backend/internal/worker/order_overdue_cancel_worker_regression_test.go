@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/labuda/backend/internal/platform/events"
+	"github.com/hishumi/backend/internal/platform/events"
 )
 
 // =============================================================================

@@ -4,7 +4,7 @@
 // backend/internal/domain/user/dto/user_dto.go
 
 import 'package:equatable/equatable.dart';
-import 'package:labuda/shared/shared.dart';
+import 'package:hishumi/shared/shared.dart';
 
 /// Response from POST /api/v1/auth/firebase/exchange when the profile is incomplete.
 class FirebaseExchangeIncompleteResponse {

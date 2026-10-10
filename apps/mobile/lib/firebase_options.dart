@@ -6,8 +6,8 @@ import 'package:flutter/foundation.dart'
 
 /// Default [FirebaseOptions] for use with your Firebase apps.
 ///
-/// LABUDA Firebase configuration
-/// Generated from Firebase Console - labuda-79de2
+/// HiShumi Firebase configuration
+/// Generated from Firebase project hishumi (number 1079914053843)
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
@@ -26,29 +26,30 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyADSSTsciRZw7DvCR_2QUoz3FB82GnCKeA',
-    appId: '1:883544146901:web:9d14717d7f9e5a5cfaf35c',
-    messagingSenderId: '883544146901',
-    projectId: 'labuda-79de2',
-    authDomain: 'labuda-79de2.firebaseapp.com',
-    storageBucket: 'labuda-79de2.firebasestorage.app',
+    apiKey: 'AIzaSyBeFh1qC615YFLWS2QjozXMrxtWD-Ts_6o',
+    appId: '1:1079914053843:web:e1fd2850ed519a5fe15426',
+    messagingSenderId: '1079914053843',
+    projectId: 'hishumi',
+    authDomain: 'hishumi.firebaseapp.com',
+    storageBucket: 'hishumi.firebasestorage.app',
+    measurementId: 'G-8P59DL46RC',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyDS_cixVmoeQhBa7a4euvYV2gd-LVQ6E2U',
-    appId: '1:883544146901:android:c59cbbfae1c15ff8faf35c',
-    messagingSenderId: '883544146901',
-    projectId: 'labuda-79de2',
-    storageBucket: 'labuda-79de2.firebasestorage.app',
+    apiKey: 'AIzaSyCaEOGP1Plca56W9LSVPpiawF4lWbU_3xg',
+    appId: '1:1079914053843:android:c3b70fa71634c2f8e15426',
+    messagingSenderId: '1079914053843',
+    projectId: 'hishumi',
+    storageBucket: 'hishumi.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyCzMgnWF-YnyYxF1_Ha3THszw8DJ7h7Yik',
-    appId: '1:883544146901:ios:33b4631274b2eb26faf35c',
-    messagingSenderId: '883544146901',
-    projectId: 'labuda-79de2',
-    storageBucket: 'labuda-79de2.firebasestorage.app',
-    iosBundleId: 'com.labuda.app.labuda',
+    apiKey: 'AIzaSyDLbml4CB04FVUj3fsQjZn3rSUdNXQGRRM',
+    appId: '1:1079914053843:ios:1399ad098cdce6c2e15426',
+    messagingSenderId: '1079914053843',
+    projectId: 'hishumi',
+    storageBucket: 'hishumi.firebasestorage.app',
+    iosBundleId: 'com.hishumi.app',
   );
 
 }

@@ -1,7 +1,7 @@
 /// Discount DTOs for Go API communication
 library;
 
-import 'package:labuda/domains/commerce/pricing/discount/domain/entities/discount_entity.dart';
+import 'package:hishumi/domains/commerce/pricing/discount/domain/entities/discount_entity.dart';
 
 enum DiscountTypeDto {
   percentage,

@@ -3,7 +3,7 @@ package repository_test
 import (
 	"testing"
 
-	"github.com/labuda/backend/internal/util"
+	"github.com/hishumi/backend/internal/util"
 )
 
 // STEP 3 — VERIFY (WAJIB)

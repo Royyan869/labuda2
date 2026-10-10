@@ -13,9 +13,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap/zaptest"
 
-	"github.com/labuda/backend/internal/commerce/order/entity"
-	"github.com/labuda/backend/internal/identity/auth"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/commerce/order/entity"
+	"github.com/hishumi/backend/internal/identity/auth"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // ============================================================================

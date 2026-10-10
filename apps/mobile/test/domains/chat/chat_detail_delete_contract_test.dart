@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'package:labuda/domains/chat/chat/domain/entities/chat_entities.dart';
-import 'package:labuda/domains/chat/chat/presentation/providers/chat_providers.dart';
-import 'package:labuda/domains/chat/chat/presentation/providers/chat_state.dart';
-import 'package:labuda/domains/chat/chat/presentation/screens/chat_detail_screen.dart';
-import 'package:labuda/shared/governance/content_lifecycle.dart';
-import 'package:labuda/shared/providers/block_state_provider.dart';
-import 'package:labuda/shared/providers/auth_status_providers.dart';
+import 'package:hishumi/domains/chat/chat/domain/entities/chat_entities.dart';
+import 'package:hishumi/domains/chat/chat/presentation/providers/chat_providers.dart';
+import 'package:hishumi/domains/chat/chat/presentation/providers/chat_state.dart';
+import 'package:hishumi/domains/chat/chat/presentation/screens/chat_detail_screen.dart';
+import 'package:hishumi/shared/governance/content_lifecycle.dart';
+import 'package:hishumi/shared/providers/block_state_provider.dart';
+import 'package:hishumi/shared/providers/auth_status_providers.dart';
 
 void main() {
   // Message footers render through AppFormatters (intl date symbols).

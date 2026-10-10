@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
-import 'package:labuda/domains/commerce/catalog/auction/presentation/providers/seller_auctions_pager.dart';
-import 'package:labuda/domains/commerce/catalog/for_sale/domain/domain.dart';
-import 'package:labuda/core/src/router/route_paths.dart';
-import 'package:labuda/domains/commerce/catalog/for_sale/presentation/providers/seller_fps_pager.dart';
-import 'package:labuda/domains/social/comment/domain/entities/comment.dart';
-import 'package:labuda/domains/social/comment/presentation/widgets/comment_input_with_commerce_reference.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/presentation/providers/seller_auctions_pager.dart';
+import 'package:hishumi/domains/commerce/catalog/for_sale/domain/domain.dart';
+import 'package:hishumi/core/src/router/route_paths.dart';
+import 'package:hishumi/domains/commerce/catalog/for_sale/presentation/providers/seller_fps_pager.dart';
+import 'package:hishumi/domains/social/comment/domain/entities/comment.dart';
+import 'package:hishumi/domains/social/comment/presentation/widgets/comment_input_with_commerce_reference.dart';
 // ── Fake controllers ─────────────────────────────────────────────────────
 // TEST-ONLY: override the pager providers so the CommerceResourcePicker
 // renders immediately without making API calls.

@@ -6,10 +6,10 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	orderEntity "github.com/labuda/backend/internal/commerce/order/entity"
-	shippingQuoteEntity "github.com/labuda/backend/internal/commerce/shipping/quote/entity"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/money"
+	orderEntity "github.com/hishumi/backend/internal/commerce/order/entity"
+	shippingQuoteEntity "github.com/hishumi/backend/internal/commerce/shipping/quote/entity"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/money"
 	"github.com/stretchr/testify/assert"
 )
 

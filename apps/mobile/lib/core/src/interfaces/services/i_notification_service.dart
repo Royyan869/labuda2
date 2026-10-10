@@ -1,6 +1,6 @@
-import 'package:labuda/core/interfaces/i_notification_trigger.dart'
+import 'package:hishumi/core/interfaces/i_notification_trigger.dart'
     show NotificationType;
-import 'package:labuda/core/common/result.dart';
+import 'package:hishumi/core/common/result.dart';
 
 /// Old notification service interface
 ///

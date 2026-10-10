@@ -7,11 +7,11 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	configapp "github.com/labuda/backend/internal/platform/config/application"
-	"github.com/labuda/backend/internal/pricing/promotion/contract/entity"
-	contractRepo "github.com/labuda/backend/internal/pricing/promotion/contract/repository"
-	promoentity "github.com/labuda/backend/internal/pricing/promotion/entity"
-	"github.com/labuda/backend/pkg/db"
+	configapp "github.com/hishumi/backend/internal/platform/config/application"
+	"github.com/hishumi/backend/internal/pricing/promotion/contract/entity"
+	contractRepo "github.com/hishumi/backend/internal/pricing/promotion/contract/repository"
+	promoentity "github.com/hishumi/backend/internal/pricing/promotion/entity"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // ErrDeliveryDisabled is returned by delivery selection when the canonical

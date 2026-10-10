@@ -1,4 +1,4 @@
-import 'package:labuda/features/home/domain/domain.dart'; // R3.1: Import FeedItem from home domain
+import 'package:hishumi/features/home/domain/domain.dart'; // R3.1: Import FeedItem from home domain
 
 /// Repository interface untuk Feed aggregation
 /// Domain layer - bebas dari implementation details

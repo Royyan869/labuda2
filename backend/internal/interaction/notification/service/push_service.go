@@ -7,9 +7,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/labuda/backend/internal/interaction/notification/entity"
-	"github.com/labuda/backend/internal/interaction/notification/infrastructure/repository"
-	firebasepkg "github.com/labuda/backend/pkg/firebase"
+	"github.com/hishumi/backend/internal/interaction/notification/entity"
+	"github.com/hishumi/backend/internal/interaction/notification/infrastructure/repository"
+	firebasepkg "github.com/hishumi/backend/pkg/firebase"
 	"go.uber.org/zap"
 )
 

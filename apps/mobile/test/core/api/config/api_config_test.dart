@@ -6,7 +6,7 @@
 // An explicit --dart-define=API_BASE_URL / API_WS_URL override takes
 // precedence when the default is unsuitable.
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/api/config/api_config.dart';
+import 'package:hishumi/core/api/config/api_config.dart';
 
 void main() {
   tearDown(() {

@@ -8,9 +8,9 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/labuda/backend/internal/platform/alert/entity"
-	"github.com/labuda/backend/internal/platform/alert/repository"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/platform/alert/entity"
+	"github.com/hishumi/backend/internal/platform/alert/repository"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // AlertRepositoryImpl handles alert persistence using pgx-based DB layer.

@@ -15,7 +15,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	feedentity "github.com/labuda/backend/internal/social/feed/entity"
+	feedentity "github.com/hishumi/backend/internal/social/feed/entity"
 )
 
 // TestHydrateOriginalAuthorLifecycles_NilTxReturnsEmpty verifies the

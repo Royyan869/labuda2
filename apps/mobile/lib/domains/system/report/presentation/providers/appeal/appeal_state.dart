@@ -3,7 +3,7 @@
 /// State management for appeal functionality.
 library;
 
-import 'package:labuda/domains/system/report/domain/entities/entities.dart';
+import 'package:hishumi/domains/system/report/domain/entities/entities.dart';
 
 /// Appeal Actions State
 class AppealActionsState {

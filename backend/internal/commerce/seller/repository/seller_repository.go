@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/commerce/seller/entity"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/commerce/seller/entity"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // SellerRepository defines the persistence operations for seller domain.

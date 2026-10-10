@@ -1,13 +1,13 @@
-﻿// Notification API Mapper
+// Notification API Mapper
 // Converts between API models and Domain entities
 
 // External
-import 'package:labuda/core/interfaces/i_notification_trigger.dart';
+import 'package:hishumi/core/interfaces/i_notification_trigger.dart';
 
 // Internal
-import 'package:labuda/domains/system/notification/data/models/api/notification_api_models.dart';
-import 'package:labuda/domains/system/notification/domain/entities/notification_entity.dart';
-import 'package:labuda/domains/system/notification/domain/entities/notification_preference_entity.dart';
+import 'package:hishumi/domains/system/notification/data/models/api/notification_api_models.dart';
+import 'package:hishumi/domains/system/notification/domain/entities/notification_entity.dart';
+import 'package:hishumi/domains/system/notification/domain/entities/notification_preference_entity.dart';
 
 class NotificationApiMapper {
   // ============================================================================

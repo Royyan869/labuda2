@@ -3,7 +3,7 @@ package shared
 import (
 	"strings"
 
-	productEntity "github.com/labuda/backend/internal/commerce/product/entity"
+	productEntity "github.com/hishumi/backend/internal/commerce/product/entity"
 )
 
 // NormalizeCertificates validates commerce certificate values, removes

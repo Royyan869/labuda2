@@ -120,7 +120,7 @@ export const Sidebar = forwardRef<HTMLElement, SidebarProps>(function Sidebar(
         {/* Logo */}
         <div className="flex h-16 shrink-0 items-center border-b border-border px-6">
           {/* Brand, not a heading: the page owns the single h1. */}
-          <span className="text-xl font-bold text-primary">LABUDA Admin</span>
+          <span className="text-xl font-bold text-primary">HiShumi Admin</span>
         </div>
 
         {/* Navigation — scrolls independently so items below the fold (below
@@ -163,7 +163,7 @@ export const Sidebar = forwardRef<HTMLElement, SidebarProps>(function Sidebar(
         {/* Footer */}
         <div className="shrink-0 border-t border-border p-4">
           <p className="type-caption text-center">
-            LABUDA Admin Dashboard
+            HiShumi Admin Dashboard
             <br />
             v1.0.0
           </p>

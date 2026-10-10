@@ -44,11 +44,13 @@ func withUnsetEnv(t *testing.T, key string) {
 	})
 }
 
-// baseRequiredEnv sets the one env var Load() hard-requires (DB_NAME) so
-// these tests can isolate ENV behavior without a real database.
+// baseRequiredEnv sets the env vars Load() hard-requires (DB_NAME plus an
+// explicit non-placeholder DB_PASSWORD) so these tests can isolate ENV
+// behavior without a real database.
 func baseRequiredEnv(t *testing.T) {
 	t.Helper()
-	withEnv(t, "DB_NAME", "labuda_test_config")
+	withEnv(t, "DB_NAME", "hishumi_test_config")
+	withEnv(t, "DB_PASSWORD", "hishumi_test_cfg_pw")
 }
 
 func TestLoad_UnsetEnv_DoesNotBehaveAsDevelopment(t *testing.T) {
@@ -207,4 +209,41 @@ func TestValidateProductionSafety_DevFlagsFalse_DoesNotPanic(t *testing.T) {
 		}
 	}()
 	cfg.ValidateProductionSafety()
+}
+
+// H.4.4-B: DB_PASSWORD is required and fail-closed. There is no silent weak
+// default: Load() must reject a missing password and well-known insecure
+// placeholders instead of booting with a guessable credential.
+
+func TestLoad_MissingDBPassword_FailsClosed(t *testing.T) {
+	withEnv(t, "DB_NAME", "hishumi_test_config")
+	withUnsetEnv(t, "DB_PASSWORD")
+
+	if _, err := Load(); err == nil {
+		t.Fatal("Load() must fail when DB_PASSWORD is not set")
+	}
+}
+
+func TestLoad_PlaceholderDBPassword_FailsClosed(t *testing.T) {
+	withEnv(t, "DB_NAME", "hishumi_test_config")
+
+	for _, placeholder := range []string{"changeme", "change_me", "CHANGE_ME_THIS_IS_NOT_SECURE", "password", "postgres"} {
+		withEnv(t, "DB_PASSWORD", placeholder)
+		if _, err := Load(); err == nil {
+			t.Fatalf("Load() must fail when DB_PASSWORD is the insecure placeholder %q", placeholder)
+		}
+	}
+}
+
+func TestLoad_ExplicitDBPassword_Passes(t *testing.T) {
+	withEnv(t, "DB_NAME", "hishumi_test_config")
+	withEnv(t, "DB_PASSWORD", "hishumi_test_cfg_pw")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() failed with explicit DB_PASSWORD: %v", err)
+	}
+	if cfg.Database.Password == "" {
+		t.Fatal("explicit DB_PASSWORD must be retained in config")
+	}
 }

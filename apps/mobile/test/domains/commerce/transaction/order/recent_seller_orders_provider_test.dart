@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/domains/commerce/transaction/order/order.dart';
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/domains/commerce/transaction/order/order.dart';
 
 class _FakeOrderRepository implements OrderRepository {
   final Result<List<Order>> result;

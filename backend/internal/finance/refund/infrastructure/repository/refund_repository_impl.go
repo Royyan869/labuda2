@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/finance/refund/entity"
-	refundRepo "github.com/labuda/backend/internal/finance/refund/repository"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/finance/refund/entity"
+	refundRepo "github.com/hishumi/backend/internal/finance/refund/repository"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // RefundRepositoryImpl implements the refund repository using PostgreSQL.

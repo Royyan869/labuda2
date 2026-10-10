@@ -3,17 +3,17 @@
 // Dart
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/core/messaging/fcm_service_impl.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/core/messaging/fcm_service_impl.dart';
 
 // Data
-import 'package:labuda/domains/system/notification/data/datasources/notification_remote_datasource.dart';
+import 'package:hishumi/domains/system/notification/data/datasources/notification_remote_datasource.dart';
 
 // Services
-import 'package:labuda/domains/system/notification/services/fcm_service.dart';
-import 'package:labuda/domains/system/notification/services/local_notification_service.dart';
-import 'package:labuda/domains/system/notification/services/in_app_banner_service.dart';
-import 'package:labuda/domains/system/notification/services/notification_trigger_impl.dart';
+import 'package:hishumi/domains/system/notification/services/fcm_service.dart';
+import 'package:hishumi/domains/system/notification/services/local_notification_service.dart';
+import 'package:hishumi/domains/system/notification/services/in_app_banner_service.dart';
+import 'package:hishumi/domains/system/notification/services/notification_trigger_impl.dart';
 
 /// Notification Module - Dependency Injection
 ///

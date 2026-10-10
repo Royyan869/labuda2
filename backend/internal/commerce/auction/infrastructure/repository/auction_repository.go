@@ -8,10 +8,10 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/labuda/backend/internal/commerce/auction/entity"
-	productEntity "github.com/labuda/backend/internal/commerce/product/entity"
-	sharedpkg "github.com/labuda/backend/internal/commerce/shared"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/commerce/auction/entity"
+	productEntity "github.com/hishumi/backend/internal/commerce/product/entity"
+	sharedpkg "github.com/hishumi/backend/internal/commerce/shared"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // AuctionRepository handles auction persistence using pgx-based DB layer.

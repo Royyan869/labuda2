@@ -1,6 +1,6 @@
 library;
 
-import 'package:labuda/shared/domain/entities/resource_projection.dart';
+import 'package:hishumi/shared/domain/entities/resource_projection.dart';
 
 /// Centralized Currency Formatting Utility
 ///
@@ -13,7 +13,7 @@ import 'package:labuda/shared/domain/entities/resource_projection.dart';
 ///
 /// Usage:
 /// ```dart
-/// import 'package:labuda/shared/utils/currency_utils.dart';
+/// import 'package:hishumi/shared/utils/currency_utils.dart';
 ///
 /// // Standard format: Rp 1.000.000
 /// CurrencyUtils.format(1000000);

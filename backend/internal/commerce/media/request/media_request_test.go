@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	mediaentity "github.com/labuda/backend/internal/commerce/media/entity"
-	productentity "github.com/labuda/backend/internal/commerce/product/entity"
+	mediaentity "github.com/hishumi/backend/internal/commerce/media/entity"
+	productentity "github.com/hishumi/backend/internal/commerce/product/entity"
 )
 
 func TestNormalizeSelection_ImageOnly_Success(t *testing.T) {

@@ -12,8 +12,8 @@
 // receive a strength classification while policy-invalid.
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/shared/helpers/canonical_password_policy.dart';
-import 'package:labuda/shared/helpers/canonical_password_strength.dart';
+import 'package:hishumi/shared/helpers/canonical_password_policy.dart';
+import 'package:hishumi/shared/helpers/canonical_password_strength.dart';
 
 void main() {
   group('CanonicalPasswordStrength classification', () {

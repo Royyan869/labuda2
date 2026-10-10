@@ -3,7 +3,7 @@ package evaluator_test
 import (
 	"testing"
 
-	"github.com/labuda/backend/internal/governance/evaluator"
+	"github.com/hishumi/backend/internal/governance/evaluator"
 )
 
 // PHASE 3A — adapter mapping tests. These tests pin the

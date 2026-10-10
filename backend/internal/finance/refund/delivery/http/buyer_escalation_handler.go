@@ -19,11 +19,11 @@ import (
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 
-	disputeEntity "github.com/labuda/backend/internal/governance/dispute/entity"
-	refundapp "github.com/labuda/backend/internal/finance/refund/application"
-	"github.com/labuda/backend/internal/finance/refund/entity"
-	"github.com/labuda/backend/internal/platform/response"
-	"github.com/labuda/backend/pkg/db"
+	disputeEntity "github.com/hishumi/backend/internal/governance/dispute/entity"
+	refundapp "github.com/hishumi/backend/internal/finance/refund/application"
+	"github.com/hishumi/backend/internal/finance/refund/entity"
+	"github.com/hishumi/backend/internal/platform/response"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // DisputeServiceForEscalation is the interface the handler needs from DisputeService.

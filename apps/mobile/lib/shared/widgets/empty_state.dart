@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
+import 'package:hishumi/core/core.dart';
 
 /// Semantic marker for the empty-state family. One value only: a successful
 /// zero-item result is the ONLY thing this foundation renders.

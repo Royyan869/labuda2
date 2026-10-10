@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
+import 'package:hishumi/core/core.dart';
 import '../../domain/entities/share_destination.dart';
 import 'share_destination_extensions.dart';
 

@@ -10,10 +10,10 @@
 
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:labuda/core/api/api_error_codes.dart' as codes;
-import 'package:labuda/core/api/commerce_restriction_presenter.dart';
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/domains/commerce/transaction/checkout/data/repositories/checkout_repository_impl.dart';
+import 'package:hishumi/core/api/api_error_codes.dart' as codes;
+import 'package:hishumi/core/api/commerce_restriction_presenter.dart';
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/domains/commerce/transaction/checkout/data/repositories/checkout_repository_impl.dart';
 
 void main() {
   group('API Error Codes — single authority', () {

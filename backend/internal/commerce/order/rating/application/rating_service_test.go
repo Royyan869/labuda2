@@ -6,7 +6,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/labuda/backend/internal/commerce/order/rating/entity"
+	"github.com/hishumi/backend/internal/commerce/order/rating/entity"
 )
 
 // Test: Rating successful after completion

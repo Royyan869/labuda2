@@ -12,12 +12,12 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
-	orderentity "github.com/labuda/backend/internal/commerce/order/entity"
-	"github.com/labuda/backend/internal/platform/response"
-	pricingtokenapp "github.com/labuda/backend/internal/pricing/token/application"
-	pricingtokenentity "github.com/labuda/backend/internal/pricing/token/entity"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/money"
+	orderentity "github.com/hishumi/backend/internal/commerce/order/entity"
+	"github.com/hishumi/backend/internal/platform/response"
+	pricingtokenapp "github.com/hishumi/backend/internal/pricing/token/application"
+	pricingtokenentity "github.com/hishumi/backend/internal/pricing/token/entity"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/money"
 	"go.uber.org/zap"
 )
 

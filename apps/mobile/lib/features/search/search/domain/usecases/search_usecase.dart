@@ -1,7 +1,7 @@
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/features/search/search/domain/entities/search_filters.dart';
-import 'package:labuda/features/search/search/domain/entities/search_result.dart';
-import 'package:labuda/features/search/search/domain/repositories/search_repository.dart';
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/features/search/search/domain/entities/search_filters.dart';
+import 'package:hishumi/features/search/search/domain/entities/search_result.dart';
+import 'package:hishumi/features/search/search/domain/repositories/search_repository.dart';
 
 /// Search Use Case
 ///

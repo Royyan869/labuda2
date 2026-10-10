@@ -11,11 +11,11 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/labuda/backend/internal/audit"
-	"github.com/labuda/backend/internal/finance"
-	"github.com/labuda/backend/internal/finance/verifier"
-	"github.com/labuda/backend/internal/middleware"
-	"github.com/labuda/backend/internal/platform/response"
+	"github.com/hishumi/backend/internal/audit"
+	"github.com/hishumi/backend/internal/finance"
+	"github.com/hishumi/backend/internal/finance/verifier"
+	"github.com/hishumi/backend/internal/middleware"
+	"github.com/hishumi/backend/internal/platform/response"
 	"go.uber.org/zap"
 )
 
@@ -586,10 +586,10 @@ func buildFinanceSummaryResponse(
 		ExternalReconciliation: externalReconciliationSummary{
 			GatewaySettlementReconciliation: "not_implemented",
 			BankStatementReconciliation:     "not_implemented",
-			Note: "PASS_18X finding: Labuda does not yet ingest a Midtrans " +
+			Note: "PASS_18X finding: HiShumi does not yet ingest a Midtrans " +
 				"settlement report or bank statement, and BANK_SETTLEMENT is an " +
 				"internal reserve-float abstraction, not real bank data. " +
-				"Internal reconciliation below proves Labuda's own ledger is " +
+				"Internal reconciliation below proves HiShumi's own ledger is " +
 				"self-consistent; it does NOT prove the real bank balance " +
 				"matches this ledger.",
 		},
@@ -608,7 +608,7 @@ func buildFinanceSummaryResponse(
 			Severity:           recon.Severity,
 			MismatchedAccounts: recon.MismatchedAccounts,
 			TotalAccounts:      recon.TotalAccounts,
-			Note: "Reflects the most recent ReconciliationWorkerV2 run: Labuda's " +
+			Note: "Reflects the most recent ReconciliationWorkerV2 run: HiShumi's " +
 				"own ledger tables compared against each other for double-entry " +
 				"and account-balance consistency. This is internal-only.",
 		}

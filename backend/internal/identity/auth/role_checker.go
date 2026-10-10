@@ -5,7 +5,7 @@ import (
 	"errors"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/audit"
+	"github.com/hishumi/backend/internal/audit"
 )
 
 var (

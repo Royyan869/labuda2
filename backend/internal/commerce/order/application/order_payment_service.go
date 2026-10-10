@@ -12,10 +12,10 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/commerce/order/entity"
-	escrowApp "github.com/labuda/backend/internal/core/escrow/application"
-	coinsentity "github.com/labuda/backend/internal/incentive/coins/entity"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/commerce/order/entity"
+	escrowApp "github.com/hishumi/backend/internal/core/escrow/application"
+	coinsentity "github.com/hishumi/backend/internal/incentive/coins/entity"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // OrderPaymentService handles payment operations for orders.

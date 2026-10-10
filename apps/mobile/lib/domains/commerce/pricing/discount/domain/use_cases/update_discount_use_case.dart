@@ -1,6 +1,6 @@
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/commerce/pricing/discount/domain/entities/discount_entity.dart';
-import 'package:labuda/domains/commerce/pricing/discount/domain/repositories/i_discount_repository.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/commerce/pricing/discount/domain/entities/discount_entity.dart';
+import 'package:hishumi/domains/commerce/pricing/discount/domain/repositories/i_discount_repository.dart';
 
 /// Use case untuk update discount
 ///

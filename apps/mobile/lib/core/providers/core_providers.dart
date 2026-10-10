@@ -17,7 +17,7 @@
 // - etc.
 //
 // **IMPORT PATH:**
-// `import 'package:labuda/core/providers/core_providers.dart';`
+// `import 'package:hishumi/core/providers/core_providers.dart';`
 //
 // The providers here are overridden in main.dart with actual service instances.
 // This hybrid approach allows gradual migration while maintaining a canonical
@@ -54,25 +54,25 @@ library;
 
 // Imports
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/api/api_client.dart';
-import 'package:labuda/core/src/interfaces/services/i_local_storage_service.dart';
-import 'package:labuda/core/src/interfaces/services/i_logger_service.dart';
-import 'package:labuda/core/websocket/websocket_service.dart';
-import 'package:labuda/core/src/interfaces/services/i_analytics_repository.dart';
-import 'package:labuda/core/interfaces/i_notification_trigger.dart';
-import 'package:labuda/core/src/navigation/i_navigation_registry.dart';
-import 'package:labuda/core/services/s3_service.dart';
+import 'package:hishumi/core/api/api_client.dart';
+import 'package:hishumi/core/src/interfaces/services/i_local_storage_service.dart';
+import 'package:hishumi/core/src/interfaces/services/i_logger_service.dart';
+import 'package:hishumi/core/websocket/websocket_service.dart';
+import 'package:hishumi/core/src/interfaces/services/i_analytics_repository.dart';
+import 'package:hishumi/core/interfaces/i_notification_trigger.dart';
+import 'package:hishumi/core/src/navigation/i_navigation_registry.dart';
+import 'package:hishumi/core/services/s3_service.dart';
 
 // Re-exports for convenience
-export 'package:labuda/core/api/api_client.dart';
-export 'package:labuda/core/navigation/navigation_handler.dart';
-export 'package:labuda/core/src/interfaces/services/i_local_storage_service.dart';
-export 'package:labuda/core/src/interfaces/services/i_logger_service.dart';
-export 'package:labuda/core/websocket/websocket_service.dart';
-export 'package:labuda/core/src/interfaces/services/i_analytics_repository.dart';
-export 'package:labuda/core/interfaces/i_notification_trigger.dart';
-export 'package:labuda/core/src/navigation/i_navigation_registry.dart';
-export 'package:labuda/core/services/s3_service.dart';
+export 'package:hishumi/core/api/api_client.dart';
+export 'package:hishumi/core/navigation/navigation_handler.dart';
+export 'package:hishumi/core/src/interfaces/services/i_local_storage_service.dart';
+export 'package:hishumi/core/src/interfaces/services/i_logger_service.dart';
+export 'package:hishumi/core/websocket/websocket_service.dart';
+export 'package:hishumi/core/src/interfaces/services/i_analytics_repository.dart';
+export 'package:hishumi/core/interfaces/i_notification_trigger.dart';
+export 'package:hishumi/core/src/navigation/i_navigation_registry.dart';
+export 'package:hishumi/core/services/s3_service.dart';
 
 // =============================================================================
 // CORE SERVICE PROVIDERS (to be overridden in main.dart)

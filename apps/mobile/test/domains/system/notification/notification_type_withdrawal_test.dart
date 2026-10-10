@@ -14,8 +14,8 @@
 
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:labuda/core/interfaces/i_notification_trigger.dart';
-import 'package:labuda/domains/system/notification/domain/entities/notification_filter.dart';
+import 'package:hishumi/core/interfaces/i_notification_trigger.dart';
+import 'package:hishumi/domains/system/notification/domain/entities/notification_filter.dart';
 
 void main() {
   // ============================================================================

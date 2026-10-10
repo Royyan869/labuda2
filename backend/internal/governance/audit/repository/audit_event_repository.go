@@ -5,8 +5,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/labuda/backend/internal/governance/audit/entity"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/governance/audit/entity"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // AuditEventRepository defines the interface for audit event persistence operations.

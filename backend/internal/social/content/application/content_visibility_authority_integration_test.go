@@ -13,13 +13,13 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/require"
 
-	idempotencyRepo "github.com/labuda/backend/internal/platform/idempotency/repository"
-	contentapp "github.com/labuda/backend/internal/social/content/application"
-	contenthttp "github.com/labuda/backend/internal/social/content/delivery/http"
-	contententity "github.com/labuda/backend/internal/social/content/entity"
-	contentrepo "github.com/labuda/backend/internal/social/content/infrastructure/repository"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/testdb"
+	idempotencyRepo "github.com/hishumi/backend/internal/platform/idempotency/repository"
+	contentapp "github.com/hishumi/backend/internal/social/content/application"
+	contenthttp "github.com/hishumi/backend/internal/social/content/delivery/http"
+	contententity "github.com/hishumi/backend/internal/social/content/entity"
+	contentrepo "github.com/hishumi/backend/internal/social/content/infrastructure/repository"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/testdb"
 )
 
 type visibilityAccountChecker struct{}

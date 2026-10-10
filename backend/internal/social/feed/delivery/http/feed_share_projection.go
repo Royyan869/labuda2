@@ -5,12 +5,12 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	commerceshared "github.com/labuda/backend/internal/commerce/shared"
-	"github.com/labuda/backend/internal/pkg/publiccard"
-	"github.com/labuda/backend/internal/platform/mediaresolve"
-	contentApp "github.com/labuda/backend/internal/social/content/application"
-	contententity "github.com/labuda/backend/internal/social/content/entity"
-	feedentity "github.com/labuda/backend/internal/social/feed/entity"
+	commerceshared "github.com/hishumi/backend/internal/commerce/shared"
+	"github.com/hishumi/backend/internal/pkg/publiccard"
+	"github.com/hishumi/backend/internal/platform/mediaresolve"
+	contentApp "github.com/hishumi/backend/internal/social/content/application"
+	contententity "github.com/hishumi/backend/internal/social/content/entity"
+	feedentity "github.com/hishumi/backend/internal/social/feed/entity"
 )
 
 func feedItemToResponseCanonical(item *feedentity.FeedItem, lifecycleOverrides map[uuid.UUID]string, origAuthorLifecycles map[uuid.UUID]string) map[string]interface{} {

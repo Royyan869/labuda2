@@ -1,14 +1,14 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:labuda/core/api/api_client.dart';
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/core/src/interfaces/services/i_logger_service.dart';
-import 'package:labuda/core/websocket/websocket_service.dart';
-import 'package:labuda/domains/chat/chat/data/dto/chat_room_event_dto.dart';
-import 'package:labuda/domains/chat/chat/data/dto/message_dto.dart';
-import 'package:labuda/domains/chat/chat/data/remote/chat_api_datasource.dart';
-import 'package:labuda/domains/chat/chat/data/repositories/chat_repository_impl.dart';
-import 'package:labuda/domains/chat/chat/domain/entities/chat_entities.dart';
+import 'package:hishumi/core/api/api_client.dart';
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/core/src/interfaces/services/i_logger_service.dart';
+import 'package:hishumi/core/websocket/websocket_service.dart';
+import 'package:hishumi/domains/chat/chat/data/dto/chat_room_event_dto.dart';
+import 'package:hishumi/domains/chat/chat/data/dto/message_dto.dart';
+import 'package:hishumi/domains/chat/chat/data/remote/chat_api_datasource.dart';
+import 'package:hishumi/domains/chat/chat/data/repositories/chat_repository_impl.dart';
+import 'package:hishumi/domains/chat/chat/domain/entities/chat_entities.dart';
 
 class _NoopApiClient implements ApiClient {
   @override

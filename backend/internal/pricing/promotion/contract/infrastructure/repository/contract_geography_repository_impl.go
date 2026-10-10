@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/pricing/promotion/contract/entity"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/pricing/promotion/contract/entity"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 type ContractGeographyRepositoryImpl struct{}

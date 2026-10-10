@@ -13,15 +13,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/domains/system/notification/data/notification_providers.dart';
-import 'package:labuda/domains/system/notification/domain/entities/notification_entity.dart';
-import 'package:labuda/domains/system/notification/domain/entities/notification_preference_entity.dart';
-import 'package:labuda/domains/system/notification/domain/repositories/i_notification_repository.dart';
-import 'package:labuda/domains/system/notification/presentation/providers/notification_list_provider.dart';
-import 'package:labuda/domains/system/notification/presentation/providers/unread_count_provider.dart';
-import 'package:labuda/domains/system/notification/presentation/widgets/notification_badge_widget.dart';
-import 'package:labuda/shared/widgets/count_badge.dart';
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/domains/system/notification/data/notification_providers.dart';
+import 'package:hishumi/domains/system/notification/domain/entities/notification_entity.dart';
+import 'package:hishumi/domains/system/notification/domain/entities/notification_preference_entity.dart';
+import 'package:hishumi/domains/system/notification/domain/repositories/i_notification_repository.dart';
+import 'package:hishumi/domains/system/notification/presentation/providers/notification_list_provider.dart';
+import 'package:hishumi/domains/system/notification/presentation/providers/unread_count_provider.dart';
+import 'package:hishumi/domains/system/notification/presentation/widgets/notification_badge_widget.dart';
+import 'package:hishumi/shared/widgets/count_badge.dart';
 
 const _uid = 'u1';
 

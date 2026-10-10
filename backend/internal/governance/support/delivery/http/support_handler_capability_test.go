@@ -16,14 +16,14 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"go.uber.org/zap"
 
-	supportApp "github.com/labuda/backend/internal/governance/support/application"
-	supportEntity "github.com/labuda/backend/internal/governance/support/entity"
-	supportRepo "github.com/labuda/backend/internal/governance/support/repository"
-	chatEntity "github.com/labuda/backend/internal/interaction/chat/entity"
-	"github.com/labuda/backend/internal/platform/capability"
-	capabilityEntity "github.com/labuda/backend/internal/platform/capability/entity"
-	"github.com/labuda/backend/internal/platform/response"
-	"github.com/labuda/backend/pkg/db"
+	supportApp "github.com/hishumi/backend/internal/governance/support/application"
+	supportEntity "github.com/hishumi/backend/internal/governance/support/entity"
+	supportRepo "github.com/hishumi/backend/internal/governance/support/repository"
+	chatEntity "github.com/hishumi/backend/internal/interaction/chat/entity"
+	"github.com/hishumi/backend/internal/platform/capability"
+	capabilityEntity "github.com/hishumi/backend/internal/platform/capability/entity"
+	"github.com/hishumi/backend/internal/platform/response"
+	"github.com/hishumi/backend/pkg/db"
 	"github.com/stretchr/testify/assert"
 )
 

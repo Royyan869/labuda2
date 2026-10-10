@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/widgets.dart';
 
-import 'package:labuda/core/src/interfaces/services/i_analytics_repository.dart';
+import 'package:hishumi/core/src/interfaces/services/i_analytics_repository.dart';
 import 'screen_names.dart';
 
 /// Route observer that emits canonical screen views through the single

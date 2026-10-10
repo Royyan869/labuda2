@@ -3,8 +3,8 @@ package shared
 import (
 	"strings"
 
-	"github.com/labuda/backend/internal/commerce/shipping/entity"
-	addressEntity "github.com/labuda/backend/internal/identity/address/entity"
+	"github.com/hishumi/backend/internal/commerce/shipping/entity"
+	addressEntity "github.com/hishumi/backend/internal/identity/address/entity"
 )
 
 // PublicShippingSetupSummary is the buyer-facing shipping option shape.

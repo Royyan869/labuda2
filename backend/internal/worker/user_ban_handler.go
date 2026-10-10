@@ -9,12 +9,12 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	orderApp "github.com/labuda/backend/internal/commerce/order/application"
-	orderEntity "github.com/labuda/backend/internal/commerce/order/entity"
-	"github.com/labuda/backend/internal/governance/dispute/application"
-	"github.com/labuda/backend/internal/identity/auth"
-	platformevent "github.com/labuda/backend/internal/platform/event"
-	dbpkg "github.com/labuda/backend/pkg/db"
+	orderApp "github.com/hishumi/backend/internal/commerce/order/application"
+	orderEntity "github.com/hishumi/backend/internal/commerce/order/entity"
+	"github.com/hishumi/backend/internal/governance/dispute/application"
+	"github.com/hishumi/backend/internal/identity/auth"
+	platformevent "github.com/hishumi/backend/internal/platform/event"
+	dbpkg "github.com/hishumi/backend/pkg/db"
 	"github.com/jackc/pgx/v5"
 	"go.uber.org/zap"
 )

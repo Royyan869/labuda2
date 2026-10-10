@@ -90,7 +90,7 @@ defect this structure exists to prevent.
 ```
 
 This baseline was generated from the live DB state (v100–v229) on 2026-07-03 and represents
-the authoritative schema for a clean Labuda installation.
+the authoritative schema for a clean HiShumi installation.
 
 ## Adding new migrations
 

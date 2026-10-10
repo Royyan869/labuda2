@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:labuda/shared/widgets/media_image_item.dart';
+import 'package:hishumi/shared/widgets/media_image_item.dart';
 
 class MediaReorderableList extends StatelessWidget {
   final List<File> images;

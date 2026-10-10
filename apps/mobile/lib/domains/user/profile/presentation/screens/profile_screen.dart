@@ -7,32 +7,32 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 // Internal
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/chat/chat/chat.dart';
-import 'package:labuda/domains/social/follow/follow.dart';
-import 'package:labuda/domains/user/profile/domain/entities/profile_entity.dart'
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/chat/chat/chat.dart';
+import 'package:hishumi/domains/social/follow/follow.dart';
+import 'package:hishumi/domains/user/profile/domain/entities/profile_entity.dart'
     show ProfileEntity;
-import 'package:labuda/domains/user/profile/presentation/providers/profile_about_provider.dart'
+import 'package:hishumi/domains/user/profile/presentation/providers/profile_about_provider.dart'
     show normalizeProfileLocation;
-import 'package:labuda/domains/user/profile/presentation/providers/profile_view_provider.dart';
-import 'package:labuda/domains/user/profile/presentation/providers/user_data_provider.dart';
-import 'package:labuda/domains/user/profile/presentation/screens/unified_edit_profile_screen.dart';
-import 'package:labuda/domains/user/profile/presentation/utils/profile_lifecycle_redaction.dart';
-import 'package:labuda/domains/user/profile/presentation/widgets/profile_actions.dart';
-import 'package:labuda/shared/governance/content_lifecycle.dart';
-import 'package:labuda/shared/models/seller_identity_data.dart';
-import 'package:labuda/domains/user/profile/presentation/widgets/profile_cover.dart';
-import 'package:labuda/domains/user/profile/presentation/widgets/profile_feed_tab.dart';
-import 'package:labuda/domains/user/profile/presentation/widgets/profile_reviews_tab.dart';
-import 'package:labuda/domains/user/profile/presentation/widgets/profile_stats.dart';
-import 'package:labuda/domains/user/profile/presentation/screens/profile_screen/profile_about_tab.dart';
-import 'package:labuda/domains/system/report/domain/entities/entities.dart';
-import 'package:labuda/domains/user/preference/seller/seller.dart';
-import 'package:labuda/domains/social/share/share.dart';
-import 'package:labuda/domains/user/profile/presentation/screens/profile_screen/profile_share_builder.dart';
-import 'package:labuda/shared/shared.dart';
-import 'package:labuda/shared/governance/seller_tier_badge.dart';
-import 'package:labuda/shared/providers/block_state_provider.dart';
+import 'package:hishumi/domains/user/profile/presentation/providers/profile_view_provider.dart';
+import 'package:hishumi/domains/user/profile/presentation/providers/user_data_provider.dart';
+import 'package:hishumi/domains/user/profile/presentation/screens/unified_edit_profile_screen.dart';
+import 'package:hishumi/domains/user/profile/presentation/utils/profile_lifecycle_redaction.dart';
+import 'package:hishumi/domains/user/profile/presentation/widgets/profile_actions.dart';
+import 'package:hishumi/shared/governance/content_lifecycle.dart';
+import 'package:hishumi/shared/models/seller_identity_data.dart';
+import 'package:hishumi/domains/user/profile/presentation/widgets/profile_cover.dart';
+import 'package:hishumi/domains/user/profile/presentation/widgets/profile_feed_tab.dart';
+import 'package:hishumi/domains/user/profile/presentation/widgets/profile_reviews_tab.dart';
+import 'package:hishumi/domains/user/profile/presentation/widgets/profile_stats.dart';
+import 'package:hishumi/domains/user/profile/presentation/screens/profile_screen/profile_about_tab.dart';
+import 'package:hishumi/domains/system/report/domain/entities/entities.dart';
+import 'package:hishumi/domains/user/preference/seller/seller.dart';
+import 'package:hishumi/domains/social/share/share.dart';
+import 'package:hishumi/domains/user/profile/presentation/screens/profile_screen/profile_share_builder.dart';
+import 'package:hishumi/shared/shared.dart';
+import 'package:hishumi/shared/governance/seller_tier_badge.dart';
+import 'package:hishumi/shared/providers/block_state_provider.dart';
 
 /// Profile Screen dengan Facebook-style collapsing header
 ///

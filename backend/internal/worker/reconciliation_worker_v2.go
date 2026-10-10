@@ -7,12 +7,12 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	finance "github.com/labuda/backend/internal/finance"
-	"github.com/labuda/backend/internal/finance/entity"
-	"github.com/labuda/backend/internal/finance/repository"
-	alertapp "github.com/labuda/backend/internal/platform/alert/application"
-	alertentity "github.com/labuda/backend/internal/platform/alert/entity"
-	"github.com/labuda/backend/pkg/db"
+	finance "github.com/hishumi/backend/internal/finance"
+	"github.com/hishumi/backend/internal/finance/entity"
+	"github.com/hishumi/backend/internal/finance/repository"
+	alertapp "github.com/hishumi/backend/internal/platform/alert/application"
+	alertentity "github.com/hishumi/backend/internal/platform/alert/entity"
+	"github.com/hishumi/backend/pkg/db"
 	"go.uber.org/zap"
 )
 

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:labuda/domains/social/comment/comment.dart';
-import 'package:labuda/domains/social/content/content.dart';
+import 'package:hishumi/domains/social/comment/comment.dart';
+import 'package:hishumi/domains/social/content/content.dart';
 
 import 'base_module.dart';
 

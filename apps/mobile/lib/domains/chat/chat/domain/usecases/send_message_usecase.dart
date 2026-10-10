@@ -1,7 +1,7 @@
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/domains/chat/chat/domain/entities/chat_entities.dart';
-import 'package:labuda/domains/chat/chat/data/dto/chat_resource_occurrence_request.dart';
-import 'package:labuda/domains/chat/chat/domain/repositories/chat_repository.dart';
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/domains/chat/chat/domain/entities/chat_entities.dart';
+import 'package:hishumi/domains/chat/chat/data/dto/chat_resource_occurrence_request.dart';
+import 'package:hishumi/domains/chat/chat/domain/repositories/chat_repository.dart';
 
 /// Use Case: Send Message
 ///

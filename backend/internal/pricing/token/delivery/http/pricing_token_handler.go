@@ -5,11 +5,11 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	platformconfigApp "github.com/labuda/backend/internal/platform/config/application"
-	"github.com/labuda/backend/internal/platform/response"
-	pricingtokenapp "github.com/labuda/backend/internal/pricing/token/application"
-	pricingtokenentity "github.com/labuda/backend/internal/pricing/token/entity"
-	"github.com/labuda/backend/pkg/db"
+	platformconfigApp "github.com/hishumi/backend/internal/platform/config/application"
+	"github.com/hishumi/backend/internal/platform/response"
+	pricingtokenapp "github.com/hishumi/backend/internal/pricing/token/application"
+	pricingtokenentity "github.com/hishumi/backend/internal/pricing/token/entity"
+	"github.com/hishumi/backend/pkg/db"
 	"go.uber.org/zap"
 )
 

@@ -3,12 +3,12 @@
 // Dart
 import 'dart:async';
 import 'dart:collection';
-import 'package:labuda/domains/system/notification/presentation/widgets/in_app_notification_banner.dart';
+import 'package:hishumi/domains/system/notification/presentation/widgets/in_app_notification_banner.dart';
 
 // Flutter
 import 'package:flutter/material.dart';
-import 'package:labuda/core/src/theme/app_theme.dart';
-export 'package:labuda/domains/system/notification/presentation/widgets/in_app_notification_banner.dart'
+import 'package:hishumi/core/src/theme/app_theme.dart';
+export 'package:hishumi/domains/system/notification/presentation/widgets/in_app_notification_banner.dart'
     show BannerAction, BannerTone;
 
 /// In-App Banner Service

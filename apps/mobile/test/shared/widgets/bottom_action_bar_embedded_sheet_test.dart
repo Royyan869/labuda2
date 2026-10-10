@@ -10,7 +10,7 @@
 // Default mode is unchanged.
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/shared/widgets/bottom_action_bar.dart';
+import 'package:hishumi/shared/widgets/bottom_action_bar.dart';
 
 Widget _host({
   required bool embedded,

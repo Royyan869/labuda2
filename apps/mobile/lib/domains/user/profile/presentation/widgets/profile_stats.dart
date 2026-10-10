@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/social/follow/follow.dart';
-import 'package:labuda/domains/social/rating/rating.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/social/follow/follow.dart';
+import 'package:hishumi/domains/social/rating/rating.dart';
 
 /// Profile Stats Widget V2 - Fresh design dengan horizontal layout
 ///

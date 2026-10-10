@@ -28,7 +28,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	capabilityEntity "github.com/labuda/backend/internal/platform/capability/entity"
+	capabilityEntity "github.com/hishumi/backend/internal/platform/capability/entity"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

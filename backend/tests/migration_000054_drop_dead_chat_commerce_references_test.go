@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/labuda/backend/pkg/testdb"
+	"github.com/hishumi/backend/pkg/testdb"
 )
 
 func TestMigration000054_DropsDeadChatCommerceReferences(t *testing.T) {

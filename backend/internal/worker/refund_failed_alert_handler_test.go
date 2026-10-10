@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	alertentity "github.com/labuda/backend/internal/platform/alert/entity"
-	platformevent "github.com/labuda/backend/internal/platform/event"
+	alertentity "github.com/hishumi/backend/internal/platform/alert/entity"
+	platformevent "github.com/hishumi/backend/internal/platform/event"
 	"go.uber.org/zap/zaptest"
 )
 

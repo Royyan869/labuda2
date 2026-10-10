@@ -8,8 +8,8 @@ import (
 	firebase "firebase.google.com/go/v4"
 	"firebase.google.com/go/v4/auth"
 	"firebase.google.com/go/v4/messaging"
-	"github.com/labuda/backend/internal/config"
-	"github.com/labuda/backend/internal/platform/logger"
+	"github.com/hishumi/backend/internal/config"
+	"github.com/hishumi/backend/internal/platform/logger"
 	"go.uber.org/zap"
 	"google.golang.org/api/option"
 )

@@ -6,12 +6,12 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	sellerEntity "github.com/labuda/backend/internal/commerce/seller/entity"
-	subscriptionEntity "github.com/labuda/backend/internal/commerce/subscription/entity"
-	userEntity "github.com/labuda/backend/internal/identity/user/domain/entity"
-	"github.com/labuda/backend/internal/platform/mediaresolve"
-	"github.com/labuda/backend/internal/platform/s3presign"
-	"github.com/labuda/backend/pkg/db"
+	sellerEntity "github.com/hishumi/backend/internal/commerce/seller/entity"
+	subscriptionEntity "github.com/hishumi/backend/internal/commerce/subscription/entity"
+	userEntity "github.com/hishumi/backend/internal/identity/user/domain/entity"
+	"github.com/hishumi/backend/internal/platform/mediaresolve"
+	"github.com/hishumi/backend/internal/platform/s3presign"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 type profileMediaUserRepo struct {

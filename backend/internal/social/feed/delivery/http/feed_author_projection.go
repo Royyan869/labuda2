@@ -6,10 +6,10 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	identityusername "github.com/labuda/backend/internal/identity/username"
-	"github.com/labuda/backend/internal/pkg/publiccard"
-	"github.com/labuda/backend/internal/platform/mediaresolve"
-	feedentity "github.com/labuda/backend/internal/social/feed/entity"
+	identityusername "github.com/hishumi/backend/internal/identity/username"
+	"github.com/hishumi/backend/internal/pkg/publiccard"
+	"github.com/hishumi/backend/internal/platform/mediaresolve"
+	feedentity "github.com/hishumi/backend/internal/social/feed/entity"
 )
 
 type feedAuthorProjection struct {

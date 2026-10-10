@@ -3,14 +3,14 @@
 library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/core/common/types/preparation_time.dart';
-import 'package:labuda/shared/domain/entities/resource_projection.dart';
-import 'package:labuda/domains/commerce/catalog/auction/data/auction_providers.dart'
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/core/common/types/preparation_time.dart';
+import 'package:hishumi/shared/domain/entities/resource_projection.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/data/auction_providers.dart'
     show auctionRepositoryProvider;
 import 'auction_state.dart';
 import 'seller_auctions_pager.dart';
-import 'package:labuda/domains/commerce/catalog/auction/domain/domain.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/domain/domain.dart';
 
 /// Auction Notifier
 ///

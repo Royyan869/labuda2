@@ -5,21 +5,21 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/commerce/pricing/promotion/data/dto/promotion_contract_dto.dart';
-import 'package:labuda/domains/commerce/pricing/promotion/presentation/providers/canonical_promotion_providers.dart';
-import 'package:labuda/domains/finance/transaction/payment/domain/entities/payment.dart'
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/commerce/pricing/promotion/data/dto/promotion_contract_dto.dart';
+import 'package:hishumi/domains/commerce/pricing/promotion/presentation/providers/canonical_promotion_providers.dart';
+import 'package:hishumi/domains/finance/transaction/payment/domain/entities/payment.dart'
     show PaymentMethodOption;
-import 'package:labuda/domains/finance/transaction/payment/presentation/widgets/payment_method_picker_sheet.dart';
-import 'package:labuda/shared/models/wilayah_models.dart';
-import 'package:labuda/shared/payment/payment_method_trigger.dart';
-import 'package:labuda/shared/utils/app_formatters.dart';
-import 'package:labuda/shared/utils/money_input_formatter.dart';
-import 'package:labuda/shared/widgets/app_bottom_sheet_base.dart';
-import 'package:labuda/shared/widgets/app_snackbar.dart';
-import 'package:labuda/shared/widgets/app_text_field.dart';
-import 'package:labuda/shared/widgets/wilayah/city_dropdown.dart';
-import 'package:labuda/shared/widgets/wilayah/province_dropdown.dart';
+import 'package:hishumi/domains/finance/transaction/payment/presentation/widgets/payment_method_picker_sheet.dart';
+import 'package:hishumi/shared/models/wilayah_models.dart';
+import 'package:hishumi/shared/payment/payment_method_trigger.dart';
+import 'package:hishumi/shared/utils/app_formatters.dart';
+import 'package:hishumi/shared/utils/money_input_formatter.dart';
+import 'package:hishumi/shared/widgets/app_bottom_sheet_base.dart';
+import 'package:hishumi/shared/widgets/app_snackbar.dart';
+import 'package:hishumi/shared/widgets/app_text_field.dart';
+import 'package:hishumi/shared/widgets/wilayah/city_dropdown.dart';
+import 'package:hishumi/shared/widgets/wilayah/province_dropdown.dart';
 
 /// Canonical "Buat Promosi" screen.
 ///

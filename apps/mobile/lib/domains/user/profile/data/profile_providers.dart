@@ -7,18 +7,18 @@
 library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/user/profile/data/datasources/address_api_datasource.dart';
-import 'package:labuda/domains/user/profile/data/datasources/user_api_datasource.dart';
-import 'package:labuda/domains/user/profile/data/repositories/address_repository_api.dart';
-import 'package:labuda/domains/user/profile/data/repositories/profile_repository_api.dart';
-import 'package:labuda/domains/user/profile/data/services/avatar_cache_service.dart';
-import 'package:labuda/domains/user/profile/data/services/avatar_upload_service.dart';
-import 'package:labuda/domains/user/profile/data/services/cover_photo_upload_service.dart';
-import 'package:labuda/domains/user/profile/data/services/user_lookup_service.dart';
-import 'package:labuda/domains/user/profile/data/services/user_sync_service.dart';
-import 'package:labuda/domains/user/profile/domain/repositories/i_address_repository.dart';
-import 'package:labuda/domains/user/profile/domain/repositories/i_profile_repository.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/user/profile/data/datasources/address_api_datasource.dart';
+import 'package:hishumi/domains/user/profile/data/datasources/user_api_datasource.dart';
+import 'package:hishumi/domains/user/profile/data/repositories/address_repository_api.dart';
+import 'package:hishumi/domains/user/profile/data/repositories/profile_repository_api.dart';
+import 'package:hishumi/domains/user/profile/data/services/avatar_cache_service.dart';
+import 'package:hishumi/domains/user/profile/data/services/avatar_upload_service.dart';
+import 'package:hishumi/domains/user/profile/data/services/cover_photo_upload_service.dart';
+import 'package:hishumi/domains/user/profile/data/services/user_lookup_service.dart';
+import 'package:hishumi/domains/user/profile/data/services/user_sync_service.dart';
+import 'package:hishumi/domains/user/profile/domain/repositories/i_address_repository.dart';
+import 'package:hishumi/domains/user/profile/domain/repositories/i_profile_repository.dart';
 
 // =============================================================================
 // DATASOURCE PROVIDERS

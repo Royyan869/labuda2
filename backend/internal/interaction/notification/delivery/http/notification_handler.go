@@ -5,12 +5,12 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	notificationrepo "github.com/labuda/backend/internal/interaction/notification"
-	notificationEntity "github.com/labuda/backend/internal/interaction/notification/entity"
-	notificationrepoImpl "github.com/labuda/backend/internal/interaction/notification/infrastructure/repository"
-	"github.com/labuda/backend/internal/pkg/publiccard"
-	"github.com/labuda/backend/internal/platform/response"
-	"github.com/labuda/backend/pkg/db"
+	notificationrepo "github.com/hishumi/backend/internal/interaction/notification"
+	notificationEntity "github.com/hishumi/backend/internal/interaction/notification/entity"
+	notificationrepoImpl "github.com/hishumi/backend/internal/interaction/notification/infrastructure/repository"
+	"github.com/hishumi/backend/internal/pkg/publiccard"
+	"github.com/hishumi/backend/internal/platform/response"
+	"github.com/hishumi/backend/pkg/db"
 	"go.uber.org/zap"
 )
 

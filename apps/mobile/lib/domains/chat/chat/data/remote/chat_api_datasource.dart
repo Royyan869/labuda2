@@ -1,7 +1,7 @@
-import 'package:labuda/core/api/api.dart';
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/domains/chat/chat/data/dto/chat_dto.dart';
-import 'package:labuda/domains/chat/chat/data/dto/message_dto.dart';
+import 'package:hishumi/core/api/api.dart';
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/domains/chat/chat/data/dto/chat_dto.dart';
+import 'package:hishumi/domains/chat/chat/data/dto/message_dto.dart';
 
 /// Chat API Datasource
 ///

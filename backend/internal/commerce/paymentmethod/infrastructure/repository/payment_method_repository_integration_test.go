@@ -7,10 +7,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/labuda/backend/internal/commerce/paymentmethod/entity"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/money"
-	"github.com/labuda/backend/pkg/testdb"
+	"github.com/hishumi/backend/internal/commerce/paymentmethod/entity"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/money"
+	"github.com/hishumi/backend/pkg/testdb"
 )
 
 // reseedCanonicalPaymentMethods (PASS_19B) re-inserts the migration

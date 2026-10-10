@@ -6,8 +6,8 @@
 /// IMPORTANT: Coins are LOYALTY POINTS, NOT money.
 library;
 
-import 'package:labuda/domains/finance/wallet/coins/domain/entities/coin_balance.dart';
-import 'package:labuda/domains/finance/wallet/coins/domain/entities/coin_transaction.dart';
+import 'package:hishumi/domains/finance/wallet/coins/domain/entities/coin_balance.dart';
+import 'package:hishumi/domains/finance/wallet/coins/domain/entities/coin_transaction.dart';
 
 /// DTO for spending coins request
 /// Used when spending coins for discounts or other purposes (NOT payment)

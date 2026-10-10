@@ -16,9 +16,9 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:labuda/core/api/api_client.dart';
-import 'package:labuda/core/api/base_api_repository.dart';
-import 'package:labuda/core/api/models/common_api_models.dart';
+import 'package:hishumi/core/api/api_client.dart';
+import 'package:hishumi/core/api/base_api_repository.dart';
+import 'package:hishumi/core/api/models/common_api_models.dart';
 
 /// Implements [ApiClient] so the BaseApiRepository field is satisfied
 /// without booting Firebase (which the real [ApiClient] constructor

@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/generated/app_localizations.dart';
-import 'package:labuda/shared/widgets/page_error_state.dart';
+import 'package:hishumi/generated/app_localizations.dart';
+import 'package:hishumi/shared/widgets/page_error_state.dart';
 
 /// CANONICAL contract for the page-level error foundation.
 ///

@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/shared/shared.dart';
-import 'package:labuda/generated/app_localizations.dart';
-import 'package:labuda/features/home/home.dart';
-import 'package:labuda/features/marketplace/presentation/screens/marketplace_screen.dart';
-import 'package:labuda/domains/user/preference/seller/presentation/providers/current_seller_provider.dart';
-import 'package:labuda/domains/user/preference/seller/domain/entities/seller_state.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/shared/shared.dart';
+import 'package:hishumi/generated/app_localizations.dart';
+import 'package:hishumi/features/home/home.dart';
+import 'package:hishumi/features/marketplace/presentation/screens/marketplace_screen.dart';
+import 'package:hishumi/domains/user/preference/seller/presentation/providers/current_seller_provider.dart';
+import 'package:hishumi/domains/user/preference/seller/domain/entities/seller_state.dart';
 
 /// Main Screen dengan bottom navigation untuk aplikasi LABUDA
 ///

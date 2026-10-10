@@ -7,8 +7,8 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction.dart';
-import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_detail_seller_card.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/domain/entities/auction.dart';
+import 'package:hishumi/domains/commerce/catalog/shared/presentation/widgets/commerce_detail_seller_card.dart';
 
 class AuctionSellerCard extends StatelessWidget {
   final Auction auction;

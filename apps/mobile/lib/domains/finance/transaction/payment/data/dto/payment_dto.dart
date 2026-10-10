@@ -13,7 +13,7 @@
 library;
 
 import 'package:equatable/equatable.dart';
-import 'package:labuda/core/common/types/payment_types.dart';
+import 'package:hishumi/core/common/types/payment_types.dart';
 import '../../domain/entities/payment.dart';
 import '../../domain/entities/payment_intent.dart';
 

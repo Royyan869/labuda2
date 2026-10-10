@@ -14,8 +14,8 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	productEntity "github.com/labuda/backend/internal/commerce/product/entity"
-	"github.com/labuda/backend/pkg/money"
+	productEntity "github.com/hishumi/backend/internal/commerce/product/entity"
+	"github.com/hishumi/backend/pkg/money"
 )
 
 // TestForSaleStatus_IsRepostable pins the exact set of statuses that are/are not

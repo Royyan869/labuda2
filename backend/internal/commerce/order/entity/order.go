@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	addressentity "github.com/labuda/backend/internal/identity/address/entity"
-	"github.com/labuda/backend/pkg/money"
+	addressentity "github.com/hishumi/backend/internal/identity/address/entity"
+	"github.com/hishumi/backend/pkg/money"
 )
 
 // Order represents a buyer-seller transaction with escrow.

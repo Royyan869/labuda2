@@ -35,7 +35,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/labuda/backend/internal/config"
+	"github.com/hishumi/backend/internal/config"
 	"go.uber.org/zap"
 )
 

@@ -7,10 +7,10 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/labuda/backend/internal/pricing/promotion/delivery/entity"
-	deliveryRepo "github.com/labuda/backend/internal/pricing/promotion/delivery/repository"
-	promoentity "github.com/labuda/backend/internal/pricing/promotion/entity"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/pricing/promotion/delivery/entity"
+	deliveryRepo "github.com/hishumi/backend/internal/pricing/promotion/delivery/repository"
+	promoentity "github.com/hishumi/backend/internal/pricing/promotion/entity"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // DeliveryRepositoryImpl persists canonical delivery tickets and qualified

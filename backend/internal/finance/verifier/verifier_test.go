@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/finance"
+	"github.com/hishumi/backend/internal/finance"
 )
 
 func TestOpeningBalanceMetadataForBankSettlement(t *testing.T) {

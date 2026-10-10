@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/db"
 	"github.com/stretchr/testify/require"
 )
 

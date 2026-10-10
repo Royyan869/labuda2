@@ -10,21 +10,21 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/core/api/api_error_codes.dart' as api_codes;
-import 'package:labuda/core/common/types/preparation_time.dart';
-import 'package:labuda/shared/shared.dart';
-import 'package:labuda/domains/commerce/catalog/for_sale/domain/domain.dart';
-import 'package:labuda/domains/commerce/catalog/for_sale/presentation/create_for_sale_route_contract.dart';
-import 'package:labuda/features/home/home.dart';
-import 'package:labuda/domains/commerce/catalog/for_sale/presentation/providers/for_sale_providers.dart';
-import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_access_gate.dart';
-import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_certificate_selector.dart';
-import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_preparation_time_selector.dart';
-import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_detail_states.dart';
-import 'package:labuda/shared/widgets/media_grid_uploader.dart';
-import 'package:labuda/domains/commerce/transaction/shipping/presentation/widgets/seller_shipping_options_selector.dart';
-import 'package:labuda/domains/user/preference/seller/presentation/providers/current_seller_provider.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/core/api/api_error_codes.dart' as api_codes;
+import 'package:hishumi/core/common/types/preparation_time.dart';
+import 'package:hishumi/shared/shared.dart';
+import 'package:hishumi/domains/commerce/catalog/for_sale/domain/domain.dart';
+import 'package:hishumi/domains/commerce/catalog/for_sale/presentation/create_for_sale_route_contract.dart';
+import 'package:hishumi/features/home/home.dart';
+import 'package:hishumi/domains/commerce/catalog/for_sale/presentation/providers/for_sale_providers.dart';
+import 'package:hishumi/domains/commerce/catalog/shared/presentation/widgets/commerce_access_gate.dart';
+import 'package:hishumi/domains/commerce/catalog/shared/presentation/widgets/commerce_certificate_selector.dart';
+import 'package:hishumi/domains/commerce/catalog/shared/presentation/widgets/commerce_preparation_time_selector.dart';
+import 'package:hishumi/domains/commerce/catalog/shared/presentation/widgets/commerce_detail_states.dart';
+import 'package:hishumi/shared/widgets/media_grid_uploader.dart';
+import 'package:hishumi/domains/commerce/transaction/shipping/presentation/widgets/seller_shipping_options_selector.dart';
+import 'package:hishumi/domains/user/preference/seller/presentation/providers/current_seller_provider.dart';
 
 /// Create ForSale Screen
 ///

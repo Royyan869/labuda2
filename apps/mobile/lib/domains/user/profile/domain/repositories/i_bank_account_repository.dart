@@ -1,6 +1,6 @@
 // Internal
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/user/profile/domain/entities/bank_account_entity.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/user/profile/domain/entities/bank_account_entity.dart';
 
 /// Repository interface for bank account operations.
 ///

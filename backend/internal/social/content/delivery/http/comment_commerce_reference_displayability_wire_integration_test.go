@@ -15,14 +15,14 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 
-	forsaleApp "github.com/labuda/backend/internal/commerce/forsale/application"
-	commerceResponse "github.com/labuda/backend/internal/commerce/response"
-	shippingrepo "github.com/labuda/backend/internal/commerce/shipping/infrastructure/repository"
-	idempotencyRepo "github.com/labuda/backend/internal/platform/idempotency/repository"
-	contentApp "github.com/labuda/backend/internal/social/content/application"
-	contentrepo "github.com/labuda/backend/internal/social/content/infrastructure/repository"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/testdb"
+	forsaleApp "github.com/hishumi/backend/internal/commerce/forsale/application"
+	commerceResponse "github.com/hishumi/backend/internal/commerce/response"
+	shippingrepo "github.com/hishumi/backend/internal/commerce/shipping/infrastructure/repository"
+	idempotencyRepo "github.com/hishumi/backend/internal/platform/idempotency/repository"
+	contentApp "github.com/hishumi/backend/internal/social/content/application"
+	contentrepo "github.com/hishumi/backend/internal/social/content/infrastructure/repository"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/testdb"
 )
 
 // testCommentDisplayabilityHandler builds a production-shaped handler wired

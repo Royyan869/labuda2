@@ -1,6 +1,6 @@
-import 'package:labuda/core/core.dart';
-import 'package:labuda/features/home/domain/domain.dart';
-import 'package:labuda/features/home/data/data.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/features/home/domain/domain.dart';
+import 'package:hishumi/features/home/data/data.dart';
 
 /// Repository implementation untuk Home
 /// Data layer - uses Feed domain (/api/v1/feed) as canonical source

@@ -31,7 +31,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	authhttp "github.com/labuda/backend/internal/identity/auth/delivery/http"
+	authhttp "github.com/hishumi/backend/internal/identity/auth/delivery/http"
 )
 
 // callFirebaseAuthWithUsername exchanges a firebase token with an optional

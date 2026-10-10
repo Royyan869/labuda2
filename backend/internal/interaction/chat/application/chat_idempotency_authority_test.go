@@ -6,9 +6,9 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	chatEntity "github.com/labuda/backend/internal/interaction/chat/entity"
-	chatRepo "github.com/labuda/backend/internal/interaction/chat/repository"
-	"github.com/labuda/backend/pkg/rate"
+	chatEntity "github.com/hishumi/backend/internal/interaction/chat/entity"
+	chatRepo "github.com/hishumi/backend/internal/interaction/chat/repository"
+	"github.com/hishumi/backend/pkg/rate"
 	"go.uber.org/zap"
 )
 

@@ -1,8 +1,8 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/api/api_client.dart';
-import 'package:labuda/domains/social/follow/data/datasources/follow_api_datasource.dart';
-import 'package:labuda/domains/social/follow/data/dto/follow_api_models.dart';
+import 'package:hishumi/core/api/api_client.dart';
+import 'package:hishumi/domains/social/follow/data/datasources/follow_api_datasource.dart';
+import 'package:hishumi/domains/social/follow/data/dto/follow_api_models.dart';
 
 class _FakeApiClient extends ApiClient {
   _FakeApiClient(this.respond) : super(baseUrl: 'https://example.com');

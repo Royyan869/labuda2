@@ -8,7 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/finance/refund/entity"
+	"github.com/hishumi/backend/internal/finance/refund/entity"
 )
 
 // ============================================================================

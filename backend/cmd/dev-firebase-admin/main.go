@@ -43,9 +43,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/labuda/backend/internal/config"
-	"github.com/labuda/backend/internal/platform/logger"
-	"github.com/labuda/backend/pkg/firebase"
+	"github.com/hishumi/backend/internal/config"
+	"github.com/hishumi/backend/internal/platform/logger"
+	"github.com/hishumi/backend/pkg/firebase"
 )
 
 func main() {

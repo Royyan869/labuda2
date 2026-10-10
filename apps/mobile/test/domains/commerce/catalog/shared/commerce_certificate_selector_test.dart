@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_certificate_selector.dart';
+import 'package:hishumi/domains/commerce/catalog/shared/presentation/widgets/commerce_certificate_selector.dart';
 
 void main() {
   // Negative contract: the owner-locked vocabulary is breeder, contest, import,

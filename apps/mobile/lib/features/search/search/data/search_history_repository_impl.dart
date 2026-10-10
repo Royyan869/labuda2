@@ -1,9 +1,9 @@
-import 'package:labuda/core/api/structured_api_exception.dart';
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/features/search/search/data/mappers/search_mapper.dart';
-import 'package:labuda/features/search/search/data/remote/search_api_service.dart';
-import 'package:labuda/features/search/search/domain/entities/search_history.dart';
-import 'package:labuda/features/search/search/domain/repositories/search_history_repository.dart';
+import 'package:hishumi/core/api/structured_api_exception.dart';
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/features/search/search/data/mappers/search_mapper.dart';
+import 'package:hishumi/features/search/search/data/remote/search_api_service.dart';
+import 'package:hishumi/features/search/search/domain/entities/search_history.dart';
+import 'package:hishumi/features/search/search/domain/repositories/search_history_repository.dart';
 
 /// Search History Repository Implementation using API backend
 class SearchHistoryRepositoryImpl implements SearchHistoryRepository {

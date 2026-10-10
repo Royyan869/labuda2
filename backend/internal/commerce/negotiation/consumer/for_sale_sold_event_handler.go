@@ -9,11 +9,11 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	negotiationImpl "github.com/labuda/backend/internal/commerce/negotiation/infrastructure/repository"
-	negotiationRepo "github.com/labuda/backend/internal/commerce/negotiation/repository"
-	chatApp "github.com/labuda/backend/internal/interaction/chat/application"
-	platformevent "github.com/labuda/backend/internal/platform/event"
-	"github.com/labuda/backend/pkg/db"
+	negotiationImpl "github.com/hishumi/backend/internal/commerce/negotiation/infrastructure/repository"
+	negotiationRepo "github.com/hishumi/backend/internal/commerce/negotiation/repository"
+	chatApp "github.com/hishumi/backend/internal/interaction/chat/application"
+	platformevent "github.com/hishumi/backend/internal/platform/event"
+	"github.com/hishumi/backend/pkg/db"
 	"go.uber.org/zap"
 )
 

@@ -7,10 +7,10 @@
 library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/commerce/pricing/discount/data/datasources/discount_api_datasource.dart';
-import 'package:labuda/domains/commerce/pricing/discount/data/repositories/discount_api_repository_impl.dart';
-import 'package:labuda/domains/commerce/pricing/discount/domain/repositories/i_discount_repository.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/commerce/pricing/discount/data/datasources/discount_api_datasource.dart';
+import 'package:hishumi/domains/commerce/pricing/discount/data/repositories/discount_api_repository_impl.dart';
+import 'package:hishumi/domains/commerce/pricing/discount/domain/repositories/i_discount_repository.dart';
 
 // =============================================================================
 // DATASOURCE PROVIDERS

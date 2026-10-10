@@ -3,12 +3,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/features/search/search/data/remote/search_api_service.dart';
-import 'package:labuda/features/search/search/presentation/providers/mention_providers.dart';
-import 'package:labuda/features/search/search/presentation/providers/providers.dart'
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/features/search/search/data/remote/search_api_service.dart';
+import 'package:hishumi/features/search/search/presentation/providers/mention_providers.dart';
+import 'package:hishumi/features/search/search/presentation/providers/providers.dart'
     show searchApiServiceProvider;
-import 'package:labuda/shared/widgets/mentions/mention_rich_text.dart';
+import 'package:hishumi/shared/widgets/mentions/mention_rich_text.dart';
 
 class _FakeApiClient extends Fake implements ApiClient {}
 class _FakeSearchApiService extends SearchApiService { _FakeSearchApiService() : super(_FakeApiClient()); }

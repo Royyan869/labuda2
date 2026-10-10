@@ -5,9 +5,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/platform/mediaresolve"
-	"github.com/labuda/backend/internal/platform/s3presign"
-	"github.com/labuda/backend/internal/social/content/entity"
+	"github.com/hishumi/backend/internal/platform/mediaresolve"
+	"github.com/hishumi/backend/internal/platform/s3presign"
+	"github.com/hishumi/backend/internal/social/content/entity"
 )
 
 // TestNewCommentResponse_AuthorLifecycle locks in the E3.2 lifecycle

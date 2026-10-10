@@ -36,8 +36,8 @@ package evaluator
 // narrow — the detail surface coarsens all non-ALLOW decisions to a single
 // "deny" or "unknown_fail_closed" reason because the wire response (HTTP
 // 404) does not differentiate sub-reasons. Sub-reasons are still observable
-// via the existing labuda_evaluator_shadow_unknown_total /
-// labuda_evaluator_shadow_divergence_total{surface="content_detail"}
+// via the existing hishumi_evaluator_shadow_unknown_total /
+// hishumi_evaluator_shadow_divergence_total{surface="content_detail"}
 // counters.
 type ContentDetailDecisionReason string
 

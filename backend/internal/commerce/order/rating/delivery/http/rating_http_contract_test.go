@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	ratingEntity "github.com/labuda/backend/internal/commerce/order/rating/entity"
-	ratingRepo "github.com/labuda/backend/internal/commerce/order/rating/infrastructure/repository"
+	ratingEntity "github.com/hishumi/backend/internal/commerce/order/rating/entity"
+	ratingRepo "github.com/hishumi/backend/internal/commerce/order/rating/infrastructure/repository"
 )
 
 // The Rating HTTP contract is LOCKED to:

@@ -1,4 +1,4 @@
-﻿// SECTION-BASED ALL — SearchResultsScreen runtime widget tests.
+// SECTION-BASED ALL — SearchResultsScreen runtime widget tests.
 //
 // Pumps the REAL SearchResultsScreen + REAL search notifier/usecase/
 // repository against a fake SearchApiService, so the whole canonical
@@ -17,13 +17,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/domains/user/identity/authentication/presentation/providers/auth_controller.dart';
-import 'package:labuda/generated/app_localizations.dart';
-import 'package:labuda/domains/user/identity/authentication/presentation/providers/auth_state.dart';
-import 'package:labuda/features/search/search/data/dto/search_dto.dart';
-import 'package:labuda/features/search/search/data/remote/search_api_service.dart';
-import 'package:labuda/features/search/search/presentation/providers/providers.dart';
-import 'package:labuda/features/search/search/presentation/screens/search_results_screen.dart';
+import 'package:hishumi/domains/user/identity/authentication/presentation/providers/auth_controller.dart';
+import 'package:hishumi/generated/app_localizations.dart';
+import 'package:hishumi/domains/user/identity/authentication/presentation/providers/auth_state.dart';
+import 'package:hishumi/features/search/search/data/dto/search_dto.dart';
+import 'package:hishumi/features/search/search/data/remote/search_api_service.dart';
+import 'package:hishumi/features/search/search/presentation/providers/providers.dart';
+import 'package:hishumi/features/search/search/presentation/screens/search_results_screen.dart';
 
 const _guestAuth = AuthStateUnauthenticated();
 

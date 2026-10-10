@@ -15,9 +15,9 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 
-	sellerhttp "github.com/labuda/backend/internal/commerce/seller/delivery/http"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/testdb"
+	sellerhttp "github.com/hishumi/backend/internal/commerce/seller/delivery/http"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/testdb"
 )
 
 func seedAnalyticsUser(t *testing.T, ctx context.Context, tdb *testdb.TestDB) uuid.UUID {

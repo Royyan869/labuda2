@@ -492,7 +492,7 @@ export function PaymentMethodsPage() {
             </p>
             <p>
               Catatan PPN: harga publik Midtrans umumnya belum termasuk PPN, kecuali QRIS, GoPay, dan
-              ShopeePay. Labuda saat ini mengenakan biaya ke buyer sesuai jumlah/formula yang
+              ShopeePay. HiShumi saat ini mengenakan biaya ke buyer sesuai jumlah/formula yang
               dikonfigurasi di sini — pemodelan pajak/settlement merchant final masih menjadi utang
               teknis terpisah.
             </p>

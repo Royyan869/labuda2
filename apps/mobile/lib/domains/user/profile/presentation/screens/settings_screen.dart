@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/shared/shared.dart';
-import 'package:labuda/generated/app_localizations.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/shared/shared.dart';
+import 'package:hishumi/generated/app_localizations.dart';
 import 'unified_edit_profile_screen.dart';
-import 'package:labuda/domains/user/preference/seller/seller.dart';
-import 'package:labuda/domains/user/profile/presentation/widgets/settings_profile_identity_section.dart';
-import 'package:labuda/domains/user/profile/presentation/widgets/settings_security_privacy_section.dart';
-import 'package:labuda/domains/user/profile/presentation/widgets/settings_app_preferences_section.dart';
-import 'package:labuda/domains/user/profile/presentation/widgets/settings_support_section.dart';
-import 'package:labuda/domains/user/profile/presentation/widgets/settings_account_management_section.dart';
-import 'package:labuda/domains/user/profile/presentation/widgets/settings_marketing_section.dart';
+import 'package:hishumi/domains/user/preference/seller/seller.dart';
+import 'package:hishumi/domains/user/profile/presentation/widgets/settings_profile_identity_section.dart';
+import 'package:hishumi/domains/user/profile/presentation/widgets/settings_security_privacy_section.dart';
+import 'package:hishumi/domains/user/profile/presentation/widgets/settings_app_preferences_section.dart';
+import 'package:hishumi/domains/user/profile/presentation/widgets/settings_support_section.dart';
+import 'package:hishumi/domains/user/profile/presentation/widgets/settings_account_management_section.dart';
+import 'package:hishumi/domains/user/profile/presentation/widgets/settings_marketing_section.dart';
 
 /// Unified Settings Screen (Personal + Business Management)
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -64,7 +64,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             // 👤 Profile & Identity Section
             SettingsProfileIdentitySection(onNavigate: _handleNavigation),
 
-            // 🪙 Labuda Coins (loyalty) — canonical entry point
+            // 🪙 HiShumi Coins (loyalty) — canonical entry point
             _buildCoinsTile(context),
 
             // 📢 Marketing & Promotion Section — seller capability only (hasMarketAuthority)
@@ -384,13 +384,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  /// Labuda Coins (loyalty points) — canonical entry point to the `/coins`
+  /// HiShumi Coins (loyalty points) — canonical entry point to the `/coins`
   /// surface. Coins are loyalty points, not wallet/payment.
   Widget _buildCoinsTile(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return ListTile(
       leading: Icon(Icons.toll_outlined, color: scheme.onSurfaceVariant),
-      title: Text('Labuda Coins', style: TextStyle(color: scheme.onSurface)),
+      title: Text('HiShumi Coins', style: TextStyle(color: scheme.onSurface)),
       subtitle: Text(
         'Lihat saldo dan riwayat koin',
         style: context.typeRoles.bodyDense.copyWith(
@@ -412,7 +412,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(l10n.aboutLABUDA),
+        title: Text(l10n.aboutHiShumi),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -423,7 +423,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             const SizedBox(height: 8),
             Text(l10n.copyrightLabudaTeam(currentYear)),
             const SizedBox(height: 16),
-            Text(l10n.labudaDescription, style: context.typeRoles.bodyDense),
+            Text(l10n.hishumiDescription, style: context.typeRoles.bodyDense),
           ],
         ),
         actions: [

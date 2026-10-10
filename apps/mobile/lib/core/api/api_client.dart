@@ -1,19 +1,19 @@
 import 'package:dio/dio.dart';
-import 'package:labuda/core/api/api_error_codes.dart';
-import 'package:labuda/core/api/config/api_config.dart';
-import 'package:labuda/core/api/exceptions/api_exception.dart';
-import 'package:labuda/core/api/interceptors/auth_interceptor.dart';
-import 'package:labuda/core/api/interceptors/detailed_logging_interceptor.dart';
-import 'package:labuda/core/api/interceptors/error_interceptor.dart';
-import 'package:labuda/core/api/interceptors/performance_interceptor.dart';
-import 'package:labuda/core/src/interfaces/services/i_local_storage_service.dart';
-import 'package:labuda/core/src/interfaces/services/i_logger_service.dart';
+import 'package:hishumi/core/api/api_error_codes.dart';
+import 'package:hishumi/core/api/config/api_config.dart';
+import 'package:hishumi/core/api/exceptions/api_exception.dart';
+import 'package:hishumi/core/api/interceptors/auth_interceptor.dart';
+import 'package:hishumi/core/api/interceptors/detailed_logging_interceptor.dart';
+import 'package:hishumi/core/api/interceptors/error_interceptor.dart';
+import 'package:hishumi/core/api/interceptors/performance_interceptor.dart';
+import 'package:hishumi/core/src/interfaces/services/i_local_storage_service.dart';
+import 'package:hishumi/core/src/interfaces/services/i_logger_service.dart';
 
 /// Central HTTP client for all API calls to Go backend
 ///
 /// Features:
-/// - Automatic Labuda access JWT attachment (via AuthInterceptor, Phase 3B)
-/// - Single-flight Labuda refresh + single-shot 401 retry (Phase 3C)
+/// - Automatic HiShumi access JWT attachment (via AuthInterceptor, Phase 3B)
+/// - Single-flight HiShumi refresh + single-shot 401 retry (Phase 3C)
 /// - Error handling and conversion to ApiException
 /// - Request/response logging (dev only)
 /// - Configurable timeouts
@@ -38,7 +38,7 @@ class ApiClient {
         receiveTimeout: Duration(milliseconds: ApiConfig.receiveTimeout),
         sendTimeout: Duration(milliseconds: ApiConfig.sendTimeout),
         headers: ApiConfig.defaultHeaders,
-        // Phase 3C: 401 must be treated as error to trigger Labuda refresh in AuthInterceptor.onError.
+        // Phase 3C: 401 must be treated as error to trigger HiShumi refresh in AuthInterceptor.onError.
         // Other 4xx remain success for envelope handling.
         validateStatus: (status) => status != null && status < 500 && status != 401,
       ),
@@ -51,7 +51,7 @@ class ApiClient {
       // Network performance metrics - canonical API-latency authority. First so
       // it measures the whole client-side request duration (including auth).
       PerformanceInterceptor(),
-      // Auth interceptor - canonical Labuda JWT authority (Phase 3B) + Phase 3C refresh.
+      // Auth interceptor - canonical HiShumi JWT authority (Phase 3B) + Phase 3C refresh.
       // Firebase token is NOT used for normal API; exchange & complete-profile
       // are skipAuth and carry their own credentials. Refresh is skipAuth-isolated.
       authInterceptor,

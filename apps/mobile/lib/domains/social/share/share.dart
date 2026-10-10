@@ -8,7 +8,7 @@
 //
 // Usage:
 // ```dart
-// import 'package:labuda/domains/social/share/share.dart';
+// import 'package:hishumi/domains/social/share/share.dart';
 //
 // // In UI
 // final shareState = ref.watch(shareNotifierProvider);

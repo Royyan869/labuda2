@@ -7,7 +7,7 @@
 library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
+import 'package:hishumi/core/core.dart';
 import '../../domain/domain.dart';
 import '../../data/data.dart';
 

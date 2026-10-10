@@ -8,9 +8,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
-	addressEntity "github.com/labuda/backend/internal/identity/address/entity"
-	addressRepoInterface "github.com/labuda/backend/internal/identity/address/repository"
-	"github.com/labuda/backend/pkg/db"
+	addressEntity "github.com/hishumi/backend/internal/identity/address/entity"
+	addressRepoInterface "github.com/hishumi/backend/internal/identity/address/repository"
+	"github.com/hishumi/backend/pkg/db"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 )

@@ -1,5 +1,5 @@
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/domains/chat/chat/domain/repositories/chat_repository.dart';
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/domains/chat/chat/domain/repositories/chat_repository.dart';
 
 /// Link Order to Chat Use Case
 ///

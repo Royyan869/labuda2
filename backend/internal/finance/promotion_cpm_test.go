@@ -4,7 +4,7 @@ import (
 	"math"
 	"testing"
 
-	"github.com/labuda/backend/internal/finance"
+	"github.com/hishumi/backend/internal/finance"
 )
 
 // TestPromotionCumulativeSpend_CPM7500 locks the canonical worked example from

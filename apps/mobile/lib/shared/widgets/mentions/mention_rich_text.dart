@@ -1,9 +1,9 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/shared/utils/mention_parser.dart';
-import 'package:labuda/features/search/search/search.dart'; // **R2.2 MIGRATED**: Import from search domain
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/shared/utils/mention_parser.dart';
+import 'package:hishumi/features/search/search/search.dart'; // **R2.2 MIGRATED**: Import from search domain
 
 /// Widget untuk display text dengan clickable mentions
 ///

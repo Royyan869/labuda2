@@ -1,15 +1,15 @@
 #!/bin/bash
 # ============================================
 # PostgreSQL Backup Script (Linux/macOS/WSL)
-# Labuda Project - Automatic Daily Backup
+# HiShumi Project - Automatic Daily Backup
 # ============================================
 
 set -e
 
 # Configuration
-CONTAINER_NAME="labuda-postgres"
-DB_NAME="labuda"
-DB_USER="labuda"
+CONTAINER_NAME="hishumi-postgres"
+DB_NAME="hishumi"
+DB_USER="hishumi"
 BACKUP_DIR="./backups"
 RETENTION_DAYS=7
 
@@ -25,7 +25,7 @@ mkdir -p "$BACKUP_DIR"
 
 # Generate timestamp
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-BACKUP_FILE="$BACKUP_DIR/labuda_$TIMESTAMP.dump"
+BACKUP_FILE="$BACKUP_DIR/hishumi_$TIMESTAMP.dump"
 
 echo "=========================================="
 echo "PostgreSQL Backup Started"
@@ -103,7 +103,7 @@ echo "==========================================${NC}"
 echo -e "${CYAN}Applying retention policy: keeping last $RETENTION_DAYS days...${NC}"
 
 DELETED_COUNT=0
-find "$BACKUP_DIR" -type f -name "labuda_*.dump" -mtime +$RETENTION_DAYS -print | while read -r old_backup; do
+find "$BACKUP_DIR" -type f -name "hishumi_*.dump" -mtime +$RETENTION_DAYS -print | while read -r old_backup; do
     echo -e "${YELLOW}Deleting old backup: $(basename "$old_backup")${NC}"
     rm -f "$old_backup"
     DELETED_COUNT=$((DELETED_COUNT + 1))

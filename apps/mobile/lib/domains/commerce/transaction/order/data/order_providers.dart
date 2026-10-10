@@ -7,12 +7,12 @@
 library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/commerce/transaction/order/data/order_repository_impl.dart';
-import 'package:labuda/domains/commerce/transaction/order/data/refund_repository_impl.dart';
-import 'package:labuda/domains/commerce/transaction/order/data/remote/order_api_datasource_impl.dart';
-import 'package:labuda/domains/commerce/transaction/order/domain/repositories/order_repository.dart';
-import 'package:labuda/domains/commerce/transaction/order/domain/repositories/refund_repository.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/commerce/transaction/order/data/order_repository_impl.dart';
+import 'package:hishumi/domains/commerce/transaction/order/data/refund_repository_impl.dart';
+import 'package:hishumi/domains/commerce/transaction/order/data/remote/order_api_datasource_impl.dart';
+import 'package:hishumi/domains/commerce/transaction/order/domain/repositories/order_repository.dart';
+import 'package:hishumi/domains/commerce/transaction/order/domain/repositories/refund_repository.dart';
 
 // =============================================================================
 // DATASOURCE PROVIDERS

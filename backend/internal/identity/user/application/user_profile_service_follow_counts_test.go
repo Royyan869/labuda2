@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	userEntity "github.com/labuda/backend/internal/identity/user/domain/entity"
+	userEntity "github.com/hishumi/backend/internal/identity/user/domain/entity"
 )
 
 func TestUserProfileService_entityToProfileDTO_UsesProfileCounts(t *testing.T) {

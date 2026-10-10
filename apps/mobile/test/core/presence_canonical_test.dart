@@ -2,13 +2,13 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/api/api_client.dart';
-import 'package:labuda/core/providers/core_providers.dart';
-import 'package:labuda/core/src/presence/presence.dart';
-import 'package:labuda/core/src/providers/presence_provider.dart';
-import 'package:labuda/core/websocket/websocket_message.dart';
-import 'package:labuda/core/websocket/websocket_service.dart';
-import 'package:labuda/shared/services/logger_service.dart';
+import 'package:hishumi/core/api/api_client.dart';
+import 'package:hishumi/core/providers/core_providers.dart';
+import 'package:hishumi/core/src/presence/presence.dart';
+import 'package:hishumi/core/src/providers/presence_provider.dart';
+import 'package:hishumi/core/websocket/websocket_message.dart';
+import 'package:hishumi/core/websocket/websocket_service.dart';
+import 'package:hishumi/shared/services/logger_service.dart';
 
 ProviderContainer createTestContainer() {
   final apiClient = ApiClient(baseUrl: 'http://test');

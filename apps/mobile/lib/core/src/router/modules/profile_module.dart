@@ -1,15 +1,15 @@
 import 'package:go_router/go_router.dart';
-import 'package:labuda/core/src/router/route_paths.dart';
-import 'package:labuda/domains/user/profile/profile.dart';
-import 'package:labuda/domains/system/notification/notification.dart';
-import 'package:labuda/domains/system/report/presentation/screens/my_reports_screen.dart'
+import 'package:hishumi/core/src/router/route_paths.dart';
+import 'package:hishumi/domains/user/profile/profile.dart';
+import 'package:hishumi/domains/system/notification/notification.dart';
+import 'package:hishumi/domains/system/report/presentation/screens/my_reports_screen.dart'
     show MyReportsScreen;
-import 'package:labuda/domains/user/identity/authentication/presentation/screens/login_sessions_screen.dart'
+import 'package:hishumi/domains/user/identity/authentication/presentation/screens/login_sessions_screen.dart'
     show LoginSessionsScreen;
-import 'package:labuda/domains/social/follow/presentation/screens/follow_list_screen.dart'
+import 'package:hishumi/domains/social/follow/presentation/screens/follow_list_screen.dart'
     show FollowListScreen, FollowListType;
-import 'package:labuda/domains/user/identity/authentication/presentation/providers/auth_controller.dart';
-import 'package:labuda/domains/user/identity/authentication/presentation/providers/auth_state.dart';
+import 'package:hishumi/domains/user/identity/authentication/presentation/providers/auth_controller.dart';
+import 'package:hishumi/domains/user/identity/authentication/presentation/providers/auth_state.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'base_module.dart';

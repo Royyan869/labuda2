@@ -20,9 +20,9 @@ import (
 	"context"
 	"testing"
 
-	infraRepo "github.com/labuda/backend/internal/governance/support/infrastructure/repository"
-	supportRepo "github.com/labuda/backend/internal/governance/support/repository"
-	"github.com/labuda/backend/pkg/testdb"
+	infraRepo "github.com/hishumi/backend/internal/governance/support/infrastructure/repository"
+	supportRepo "github.com/hishumi/backend/internal/governance/support/repository"
+	"github.com/hishumi/backend/pkg/testdb"
 	"go.uber.org/zap"
 )
 

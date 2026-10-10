@@ -1,5 +1,5 @@
-import 'package:labuda/core/core.dart';
-import 'package:labuda/shared/governance/content_lifecycle.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/shared/governance/content_lifecycle.dart';
 import 'account_status.dart';
 import 'seller_tier.dart';
 

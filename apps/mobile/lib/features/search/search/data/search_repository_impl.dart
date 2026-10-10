@@ -1,14 +1,14 @@
-import 'package:labuda/core/api/structured_api_exception.dart';
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/features/search/search/data/mappers/search_mapper.dart';
-import 'package:labuda/features/search/search/data/remote/search_api_service.dart';
-import 'package:labuda/features/search/search/data/dto/search_dto.dart';
-import 'package:labuda/features/search/search/domain/entities/search_filters.dart';
-import 'package:labuda/features/search/search/domain/entities/search_result.dart'
+import 'package:hishumi/core/api/structured_api_exception.dart';
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/features/search/search/data/mappers/search_mapper.dart';
+import 'package:hishumi/features/search/search/data/remote/search_api_service.dart';
+import 'package:hishumi/features/search/search/data/dto/search_dto.dart';
+import 'package:hishumi/features/search/search/domain/entities/search_filters.dart';
+import 'package:hishumi/features/search/search/domain/entities/search_result.dart'
     show SearchResult, SearchResultType, UnifiedSearchResults;
-import 'package:labuda/features/search/search/domain/repositories/search_repository.dart';
-import 'package:labuda/shared/governance/content_lifecycle.dart';
-import 'package:labuda/shared/models/seller_identity_data.dart';
+import 'package:hishumi/features/search/search/domain/repositories/search_repository.dart';
+import 'package:hishumi/shared/governance/content_lifecycle.dart';
+import 'package:hishumi/shared/models/seller_identity_data.dart';
 
 /// Search Repository Implementation using API backend
 ///

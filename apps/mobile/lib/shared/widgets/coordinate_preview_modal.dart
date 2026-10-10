@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/src/config/google_config.dart';
-import 'package:labuda/shared/entities/post_location.dart';
-import 'package:labuda/shared/shared.dart';
+import 'package:hishumi/core/src/config/google_config.dart';
+import 'package:hishumi/shared/entities/post_location.dart';
+import 'package:hishumi/shared/shared.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:labuda/core/src/theme/app_theme.dart';
+import 'package:hishumi/core/src/theme/app_theme.dart';
 
 /// Modal untuk preview koordinat dengan opsi Edit dan Lihat Maps
 ///

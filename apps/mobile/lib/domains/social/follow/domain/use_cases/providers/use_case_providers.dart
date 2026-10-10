@@ -7,28 +7,28 @@
 library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/domains/social/follow/data/follow_providers.dart';
-import 'package:labuda/domains/social/follow/domain/use_cases/follow_user_use_case.dart';
-import 'package:labuda/domains/social/follow/domain/use_cases/unfollow_user_use_case.dart';
-import 'package:labuda/domains/social/follow/domain/use_cases/get_followers_use_case.dart';
-import 'package:labuda/domains/social/follow/domain/use_cases/get_following_use_case.dart';
-import 'package:labuda/domains/social/follow/domain/use_cases/get_follow_stats_use_case.dart';
-import 'package:labuda/domains/social/follow/domain/use_cases/search_users_use_case.dart';
+import 'package:hishumi/domains/social/follow/data/follow_providers.dart';
+import 'package:hishumi/domains/social/follow/domain/use_cases/follow_user_use_case.dart';
+import 'package:hishumi/domains/social/follow/domain/use_cases/unfollow_user_use_case.dart';
+import 'package:hishumi/domains/social/follow/domain/use_cases/get_followers_use_case.dart';
+import 'package:hishumi/domains/social/follow/domain/use_cases/get_following_use_case.dart';
+import 'package:hishumi/domains/social/follow/domain/use_cases/get_follow_stats_use_case.dart';
+import 'package:hishumi/domains/social/follow/domain/use_cases/search_users_use_case.dart';
 
 // Re-exports for use cases and their parameter classes
-export 'package:labuda/domains/social/follow/domain/use_cases/follow_user_use_case.dart'
+export 'package:hishumi/domains/social/follow/domain/use_cases/follow_user_use_case.dart'
     show FollowUserUseCase, FollowUserParams;
-export 'package:labuda/domains/social/follow/domain/use_cases/unfollow_user_use_case.dart'
+export 'package:hishumi/domains/social/follow/domain/use_cases/unfollow_user_use_case.dart'
     show UnfollowUserUseCase, UnfollowUserParams;
-export 'package:labuda/domains/social/follow/domain/use_cases/get_followers_use_case.dart'
+export 'package:hishumi/domains/social/follow/domain/use_cases/get_followers_use_case.dart'
     show GetFollowersUseCase, GetFollowersParams;
-export 'package:labuda/domains/social/follow/domain/use_cases/get_following_use_case.dart'
+export 'package:hishumi/domains/social/follow/domain/use_cases/get_following_use_case.dart'
     show GetFollowingUseCase, GetFollowingParams;
-export 'package:labuda/domains/social/follow/domain/use_cases/get_follow_stats_use_case.dart'
+export 'package:hishumi/domains/social/follow/domain/use_cases/get_follow_stats_use_case.dart'
     show GetFollowStatsUseCase, GetFollowStatsParams;
-export 'package:labuda/domains/social/follow/domain/use_cases/search_users_use_case.dart'
+export 'package:hishumi/domains/social/follow/domain/use_cases/search_users_use_case.dart'
     show SearchUsersUseCase, SearchUsersParams;
-export 'package:labuda/domains/social/follow/domain/repositories/i_follow_repository.dart'
+export 'package:hishumi/domains/social/follow/domain/repositories/i_follow_repository.dart'
     show IFollowRepository;
 
 // =============================================================================

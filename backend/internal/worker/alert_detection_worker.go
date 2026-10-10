@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/platform/alert/application"
-	alertentity "github.com/labuda/backend/internal/platform/alert/entity"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/platform/alert/application"
+	alertentity "github.com/hishumi/backend/internal/platform/alert/entity"
+	"github.com/hishumi/backend/pkg/db"
 	"go.uber.org/zap"
 )
 

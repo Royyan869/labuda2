@@ -9,8 +9,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
-	disputeEntity "github.com/labuda/backend/internal/governance/dispute/entity"
-	"github.com/labuda/backend/internal/finance/refund/entity"
+	disputeEntity "github.com/hishumi/backend/internal/governance/dispute/entity"
+	"github.com/hishumi/backend/internal/finance/refund/entity"
 )
 
 // ============================================================================

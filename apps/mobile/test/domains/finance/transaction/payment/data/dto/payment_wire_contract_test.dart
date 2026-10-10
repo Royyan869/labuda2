@@ -3,13 +3,13 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/api/api_client.dart';
-import 'package:labuda/core/common/types/payment_types.dart';
-import 'package:labuda/domains/finance/transaction/payment/data/dto/payment_dto.dart';
-import 'package:labuda/domains/finance/transaction/payment/data/remote/payment_remote_datasource.dart';
-import 'package:labuda/domains/finance/transaction/payment/data/repositories/payment_repository_impl.dart';
-import 'package:labuda/domains/finance/transaction/payment/domain/entities/payment.dart';
-import 'package:labuda/shared/services/logger_service.dart';
+import 'package:hishumi/core/api/api_client.dart';
+import 'package:hishumi/core/common/types/payment_types.dart';
+import 'package:hishumi/domains/finance/transaction/payment/data/dto/payment_dto.dart';
+import 'package:hishumi/domains/finance/transaction/payment/data/remote/payment_remote_datasource.dart';
+import 'package:hishumi/domains/finance/transaction/payment/data/repositories/payment_repository_impl.dart';
+import 'package:hishumi/domains/finance/transaction/payment/domain/entities/payment.dart';
+import 'package:hishumi/shared/services/logger_service.dart';
 
 /// CROSS-LANGUAGE PAYMENT WIRE CONTRACT PROOF (Dart half).
 ///

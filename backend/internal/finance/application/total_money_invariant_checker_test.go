@@ -12,10 +12,10 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 
-	alertapp "github.com/labuda/backend/internal/platform/alert/application"
-	alertentity "github.com/labuda/backend/internal/platform/alert/entity"
-	alertrepo "github.com/labuda/backend/internal/platform/alert/repository"
-	"github.com/labuda/backend/pkg/db"
+	alertapp "github.com/hishumi/backend/internal/platform/alert/application"
+	alertentity "github.com/hishumi/backend/internal/platform/alert/entity"
+	alertrepo "github.com/hishumi/backend/internal/platform/alert/repository"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // ============================================================================

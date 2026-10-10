@@ -24,7 +24,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	dbpkg "github.com/labuda/backend/pkg/db"
+	dbpkg "github.com/hishumi/backend/pkg/db"
 	"go.uber.org/zap"
 )
 

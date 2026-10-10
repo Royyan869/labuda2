@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/identity/address/entity"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/identity/address/entity"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // AddressCount holds the address count for an account.

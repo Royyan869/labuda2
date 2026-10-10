@@ -1,7 +1,7 @@
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/commerce/transaction/shipping/data/mappers/shipping_mapper.dart';
-import 'package:labuda/domains/commerce/transaction/shipping/data/remote/shipping_remote_datasource.dart';
-import 'package:labuda/domains/commerce/transaction/shipping/domain/domain.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/commerce/transaction/shipping/data/mappers/shipping_mapper.dart';
+import 'package:hishumi/domains/commerce/transaction/shipping/data/remote/shipping_remote_datasource.dart';
+import 'package:hishumi/domains/commerce/transaction/shipping/domain/domain.dart';
 
 /// Shipping Repository Implementation
 /// API-based implementation menggunakan ShippingRemoteDatasource

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:labuda/shared/shared.dart';
-import 'package:labuda/shared/helpers/user_identity_formatter.dart';
-import 'package:labuda/features/search/search/domain/entities/user_search.dart';
-import 'package:labuda/domains/chat/chat/data/chat_providers.dart';
-import 'package:labuda/core/src/theme/app_theme.dart';
+import 'package:hishumi/shared/shared.dart';
+import 'package:hishumi/shared/helpers/user_identity_formatter.dart';
+import 'package:hishumi/features/search/search/domain/entities/user_search.dart';
+import 'package:hishumi/domains/chat/chat/data/chat_providers.dart';
+import 'package:hishumi/core/src/theme/app_theme.dart';
 
 /// User List Item Widget untuk New Chat Screen.
 ///

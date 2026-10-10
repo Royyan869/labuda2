@@ -4,7 +4,7 @@
 // valid user emails, reject clearly invalid input, no network/domain
 // verification, no full RFC implementation.
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/shared/helpers/canonical_email_validator.dart';
+import 'package:hishumi/shared/helpers/canonical_email_validator.dart';
 
 void main() {
   group('CanonicalEmailValidator.isValid', () {

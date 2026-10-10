@@ -3,12 +3,12 @@ import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/api/interceptors/auth_interceptor.dart';
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/core/src/interfaces/services/i_local_storage_service.dart';
+import 'package:hishumi/core/api/interceptors/auth_interceptor.dart';
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/core/src/interfaces/services/i_local_storage_service.dart';
 
 /// Minimal in-memory fake for ILocalStorageService that only implements
-/// Labuda credential storage via canonical methods.
+/// HiShumi credential storage via canonical methods.
 class FakeStorage implements ILocalStorageService {
   String? access;
   String? refresh;
@@ -19,7 +19,7 @@ class FakeStorage implements ILocalStorageService {
   FakeStorage({this.access, this.refresh});
 
   @override
-  Future<Result<void>> saveLabudaCredential(String a, String r) async {
+  Future<Result<void>> saveHiShumiCredential(String a, String r) async {
     if (a.isEmpty || r.isEmpty) return Result.error('empty');
     access = a;
     refresh = r;
@@ -30,10 +30,10 @@ class FakeStorage implements ILocalStorageService {
   }
 
   @override
-  Future<Result<String?>> readLabudaAccessToken() async => Result.success(access);
+  Future<Result<String?>> readHiShumiAccessToken() async => Result.success(access);
 
   @override
-  Future<Result<String?>> readLabudaRefreshToken() async => Result.success(refresh);
+  Future<Result<String?>> readHiShumiRefreshToken() async => Result.success(refresh);
 
   // Unused stubs
   @override
@@ -67,7 +67,7 @@ class RefreshCountingAdapter implements HttpClientAdapter {
         );
       }
       final hasAuthHeader = options.headers.containsKey('Authorization');
-      // Refresh must NOT carry Bearer Labuda (it uses body refresh_token)
+      // Refresh must NOT carry Bearer HiShumi (it uses body refresh_token)
       // So we ensure no Authorization attached by interceptor
       if (hasAuthHeader) {
         // If interceptor incorrectly attaches, this would be present
@@ -105,8 +105,8 @@ class RefreshCountingAdapter implements HttpClientAdapter {
     pathCounts[path] = n;
     originalCalls++;
 
-    // If this request is a retry (labuda_retry == true), return 200
-    if (options.extra['labuda_retry'] == true) {
+    // If this request is a retry (hishumi_retry == true), return 200
+    if (options.extra['hishumi_retry'] == true) {
       // Must have new Authorization
       final auth = options.headers['Authorization']?.toString();
       if (auth == null || !auth.contains(newAccess)) {
@@ -276,14 +276,14 @@ void main() {
     });
 
     test('I. Existing Phase 3B semantics remain: no Firebase fallback, skipAuth, restricted', () async {
-      // reuse labuda_authority proofs: ensure refresh path still not using Firebase
-      final storage = FakeStorage(access: 'labuda', refresh: 'r');
+      // reuse hishumi_authority proofs: ensure refresh path still not using Firebase
+      final storage = FakeStorage(access: 'hishumi', refresh: 'r');
       final adapter = RefreshCountingAdapter();
       final dio = buildDioWithRefresh(storage, adapter);
       // public route should not trigger refresh
       final dio2 = buildDioWithRefresh(storage, RefreshCountingAdapter());
       // We'll test that Firebase token not used is already covered by auth_interceptor code search,
-      // here just ensure labuda token still attached for normal
+      // here just ensure hishumi token still attached for normal
       final resp = await dio.get('/api/v1/users/me');
       expect(resp.statusCode, 200);
     });
@@ -310,7 +310,7 @@ class _Second401Adapter implements HttpClientAdapter {
       return ResponseBody.fromBytes(utf8.encode(jsonEncode(payload)), 200,
           headers: {Headers.contentTypeHeader: ['application/json']});
     }
-    if (opts.extra['labuda_retry'] == true) {
+    if (opts.extra['hishumi_retry'] == true) {
       retryCalls++;
       return ResponseBody.fromBytes(
           utf8.encode(jsonEncode({'success': false, 'error': {'message': 'still unauthorized'}})), 401,
@@ -344,7 +344,7 @@ class _CaptureRetryAdapter implements HttpClientAdapter {
       return ResponseBody.fromBytes(utf8.encode(jsonEncode(payload)), 200,
           headers: {Headers.contentTypeHeader: ['application/json']});
     }
-    if (opts.extra['labuda_retry'] == true) {
+    if (opts.extra['hishumi_retry'] == true) {
       capturedRetry = opts;
       return ResponseBody.fromBytes(
           utf8.encode(jsonEncode({'success': true, 'data': {'ok': true}})), 200,

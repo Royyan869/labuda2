@@ -21,8 +21,8 @@ import 'fcm_token_manager.dart';
 import 'in_app_banner_service.dart';
 import 'local_notification_service.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:labuda/core/src/interfaces/services/i_logger_service.dart';
-import 'package:labuda/domains/system/notification/data/datasources/notification_remote_datasource.dart';
+import 'package:hishumi/core/src/interfaces/services/i_logger_service.dart';
+import 'package:hishumi/domains/system/notification/data/datasources/notification_remote_datasource.dart';
 
 class FcmService {
   final FirebaseMessaging messaging;

@@ -7,7 +7,7 @@ library;
 import 'dart:async';
 import 'dart:math';
 
-import 'package:labuda/core/src/interfaces/services/i_logger_service.dart';
+import 'package:hishumi/core/src/interfaces/services/i_logger_service.dart';
 
 /// Polling domain for categorization
 enum PollingDomain {

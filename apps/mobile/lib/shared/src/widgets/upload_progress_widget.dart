@@ -6,9 +6,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 // Internal
-import 'package:labuda/shared/src/providers/upload_progress_provider.dart';
-import 'package:labuda/shared/src/widgets/upload_task_utils.dart';
-import 'package:labuda/core/src/theme/app_theme.dart';
+import 'package:hishumi/shared/src/providers/upload_progress_provider.dart';
+import 'package:hishumi/shared/src/widgets/upload_task_utils.dart';
+import 'package:hishumi/core/src/theme/app_theme.dart';
 
 /// Widget untuk menampilkan upload progress di home screen
 class UploadProgressWidget extends ConsumerWidget {

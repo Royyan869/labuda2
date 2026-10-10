@@ -8,12 +8,12 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	chatApp "github.com/labuda/backend/internal/interaction/chat/application"
-	chatvalidator "github.com/labuda/backend/internal/interaction/chat/attachmentvalidator"
-	chatEntity "github.com/labuda/backend/internal/interaction/chat/entity"
-	chatRepo "github.com/labuda/backend/internal/interaction/chat/repository"
-	platformevent "github.com/labuda/backend/internal/platform/event"
-	"github.com/labuda/backend/pkg/db"
+	chatApp "github.com/hishumi/backend/internal/interaction/chat/application"
+	chatvalidator "github.com/hishumi/backend/internal/interaction/chat/attachmentvalidator"
+	chatEntity "github.com/hishumi/backend/internal/interaction/chat/entity"
+	chatRepo "github.com/hishumi/backend/internal/interaction/chat/repository"
+	platformevent "github.com/hishumi/backend/internal/platform/event"
+	"github.com/hishumi/backend/pkg/db"
 	"go.uber.org/zap"
 )
 

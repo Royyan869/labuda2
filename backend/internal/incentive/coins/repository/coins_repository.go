@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/incentive/coins/entity"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/incentive/coins/entity"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // LifetimeStatsQuery contains computed lifetime statistics from transactions.

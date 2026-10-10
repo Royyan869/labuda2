@@ -50,8 +50,10 @@ class RoutePaths {
 
   // ============================================================================
   // PUBLIC COMMERCE ROUTES - Use these for product browsing
+  // NOTE: There is NO standalone `/for-sale` list route — the canonical public
+  // For Sale browse surface is the Marketplace tab (MarketplaceForSaleTab).
+  // `/for-sale/:forSaleId` below is the public For Sale DETAIL route.
   // ============================================================================
-  static const String forSales = '/for-sale';
   static const String forSaleDetail = '/for-sale/:forSaleId';
   static const String createForSale = '/create/for-sale';
 
@@ -60,8 +62,8 @@ class RoutePaths {
 
   // ============================================================================
   // INTERNAL ONLY - Seller Management Routes (DO NOT USE IN PUBLIC UI)
-  // For public product browsing, use `/for-sale`
-  // and `/for-sale/:forSaleId` above
+  // For public product browsing, use the Marketplace tab; the only public
+  // commerce DETAIL route above is `/for-sale/:forSaleId`.
   // ============================================================================
   static const String auctionDetails = '/auction/:auctionId';
   static String auctionDetail(String auctionId) => '/auction/$auctionId';
@@ -232,7 +234,6 @@ class RouteNames {
   static const String supportTicketThread = 'supportTicketThread';
 
   // Public commerce route names
-  static const String forSales = 'forSales';
   static const String forSaleDetail = 'forSaleDetail';
   static const String createForSale = 'createForSale';
 

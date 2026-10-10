@@ -14,7 +14,7 @@
 library;
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:labuda/core/core.dart' as core;
+import 'package:hishumi/core/core.dart' as core;
 import '../../domain/entities/payment.dart';
 import '../../domain/entities/payment_intent.dart';
 import 'payment_initiation_state.dart';

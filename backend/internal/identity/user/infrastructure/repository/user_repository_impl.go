@@ -9,10 +9,10 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/labuda/backend/internal/identity/user/domain/entity"
-	"github.com/labuda/backend/internal/identity/user/repository"
-	"github.com/labuda/backend/internal/util"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/identity/user/domain/entity"
+	"github.com/hishumi/backend/internal/identity/user/repository"
+	"github.com/hishumi/backend/internal/util"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // userRepositoryImpl implements UserRepository interface.

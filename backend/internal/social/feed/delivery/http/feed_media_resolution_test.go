@@ -5,10 +5,10 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/pkg/publiccard"
-	"github.com/labuda/backend/internal/platform/mediaresolve"
-	"github.com/labuda/backend/internal/platform/s3presign"
-	feedentity "github.com/labuda/backend/internal/social/feed/entity"
+	"github.com/hishumi/backend/internal/pkg/publiccard"
+	"github.com/hishumi/backend/internal/platform/mediaresolve"
+	"github.com/hishumi/backend/internal/platform/s3presign"
+	feedentity "github.com/hishumi/backend/internal/social/feed/entity"
 )
 
 const testFeedCDNBase = "https://d358tu61i1wrtt.cloudfront.net"

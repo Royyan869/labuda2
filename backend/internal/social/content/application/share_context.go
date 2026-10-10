@@ -2,7 +2,7 @@ package application
 
 import (
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/social/content/entity"
+	"github.com/hishumi/backend/internal/social/content/entity"
 )
 
 // ShareAttributionContext is the canonical backend attribution context.

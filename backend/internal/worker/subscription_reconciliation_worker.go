@@ -12,8 +12,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
-	subscriptionapp "github.com/labuda/backend/internal/commerce/subscription/application"
-	paymentRepo "github.com/labuda/backend/internal/integration/payment/infrastructure/repository"
+	subscriptionapp "github.com/hishumi/backend/internal/commerce/subscription/application"
+	paymentRepo "github.com/hishumi/backend/internal/integration/payment/infrastructure/repository"
 	"go.uber.org/zap"
 )
 

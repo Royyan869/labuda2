@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/pkg/sellerdisplay"
+	"github.com/hishumi/backend/internal/pkg/sellerdisplay"
 )
 
 // OWNER TRUTH: a buyer must be able to see where the goods ship from, so the

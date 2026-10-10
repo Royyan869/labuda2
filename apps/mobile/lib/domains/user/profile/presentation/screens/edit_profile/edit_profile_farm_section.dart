@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/domains/user/preference/seller/presentation/widgets/wizard/store_name_form_field.dart';
+import 'package:hishumi/domains/user/preference/seller/presentation/widgets/wizard/store_name_form_field.dart';
 
 /// Farm Information Fields for Edit Profile (Sellers only).
 ///

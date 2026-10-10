@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/domains/system/report/data/dto/report_dto.dart';
-import 'package:labuda/domains/system/report/data/mappers/report_mapper.dart';
-import 'package:labuda/domains/system/report/domain/entities/report.dart';
+import 'package:hishumi/domains/system/report/data/dto/report_dto.dart';
+import 'package:hishumi/domains/system/report/data/mappers/report_mapper.dart';
+import 'package:hishumi/domains/system/report/domain/entities/report.dart';
 
 void main() {
   // ===========================================================================

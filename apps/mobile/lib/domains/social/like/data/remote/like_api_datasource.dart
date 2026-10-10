@@ -1,6 +1,6 @@
-import 'package:labuda/core/api/base_api_repository.dart';
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/domains/social/like/data/dto/like_api_models.dart';
+import 'package:hishumi/core/api/base_api_repository.dart';
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/domains/social/like/data/dto/like_api_models.dart';
 
 /// API Datasource for Like operations
 ///

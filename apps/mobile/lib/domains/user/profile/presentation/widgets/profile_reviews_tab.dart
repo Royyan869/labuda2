@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/shared/shared.dart';
-import 'package:labuda/domains/social/rating/rating.dart';
-import 'package:labuda/domains/user/profile/profile.dart' show userDataProvider;
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/shared/shared.dart';
+import 'package:hishumi/domains/social/rating/rating.dart';
+import 'package:hishumi/domains/user/profile/profile.dart' show userDataProvider;
 import 'profile_reviews_tab/rating_overview_section.dart';
 import 'profile_reviews_tab/reviews_empty_state.dart';
 

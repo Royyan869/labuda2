@@ -13,11 +13,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
-import 'package:labuda/core/src/router/modules/for_sale_module.dart';
-import 'package:labuda/core/src/router/route_paths.dart';
-import 'package:labuda/domains/commerce/catalog/auction/presentation/providers/seller_auctions_pager.dart';
-import 'package:labuda/domains/commerce/catalog/for_sale/presentation/providers/seller_fps_pager.dart';
-import 'package:labuda/domains/social/comment/presentation/widgets/comment_input_with_commerce_reference.dart';
+import 'package:hishumi/core/src/router/modules/for_sale_module.dart';
+import 'package:hishumi/core/src/router/route_paths.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/presentation/providers/seller_auctions_pager.dart';
+import 'package:hishumi/domains/commerce/catalog/for_sale/presentation/providers/seller_fps_pager.dart';
+import 'package:hishumi/domains/social/comment/presentation/widgets/comment_input_with_commerce_reference.dart';
 
 // ── Fake pagers (the picker renders immediately, no API calls) ─────────────
 

@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
-import 'package:labuda/shared/attachment/entities/share_reference.dart';
-import 'package:labuda/shared/object/object_preview.dart' as obj;
+import 'package:hishumi/shared/attachment/entities/share_reference.dart';
+import 'package:hishumi/shared/object/object_preview.dart' as obj;
 
 Map<String, dynamic>? _singleEntryMap(String key, Object? value) {
   if (value == null) return null;

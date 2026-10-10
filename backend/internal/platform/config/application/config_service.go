@@ -5,9 +5,9 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/platform/config/entity"
-	"github.com/labuda/backend/internal/platform/config/infrastructure/repository"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/platform/config/entity"
+	"github.com/hishumi/backend/internal/platform/config/infrastructure/repository"
+	"github.com/hishumi/backend/pkg/db"
 	"github.com/shopspring/decimal"
 )
 

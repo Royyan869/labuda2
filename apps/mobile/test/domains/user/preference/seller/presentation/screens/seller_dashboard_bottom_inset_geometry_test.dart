@@ -35,12 +35,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/commerce/transaction/order/order.dart';
-import 'package:labuda/domains/user/preference/seller/presentation/screens/seller_dashboard_screen.dart';
-import 'package:labuda/generated/app_localizations.dart';
-import 'package:labuda/shared/providers/authenticated_account_provider.dart';
-import 'package:labuda/shared/widgets/bottom_action_bar.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/commerce/transaction/order/order.dart';
+import 'package:hishumi/domains/user/preference/seller/presentation/screens/seller_dashboard_screen.dart';
+import 'package:hishumi/generated/app_localizations.dart';
+import 'package:hishumi/shared/providers/authenticated_account_provider.dart';
+import 'package:hishumi/shared/widgets/bottom_action_bar.dart';
 
 const _sellerId = 'seller-geo-001';
 

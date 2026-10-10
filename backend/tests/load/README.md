@@ -1,6 +1,6 @@
 # Load Testing
 
-Modular load testing infrastructure for Labuda backend.
+Modular load testing infrastructure for HiShumi backend.
 
 ## Structure
 

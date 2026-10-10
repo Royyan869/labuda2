@@ -31,12 +31,12 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/src/theme/app_theme.dart';
-import 'package:labuda/domains/commerce/transaction/order/domain/domain.dart'
+import 'package:hishumi/core/src/theme/app_theme.dart';
+import 'package:hishumi/domains/commerce/transaction/order/domain/domain.dart'
     as order_domain;
-import 'package:labuda/domains/commerce/transaction/order/presentation/widgets/order_action_label_resolver.dart';
-import 'package:labuda/generated/app_localizations.dart';
-import 'package:labuda/shared/shared.dart';
+import 'package:hishumi/domains/commerce/transaction/order/presentation/widgets/order_action_label_resolver.dart';
+import 'package:hishumi/generated/app_localizations.dart';
+import 'package:hishumi/shared/shared.dart';
 
 /// Action Button Callbacks - handlers for different action types
 class ActionCallbacks {

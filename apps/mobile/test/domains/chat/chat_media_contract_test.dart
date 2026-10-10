@@ -1,9 +1,9 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/domains/chat/chat/data/dto/message_dto.dart';
-import 'package:labuda/domains/chat/chat/data/mappers/chat_mapper.dart';
-import 'package:labuda/domains/chat/chat/domain/entities/chat_entities.dart';
+import 'package:hishumi/domains/chat/chat/data/dto/message_dto.dart';
+import 'package:hishumi/domains/chat/chat/data/mappers/chat_mapper.dart';
+import 'package:hishumi/domains/chat/chat/domain/entities/chat_entities.dart';
 
 /// NEGATIVE + POSITIVE CONTRACT — chat media is a real asset, never a link.
 ///

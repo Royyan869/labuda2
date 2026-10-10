@@ -8,7 +8,7 @@ import (
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/labuda/backend/internal/pricing/discount/entity"
+	"github.com/hishumi/backend/internal/pricing/discount/entity"
 )
 
 func TestValidateDiscountInput_Structure(t *testing.T) {

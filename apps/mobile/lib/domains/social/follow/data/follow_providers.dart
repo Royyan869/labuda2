@@ -7,10 +7,10 @@
 library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/social/follow/data/datasources/follow_api_datasource.dart';
-import 'package:labuda/domains/social/follow/data/repositories/api/follow_repository_api.dart';
-import 'package:labuda/domains/social/follow/domain/repositories/i_follow_repository.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/social/follow/data/datasources/follow_api_datasource.dart';
+import 'package:hishumi/domains/social/follow/data/repositories/api/follow_repository_api.dart';
+import 'package:hishumi/domains/social/follow/domain/repositories/i_follow_repository.dart';
 
 // =============================================================================
 // DATASOURCE PROVIDERS

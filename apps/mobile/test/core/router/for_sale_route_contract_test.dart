@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/src/router/route_paths.dart';
+import 'package:hishumi/core/src/router/route_paths.dart';
 
 void main() {
   test('for sale route paths stay fixed-price-sale specific', () {

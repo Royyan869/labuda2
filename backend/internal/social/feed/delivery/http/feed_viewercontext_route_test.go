@@ -8,9 +8,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/governance/viewercontext"
-	"github.com/labuda/backend/internal/middleware"
-	capabilityentity "github.com/labuda/backend/internal/platform/capability/entity"
+	"github.com/hishumi/backend/internal/governance/viewercontext"
+	"github.com/hishumi/backend/internal/middleware"
+	capabilityentity "github.com/hishumi/backend/internal/platform/capability/entity"
 )
 
 type feedRouteActorResolver struct {

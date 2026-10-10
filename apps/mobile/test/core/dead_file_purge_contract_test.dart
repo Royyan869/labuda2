@@ -272,7 +272,7 @@ const _purgedNameFamilies = <String>['SupportFailure', 'ShareFailure'];
 RegExp _family(String prefix) => RegExp('\\b$prefix\\w*');
 
 /// Path fragments, because identifier matching alone misses the real
-/// resurrection route: `import 'package:labuda/core/utils/retry_helper.dart';`.
+/// resurrection route: `import 'package:hishumi/core/utils/retry_helper.dart';`.
 const _basePathFragments = <String>[
   'utils/retry_helper.dart',
   'finance/finance_gateway.dart',
@@ -311,7 +311,7 @@ const _basePathFragments = <String>[
 ];
 
 /// Slice-3 fragments derive from the paths themselves: the real resurrection
-/// route is `import 'package:labuda/<suffix>'`, and the suffix IS the path
+/// route is `import 'package:hishumi/<suffix>'`, and the suffix IS the path
 /// minus `lib/` — one source of truth, no second hand-maintained copy.
 final _purgedPathFragments = <String>[
   ..._basePathFragments,
@@ -448,7 +448,7 @@ void main() {
     );
     // The path fragment must catch the import/export form that identifiers miss.
     const resurrection =
-        "import 'package:labuda/core/utils/retry_helper.dart';";
+        "import 'package:hishumi/core/utils/retry_helper.dart';";
     expect(
       _purgedPathFragments.any(resurrection.contains),
       isTrue,
@@ -471,7 +471,7 @@ void main() {
       isTrue,
     );
     const holderImport =
-        "import 'package:labuda/core/dependencies/provider_scope_reader.dart';";
+        "import 'package:hishumi/core/dependencies/provider_scope_reader.dart';";
     expect(
       _purgedPathFragments.any(holderImport.contains),
       isTrue,
@@ -491,7 +491,7 @@ void main() {
     expect(_family('ShareFailure').hasMatch('enum ShareFailureType {'), isTrue);
     expect(_family('SupportFailure').hasMatch('NotSupportFailure'), isFalse);
     const supportImport =
-        "import 'package:labuda/domains/system/support/domain/entities/"
+        "import 'package:hishumi/domains/system/support/domain/entities/"
         "support_failure.dart';";
     expect(
       _purgedPathFragments.any(supportImport.contains),
@@ -508,7 +508,7 @@ void main() {
       isTrue,
     );
     const zombieImport =
-        "import 'package:labuda/domains/finance/transaction/payment/domain/"
+        "import 'package:hishumi/domains/finance/transaction/payment/domain/"
         "entities/payment_result.dart';";
     expect(
       _purgedPathFragments.any(zombieImport.contains),
@@ -533,7 +533,7 @@ void main() {
     // Slice 1: path-only lock. The widget names themselves stay legal — their
     // FILES must never come back.
     const ghostWidgetImport =
-        "import 'package:labuda/shared/widgets/status_badge.dart';";
+        "import 'package:hishumi/shared/widgets/status_badge.dart';";
     expect(
       _purgedPathFragments.any(ghostWidgetImport.contains),
       isTrue,
@@ -541,7 +541,7 @@ void main() {
     );
     expect(
       _purgedPathFragments.any(
-        "import 'package:labuda/shared/widgets/media_carousel_widget.dart';"
+        "import 'package:hishumi/shared/widgets/media_carousel_widget.dart';"
             .contains,
       ),
       isFalse,
@@ -555,7 +555,7 @@ void main() {
 
     // Slice 3: the derived fragments detect a planted resurrection…
     const slice3Import =
-        "import 'package:labuda/shared/services/mention_notification_service.dart';";
+        "import 'package:hishumi/shared/services/mention_notification_service.dart';";
     expect(
       _purgedPathFragments.any(slice3Import.contains),
       isTrue,
@@ -565,7 +565,7 @@ void main() {
     // (media_viewer_widget vs media_viewer_indicators; farm vs store section).
     expect(
       _purgedPathFragments.any(
-        "import 'package:labuda/shared/widgets/media_viewer_widget.dart';"
+        "import 'package:hishumi/shared/widgets/media_viewer_widget.dart';"
             .contains,
       ),
       isFalse,
@@ -573,7 +573,7 @@ void main() {
     );
     expect(
       _purgedPathFragments.any(
-        "import 'package:labuda/domains/user/profile/presentation/screens/"
+        "import 'package:hishumi/domains/user/profile/presentation/screens/"
                 "edit_profile/edit_profile_farm_section.dart';"
             .contains,
       ),

@@ -4,13 +4,13 @@
 library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/domains/commerce/transaction/checkout/domain/entities/checkout_request.dart';
-import 'package:labuda/domains/commerce/transaction/checkout/domain/entities/checkout_response.dart';
+import 'package:hishumi/domains/commerce/transaction/checkout/domain/entities/checkout_request.dart';
+import 'package:hishumi/domains/commerce/transaction/checkout/domain/entities/checkout_response.dart';
 // Re-exports CheckoutException (defined next to the repository implementation).
-import 'package:labuda/domains/commerce/transaction/checkout/data/checkout_providers.dart';
-import 'package:labuda/domains/commerce/transaction/checkout/domain/usecases/checkout_usecase_providers.dart';
-import 'package:labuda/domains/commerce/transaction/checkout/presentation/providers/checkout_state.dart';
-import 'package:labuda/core/core.dart';
+import 'package:hishumi/domains/commerce/transaction/checkout/data/checkout_providers.dart';
+import 'package:hishumi/domains/commerce/transaction/checkout/domain/usecases/checkout_usecase_providers.dart';
+import 'package:hishumi/domains/commerce/transaction/checkout/presentation/providers/checkout_state.dart';
+import 'package:hishumi/core/core.dart';
 
 // =============================================================================
 // CHECKOUT NOTIFIER

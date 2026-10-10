@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/discovery/search/entity"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/discovery/search/entity"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // SearchRepository defines the search data access interface.

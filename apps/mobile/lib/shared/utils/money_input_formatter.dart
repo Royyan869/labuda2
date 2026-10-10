@@ -1,5 +1,5 @@
 import 'package:flutter/services.dart';
-import 'package:labuda/shared/domain/entities/resource_projection.dart';
+import 'package:hishumi/shared/domain/entities/resource_projection.dart';
 
 /// THE one money-input mask for Indonesian Rupiah.
 ///

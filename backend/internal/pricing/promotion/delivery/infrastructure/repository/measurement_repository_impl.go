@@ -9,9 +9,9 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	deliveryentity "github.com/labuda/backend/internal/pricing/promotion/delivery/entity"
-	deliveryRepo "github.com/labuda/backend/internal/pricing/promotion/delivery/repository"
-	"github.com/labuda/backend/pkg/db"
+	deliveryentity "github.com/hishumi/backend/internal/pricing/promotion/delivery/entity"
+	deliveryRepo "github.com/hishumi/backend/internal/pricing/promotion/delivery/repository"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // MeasurementRepositoryImpl persists canonical delivery measurement events

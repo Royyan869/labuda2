@@ -5,12 +5,12 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/identity/auth"
-	"github.com/labuda/backend/internal/finance/billing/entity"
-	billingrepo "github.com/labuda/backend/internal/finance/billing/infrastructure/repository"
-	financeapp "github.com/labuda/backend/internal/finance/application"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/money"
+	"github.com/hishumi/backend/internal/identity/auth"
+	"github.com/hishumi/backend/internal/finance/billing/entity"
+	billingrepo "github.com/hishumi/backend/internal/finance/billing/infrastructure/repository"
+	financeapp "github.com/hishumi/backend/internal/finance/application"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/money"
 )
 
 // BillingService handles billing transaction state transitions.

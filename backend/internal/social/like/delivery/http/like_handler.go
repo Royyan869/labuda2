@@ -6,11 +6,11 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/platform/response"
-	likeapp "github.com/labuda/backend/internal/social/like/application"
-	likeentity "github.com/labuda/backend/internal/social/like/entity"
-	likerepo "github.com/labuda/backend/internal/social/like/infrastructure/repository"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/platform/response"
+	likeapp "github.com/hishumi/backend/internal/social/like/application"
+	likeentity "github.com/hishumi/backend/internal/social/like/entity"
+	likerepo "github.com/hishumi/backend/internal/social/like/infrastructure/repository"
+	"github.com/hishumi/backend/pkg/db"
 	"go.uber.org/zap"
 )
 

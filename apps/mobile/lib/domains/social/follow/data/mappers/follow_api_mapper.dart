@@ -1,6 +1,6 @@
-import 'package:labuda/core/api/models/common_api_models.dart';
-import 'package:labuda/domains/social/follow/domain/entities/follow_entity.dart';
-import 'package:labuda/domains/social/follow/data/dto/follow_api_models.dart';
+import 'package:hishumi/core/api/models/common_api_models.dart';
+import 'package:hishumi/domains/social/follow/domain/entities/follow_entity.dart';
+import 'package:hishumi/domains/social/follow/data/dto/follow_api_models.dart';
 
 /// Mapper for Follow, Block, and Mute API models to domain entities
 class FollowApiMapper {

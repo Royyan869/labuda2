@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/labuda/backend/internal/pkg/mediaref"
+	"github.com/hishumi/backend/internal/pkg/mediaref"
 	"go.uber.org/zap/zaptest"
 )
 

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/social/content/domain/entities/content.dart';
-import 'package:labuda/shared/widgets/app_image.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/social/content/domain/entities/content.dart';
+import 'package:hishumi/shared/widgets/app_image.dart';
 
 /// Canonical feed media mosaic — the single authority for rendering a feed
 /// card's media list.

@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/core/src/interfaces/services/i_local_storage_service.dart';
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/core/src/interfaces/services/i_local_storage_service.dart';
 
 String jwtWithExp(DateTime exp) {
   final header = base64Url.encode(utf8.encode(jsonEncode({'alg': 'HS256', 'typ': 'JWT'}))).replaceAll('=', '');
@@ -30,47 +30,47 @@ class FakeStorage implements ILocalStorageService {
   String? refresh;
   FakeStorage({this.access, this.refresh});
   @override
-  Future<Result<bool>> hasLabudaCredential() async => Result.success(access != null && access!.isNotEmpty && refresh != null && refresh!.isNotEmpty);
+  Future<Result<bool>> hasHiShumiCredential() async => Result.success(access != null && access!.isNotEmpty && refresh != null && refresh!.isNotEmpty);
   @override
-  Future<Result<String?>> readLabudaAccessToken() async => Result.success(access);
+  Future<Result<String?>> readHiShumiAccessToken() async => Result.success(access);
   @override
-  Future<Result<String?>> readLabudaRefreshToken() async => Result.success(refresh);
+  Future<Result<String?>> readHiShumiRefreshToken() async => Result.success(refresh);
   @override
-  Future<Result<void>> saveLabudaCredential(String a, String r) async { access = a; refresh = r; return Result.success(null); }
+  Future<Result<void>> saveHiShumiCredential(String a, String r) async { access = a; refresh = r; return Result.success(null); }
   @override
   dynamic noSuchMethod(Invocation inv) => super.noSuchMethod(inv);
 }
 
 void main() {
   group('Phase 3D startup matrix', () {
-    test('A. Valid Labuda access + Firebase null -> authenticated', () async {
+    test('A. Valid HiShumi access + Firebase null -> authenticated', () async {
       final token = jwtWithExp(DateTime.now().add(Duration(hours: 1)));
       expect(isExpired(token), isFalse);
       final storage = FakeStorage(access: token, refresh: 'r');
-      final has = await storage.hasLabudaCredential();
+      final has = await storage.hasHiShumiCredential();
       expect(has.data, isTrue);
-      expect(isExpired((await storage.readLabudaAccessToken()).data!), isFalse);
+      expect(isExpired((await storage.readHiShumiAccessToken()).data!), isFalse);
     });
 
     test('B. Expired access + valid refresh -> needs refresh', () async {
       final expired = jwtWithExp(DateTime.now().subtract(Duration(hours: 1)));
       expect(isExpired(expired), isTrue);
       final storage = FakeStorage(access: expired, refresh: 'valid-refresh');
-      expect(isExpired((await storage.readLabudaAccessToken()).data!), isTrue);
-      expect((await storage.readLabudaRefreshToken()).data, 'valid-refresh');
+      expect(isExpired((await storage.readHiShumiAccessToken()).data!), isTrue);
+      expect((await storage.readHiShumiRefreshToken()).data, 'valid-refresh');
     });
 
-    test('C. Missing Labuda + Firebase authenticated -> unauthenticated no exchange', () async {
+    test('C. Missing HiShumi + Firebase authenticated -> unauthenticated no exchange', () async {
       final storage = FakeStorage(access: null, refresh: null);
-      final has = await storage.hasLabudaCredential();
+      final has = await storage.hasHiShumiCredential();
       expect(has.data, isFalse);
-      // No Labuda -> startup must not call exchange; verified by code audit (restore never calls syncUser)
+      // No HiShumi -> startup must not call exchange; verified by code audit (restore never calls syncUser)
     });
 
     test('D. Invalid refresh + Firebase authenticated -> unauthenticated no exchange', () async {
       final expired = jwtWithExp(DateTime.now().subtract(Duration(hours: 1)));
       final storage = FakeStorage(access: expired, refresh: 'invalid');
-      expect(isExpired((await storage.readLabudaAccessToken()).data!), isTrue);
+      expect(isExpired((await storage.readHiShumiAccessToken()).data!), isTrue);
       // refresh would fail, remain unauthenticated
     });
 
@@ -79,13 +79,13 @@ void main() {
       final storage = FakeStorage(access: expired, refresh: 'valid');
       // simulate refresh success saving new pair
       final newToken = jwtWithExp(DateTime.now().add(Duration(hours: 1)));
-      await storage.saveLabudaCredential(newToken, 'new-r');
-      expect(isExpired((await storage.readLabudaAccessToken()).data!), isFalse);
+      await storage.saveHiShumiCredential(newToken, 'new-r');
+      expect(isExpired((await storage.readHiShumiAccessToken()).data!), isFalse);
     });
 
     test('H. Rotation stores pair atomically', () async {
       final storage = FakeStorage(access: 'old', refresh: 'old-r');
-      await storage.saveLabudaCredential('new-a', 'new-r');
+      await storage.saveHiShumiCredential('new-a', 'new-r');
       expect(storage.access, 'new-a');
       expect(storage.refresh, 'new-r');
     });

@@ -11,10 +11,10 @@ library;
 
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart' as core;
-import 'package:labuda/core/src/theme/app_theme.dart';
-import 'package:labuda/shared/utils/app_formatters.dart';
-import 'package:labuda/domains/commerce/transaction/order/domain/entities/order_status.dart';
+import 'package:hishumi/core/core.dart' as core;
+import 'package:hishumi/core/src/theme/app_theme.dart';
+import 'package:hishumi/shared/utils/app_formatters.dart';
+import 'package:hishumi/domains/commerce/transaction/order/domain/entities/order_status.dart';
 
 /// Helper function to apply opacity to a color (replaces deprecated withOpacity)
 Color _withOpacity(Color color, double opacity) {

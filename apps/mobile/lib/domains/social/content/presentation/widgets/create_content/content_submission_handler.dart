@@ -1,11 +1,11 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/core/media/media_upload_config.dart';
-import 'package:labuda/domains/social/content/content.dart';
-import 'package:labuda/shared/entities/post_location.dart' as loc;
-import 'package:labuda/shared/src/providers/upload_progress_provider.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/core/media/media_upload_config.dart';
+import 'package:hishumi/domains/social/content/content.dart';
+import 'package:hishumi/shared/entities/post_location.dart' as loc;
+import 'package:hishumi/shared/src/providers/upload_progress_provider.dart';
 
 /// Handles post submission and upload logic
 class ContentSubmissionHandler {

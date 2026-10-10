@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/domains/chat/chat/domain/entities/chat_entities.dart';
-import 'package:labuda/domains/chat/chat/presentation/providers/chat_providers.dart';
-import 'package:labuda/domains/chat/chat/presentation/providers/chat_state.dart';
-import 'package:labuda/shared/providers/auth_status_providers.dart';
+import 'package:hishumi/domains/chat/chat/domain/entities/chat_entities.dart';
+import 'package:hishumi/domains/chat/chat/presentation/providers/chat_providers.dart';
+import 'package:hishumi/domains/chat/chat/presentation/providers/chat_state.dart';
+import 'package:hishumi/shared/providers/auth_status_providers.dart';
 
 void main() {
   group('mobile unread surface alignment', () {

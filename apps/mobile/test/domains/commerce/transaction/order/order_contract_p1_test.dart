@@ -1,12 +1,12 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/api/api_client.dart';
-import 'package:labuda/domains/commerce/transaction/order/data/dto/dto_barrel.dart';
-import 'package:labuda/domains/commerce/transaction/order/data/order_repository_impl.dart';
-import 'package:labuda/domains/commerce/transaction/order/data/remote/order_api_datasource_impl.dart';
-import 'package:labuda/domains/commerce/transaction/order/data/remote/order_remote_datasource.dart';
-import 'package:labuda/domains/commerce/transaction/order/data/models/api/order_api_models.dart';
-import 'package:labuda/domains/commerce/transaction/order/domain/entities/order_params.dart';
+import 'package:hishumi/core/api/api_client.dart';
+import 'package:hishumi/domains/commerce/transaction/order/data/dto/dto_barrel.dart';
+import 'package:hishumi/domains/commerce/transaction/order/data/order_repository_impl.dart';
+import 'package:hishumi/domains/commerce/transaction/order/data/remote/order_api_datasource_impl.dart';
+import 'package:hishumi/domains/commerce/transaction/order/data/remote/order_remote_datasource.dart';
+import 'package:hishumi/domains/commerce/transaction/order/data/models/api/order_api_models.dart';
+import 'package:hishumi/domains/commerce/transaction/order/domain/entities/order_params.dart';
 
 class _RecordingApiClient implements ApiClient {
   String? lastGetPath;

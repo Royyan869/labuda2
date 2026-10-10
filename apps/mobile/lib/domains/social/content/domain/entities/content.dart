@@ -21,8 +21,8 @@
 // ============================================================================
 
 import 'package:equatable/equatable.dart';
-import 'package:labuda/shared/governance/content_lifecycle.dart';
-import 'package:labuda/shared/domain/entities/resource_projection.dart';
+import 'package:hishumi/shared/governance/content_lifecycle.dart';
+import 'package:hishumi/shared/domain/entities/resource_projection.dart';
 
 /// Status content - Canonical status aligned with backend
 ///

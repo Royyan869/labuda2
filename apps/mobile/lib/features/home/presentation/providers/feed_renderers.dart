@@ -19,18 +19,18 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/system/shared/domain/services/time_format_service.dart';
-import 'package:labuda/shared/shared.dart';
-import 'package:labuda/features/home/domain/domain.dart'; // R3.1: Import FeedItem from home domain
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/system/shared/domain/services/time_format_service.dart';
+import 'package:hishumi/shared/shared.dart';
+import 'package:hishumi/features/home/domain/domain.dart'; // R3.1: Import FeedItem from home domain
 import 'package:go_router/go_router.dart';
-import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_marketplace_metrics.dart';
-import 'package:labuda/shared/domain/entities/resource_projection.dart';
-import 'package:labuda/domains/social/content/presentation/widgets/content_resource_projection_card.dart';
-import 'package:labuda/features/home/presentation/widgets/feed_media_mosaic.dart';
-import 'package:labuda/shared/governance/content_lifecycle.dart';
-import 'package:labuda/domains/social/content/presentation/widgets/content_engagement_actions.dart';
-import 'package:labuda/domains/social/share/share.dart';
+import 'package:hishumi/domains/commerce/catalog/shared/presentation/widgets/commerce_marketplace_metrics.dart';
+import 'package:hishumi/shared/domain/entities/resource_projection.dart';
+import 'package:hishumi/domains/social/content/presentation/widgets/content_resource_projection_card.dart';
+import 'package:hishumi/features/home/presentation/widgets/feed_media_mosaic.dart';
+import 'package:hishumi/shared/governance/content_lifecycle.dart';
+import 'package:hishumi/domains/social/content/presentation/widgets/content_engagement_actions.dart';
+import 'package:hishumi/domains/social/share/share.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
 class PendingTabSwitch {

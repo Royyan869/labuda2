@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/domains/chat/chat/data/dto/chat_dto.dart';
-import 'package:labuda/domains/chat/chat/data/mappers/chat_mapper.dart';
-import 'package:labuda/domains/chat/chat/domain/entities/chat_entities.dart';
-import 'package:labuda/domains/chat/chat/presentation/widgets/chat_card.dart';
-import 'package:labuda/generated/app_localizations.dart';
-import 'package:labuda/shared/providers/auth_status_providers.dart';
+import 'package:hishumi/domains/chat/chat/data/dto/chat_dto.dart';
+import 'package:hishumi/domains/chat/chat/data/mappers/chat_mapper.dart';
+import 'package:hishumi/domains/chat/chat/domain/entities/chat_entities.dart';
+import 'package:hishumi/domains/chat/chat/presentation/widgets/chat_card.dart';
+import 'package:hishumi/generated/app_localizations.dart';
+import 'package:hishumi/shared/providers/auth_status_providers.dart';
 
 void main() {
   const roomId = '00000000-0000-0000-0000-000000000001';

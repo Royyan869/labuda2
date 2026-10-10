@@ -17,10 +17,10 @@ import (
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 
-	refundapp "github.com/labuda/backend/internal/finance/refund/application"
-	"github.com/labuda/backend/internal/finance/refund/entity"
-	"github.com/labuda/backend/internal/platform/response"
-	"github.com/labuda/backend/pkg/db"
+	refundapp "github.com/hishumi/backend/internal/finance/refund/application"
+	"github.com/hishumi/backend/internal/finance/refund/entity"
+	"github.com/hishumi/backend/internal/platform/response"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // SellerRefundHandler handles seller refund decision HTTP requests.

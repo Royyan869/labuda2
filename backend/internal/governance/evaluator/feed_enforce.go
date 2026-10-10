@@ -5,8 +5,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 
-	"github.com/labuda/backend/internal/governance/viewercontext"
-	feedentity "github.com/labuda/backend/internal/social/feed/entity"
+	"github.com/hishumi/backend/internal/governance/viewercontext"
+	feedentity "github.com/hishumi/backend/internal/social/feed/entity"
 )
 
 // PHASE 3M — /feed evaluator further-restrict enforcement.
@@ -123,7 +123,7 @@ type FeedEnforcementResult struct {
 // enforcement_applied_total). Namespace + name preserved verbatim
 // across the F1-W3A rebuild so existing dashboards are unaffected.
 var feedEnforcementApplied = promauto.NewCounterVec(prometheus.CounterOpts{
-	Namespace: "labuda_evaluator_feed",
+	Namespace: "hishumi_evaluator_feed",
 	Name:      "enforcement_applied_total",
 	Help:      "Per-row enforcement actions taken by the /feed evaluator's synchronous further-restrict pass. Bounded labels: action in {drop, lifecycle_override, unknown_fail_open}.",
 }, []string{"action"})
@@ -134,13 +134,13 @@ var feedEnforcementApplied = promauto.NewCounterVec(prometheus.CounterOpts{
 // FeedDecisionReason enumeration declared above.
 var (
 	feedEvaluatorWouldEnforceDecisionTotal = promauto.NewCounterVec(prometheus.CounterOpts{
-		Namespace: "labuda_evaluator_feed",
+		Namespace: "hishumi_evaluator_feed",
 		Name:      "would_enforce_decision_total",
 		Help:      "Per-row adapter classification emitted by the /feed observability runner. Labels are bounded to the FeedDecisionReason enum.",
 	}, []string{"adapter_reason"})
 
 	feedEvaluatorEnforceModeTotal = promauto.NewCounterVec(prometheus.CounterOpts{
-		Namespace: "labuda_evaluator_feed",
+		Namespace: "hishumi_evaluator_feed",
 		Name:      "enforce_mode_total",
 		Help:      "Per-request count of the /feed evaluator integration. Always labeled mode=enforce.",
 	}, []string{"mode"})
@@ -151,7 +151,7 @@ var (
 // the shadow runner once per evaluated row alongside the existing
 // decision_total emission. The dominant ALLOW pass-through is
 // intentionally not counted; the agreement cell is captured by
-// labuda_evaluator_shadow_divergence_total.
+// hishumi_evaluator_shadow_divergence_total.
 func recordFeedWouldEnforceDecision(reason FeedDecisionReason) {
 	if reason == FeedDecisionReasonNone {
 		return

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/shared/widgets/app_text_field.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/shared/widgets/app_text_field.dart';
 
 /// Report Description Field Widget
 ///

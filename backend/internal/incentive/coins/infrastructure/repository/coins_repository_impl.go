@@ -10,9 +10,9 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/labuda/backend/internal/incentive/coins/entity"
-	coinsrepo "github.com/labuda/backend/internal/incentive/coins/repository"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/incentive/coins/entity"
+	coinsrepo "github.com/hishumi/backend/internal/incentive/coins/repository"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // CoinsRepositoryImpl implements CoinsRepository using PostgreSQL.

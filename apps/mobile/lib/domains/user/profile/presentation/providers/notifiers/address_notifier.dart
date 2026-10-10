@@ -1,7 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:labuda/domains/user/profile/presentation/providers/state/address_state.dart';
-import 'package:labuda/domains/user/profile/domain/entities/address_entity.dart';
-import 'package:labuda/domains/user/profile/data/profile_providers.dart'
+import 'package:hishumi/domains/user/profile/presentation/providers/state/address_state.dart';
+import 'package:hishumi/domains/user/profile/domain/entities/address_entity.dart';
+import 'package:hishumi/domains/user/profile/data/profile_providers.dart'
     show addressRepositoryProvider;
 
 part 'address_notifier.g.dart';

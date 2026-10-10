@@ -3,7 +3,7 @@ package http
 import (
 	"errors"
 
-	chatvalidator "github.com/labuda/backend/internal/interaction/chat/attachmentvalidator"
+	chatvalidator "github.com/hishumi/backend/internal/interaction/chat/attachmentvalidator"
 )
 
 // AttachmentValidationError represents an attachment validation error.

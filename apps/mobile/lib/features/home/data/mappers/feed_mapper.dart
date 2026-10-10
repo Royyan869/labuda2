@@ -16,9 +16,9 @@
 //
 // MEDIA INTEGRATION: Maps media array from FeedItemDto to MediaEntity list
 
-import 'package:labuda/features/home/data/dto/feed_dto.dart';
-import 'package:labuda/features/home/domain/domain.dart'; // R3.1: Import FeedItem entity
-import 'package:labuda/shared/governance/content_lifecycle.dart';
+import 'package:hishumi/features/home/data/dto/feed_dto.dart';
+import 'package:hishumi/features/home/domain/domain.dart'; // R3.1: Import FeedItem entity
+import 'package:hishumi/shared/governance/content_lifecycle.dart';
 
 /// Extension to convert [FeedItemDto] to [FeedItem]
 ///

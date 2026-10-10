@@ -1,4 +1,4 @@
-module github.com/labuda/backend
+module github.com/hishumi/backend
 
 go 1.25.5
 

@@ -3,7 +3,7 @@ package shared
 import (
 	"testing"
 
-	addressEntity "github.com/labuda/backend/internal/identity/address/entity"
+	addressEntity "github.com/hishumi/backend/internal/identity/address/entity"
 )
 
 func TestBuildPublicOriginSummary_UsesCityAndProvinceOnly(t *testing.T) {

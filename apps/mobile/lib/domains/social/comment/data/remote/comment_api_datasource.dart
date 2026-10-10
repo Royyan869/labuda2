@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
-import 'package:labuda/core/api/api.dart';
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/domains/social/comment/data/dto/comment_dto.dart';
+import 'package:hishumi/core/api/api.dart';
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/domains/social/comment/data/dto/comment_dto.dart';
 import 'package:uuid/uuid.dart';
 
 /// Remote Data Source for Comment API operations

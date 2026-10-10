@@ -29,7 +29,7 @@
 // "back to" location and is stable/idempotent across repeated calls
 // (no oscillation, i.e. no route loop).
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/core.dart';
+import 'package:hishumi/core/core.dart';
 
 const _unauthenticated = AuthStateUnauthenticated();
 

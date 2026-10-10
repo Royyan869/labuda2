@@ -6,7 +6,7 @@ library;
 ///
 /// MIGRATED: Now uses Go Backend API (Firestore Timestamp handling removed)
 
-import 'package:labuda/domains/system/support/domain/domain.dart';
+import 'package:hishumi/domains/system/support/domain/domain.dart';
 
 // ============================================
 // TICKET DTO

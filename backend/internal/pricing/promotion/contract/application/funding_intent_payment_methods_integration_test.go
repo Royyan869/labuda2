@@ -7,12 +7,12 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	paymentmethodentity "github.com/labuda/backend/internal/commerce/paymentmethod/entity"
-	paymentmethodrepo "github.com/labuda/backend/internal/commerce/paymentmethod/infrastructure/repository"
-	"github.com/labuda/backend/internal/pricing/promotion/contract/application"
-	"github.com/labuda/backend/internal/pricing/promotion/contract/entity"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/money"
+	paymentmethodentity "github.com/hishumi/backend/internal/commerce/paymentmethod/entity"
+	paymentmethodrepo "github.com/hishumi/backend/internal/commerce/paymentmethod/infrastructure/repository"
+	"github.com/hishumi/backend/internal/pricing/promotion/contract/application"
+	"github.com/hishumi/backend/internal/pricing/promotion/contract/entity"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/money"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

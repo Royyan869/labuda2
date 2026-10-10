@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	presencepkg "github.com/labuda/backend/internal/presence"
+	presencepkg "github.com/hishumi/backend/internal/presence"
 	goredis "github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 )

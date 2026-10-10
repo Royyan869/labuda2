@@ -1,8 +1,8 @@
 // Feed API Datasource
 // HTTP operations for Feed domain - isolates ApiClient
 
-import 'package:labuda/core/api/api.dart';
-import 'package:labuda/features/home/data/dto/feed_dto.dart';
+import 'package:hishumi/core/api/api.dart';
+import 'package:hishumi/features/home/data/dto/feed_dto.dart';
 
 /// Feed API Datasource
 ///

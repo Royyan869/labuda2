@@ -6,8 +6,8 @@ import (
 
 	"github.com/google/uuid"
 
-	negotiationApp "github.com/labuda/backend/internal/commerce/negotiation/application"
-	negotiationEntity "github.com/labuda/backend/internal/commerce/negotiation/entity"
+	negotiationApp "github.com/hishumi/backend/internal/commerce/negotiation/application"
+	negotiationEntity "github.com/hishumi/backend/internal/commerce/negotiation/entity"
 )
 
 // TestMapErrorToResponse_NegotiationErrors is the PASS_8A / F3 regression

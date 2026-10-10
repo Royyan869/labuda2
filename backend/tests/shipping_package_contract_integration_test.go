@@ -9,11 +9,11 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
-	shippingApp "github.com/labuda/backend/internal/commerce/shipping/application"
-	shippingEntity "github.com/labuda/backend/internal/commerce/shipping/entity"
-	shippingInfraRepo "github.com/labuda/backend/internal/commerce/shipping/infrastructure/repository"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/testdb"
+	shippingApp "github.com/hishumi/backend/internal/commerce/shipping/application"
+	shippingEntity "github.com/hishumi/backend/internal/commerce/shipping/entity"
+	shippingInfraRepo "github.com/hishumi/backend/internal/commerce/shipping/infrastructure/repository"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/testdb"
 )
 
 // ============================================================================

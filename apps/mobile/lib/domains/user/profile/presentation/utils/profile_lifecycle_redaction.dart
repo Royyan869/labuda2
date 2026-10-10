@@ -7,7 +7,7 @@
 // degraded identity card rather than a tombstone-404. These helpers shape
 // what that degraded render looks like.
 
-import 'package:labuda/shared/governance/content_lifecycle.dart';
+import 'package:hishumi/shared/governance/content_lifecycle.dart';
 
 /// Indonesian placeholder label for a degraded profile identity.
 /// Returns null for active (caller should fall through to live data).

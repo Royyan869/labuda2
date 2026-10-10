@@ -13,13 +13,13 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/labuda/backend/internal/audit"
-	"github.com/labuda/backend/internal/commerce/paymentmethod/entity"
-	"github.com/labuda/backend/internal/commerce/paymentmethod/infrastructure/repository"
-	"github.com/labuda/backend/internal/platform/capability"
-	"github.com/labuda/backend/internal/platform/response"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/money"
+	"github.com/hishumi/backend/internal/audit"
+	"github.com/hishumi/backend/internal/commerce/paymentmethod/entity"
+	"github.com/hishumi/backend/internal/commerce/paymentmethod/infrastructure/repository"
+	"github.com/hishumi/backend/internal/platform/capability"
+	"github.com/hishumi/backend/internal/platform/response"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/money"
 	"go.uber.org/zap"
 )
 

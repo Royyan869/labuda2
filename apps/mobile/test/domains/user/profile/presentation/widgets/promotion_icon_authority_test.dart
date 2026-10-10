@@ -10,10 +10,10 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/user/preference/seller/domain/entities/seller_state.dart';
-import 'package:labuda/domains/user/preference/seller/presentation/providers/current_seller_provider.dart';
-import 'package:labuda/domains/user/profile/presentation/widgets/settings_marketing_section.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/user/preference/seller/domain/entities/seller_state.dart';
+import 'package:hishumi/domains/user/preference/seller/presentation/providers/current_seller_provider.dart';
+import 'package:hishumi/domains/user/profile/presentation/widgets/settings_marketing_section.dart';
 
 void main() {
   Future<void> pumpSection(WidgetTester tester) async {

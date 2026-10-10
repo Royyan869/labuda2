@@ -32,19 +32,19 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	adminApp "github.com/labuda/backend/internal/platform/admin/application"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/rate"
-	"github.com/labuda/backend/pkg/testdb"
+	adminApp "github.com/hishumi/backend/internal/platform/admin/application"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/rate"
+	"github.com/hishumi/backend/pkg/testdb"
 	"go.uber.org/zap"
 
-	chatApp "github.com/labuda/backend/internal/interaction/chat/application"
-	chatInfraRepo "github.com/labuda/backend/internal/interaction/chat/infrastructure/repository"
-	outboxRepo "github.com/labuda/backend/internal/platform/outbox/infrastructure/repository"
+	chatApp "github.com/hishumi/backend/internal/interaction/chat/application"
+	chatInfraRepo "github.com/hishumi/backend/internal/interaction/chat/infrastructure/repository"
+	outboxRepo "github.com/hishumi/backend/internal/platform/outbox/infrastructure/repository"
 
-	supportEntity "github.com/labuda/backend/internal/governance/support/entity"
-	supportInfraRepo "github.com/labuda/backend/internal/governance/support/infrastructure/repository"
-	supportRepo "github.com/labuda/backend/internal/governance/support/repository"
+	supportEntity "github.com/hishumi/backend/internal/governance/support/entity"
+	supportInfraRepo "github.com/hishumi/backend/internal/governance/support/infrastructure/repository"
+	supportRepo "github.com/hishumi/backend/internal/governance/support/repository"
 	"github.com/stretchr/testify/require"
 )
 

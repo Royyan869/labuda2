@@ -6,9 +6,9 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	alertapp "github.com/labuda/backend/internal/platform/alert/application"
-	alertentity "github.com/labuda/backend/internal/platform/alert/entity"
-	platformevent "github.com/labuda/backend/internal/platform/event"
+	alertapp "github.com/hishumi/backend/internal/platform/alert/application"
+	alertentity "github.com/hishumi/backend/internal/platform/alert/entity"
+	platformevent "github.com/hishumi/backend/internal/platform/event"
 	"go.uber.org/zap"
 )
 

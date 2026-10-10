@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	alertentity "github.com/labuda/backend/internal/platform/alert/entity"
+	alertentity "github.com/hishumi/backend/internal/platform/alert/entity"
 	"github.com/jackc/pgx/v5"
 )
 

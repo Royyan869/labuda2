@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/domains/commerce/transaction/order/domain/domain.dart';
-import 'package:labuda/domains/commerce/transaction/order/presentation/widgets/order_widgets.dart';
+import 'package:hishumi/domains/commerce/transaction/order/domain/domain.dart';
+import 'package:hishumi/domains/commerce/transaction/order/presentation/widgets/order_widgets.dart';
 
 /// Canonical Order fixture: the card derives the buyer/seller identity from the
 /// order itself, so identity assertions must travel through `Order`.

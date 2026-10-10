@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	productEntity "github.com/labuda/backend/internal/commerce/product/entity"
+	productEntity "github.com/hishumi/backend/internal/commerce/product/entity"
 )
 
 // Status represents the auction status as a strict state machine.

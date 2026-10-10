@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/shared/shared.dart';
-import 'package:labuda/core/src/theme/app_theme.dart';
+import 'package:hishumi/shared/shared.dart';
+import 'package:hishumi/core/src/theme/app_theme.dart';
 
 /// Canonical DETAIL state surfaces — ONE AUTHORITY for both sale channels.
 ///

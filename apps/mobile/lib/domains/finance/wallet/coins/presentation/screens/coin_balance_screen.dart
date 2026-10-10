@@ -3,12 +3,12 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/system/shared/domain/services/time_format_service.dart';
-import 'package:labuda/shared/shared.dart';
-import 'package:labuda/domains/finance/wallet/coins/domain/entities/coin_transaction.dart';
-import 'package:labuda/domains/finance/wallet/coins/presentation/providers/coin_providers.dart';
-import 'package:labuda/domains/finance/wallet/coins/presentation/widgets/coin_balance_card.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/system/shared/domain/services/time_format_service.dart';
+import 'package:hishumi/shared/shared.dart';
+import 'package:hishumi/domains/finance/wallet/coins/domain/entities/coin_transaction.dart';
+import 'package:hishumi/domains/finance/wallet/coins/presentation/providers/coin_providers.dart';
+import 'package:hishumi/domains/finance/wallet/coins/presentation/widgets/coin_balance_card.dart';
 
 /// Main screen for viewing Coin balance and recent transactions.
 ///

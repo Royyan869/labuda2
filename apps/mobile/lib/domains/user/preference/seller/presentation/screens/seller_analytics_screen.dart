@@ -7,9 +7,9 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/user/preference/seller/domain/entities/seller_analytics_read.dart';
-import 'package:labuda/domains/user/preference/seller/seller_di.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/user/preference/seller/domain/entities/seller_analytics_read.dart';
+import 'package:hishumi/domains/user/preference/seller/seller_di.dart';
 
 class SellerAnalyticsScreen extends ConsumerWidget {
   const SellerAnalyticsScreen({super.key});

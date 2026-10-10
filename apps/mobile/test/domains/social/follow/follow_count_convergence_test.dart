@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/domains/social/follow/data/dto/follow_api_models.dart';
-import 'package:labuda/domains/social/follow/data/mappers/follow_api_mapper.dart';
-import 'package:labuda/domains/user/profile/data/models/api/user_api_models.dart';
+import 'package:hishumi/domains/social/follow/data/dto/follow_api_models.dart';
+import 'package:hishumi/domains/social/follow/data/mappers/follow_api_mapper.dart';
+import 'package:hishumi/domains/user/profile/data/models/api/user_api_models.dart';
 
 void main() {
   group('follow count convergence', () {

@@ -1,6 +1,6 @@
 # Prometheus configuration for Phase C search shadow observation window.
 #
-# Purpose: Scrape the labuda backend /metrics endpoint to collect
+# Purpose: Scrape the hishumi backend /metrics endpoint to collect
 # search_shadow_* telemetry during the Phase C observation window for
 # /search/content shadow telemetry baseline establishment.
 #
@@ -48,9 +48,9 @@ global:
 
 scrape_configs:
   # =========================================================================
-  # labuda-backend: scrapes the backend /metrics endpoint
+  # hishumi-backend: scrapes the backend /metrics endpoint
   # =========================================================================
-  - job_name: "labuda-backend"
+  - job_name: "hishumi-backend"
 
     # Static target: localhost:8080/metrics
     # The backend exposes /metrics on the main API port (PORT=8080 per .env).
@@ -60,7 +60,7 @@ scrape_configs:
       - targets:
           - "host.docker.internal:8080"
         labels:
-          service: "labuda-backend"
+          service: "hishumi-backend"
           phase: "phase_c_shadow_observability"
 
     # Metrics path: /metrics (Prometheus default; backend uses promhttp.Handler)
@@ -92,5 +92,5 @@ scrape_configs:
       # Single keep rule covering all namespaces of interest.
       # Alternatives separated by | are evaluated as OR by RE2 regex.
       - source_labels: [__name__]
-        regex: "(search_shadow_|labuda_evaluator_shadow_|go_|process_|scrape_|promhttp_).*"
+        regex: "(search_shadow_|hishumi_evaluator_shadow_|go_|process_|scrape_|promhttp_).*"
         action: keep

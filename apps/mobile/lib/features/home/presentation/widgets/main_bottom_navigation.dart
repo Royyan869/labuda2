@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/features/home/presentation/models/main_tab.dart';
-import 'package:labuda/core/core.dart';
+import 'package:hishumi/features/home/presentation/models/main_tab.dart';
+import 'package:hishumi/core/core.dart';
 
 /// Main bottom navigation widget
 ///

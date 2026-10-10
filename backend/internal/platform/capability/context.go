@@ -19,7 +19,7 @@ package capability
 import (
 	"context"
 
-	"github.com/labuda/backend/internal/platform/capability/entity"
+	"github.com/hishumi/backend/internal/platform/capability/entity"
 )
 
 // actorKey is the context key type for storing Actor.

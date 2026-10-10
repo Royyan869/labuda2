@@ -23,7 +23,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // Level is the canonical geographic level vocabulary.

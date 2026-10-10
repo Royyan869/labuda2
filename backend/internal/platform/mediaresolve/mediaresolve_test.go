@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/labuda/backend/internal/platform/s3presign"
+	"github.com/hishumi/backend/internal/platform/s3presign"
 )
 
 func TestResolveMediaReadURLWithConfig_PresignedGetFromStorageKey(t *testing.T) {

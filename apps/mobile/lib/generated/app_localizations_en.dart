@@ -9,7 +9,7 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
-  String get appName => 'LABUDA';
+  String get appName => 'HiShumi';
 
   @override
   String get appDescription => 'Indonesian Koi Community';
@@ -25,9 +25,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get logoutSuccess => 'You have been logged out';
-
-  @override
-  String get loginSuccess => 'Successfully logged in as';
 
   @override
   String get registerComingSoon => 'Registration page coming soon';
@@ -61,9 +58,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get helpSupport => 'Help & Support';
-
-  @override
-  String get aboutLabuda => 'About LABUDA';
 
   @override
   String get comingSoon => 'coming soon';
@@ -218,7 +212,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get learnDataProtection => 'Learn how we protect your data';
 
   @override
-  String get aboutLABUDA => 'About LABUDA';
+  String get aboutHiShumi => 'About HiShumi';
 
   @override
   String get appVersionInformation => 'App version and information';
@@ -299,19 +293,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get koiSocialCommercePlatform =>
-      'LABUDA - Koi Social Commerce Platform';
+      'HiShumi - Koi Social Commerce Platform';
 
   @override
   String get version => 'Version 1.0.0';
 
   @override
   String copyrightLabudaTeam(Object year) {
-    return '© $year LABUDA Team';
+    return 'Â© $year Labuda Team';
   }
 
   @override
-  String get labudaDescription =>
-      'LABUDA is the first social commerce platform designed specifically for the Indonesian koi community.';
+  String get hishumiDescription =>
+      'HiShumi is the first social commerce platform designed specifically for the Indonesian koi community.';
 
   @override
   String get close => 'Close';
@@ -535,10 +529,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get passwordUpdatedSuccessfully => 'Password updated successfully!';
 
   @override
-  String get failedToChangePassword =>
-      'Failed to change password. Please try again.';
-
-  @override
   String get verificationEmailSent =>
       'Verification email sent! Check your inbox.';
 
@@ -623,7 +613,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get primaryPaymentMethodReady =>
-      'Primary payment method • Ready for integration';
+      'Primary payment method â€¢ Ready for integration';
 
   @override
   String get otherEWallets => 'Other E-Wallets';
@@ -884,9 +874,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get popular => 'POPULAR';
 
   @override
-  String get whyBecomeLabudaSeller => 'Why become a LABUDA Seller?';
-
-  @override
   String get reach10kActiveKoiEnthusiasts =>
       'Reach 10,000+ active koi enthusiasts';
 
@@ -1118,7 +1105,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get articleBecomeSellerContent =>
-      'To become a seller on LABUDA:\n\n1. Go to Settings → Upgrade to Seller\n2. Choose your plan (Basic or Pro)\n3. Fill in your business information\n4. Complete payment for the subscription\n5. Wait for verification approval\n\nOnce approved, you can start creating For Sale for your koi!';
+      'To become a seller on HiShumi:\n\n1. Go to Settings â†’ Upgrade to Seller\n2. Choose your plan (Basic or Pro)\n3. Fill in your business information\n4. Complete payment for the subscription\n5. Wait for verification approval\n\nOnce approved, you can start creating For Sale for your koi!';
 
   @override
   String get articleCancelOrder => 'How to cancel an order?';
@@ -1160,7 +1147,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get articleShippingSetupContent =>
-      'To set up shipping:\n\n1. Go to Settings → Pengiriman, or Seller Dashboard → Atur Pengiriman\n2. Add a shipping option (train, bus, travel, plane, or custom)\n3. Set the province coverage with the rate you charge for each province\n4. Toggle the option active to make it available for your For Sales\n5. When creating a For Sale, choose which of your options apply to that For Sale\n\nShipping is seller-managed: you decide the options, rates, and courier. For irregular cases (large fish, special handling), send a shipping quote to the buyer in chat as a fallback.\n\nAlways use proper packaging with oxygen for live koi shipping!';
+      'To set up shipping:\n\n1. Go to Settings â†’ Pengiriman, or Seller Dashboard â†’ Atur Pengiriman\n2. Add a shipping option (train, bus, travel, plane, or custom)\n3. Set the province coverage with the rate you charge for each province\n4. Toggle the option active to make it available for your For Sales\n5. When creating a For Sale, choose which of your options apply to that For Sale\n\nShipping is seller-managed: you decide the options, rates, and courier. For irregular cases (large fish, special handling), send a shipping quote to the buyer in chat as a fallback.\n\nAlways use proper packaging with oxygen for live koi shipping!';
 
   @override
   String get articleEditProfile => 'How to edit my profile?';
@@ -1174,7 +1161,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get articleChangePasswordContent =>
-      'To change your password:\n\n1. Go to Settings → Security\n2. Tap \'Change Password\'\n3. Enter your current password\n4. Enter your new password (min 8 characters)\n5. Confirm the new password\n6. Tap \'Update Password\'\n\nYou\'ll be logged out from other devices after changing password.';
+      'To change your password:\n\n1. Go to Settings â†’ Security\n2. Tap \'Change Password\'\n3. Enter your current password\n4. Enter your new password (min 8 characters)\n5. Confirm the new password\n6. Tap \'Update Password\'\n\nYou\'ll be logged out from other devices after changing password.';
 
   @override
   String get articleSellerVerification => 'Seller verification requirements';
@@ -1195,42 +1182,42 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get articleAppSlowOrNotLoadingContent =>
-      'If the app feels slow or a screen is not loading:\n\n1. Check your internet connection — try Wi-Fi or mobile data\n2. Close the app completely and open it again\n3. Make sure you are using the latest app version\n4. Restart your phone\n\nIf the problem continues, contact support and mention which screen is affected.';
+      'If the app feels slow or a screen is not loading:\n\n1. Check your internet connection â€” try Wi-Fi or mobile data\n2. Close the app completely and open it again\n3. Make sure you are using the latest app version\n4. Restart your phone\n\nIf the problem continues, contact support and mention which screen is affected.';
 
   @override
   String get articleWithdrawalFailed => 'Withdrawal failed, what to do?';
 
   @override
   String get articleWithdrawalFailedContent =>
-      'If your withdrawal fails:\n\n1. Check that your bank account details are correct\n2. Make sure your seller verification (KTP) is complete\n3. Check that the amount meets the minimum withdrawal shown on the Earnings screen\n\nWithdrawals are reviewed by admin first. Once approved, the funds are transferred to your registered bank account within 1-3 business days.\n\nNext steps:\n• Open the Earnings screen and check the withdrawal status\n• If the withdrawal failed, check your bank details and submit a new request\n• Contact support if the funds were deducted from your balance but not received';
+      'If your withdrawal fails:\n\n1. Check that your bank account details are correct\n2. Make sure your seller verification (KTP) is complete\n3. Check that the amount meets the minimum withdrawal shown on the Earnings screen\n\nWithdrawals are reviewed by admin first. Once approved, the funds are transferred to your registered bank account within 1-3 business days.\n\nNext steps:\nâ€¢ Open the Earnings screen and check the withdrawal status\nâ€¢ If the withdrawal failed, check your bank details and submit a new request\nâ€¢ Contact support if the funds were deducted from your balance but not received';
 
   @override
   String get articleForSaleNotVisible => 'Why is my For Sale not visible?';
 
   @override
   String get articleForSaleNotVisibleContent =>
-      'Your For Sale may not be visible to buyers because:\n\n1. It is sold — the stock has been sold out, so it is no longer offered\n2. It is withdrawn — the For Sale has been removed from sale\n3. Its details are incomplete — make sure the photos, price, and shipping options are filled in\n\nA new For Sale is shown to buyers as soon as you publish it — there is no approval stage to wait for.\n\nNext steps:\n• Go to My For Sales and check the status\n• Complete any missing details and save again\n\nIf the For Sale is still active but not showing to buyers, contact support.';
+      'Your For Sale may not be visible to buyers because:\n\n1. It is sold â€” the stock has been sold out, so it is no longer offered\n2. It is withdrawn â€” the For Sale has been removed from sale\n3. Its details are incomplete â€” make sure the photos, price, and shipping options are filled in\n\nA new For Sale is shown to buyers as soon as you publish it â€” there is no approval stage to wait for.\n\nNext steps:\nâ€¢ Go to My For Sales and check the status\nâ€¢ Complete any missing details and save again\n\nIf the For Sale is still active but not showing to buyers, contact support.';
 
   @override
   String get articleSellerPaymentPending => 'Payment from order not received?';
 
   @override
   String get articleSellerPaymentPendingContent =>
-      'Order payments reach the seller in these stages:\n\n1. Payment completed → the funds are held in escrow while the order is running\n2. Order shipped → the funds stay in escrow until the buyer confirms receipt\n3. Order completed → the funds are released to your income and can be withdrawn immediately\n\nCheck these screens:\n• Order status in the Seller Dashboard\n• Earnings screen for your available balance\n\nOnce the buyer taps \'Confirm Receipt\' (or the order completes automatically), the order amount enters your income and there is no waiting period before you can withdraw it.\n\nIf a completed order is not showing in your earnings, contact support with the order number.';
+      'Order payments reach the seller in these stages:\n\n1. Payment completed â†’ the funds are held in escrow while the order is running\n2. Order shipped â†’ the funds stay in escrow until the buyer confirms receipt\n3. Order completed â†’ the funds are released to your income and can be withdrawn immediately\n\nCheck these screens:\nâ€¢ Order status in the Seller Dashboard\nâ€¢ Earnings screen for your available balance\n\nOnce the buyer taps \'Confirm Receipt\' (or the order completes automatically), the order amount enters your income and there is no waiting period before you can withdraw it.\n\nIf a completed order is not showing in your earnings, contact support with the order number.';
 
   @override
   String get articleOrderShipmentHelp => 'Track shipment and delivery issues';
 
   @override
   String get articleOrderShipmentHelpContent =>
-      'For shipment issues:\n\n1. Open the order details\n2. Check the tracking number in the shipping info\n3. Track the package with the courier\'s website or app\n\nCommon issues:\n• Tracking not updating — it can take some time before the courier records the first scan\n• Delivery delayed — contact the seller through the order chat for an update\n• Wrong address — message the seller immediately\n\nIf the package has not arrived:\n• Check the order status and delivery confirmation\n• Contact the seller through the order chat\n• If the delivery window has passed, open a dispute from the order\n\nStill having issues? Contact support with your order number.';
+      'For shipment issues:\n\n1. Open the order details\n2. Check the tracking number in the shipping info\n3. Track the package with the courier\'s website or app\n\nCommon issues:\nâ€¢ Tracking not updating â€” it can take some time before the courier records the first scan\nâ€¢ Delivery delayed â€” contact the seller through the order chat for an update\nâ€¢ Wrong address â€” message the seller immediately\n\nIf the package has not arrived:\nâ€¢ Check the order status and delivery confirmation\nâ€¢ Contact the seller through the order chat\nâ€¢ If the delivery window has passed, open a dispute from the order\n\nStill having issues? Contact support with your order number.';
 
   @override
   String get articleItemNotReceived => 'Item paid but not received?';
 
   @override
   String get articleItemNotReceivedContent =>
-      'If you paid but haven\'t received your item:\n\nStep 1: Check the order status\n• Being Prepared: the seller is preparing your order\n• In Delivery: check the tracking number on the order\n\nStep 2: Contact the seller\n• Use the \'Chat Seller\' button on the order\n• Ask for a shipping update or the tracking number\n\nStep 3: Use the protection window\n• You have 5 days from the moment the seller ships to confirm receipt or open a dispute\n• If you need more time, use \'Extend Confirmation\' once to add 3 days\n• If the seller does not ship in time, the order can be cancelled\n\nNext actions:\n1. Chat with the seller first (fastest resolution)\n2. If there is no response, contact support with your order details';
+      'If you paid but haven\'t received your item:\n\nStep 1: Check the order status\nâ€¢ Being Prepared: the seller is preparing your order\nâ€¢ In Delivery: check the tracking number on the order\n\nStep 2: Contact the seller\nâ€¢ Use the \'Chat Seller\' button on the order\nâ€¢ Ask for a shipping update or the tracking number\n\nStep 3: Use the protection window\nâ€¢ You have 5 days from the moment the seller ships to confirm receipt or open a dispute\nâ€¢ If you need more time, use \'Extend Confirmation\' once to add 3 days\nâ€¢ If the seller does not ship in time, the order can be cancelled\n\nNext actions:\n1. Chat with the seller first (fastest resolution)\n2. If there is no response, contact support with your order details';
 
   @override
   String get sellerTierPro => 'Pro Seller';
@@ -1331,6 +1318,13 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get emptyOrdersMessage =>
       'Start shopping from the best Koi collection';
+
+  @override
+  String get emptyOrdersByStatusTitle => 'No Orders';
+
+  @override
+  String get emptyOrdersByStatusMessage =>
+      'There are no orders with this status yet';
 
   @override
   String get emptyIncomingOrdersTitle => 'No Incoming Orders';
@@ -1532,4 +1526,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get homeFirstUseTitle => '🎯 Kamu ingin apa hari ini?';
+
+  @override
+  String get passwordManagedByGoogleTitle => 'Password managed by Google';
+
+  @override
+  String get passwordManagedByGoogleBody =>
+      'You signed in with Google and this account doesn\'t have a HiShumi password. To change your password, manage it in your Google account.';
 }

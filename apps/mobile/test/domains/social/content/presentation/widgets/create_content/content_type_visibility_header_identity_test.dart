@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/social/content/presentation/widgets/create_content/content_type_visibility_header.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/social/content/presentation/widgets/create_content/content_type_visibility_header.dart';
 
 AuthUser _user(String username) {
   return AuthUser(

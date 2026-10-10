@@ -3,8 +3,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/features/home/home.dart';
-import 'package:labuda/features/marketplace/marketplace.dart';
+import 'package:hishumi/features/home/home.dart';
+import 'package:hishumi/features/marketplace/marketplace.dart';
 
 // ============================================================================
 // MARKETPLACE CREATE ENTRY CONTRACT (owner canonical, 2026-09-29)

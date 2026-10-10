@@ -7,7 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	alertentity "github.com/labuda/backend/internal/platform/alert/entity"
+	alertentity "github.com/hishumi/backend/internal/platform/alert/entity"
 	"go.uber.org/zap/zaptest"
 )
 

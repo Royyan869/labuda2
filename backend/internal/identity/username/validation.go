@@ -12,7 +12,7 @@ const (
 )
 
 var (
-	pattern = regexp.MustCompile(`^[a-z0-9_]+$`)
+	pattern  = regexp.MustCompile(`^[a-z0-9_]+$`)
 	reserved = map[string]struct{}{
 		"admin":     {},
 		"api":       {},
@@ -31,6 +31,7 @@ var (
 		"sales":     {},
 		"marketing": {},
 		"labuda":    {},
+		"hishumi":   {},
 		"shona":     {},
 	}
 )
@@ -54,5 +55,3 @@ func ValidateFormat(value string) error {
 	}
 	return nil
 }
-
-

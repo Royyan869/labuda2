@@ -1,5 +1,5 @@
-import 'package:labuda/domains/social/like/domain/entities/like.dart';
-import 'package:labuda/domains/social/like/data/dto/like_api_models.dart';
+import 'package:hishumi/domains/social/like/domain/entities/like.dart';
+import 'package:hishumi/domains/social/like/data/dto/like_api_models.dart';
 
 /// Mapper for Like API models to domain entities
 ///

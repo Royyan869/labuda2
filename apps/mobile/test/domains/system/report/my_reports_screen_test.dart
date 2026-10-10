@@ -4,14 +4,14 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/domains/system/report/domain/entities/entities.dart';
-import 'package:labuda/domains/system/report/domain/repositories/report_repository.dart';
-import 'package:labuda/domains/system/report/presentation/providers/report_providers.dart';
-import 'package:labuda/domains/system/report/presentation/screens/my_reports_screen.dart';
-import 'package:labuda/generated/app_localizations.dart';
-import 'package:labuda/shared/widgets/empty_state.dart';
-import 'package:labuda/shared/widgets/loading_indicator.dart';
-import 'package:labuda/shared/widgets/page_error_state.dart';
+import 'package:hishumi/domains/system/report/domain/entities/entities.dart';
+import 'package:hishumi/domains/system/report/domain/repositories/report_repository.dart';
+import 'package:hishumi/domains/system/report/presentation/providers/report_providers.dart';
+import 'package:hishumi/domains/system/report/presentation/screens/my_reports_screen.dart';
+import 'package:hishumi/generated/app_localizations.dart';
+import 'package:hishumi/shared/widgets/empty_state.dart';
+import 'package:hishumi/shared/widgets/loading_indicator.dart';
+import 'package:hishumi/shared/widgets/page_error_state.dart';
 
 /// Scripted repository: the screen runs the REAL ReportListNotifier, so
 /// every load (initial, retry, refresh, filter render) is observable per

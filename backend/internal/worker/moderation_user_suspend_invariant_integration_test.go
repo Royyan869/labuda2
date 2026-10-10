@@ -24,14 +24,14 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 
-	userInfraRepo "github.com/labuda/backend/internal/identity/user/infrastructure/repository"
-	"github.com/labuda/backend/internal/platform/capability"
-	capabilityEntity "github.com/labuda/backend/internal/platform/capability/entity"
-	capabilityRepoImpl "github.com/labuda/backend/internal/platform/capability/infrastructure/repository"
-	"github.com/labuda/backend/internal/platform/capability/invariant"
-	platformevent "github.com/labuda/backend/internal/platform/event"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/testdb"
+	userInfraRepo "github.com/hishumi/backend/internal/identity/user/infrastructure/repository"
+	"github.com/hishumi/backend/internal/platform/capability"
+	capabilityEntity "github.com/hishumi/backend/internal/platform/capability/entity"
+	capabilityRepoImpl "github.com/hishumi/backend/internal/platform/capability/infrastructure/repository"
+	"github.com/hishumi/backend/internal/platform/capability/invariant"
+	platformevent "github.com/hishumi/backend/internal/platform/event"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/testdb"
 )
 
 // insertModerationInvariantUser inserts an active user with the given role.

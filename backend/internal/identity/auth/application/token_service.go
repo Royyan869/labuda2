@@ -6,8 +6,8 @@ import (
 
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/config"
-	"github.com/labuda/backend/internal/platform/logger"
+	"github.com/hishumi/backend/internal/config"
+	"github.com/hishumi/backend/internal/platform/logger"
 	"go.uber.org/zap"
 )
 
@@ -35,10 +35,10 @@ const (
 // JWT tokens contain roles for CONVENIENCE/INFORMATIONAL PURPOSES ONLY.
 // The `roles` claim in the token is NOT authoritative for authorization.
 //
-// **CANONICAL LABUDA AUTHORITY FLOW:**
+// **CANONICAL HISHUMI AUTHORITY FLOW:**
 // 1. Firebase ID token verified by AuthHandler.FirebaseExchange (exchange only)
 // 2. User looked up/created in PostgreSQL
-// 3. Labuda access JWT issued (token_use=access) and validated by LabudaAuthMiddleware on every request
+// 3. HiShumi access JWT issued (token_use=access) and validated by HiShumiAuthMiddleware on every request
 // 4. Actor (role + capabilities + emailVerified) resolved from PostgreSQL by ActorResolver on every request
 // 5. Authorization checks use RoleChecker/Actor capabilities (DB queries)
 //
@@ -242,7 +242,7 @@ func (s *TokenService) ValidateToken(tokenString string) (*Claims, error) {
 	return claims, nil
 }
 
-// ValidateAccessToken validates a normal Labuda access token.
+// ValidateAccessToken validates a normal HiShumi access token.
 func (s *TokenService) ValidateAccessToken(tokenString string) (*Claims, error) {
 	claims, err := s.ValidateToken(tokenString)
 	if err != nil {

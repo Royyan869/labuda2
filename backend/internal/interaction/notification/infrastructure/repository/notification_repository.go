@@ -8,8 +8,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
-	notificationrepo "github.com/labuda/backend/internal/interaction/notification"
-	"github.com/labuda/backend/internal/interaction/notification/entity"
+	notificationrepo "github.com/hishumi/backend/internal/interaction/notification"
+	"github.com/hishumi/backend/internal/interaction/notification/entity"
 )
 
 // notificationColumns is the canonical projection order for every read. The

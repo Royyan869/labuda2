@@ -7,8 +7,8 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/pricing/promotion/contract/application"
-	"github.com/labuda/backend/internal/pricing/promotion/contract/entity"
+	"github.com/hishumi/backend/internal/pricing/promotion/contract/application"
+	"github.com/hishumi/backend/internal/pricing/promotion/contract/entity"
 	"github.com/stretchr/testify/require"
 )
 

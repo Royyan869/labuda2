@@ -11,14 +11,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/user/profile/domain/entities/address_entity.dart';
-import 'package:labuda/domains/user/profile/presentation/providers/notifiers/address_notifier.dart';
-import 'package:labuda/domains/user/profile/presentation/providers/state/address_state.dart';
-import 'package:labuda/domains/user/profile/presentation/widgets/address_form_dialog.dart';
-import 'package:labuda/domains/user/profile/presentation/widgets/address_picker_sheet.dart';
-import 'package:labuda/generated/app_localizations.dart';
-import 'package:labuda/shared/shared.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/user/profile/domain/entities/address_entity.dart';
+import 'package:hishumi/domains/user/profile/presentation/providers/notifiers/address_notifier.dart';
+import 'package:hishumi/domains/user/profile/presentation/providers/state/address_state.dart';
+import 'package:hishumi/domains/user/profile/presentation/widgets/address_form_dialog.dart';
+import 'package:hishumi/domains/user/profile/presentation/widgets/address_picker_sheet.dart';
+import 'package:hishumi/generated/app_localizations.dart';
+import 'package:hishumi/shared/shared.dart';
 
 class _FakeAuthController extends AuthController {
   @override

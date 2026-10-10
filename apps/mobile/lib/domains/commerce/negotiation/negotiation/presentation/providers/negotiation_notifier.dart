@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/common/result.dart';
+import 'package:hishumi/core/common/result.dart';
 import '../../domain/entities/negotiation.dart';
 import '../../domain/repositories/negotiation_repository.dart';
 import 'negotiation_state.dart';

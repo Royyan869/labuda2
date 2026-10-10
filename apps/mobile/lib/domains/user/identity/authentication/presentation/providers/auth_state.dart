@@ -123,7 +123,8 @@ final class AuthStateError extends AuthState {
 
 /// Backend Failure state - Backend returned validation/business error (4xx)
 /// User is authenticated with Firebase but backend rejected the request
-/// Router should treat as initializing - NO redirect to /welcome
+/// Router treats this as DEGRADED: no automatic redirect — the splash
+/// surface renders the retry UI; any other route is left untouched.
 /// Examples: 400 Bad Request, 409 Conflict, 422 Unprocessable Entity
 final class AuthStateBackendFailure extends AuthState {
   final String message;
@@ -132,14 +133,17 @@ final class AuthStateBackendFailure extends AuthState {
 
 /// Backend Unavailable state - Backend is unreachable or returned server error
 /// User is authenticated with Firebase but backend is down
-/// Router should treat as initializing - NO redirect to /welcome
+/// Router treats this as DEGRADED: no automatic redirect — the splash
+/// surface renders the retry UI; any other route is left untouched.
 /// Examples: timeout, 500 Internal Server Error, network error
 final class AuthStateBackendUnavailable extends AuthState {
   final String message;
   const AuthStateBackendUnavailable(this.message);
 }
 
-/// Requires Profile Completion state - Google sign-in for new user
+/// Requires Profile Completion state - backend exchange resolved the identity
+/// but the canonical profile has no username yet (new Google sign-in, or an
+/// email account whose row was created without one).
 /// Router should redirect to /auth/complete-profile
 /// User must complete profile before accessing app
 final class AuthStateRequiresProfileCompletion extends AuthState {

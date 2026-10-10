@@ -5,8 +5,8 @@ library;
 /// Presentation layer - pure UI, no business logic
 
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/system/support/domain/domain.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/system/support/domain/domain.dart';
 
 // ============================================
 // WIDGET

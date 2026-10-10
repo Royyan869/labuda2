@@ -2,12 +2,12 @@ package http
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/labuda/backend/internal/audit"
-	subscriptionEntity "github.com/labuda/backend/internal/commerce/subscription/entity"
-	subscriptionRepo "github.com/labuda/backend/internal/commerce/subscription/repository"
-	"github.com/labuda/backend/internal/platform/capability"
-	"github.com/labuda/backend/internal/platform/response"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/audit"
+	subscriptionEntity "github.com/hishumi/backend/internal/commerce/subscription/entity"
+	subscriptionRepo "github.com/hishumi/backend/internal/commerce/subscription/repository"
+	"github.com/hishumi/backend/internal/platform/capability"
+	"github.com/hishumi/backend/internal/platform/response"
+	"github.com/hishumi/backend/pkg/db"
 	"go.uber.org/zap"
 )
 

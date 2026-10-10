@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
+import 'package:hishumi/core/core.dart';
 
 /// Rating overview section showing overall rating and breakdown
 class RatingOverviewSection extends StatelessWidget {

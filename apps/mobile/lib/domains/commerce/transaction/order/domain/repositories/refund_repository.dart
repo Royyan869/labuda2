@@ -1,7 +1,7 @@
 /// Refund Repository Interface
 library;
 
-import 'package:labuda/core/common/result.dart';
+import 'package:hishumi/core/common/result.dart';
 import '../domain.dart';
 
 abstract class RefundRepository {

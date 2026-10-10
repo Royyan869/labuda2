@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/finance/refund/entity"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/finance/refund/entity"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // RefundRepository defines the interface for refund persistence.

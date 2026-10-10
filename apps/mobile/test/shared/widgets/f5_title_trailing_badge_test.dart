@@ -14,11 +14,11 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/commerce/transaction/order/domain/domain.dart';
-import 'package:labuda/domains/commerce/transaction/order/presentation/widgets/order_widgets.dart';
-import 'package:labuda/domains/user/profile/presentation/widgets/personal_information_section.dart';
-import 'package:labuda/generated/app_localizations.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/commerce/transaction/order/domain/domain.dart';
+import 'package:hishumi/domains/commerce/transaction/order/presentation/widgets/order_widgets.dart';
+import 'package:hishumi/domains/user/profile/presentation/widgets/personal_information_section.dart';
+import 'package:hishumi/generated/app_localizations.dart';
 
 const List<double> _widths = <double>[320, 360, 412, 500];
 const List<double> _scales = <double>[1.0, 1.3, 2.0];

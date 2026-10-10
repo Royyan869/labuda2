@@ -1,5 +1,5 @@
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/domains/social/like/domain/entities/like.dart';
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/domains/social/like/domain/entities/like.dart';
 
 /// Repository interface for Like operations
 abstract class LikeRepository {

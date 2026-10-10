@@ -1,4 +1,4 @@
-import 'package:labuda/core/core.dart';
+import 'package:hishumi/core/core.dart';
 
 /// Notification Trigger Interface
 ///

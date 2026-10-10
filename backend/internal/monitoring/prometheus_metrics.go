@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	metricsNamespace = "labuda_system"
+	metricsNamespace = "hishumi_system"
 )
 
 // MetricsCollector implements prometheus.Collector interface

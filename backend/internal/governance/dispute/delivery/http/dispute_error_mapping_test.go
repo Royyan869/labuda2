@@ -7,7 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
-	"github.com/labuda/backend/internal/governance/dispute/application"
+	"github.com/hishumi/backend/internal/governance/dispute/application"
 	"github.com/stretchr/testify/require"
 )
 

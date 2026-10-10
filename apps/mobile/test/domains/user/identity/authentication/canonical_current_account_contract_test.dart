@@ -3,11 +3,10 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/user/identity/authentication/data/repositories/auth_core_repository.dart';
-import 'package:labuda/domains/user/profile/data/datasources/user_api_datasource.dart';
-import 'package:labuda/domains/user/profile/data/models/api/user_api_models.dart';
-import 'package:labuda/domains/user/profile/data/services/user_sync_service.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/user/profile/data/datasources/user_api_datasource.dart';
+import 'package:hishumi/domains/user/profile/data/models/api/user_api_models.dart';
+import 'package:hishumi/domains/user/profile/data/services/user_sync_service.dart';
 
 class _MockFirebaseUser extends Fake implements User {
   @override
@@ -65,9 +64,6 @@ class _MockApiClient implements ApiClient {
   }) {
     throw UnimplementedError();
   }
-
-  @override
-  bool isNetworkError(DioException e) => false;
 
   @override
   bool isNotFound(DioException e) => false;

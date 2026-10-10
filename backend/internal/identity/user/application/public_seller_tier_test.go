@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/labuda/backend/internal/pkg/publiccard"
+	"github.com/hishumi/backend/internal/pkg/publiccard"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/social/like"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/social/like"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // LikeRepositoryImpl handles like persistence using pgx-based DB layer.

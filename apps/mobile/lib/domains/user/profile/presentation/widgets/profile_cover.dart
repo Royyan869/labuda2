@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/shared/widgets/app_image.dart';
+import 'package:hishumi/shared/widgets/app_image.dart';
 
 /// Cover photo section untuk Profile V2
 ///

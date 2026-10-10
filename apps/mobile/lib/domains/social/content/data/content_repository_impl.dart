@@ -2,12 +2,12 @@
 // Implements ContentRepository dari domain layer menggunakan API datasource
 
 import 'package:dio/dio.dart';
-import 'package:labuda/core/api/api.dart';
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/domains/social/content/data/mappers/content_mapper.dart';
-import 'package:labuda/domains/social/content/data/remote/content_api_datasource.dart';
-import 'package:labuda/domains/social/content/domain/entities/content.dart';
-import 'package:labuda/domains/social/content/domain/repositories/content_repository.dart';
+import 'package:hishumi/core/api/api.dart';
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/domains/social/content/data/mappers/content_mapper.dart';
+import 'package:hishumi/domains/social/content/data/remote/content_api_datasource.dart';
+import 'package:hishumi/domains/social/content/domain/entities/content.dart';
+import 'package:hishumi/domains/social/content/domain/repositories/content_repository.dart';
 
 /// Content Repository Implementation
 ///

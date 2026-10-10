@@ -12,14 +12,14 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/audit"
-	bankaccountrepo "github.com/labuda/backend/internal/finance/bankaccount/infrastructure/repository"
-	"github.com/labuda/backend/internal/finance/infrastructure/repository"
-	"github.com/labuda/backend/internal/identity/auth"
-	"github.com/labuda/backend/internal/platform/capability"
-	outboxrepo "github.com/labuda/backend/internal/platform/outbox/infrastructure/repository"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/money"
+	"github.com/hishumi/backend/internal/audit"
+	bankaccountrepo "github.com/hishumi/backend/internal/finance/bankaccount/infrastructure/repository"
+	"github.com/hishumi/backend/internal/finance/infrastructure/repository"
+	"github.com/hishumi/backend/internal/identity/auth"
+	"github.com/hishumi/backend/internal/platform/capability"
+	outboxrepo "github.com/hishumi/backend/internal/platform/outbox/infrastructure/repository"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/money"
 )
 
 // WithdrawVerificationChecker is the minimal interface that WithdrawService

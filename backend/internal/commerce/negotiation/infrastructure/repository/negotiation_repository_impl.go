@@ -6,9 +6,9 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	negotiationEntity "github.com/labuda/backend/internal/commerce/negotiation/entity"
-	negotiationRepo "github.com/labuda/backend/internal/commerce/negotiation/repository"
-	"github.com/labuda/backend/pkg/db"
+	negotiationEntity "github.com/hishumi/backend/internal/commerce/negotiation/entity"
+	negotiationRepo "github.com/hishumi/backend/internal/commerce/negotiation/repository"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // NegotiationRepositoryImpl handles negotiation persistence using pgx-based DB layer.

@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:labuda/core/core.dart';
+import 'package:hishumi/core/core.dart';
 // R4.2: Import LoggerService directly instead of mega-barrel
-import 'package:labuda/shared/services/logger_service.dart' show LoggerService;
+import 'package:hishumi/shared/services/logger_service.dart' show LoggerService;
 // W14-B2: Import for authenticatedUserProvider and isSyncingWithBackendProvider
-import 'package:labuda/shared/providers/authenticated_account_provider.dart'
+import 'package:hishumi/shared/providers/authenticated_account_provider.dart'
     show authenticatedUserProvider;
-import 'package:labuda/shared/providers/auth_status_providers.dart'
+import 'package:hishumi/shared/providers/auth_status_providers.dart'
     show isSyncingWithBackendProvider;
 import 'router_modules_manager.dart';
 import 'router_error_page.dart';
@@ -257,8 +257,11 @@ String? _authRedirectForLocation(
         // GUEST HOME (Owner canonical truth): guests may open the canonical
         // Home (/home) directly — e.g. the Welcome Screen Home action.
         // /home is the canonical Home destination and must never alias or
-        // fall back to /for-sale (For Sale catalog) — i.e. no legacy
-        // "forSale as Home" mapping may ever return.
+        // fall back to a commerce route — i.e. no legacy "forSale as Home"
+        // mapping may ever return.
+        // /for-sale stays here only as the PREFIX for the public DETAIL route
+        // /for-sale/:forSaleId (there is no standalone /for-sale browse route;
+        // Marketplace is the sole public browse destination).
         '/home',
         '/for-sale',
         '/auction',

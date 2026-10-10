@@ -10,8 +10,8 @@
 // the wall clock. Assertions pin exact strings, not merely "does not throw".
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'package:labuda/domains/system/shared/domain/services/time_format_service.dart';
-import 'package:labuda/shared/utils/app_formatters.dart';
+import 'package:hishumi/domains/system/shared/domain/services/time_format_service.dart';
+import 'package:hishumi/shared/utils/app_formatters.dart';
 
 void main() {
   const service = TimeFormatService();

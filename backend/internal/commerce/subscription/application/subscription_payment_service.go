@@ -8,14 +8,14 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	sellerRepo "github.com/labuda/backend/internal/commerce/seller/repository"
-	subscriptionEntity "github.com/labuda/backend/internal/commerce/subscription/entity"
-	subscriptionRepo "github.com/labuda/backend/internal/commerce/subscription/repository"
-	financeApp "github.com/labuda/backend/internal/finance/application"
-	userRepo "github.com/labuda/backend/internal/identity/user/repository"
-	paymentRepo "github.com/labuda/backend/internal/integration/payment/infrastructure/repository"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/money"
+	sellerRepo "github.com/hishumi/backend/internal/commerce/seller/repository"
+	subscriptionEntity "github.com/hishumi/backend/internal/commerce/subscription/entity"
+	subscriptionRepo "github.com/hishumi/backend/internal/commerce/subscription/repository"
+	financeApp "github.com/hishumi/backend/internal/finance/application"
+	userRepo "github.com/hishumi/backend/internal/identity/user/repository"
+	paymentRepo "github.com/hishumi/backend/internal/integration/payment/infrastructure/repository"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/money"
 )
 
 var (

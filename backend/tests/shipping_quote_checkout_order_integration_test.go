@@ -11,18 +11,18 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
-	fpsentity "github.com/labuda/backend/internal/commerce/forsale/entity"
-	fpsinfra "github.com/labuda/backend/internal/commerce/forsale/infrastructure/repository"
-	orderApp "github.com/labuda/backend/internal/commerce/order/application"
-	orderentity "github.com/labuda/backend/internal/commerce/order/entity"
-	productentity "github.com/labuda/backend/internal/commerce/product/entity"
-	productinfra "github.com/labuda/backend/internal/commerce/product/infrastructure/repository"
-	shippingApp "github.com/labuda/backend/internal/commerce/shipping/application"
-	shippingquoteEntity "github.com/labuda/backend/internal/commerce/shipping/quote/entity"
-	shippingquoteRepo "github.com/labuda/backend/internal/commerce/shipping/quote/infrastructure/repository"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/money"
-	"github.com/labuda/backend/pkg/testdb"
+	fpsentity "github.com/hishumi/backend/internal/commerce/forsale/entity"
+	fpsinfra "github.com/hishumi/backend/internal/commerce/forsale/infrastructure/repository"
+	orderApp "github.com/hishumi/backend/internal/commerce/order/application"
+	orderentity "github.com/hishumi/backend/internal/commerce/order/entity"
+	productentity "github.com/hishumi/backend/internal/commerce/product/entity"
+	productinfra "github.com/hishumi/backend/internal/commerce/product/infrastructure/repository"
+	shippingApp "github.com/hishumi/backend/internal/commerce/shipping/application"
+	shippingquoteEntity "github.com/hishumi/backend/internal/commerce/shipping/quote/entity"
+	shippingquoteRepo "github.com/hishumi/backend/internal/commerce/shipping/quote/infrastructure/repository"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/money"
+	"github.com/hishumi/backend/pkg/testdb"
 )
 
 // ============================================================================
@@ -42,7 +42,7 @@ import (
 // (ShippingQuoteService.ConsumeQuoteForCheckout) that order creation delegates
 // to, inside the order transaction. Only identity-irrelevant gates are stubbed (account
 // status, seller capability, actor resolution); every persistence touch uses
-// real repositories against the disposable labuda_test database.
+// real repositories against the disposable hishumi_test database.
 // ============================================================================
 
 func sqStrPtr(v string) *string { return &v }

@@ -7,11 +7,11 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	bankaccountApp "github.com/labuda/backend/internal/finance/bankaccount/application"
-	bankaccountEntity "github.com/labuda/backend/internal/finance/bankaccount/entity"
-	"github.com/labuda/backend/internal/middleware"
-	"github.com/labuda/backend/internal/platform/response"
-	"github.com/labuda/backend/pkg/db"
+	bankaccountApp "github.com/hishumi/backend/internal/finance/bankaccount/application"
+	bankaccountEntity "github.com/hishumi/backend/internal/finance/bankaccount/entity"
+	"github.com/hishumi/backend/internal/middleware"
+	"github.com/hishumi/backend/internal/platform/response"
+	"github.com/hishumi/backend/pkg/db"
 	"go.uber.org/zap"
 )
 

@@ -26,9 +26,9 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:labuda/core/core.dart' hide ConnectionState;
-import 'package:labuda/domains/commerce/transaction/shipping/domain/domain.dart';
-import 'package:labuda/domains/commerce/transaction/shipping/presentation/providers/providers.dart';
+import 'package:hishumi/core/core.dart' hide ConnectionState;
+import 'package:hishumi/domains/commerce/transaction/shipping/domain/domain.dart';
+import 'package:hishumi/domains/commerce/transaction/shipping/presentation/providers/providers.dart';
 
 class SellerShippingSetupsSelector extends ConsumerStatefulWidget {
   /// Initial selection (used by edit flow when the screen knows the prior IDs;

@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:labuda/shared/widgets/app_image.dart';
+import 'package:hishumi/shared/widgets/app_image.dart';
 
 /// Canonical store-photo preview — the single authority for rendering a
 /// seller store photo in onboarding (step 2 + preview step).

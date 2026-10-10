@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
-import 'package:labuda/core/api/api_client.dart';
-import 'package:labuda/domains/user/preference/saved_item/models/saved_item_model.dart';
+import 'package:hishumi/core/api/api_client.dart';
+import 'package:hishumi/domains/user/preference/saved_item/models/saved_item_model.dart';
 
 class SavedItemRepository {
   final Dio _dio;

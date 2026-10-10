@@ -4,7 +4,7 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:labuda/core/src/theme/app_theme.dart';
+import 'package:hishumi/core/src/theme/app_theme.dart';
 
 /// Base container untuk dropdown dengan styling konsisten
 class BaseDropdownContainer extends StatelessWidget {

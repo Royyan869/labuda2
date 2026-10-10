@@ -1,7 +1,7 @@
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/domains/commerce/transaction/checkout/data/repositories/checkout_repository_impl.dart';
-import 'package:labuda/domains/commerce/transaction/checkout/domain/entities/checkout_request.dart';
-import 'package:labuda/domains/commerce/transaction/checkout/domain/entities/checkout_response.dart';
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/domains/commerce/transaction/checkout/data/repositories/checkout_repository_impl.dart';
+import 'package:hishumi/domains/commerce/transaction/checkout/domain/entities/checkout_request.dart';
+import 'package:hishumi/domains/commerce/transaction/checkout/domain/entities/checkout_response.dart';
 import 'package:uuid/uuid.dart';
 
 /// Create Order Use Case

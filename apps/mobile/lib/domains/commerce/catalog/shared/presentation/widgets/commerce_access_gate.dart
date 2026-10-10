@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/shared/shared.dart';
-import 'package:labuda/core/src/theme/app_theme.dart';
+import 'package:hishumi/shared/shared.dart';
+import 'package:hishumi/core/src/theme/app_theme.dart';
 
 /// Canonical commerce ACCESS GATE — ONE AUTHORITY for every for_sale/auction
 /// surface that must block a session which cannot proceed (not signed in,

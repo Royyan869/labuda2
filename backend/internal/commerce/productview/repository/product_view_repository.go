@@ -5,8 +5,8 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/commerce/productview/entity"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/commerce/productview/entity"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // ProductViewRepository is the single persistence surface for Product View.

@@ -18,10 +18,10 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/shared/domain/entities/resource_projection.dart';
-import 'package:labuda/domains/chat/chat/presentation/widgets/chat_resource_projection_card.dart';
-import 'package:labuda/shared/widgets/app_image.dart';
-import 'package:labuda/shared/widgets/carousel_video_player.dart';
+import 'package:hishumi/shared/domain/entities/resource_projection.dart';
+import 'package:hishumi/domains/chat/chat/presentation/widgets/chat_resource_projection_card.dart';
+import 'package:hishumi/shared/widgets/app_image.dart';
+import 'package:hishumi/shared/widgets/carousel_video_player.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
 /// The backend URL handed to the canonical widget in the tree.

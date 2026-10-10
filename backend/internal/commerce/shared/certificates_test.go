@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	productEntity "github.com/labuda/backend/internal/commerce/product/entity"
+	productEntity "github.com/hishumi/backend/internal/commerce/product/entity"
 )
 
 func TestNormalizeCertificatesCanonicalOrderAndDedupes(t *testing.T) {

@@ -1,6 +1,6 @@
-import 'package:labuda/domains/social/comment/data/dto/comment_dto.dart';
-import 'package:labuda/domains/social/comment/domain/entities/comment.dart';
-import 'package:labuda/shared/governance/content_lifecycle.dart';
+import 'package:hishumi/domains/social/comment/data/dto/comment_dto.dart';
+import 'package:hishumi/domains/social/comment/domain/entities/comment.dart';
+import 'package:hishumi/shared/governance/content_lifecycle.dart';
 
 /// Mapper for Comment DTO <-> Entity conversions.
 ///

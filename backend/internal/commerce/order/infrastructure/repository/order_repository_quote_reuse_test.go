@@ -3,7 +3,7 @@ package repository
 import (
 	"testing"
 
-	"github.com/labuda/backend/internal/commerce/order/entity"
+	"github.com/hishumi/backend/internal/commerce/order/entity"
 	"github.com/stretchr/testify/require"
 )
 

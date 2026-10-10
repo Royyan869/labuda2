@@ -1,10 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/domains/user/identity/authentication/domain/entities/labuda_session_credential.dart';
+import 'package:hishumi/domains/user/identity/authentication/domain/entities/hishumi_session_credential.dart';
 
 void main() {
-  group('LabudaSessionCredential', () {
+  group('HiShumiSessionCredential', () {
     test('holds both tokens', () {
-      const cred = LabudaSessionCredential(
+      const cred = HiShumiSessionCredential(
         accessToken: 'access-123',
         refreshToken: 'refresh-456',
       );
@@ -13,11 +13,11 @@ void main() {
     });
 
     test('equality by value', () {
-      const a = LabudaSessionCredential(
+      const a = HiShumiSessionCredential(
         accessToken: 'a',
         refreshToken: 'b',
       );
-      const b = LabudaSessionCredential(
+      const b = HiShumiSessionCredential(
         accessToken: 'a',
         refreshToken: 'b',
       );
@@ -26,11 +26,11 @@ void main() {
     });
 
     test('inequality when tokens differ', () {
-      const a = LabudaSessionCredential(
+      const a = HiShumiSessionCredential(
         accessToken: 'a',
         refreshToken: 'b',
       );
-      const b = LabudaSessionCredential(
+      const b = HiShumiSessionCredential(
         accessToken: 'a',
         refreshToken: 'c',
       );
@@ -38,7 +38,7 @@ void main() {
     });
 
     test('toString does not leak token values', () {
-      const cred = LabudaSessionCredential(
+      const cred = HiShumiSessionCredential(
         accessToken: 'secret-access',
         refreshToken: 'secret-refresh',
       );

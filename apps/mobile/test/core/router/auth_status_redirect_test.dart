@@ -8,8 +8,8 @@
 // to (see app_router.dart's _handleAuthenticationRedirect), so these tests
 // describe real router behavior, not just the test copy.
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/domains/user/identity/authentication/domain/entities/account_status.dart';
-import 'package:labuda/core/core.dart';
+import 'package:hishumi/domains/user/identity/authentication/domain/entities/account_status.dart';
+import 'package:hishumi/core/core.dart';
 
 AuthUser _testUser({AccountStatus? status}) {
   return AuthUser(
@@ -284,7 +284,7 @@ void main() {
       expect(result, isNull);
     });
 
-    test('guest Home never maps to the For Sale catalog route', () {
+    test('guest Home never maps to the For Sale route', () {
       // The Home action resolves to /home, not /for-sale. This locks the
       // canonical invariant: HOME ACTION = /home, HOME ACTION ≠ /for-sale.
       expect(
@@ -302,8 +302,10 @@ void main() {
           '/for-sale',
         ),
         isNull,
-        reason: '/for-sale stays independently guest-browsable, but it is '
-            'never the destination of the Home action.',
+        reason:
+            '/for-sale stays in the guest whitelist as the prefix for the '
+            'public /for-sale/:id detail route, but it is never the '
+            'destination of the Home action.',
       );
     });
   });

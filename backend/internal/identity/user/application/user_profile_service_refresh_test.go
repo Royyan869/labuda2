@@ -11,11 +11,11 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
-	sellerRepo "github.com/labuda/backend/internal/commerce/seller/repository"
-	subscriptionRepo "github.com/labuda/backend/internal/commerce/subscription/repository"
-	userEntity "github.com/labuda/backend/internal/identity/user/domain/entity"
-	outboxInfra "github.com/labuda/backend/internal/platform/outbox/infrastructure/repository"
-	"github.com/labuda/backend/pkg/db"
+	sellerRepo "github.com/hishumi/backend/internal/commerce/seller/repository"
+	subscriptionRepo "github.com/hishumi/backend/internal/commerce/subscription/repository"
+	userEntity "github.com/hishumi/backend/internal/identity/user/domain/entity"
+	outboxInfra "github.com/hishumi/backend/internal/platform/outbox/infrastructure/repository"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 type fakeTx struct{}

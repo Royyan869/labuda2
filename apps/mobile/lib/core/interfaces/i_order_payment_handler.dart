@@ -1,5 +1,5 @@
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/core/common/types/payment_types.dart';
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/core/common/types/payment_types.dart';
 
 /// Interface for handling payment webhook callbacks from payment gateway
 ///

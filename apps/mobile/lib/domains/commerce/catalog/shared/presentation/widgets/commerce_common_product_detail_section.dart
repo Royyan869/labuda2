@@ -1,12 +1,12 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:labuda/core/common/types/preparation_time.dart';
-import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction.dart';
-import 'package:labuda/domains/commerce/catalog/for_sale/domain/entities/for_sale.dart';
-import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_certificate_selector.dart';
-import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_detail_primitives.dart';
-import 'package:labuda/core/src/theme/app_theme.dart';
+import 'package:hishumi/core/common/types/preparation_time.dart';
+import 'package:hishumi/domains/commerce/catalog/auction/domain/entities/auction.dart';
+import 'package:hishumi/domains/commerce/catalog/for_sale/domain/entities/for_sale.dart';
+import 'package:hishumi/domains/commerce/catalog/shared/presentation/widgets/commerce_certificate_selector.dart';
+import 'package:hishumi/domains/commerce/catalog/shared/presentation/widgets/commerce_detail_primitives.dart';
+import 'package:hishumi/core/src/theme/app_theme.dart';
 
 class CommerceCommonProductDetailsData {
   final String? variety;

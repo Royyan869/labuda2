@@ -1,4 +1,4 @@
-import 'package:labuda/domains/commerce/pricing/discount/domain/entities/discount_entity.dart';
+import 'package:hishumi/domains/commerce/pricing/discount/domain/entities/discount_entity.dart';
 
 /// Model untuk Discount (Data Transfer Object)
 ///

@@ -8,10 +8,10 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/pricing/promotion/contract/application"
-	contractentity "github.com/labuda/backend/internal/pricing/promotion/contract/entity"
-	deliveryApp "github.com/labuda/backend/internal/pricing/promotion/delivery/application"
-	promoentity "github.com/labuda/backend/internal/pricing/promotion/entity"
+	"github.com/hishumi/backend/internal/pricing/promotion/contract/application"
+	contractentity "github.com/hishumi/backend/internal/pricing/promotion/contract/entity"
+	deliveryApp "github.com/hishumi/backend/internal/pricing/promotion/delivery/application"
+	promoentity "github.com/hishumi/backend/internal/pricing/promotion/entity"
 	"github.com/stretchr/testify/require"
 )
 

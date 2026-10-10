@@ -1,4 +1,4 @@
-// Phase 3B — Labuda JWT authority: 401 does NOT auto-refresh via Firebase.
+// Phase 3B — HiShumi JWT authority: 401 does NOT auto-refresh via Firebase.
 // Refresh lifecycle is deferred to Phase 3C. AuthInterceptor must NOT
 // attempt Firebase getIdToken(true) nor retry the request.
 //
@@ -7,7 +7,7 @@
 //   (Phase 3B intentionally disables auto-refresh).
 // - 401 on public browse also does NOT signal.
 // - non-401 never signals.
-// - Guard re-arm on successful Labuda token attach still works (preparation for 3C).
+// - Guard re-arm on successful HiShumi token attach still works (preparation for 3C).
 
 import 'dart:convert';
 import 'dart:typed_data';
@@ -15,7 +15,7 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:labuda/core/api/interceptors/auth_interceptor.dart';
+import 'package:hishumi/core/api/interceptors/auth_interceptor.dart';
 
 class _Canned401Adapter implements HttpClientAdapter {
   int fetchCount = 0;
@@ -75,7 +75,7 @@ void main() {
 
     dio.interceptors.add(
       AuthInterceptor(
-        labudaTokenFetcher: () async => 'labuda-token',
+        hishumiTokenFetcher: () async => 'hishumi-token',
         requestRetrier: (options) async {
           retrierCalls++;
           return Response<dynamic>(
@@ -101,10 +101,10 @@ void main() {
     expect(retrierCalls, equals(0),
         reason: 'Phase 3B must NOT auto-retry on 401');
     expect(callbackCount, equals(0),
-        reason: 'Phase 3B must NOT auto-signal sessionExpired on Labuda 401');
+        reason: 'Phase 3B must NOT auto-signal sessionExpired on HiShumi 401');
   });
 
-  test('401 with Labuda fetcher returning null still does NOT signal sessionExpired',
+  test('401 with HiShumi fetcher returning null still does NOT signal sessionExpired',
       () async {
     var callbackCount = 0;
     final dio = Dio()..httpClientAdapter = _Canned401Adapter();
@@ -114,7 +114,7 @@ void main() {
     );
 
     dio.interceptors.add(
-      AuthInterceptor(labudaTokenFetcher: () async => null),
+      AuthInterceptor(hishumiTokenFetcher: () async => null),
     );
 
     try {
@@ -134,7 +134,7 @@ void main() {
     );
 
     dio.interceptors.add(
-      AuthInterceptor(labudaTokenFetcher: () async => 'any_token'),
+      AuthInterceptor(hishumiTokenFetcher: () async => 'any_token'),
     );
 
     try {
@@ -147,7 +147,7 @@ void main() {
         reason: 'session-expired must only be considered for 401');
   });
 
-  test('guard is re-armed after a successful Labuda token attach', () async {
+  test('guard is re-armed after a successful HiShumi token attach', () async {
     // This proves the guard-reset path (onRequest success) still works
     // so Phase 3C can re-use it without adding new code.
     final adapter = _Canned401Adapter();
@@ -158,17 +158,17 @@ void main() {
     AuthInterceptor.resetSessionExpiryGuard();
 
     // We simulate by using a capture adapter that returns 200 and checks
-    // that a Labuda token was attached - the interceptor should reset guard.
+    // that a HiShumi token was attached - the interceptor should reset guard.
     // Since Phase 3B does not auto-signal, we just verify the interceptor
     // still attaches the token and does not throw.
     final capture = _Capture200Adapter();
     final dio2 = Dio()..httpClientAdapter = capture;
     dio2.interceptors.add(
-      AuthInterceptor(labudaTokenFetcher: () async => 'fresh_labuda'),
+      AuthInterceptor(hishumiTokenFetcher: () async => 'fresh_hishumi'),
     );
 
     await dio2.get<dynamic>('/normal/path');
-    expect(capture.capturedAuth, equals('Bearer fresh_labuda'));
+    expect(capture.capturedAuth, equals('Bearer fresh_hishumi'));
   });
 }
 

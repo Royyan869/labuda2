@@ -7,14 +7,14 @@
 library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/domains/commerce/pricing/discount/domain/entities/discount_entity.dart';
-import 'package:labuda/domains/commerce/pricing/discount/domain/entities/discount_validation_result.dart';
-import 'package:labuda/domains/commerce/pricing/discount/domain/use_cases/create_discount_use_case.dart';
-import 'package:labuda/domains/commerce/pricing/discount/domain/use_cases/delete_discount_use_case.dart';
-import 'package:labuda/domains/commerce/pricing/discount/domain/use_cases/get_seller_discounts_use_case.dart';
-import 'package:labuda/domains/commerce/pricing/discount/domain/use_cases/update_discount_use_case.dart';
-import 'package:labuda/domains/commerce/pricing/discount/domain/use_cases/validate_discount_use_case.dart';
-import 'package:labuda/domains/commerce/pricing/discount/data/discount_providers.dart'
+import 'package:hishumi/domains/commerce/pricing/discount/domain/entities/discount_entity.dart';
+import 'package:hishumi/domains/commerce/pricing/discount/domain/entities/discount_validation_result.dart';
+import 'package:hishumi/domains/commerce/pricing/discount/domain/use_cases/create_discount_use_case.dart';
+import 'package:hishumi/domains/commerce/pricing/discount/domain/use_cases/delete_discount_use_case.dart';
+import 'package:hishumi/domains/commerce/pricing/discount/domain/use_cases/get_seller_discounts_use_case.dart';
+import 'package:hishumi/domains/commerce/pricing/discount/domain/use_cases/update_discount_use_case.dart';
+import 'package:hishumi/domains/commerce/pricing/discount/domain/use_cases/validate_discount_use_case.dart';
+import 'package:hishumi/domains/commerce/pricing/discount/data/discount_providers.dart'
     show discountRepositoryProvider;
 
 // =============================================================================

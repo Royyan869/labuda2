@@ -21,13 +21,14 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:mockito/mockito.dart';
-import 'package:labuda/core/api/api.dart';
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/domains/user/identity/authentication/data/datasources/auth_api_datasource.dart';
-import 'package:labuda/domains/user/identity/authentication/data/repositories/auth_profile_repository.dart';
-import 'package:labuda/domains/user/identity/authentication/data/repositories/auth_repository_impl.dart';
-import 'package:labuda/domains/user/identity/authentication/domain/entities/auth_session.dart';
-import 'package:labuda/domains/user/profile/data/models/api/user_api_models.dart';
+import 'package:hishumi/core/api/api.dart';
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/domains/user/identity/authentication/data/datasources/auth_api_datasource.dart';
+import 'package:hishumi/domains/user/identity/authentication/data/repositories/auth_profile_repository.dart';
+import 'package:hishumi/domains/user/identity/authentication/data/repositories/auth_repository_impl.dart';
+import 'package:hishumi/domains/user/identity/authentication/domain/entities/auth_session.dart';
+import 'package:hishumi/domains/user/profile/data/datasources/user_api_datasource.dart';
+import 'package:hishumi/domains/user/profile/data/models/api/user_api_models.dart';
 
 // ---------------------------------------------------------------------------
 // Test doubles
@@ -163,9 +164,6 @@ class _RecordingApiClient implements ApiClient {
 
   @override
   bool isNotFound(DioException e) => false;
-
-  @override
-  bool isNetworkError(DioException e) => false;
 
   @override
   bool isUnauthorized(DioException e) => false;
@@ -344,6 +342,7 @@ void main() {
         final repo = AuthProfileRepository(
           firebaseAuth: _MockFirebaseAuth(),
           apiDatasource: ds,
+          userDatasource: UserApiDatasource(client),
         );
 
         final result = await repo.getActiveSessions();
@@ -365,6 +364,7 @@ void main() {
         final repo = AuthProfileRepository(
           firebaseAuth: _MockFirebaseAuth(),
           apiDatasource: ds,
+          userDatasource: UserApiDatasource(client),
         );
 
         final result = await repo.revokeSession('fam-xyz');
@@ -383,6 +383,7 @@ void main() {
       final repo = AuthProfileRepository(
         firebaseAuth: _MockFirebaseAuth(),
         apiDatasource: ds,
+        userDatasource: UserApiDatasource(client),
       );
 
       final result = await repo.getActiveSessions();
@@ -400,6 +401,7 @@ void main() {
       final repo = AuthProfileRepository(
         firebaseAuth: _MockFirebaseAuth(),
         apiDatasource: ds,
+        userDatasource: UserApiDatasource(client),
       );
 
       final result = await repo.revokeSession('fam-xyz');

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/shared/widgets/app_dialog.dart';
+import 'package:hishumi/shared/widgets/app_dialog.dart';
 
 /// Helper class for Seller Wizard validation and dialogs
 /// Extracted from SellerUpgradeWizardScreen to reduce complexity

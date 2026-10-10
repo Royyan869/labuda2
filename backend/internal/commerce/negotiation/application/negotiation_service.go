@@ -9,13 +9,13 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgconn"
-	forSaleEntity "github.com/labuda/backend/internal/commerce/forsale/entity"
-	forSaleRepo "github.com/labuda/backend/internal/commerce/forsale/repository"
-	negotiationEntity "github.com/labuda/backend/internal/commerce/negotiation/entity"
-	negotiationImpl "github.com/labuda/backend/internal/commerce/negotiation/infrastructure/repository"
-	negotiationRepo "github.com/labuda/backend/internal/commerce/negotiation/repository"
-	outboxRepo "github.com/labuda/backend/internal/platform/outbox/infrastructure/repository"
-	"github.com/labuda/backend/pkg/db"
+	forSaleEntity "github.com/hishumi/backend/internal/commerce/forsale/entity"
+	forSaleRepo "github.com/hishumi/backend/internal/commerce/forsale/repository"
+	negotiationEntity "github.com/hishumi/backend/internal/commerce/negotiation/entity"
+	negotiationImpl "github.com/hishumi/backend/internal/commerce/negotiation/infrastructure/repository"
+	negotiationRepo "github.com/hishumi/backend/internal/commerce/negotiation/repository"
+	outboxRepo "github.com/hishumi/backend/internal/platform/outbox/infrastructure/repository"
+	"github.com/hishumi/backend/pkg/db"
 	"go.uber.org/zap"
 )
 

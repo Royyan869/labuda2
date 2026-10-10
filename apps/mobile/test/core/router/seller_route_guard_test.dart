@@ -16,8 +16,8 @@
 // 7. Null user is redirected from all seller routes
 // 8. Role field is NOT used for gating (regression lock)
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/user/identity/authentication/domain/entities/seller_tier.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/user/identity/authentication/domain/entities/seller_tier.dart';
 
 /// Minimal AuthUser for testing — only seller state fields matter.
 AuthUser _testUser({

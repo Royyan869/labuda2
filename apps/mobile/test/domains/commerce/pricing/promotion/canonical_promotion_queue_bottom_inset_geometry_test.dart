@@ -48,9 +48,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/commerce/pricing/promotion/presentation/screens/canonical_promotion_queue_screen.dart';
-import 'package:labuda/shared/widgets/bottom_action_bar.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/domains/commerce/pricing/promotion/presentation/screens/canonical_promotion_queue_screen.dart';
+import 'package:hishumi/shared/widgets/bottom_action_bar.dart';
 
 /// Design tail below the last meaningful content of the populated queue:
 /// `ListView.separated(padding: EdgeInsets.all(AppMetrics.p16))`.

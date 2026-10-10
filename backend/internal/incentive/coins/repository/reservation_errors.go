@@ -3,8 +3,8 @@ package repository
 import (
 	"errors"
 
-	"github.com/labuda/backend/internal/incentive/coins/entity"
-	"github.com/labuda/backend/pkg/db"
+	"github.com/hishumi/backend/internal/incentive/coins/entity"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // IsReservationDuplicate reports whether err represents a duplicate reservation

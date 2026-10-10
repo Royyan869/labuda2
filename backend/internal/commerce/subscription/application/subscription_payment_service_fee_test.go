@@ -25,12 +25,12 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	sellerEntity "github.com/labuda/backend/internal/commerce/seller/entity"
-	financeledger "github.com/labuda/backend/internal/finance"
-	addressEntity "github.com/labuda/backend/internal/identity/address/entity"
-	userEntity "github.com/labuda/backend/internal/identity/user/domain/entity"
-	paymentRepository "github.com/labuda/backend/internal/integration/payment/infrastructure/repository"
-	"github.com/labuda/backend/pkg/money"
+	sellerEntity "github.com/hishumi/backend/internal/commerce/seller/entity"
+	financeledger "github.com/hishumi/backend/internal/finance"
+	addressEntity "github.com/hishumi/backend/internal/identity/address/entity"
+	userEntity "github.com/hishumi/backend/internal/identity/user/domain/entity"
+	paymentRepository "github.com/hishumi/backend/internal/integration/payment/infrastructure/repository"
+	"github.com/hishumi/backend/pkg/money"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

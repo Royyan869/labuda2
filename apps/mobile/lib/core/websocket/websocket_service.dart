@@ -22,8 +22,8 @@ class WebSocketService {
   int _reconnectAttempts = 0;
   ConnectionState _state = ConnectionState.disconnected;
 
-  // Phase 5: Labuda canonical — token provider and connect generation for race safety.
-  Future<String?> Function()? _labudaTokenProvider;
+  // Phase 5: HiShumi canonical — token provider and connect generation for race safety.
+  Future<String?> Function()? _hishumiTokenProvider;
   int _connectGeneration = 0;
 
   // Room subscriptions
@@ -54,12 +54,12 @@ class WebSocketService {
   bool get isConnected => _state == ConnectionState.connected;
   ConnectionState get state => _state;
 
-  void setLabudaTokenProvider(Future<String?> Function()? provider) {
-    _labudaTokenProvider = provider;
+  void setHiShumiTokenProvider(Future<String?> Function()? provider) {
+    _hishumiTokenProvider = provider;
   }
 
   // Test-only accessor for provider
-  Future<String?> Function()? get labudaTokenProviderForTest => _labudaTokenProvider;
+  Future<String?> Function()? get hishumiTokenProviderForTest => _hishumiTokenProvider;
   int get connectGenerationForTest => _connectGeneration;
 
   // STABLE STREAM CONTRACT (Phase 4.1):
@@ -239,13 +239,13 @@ class WebSocketService {
   }
 
   void _scheduleReconnect() {
-    // Phase 5: do not reconnect if Labuda credential has been cleared (logout).
-    // Canonical reconnect uses Labuda token provider (Labuda storage). No _authToken fallback,
+    // Phase 5: do not reconnect if HiShumi credential has been cleared (logout).
+    // Canonical reconnect uses HiShumi token provider (HiShumi storage). No _authToken fallback,
     // no Firebase fallback, no stale pre-logout reuse.
-    final provider = _labudaTokenProvider;
+    final provider = _hishumiTokenProvider;
     if (provider == null) {
       developer.log(
-        'WebSocket reconnect stopped — no Labuda token provider (no _authToken fallback)',
+        'WebSocket reconnect stopped — no HiShumi token provider (no _authToken fallback)',
         name: 'WebSocketService',
       );
       _updateState(ConnectionState.disconnected);
@@ -277,13 +277,13 @@ class WebSocketService {
         // TRANSIENT (token refresh in flight) — never a terminal state.
         // Returning silently here is what used to leave the socket dead.
         developer.log(
-          'WebSocket reconnect deferred — Labuda access missing (retrying)',
+          'WebSocket reconnect deferred — HiShumi access missing (retrying)',
           name: 'WebSocketService',
         );
         _scheduleReconnect();
         return;
       }
-      // Use fresh Labuda JWT
+      // Use fresh HiShumi JWT
       connect(fresh);
     });
   }
@@ -298,12 +298,12 @@ class WebSocketService {
   }
 
   /// Foreground/resume entry point: drop any pending backoff and reconnect
-  /// NOW using the installed Labuda token provider. Wired to the
+  /// NOW using the installed HiShumi token provider. Wired to the
   /// app-lifecycle observer so a socket killed while backgrounded recovers
   /// on resume instead of waiting for the next login.
   void reconnectNow() {
     if (_isConnecting || isConnected) return;
-    final provider = _labudaTokenProvider;
+    final provider = _hishumiTokenProvider;
     if (provider == null) return;
     _reconnectTimer?.cancel();
     _reconnectAttempts = 0;
@@ -492,7 +492,7 @@ class WebSocketService {
   Future<void> disconnect() async {
     // Phase 5: bump generation to invalidate any in-flight handshake and
     // prevent stale reconnect (reconnect resolves fresh tokens via the
-    // Labuda token provider — there is no stored-token fallback).
+    // HiShumi token provider — there is no stored-token fallback).
     _connectGeneration++;
     _isConnecting = false;
     _reconnectTimer?.cancel();

@@ -7,8 +7,8 @@ import (
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 
-	"github.com/labuda/backend/internal/governance/viewercontext"
-	contententity "github.com/labuda/backend/internal/social/content/entity"
+	"github.com/hishumi/backend/internal/governance/viewercontext"
+	contententity "github.com/hishumi/backend/internal/social/content/entity"
 )
 
 // F1-W3B — /contents/:id evaluator canonical purity rebuild.

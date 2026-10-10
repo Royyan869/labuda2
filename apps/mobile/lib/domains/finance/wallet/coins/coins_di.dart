@@ -9,10 +9,10 @@
 library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/providers/core_providers.dart';
-import 'package:labuda/domains/finance/wallet/coins/domain/repositories/coin_repository.dart';
-import 'package:labuda/domains/finance/wallet/coins/data/coin_api_repository_impl.dart';
-import 'package:labuda/domains/finance/wallet/coins/data/remote/coin_api_datasource.dart';
+import 'package:hishumi/core/providers/core_providers.dart';
+import 'package:hishumi/domains/finance/wallet/coins/domain/repositories/coin_repository.dart';
+import 'package:hishumi/domains/finance/wallet/coins/data/coin_api_repository_impl.dart';
+import 'package:hishumi/domains/finance/wallet/coins/data/remote/coin_api_datasource.dart';
 
 // Export for convenience
 export 'domain/entities/coin_balance.dart' show CoinBalance;

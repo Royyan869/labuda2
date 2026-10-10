@@ -17,16 +17,16 @@ library;
 import 'auction_status.dart';
 
 // Import MediaEntity
-import 'package:labuda/domains/social/content/domain/entities/content.dart';
+import 'package:hishumi/domains/social/content/domain/entities/content.dart';
 
 // Shipping readiness vocabulary (canonical shared core type).
-import 'package:labuda/core/common/types/preparation_time.dart';
+import 'package:hishumi/core/common/types/preparation_time.dart';
 
 // Canonical governance lifecycle vocabulary (E8.2 seller user-axis).
-import 'package:labuda/shared/governance/content_lifecycle.dart';
+import 'package:hishumi/shared/governance/content_lifecycle.dart';
 
 // Canonical commerce detail action authority (per-viewer capabilities).
-import 'package:labuda/domains/commerce/catalog/shared/domain/entities/commerce_viewer_capabilities.dart';
+import 'package:hishumi/domains/commerce/catalog/shared/domain/entities/commerce_viewer_capabilities.dart';
 
 // ============================================================
 // ACTION AUTHORITY (Backend is Authority)

@@ -1,6 +1,6 @@
-import 'package:labuda/core/api/base_api_repository.dart';
-import 'package:labuda/core/common/result.dart';
-import 'package:labuda/core/src/presence/presence.dart';
+import 'package:hishumi/core/api/base_api_repository.dart';
+import 'package:hishumi/core/common/result.dart';
+import 'package:hishumi/core/src/presence/presence.dart';
 
 /// Canonical datasource for initial Presence snapshot.
 /// Uses GET /api/v1/users/presence?user_ids=id1,id2

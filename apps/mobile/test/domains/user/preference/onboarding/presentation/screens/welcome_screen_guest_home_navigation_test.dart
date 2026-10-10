@@ -22,10 +22,10 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/navigation/navigation_handler.dart';
-import 'package:labuda/core/navigation/navigation_provider.dart'
+import 'package:hishumi/core/navigation/navigation_handler.dart';
+import 'package:hishumi/core/navigation/navigation_provider.dart'
     show navigationHandlerProvider;
-import 'package:labuda/domains/user/preference/onboarding/presentation/screens/welcome_screen.dart';
+import 'package:hishumi/domains/user/preference/onboarding/presentation/screens/welcome_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Records every navigation call so tests can assert exactly which navigation

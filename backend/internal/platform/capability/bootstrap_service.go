@@ -6,8 +6,8 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/platform/capability/entity"
-	capabilityRepo "github.com/labuda/backend/internal/platform/capability/repository"
+	"github.com/hishumi/backend/internal/platform/capability/entity"
+	capabilityRepo "github.com/hishumi/backend/internal/platform/capability/repository"
 )
 
 // BootstrapResult summarizes the outcome of a bootstrap operation.

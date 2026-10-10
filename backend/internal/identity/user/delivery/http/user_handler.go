@@ -11,14 +11,14 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	userApp "github.com/labuda/backend/internal/identity/user/application"
-	userEntity "github.com/labuda/backend/internal/identity/user/domain/entity"
-	userRepo "github.com/labuda/backend/internal/identity/user/infrastructure/repository"
-	identityusername "github.com/labuda/backend/internal/identity/username"
-	"github.com/labuda/backend/internal/middleware"
-	"github.com/labuda/backend/internal/pkg/blockcheck"
-	"github.com/labuda/backend/internal/platform/response"
-	"github.com/labuda/backend/pkg/db"
+	userApp "github.com/hishumi/backend/internal/identity/user/application"
+	userEntity "github.com/hishumi/backend/internal/identity/user/domain/entity"
+	userRepo "github.com/hishumi/backend/internal/identity/user/infrastructure/repository"
+	identityusername "github.com/hishumi/backend/internal/identity/username"
+	"github.com/hishumi/backend/internal/middleware"
+	"github.com/hishumi/backend/internal/pkg/blockcheck"
+	"github.com/hishumi/backend/internal/platform/response"
+	"github.com/hishumi/backend/pkg/db"
 	"go.uber.org/zap"
 )
 

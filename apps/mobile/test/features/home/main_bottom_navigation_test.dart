@@ -10,8 +10,8 @@
 // entirely in MainScreen._showCreateContentModal's use of sellerState).
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/features/home/presentation/models/main_tab.dart';
-import 'package:labuda/features/home/presentation/widgets/main_bottom_navigation.dart';
+import 'package:hishumi/features/home/presentation/models/main_tab.dart';
+import 'package:hishumi/features/home/presentation/widgets/main_bottom_navigation.dart';
 
 List<MainTab> _twoTabs() => [
   const MainTab(

@@ -24,9 +24,9 @@
 // =============================================================================
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/domains/user/profile/domain/entities/profile_entity.dart';
-import 'package:labuda/domains/user/profile/domain/use_cases/get_profile_use_case.dart';
-import 'package:labuda/domains/user/profile/data/profile_providers.dart';
+import 'package:hishumi/domains/user/profile/domain/entities/profile_entity.dart';
+import 'package:hishumi/domains/user/profile/domain/use_cases/get_profile_use_case.dart';
+import 'package:hishumi/domains/user/profile/data/profile_providers.dart';
 
 // Use case providers
 final getProfileUseCaseProvider = Provider<GetProfileUseCase>((ref) {

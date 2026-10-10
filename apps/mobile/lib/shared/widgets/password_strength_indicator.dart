@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/shared/helpers/canonical_password_strength.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/shared/helpers/canonical_password_strength.dart';
 
 /// Canonical password strength meter.
 ///

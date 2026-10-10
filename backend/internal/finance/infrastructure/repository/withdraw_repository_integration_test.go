@@ -17,9 +17,9 @@ import (
 
 	"github.com/google/uuid"
 
-	financerepo "github.com/labuda/backend/internal/finance/infrastructure/repository"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/testdb"
+	financerepo "github.com/hishumi/backend/internal/finance/infrastructure/repository"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/testdb"
 )
 
 func setupWithdrawTest(t *testing.T) (*testdb.TestDB, *financerepo.WithdrawRepository, func()) {

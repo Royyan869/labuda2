@@ -240,7 +240,7 @@ func TestRun_RequiresEmailAndPasswordStdin(t *testing.T) {
 
 func TestCommand_NeverTouchesLabudaDatabaseOrAuthority(t *testing.T) {
 	forbidden := []string{
-		"github.com/labuda/backend/pkg/database",
+		"github.com/hishumi/backend/pkg/database",
 		"github.com/jackc/pgx",
 		"user_capabilities",
 		"AllCapabilityStrings",

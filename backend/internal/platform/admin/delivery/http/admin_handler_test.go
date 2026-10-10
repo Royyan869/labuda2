@@ -11,8 +11,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	notifservice "github.com/labuda/backend/internal/interaction/notification/service"
-	dbpkg "github.com/labuda/backend/pkg/db"
+	notifservice "github.com/hishumi/backend/internal/interaction/notification/service"
+	dbpkg "github.com/hishumi/backend/pkg/db"
 )
 
 func init() {

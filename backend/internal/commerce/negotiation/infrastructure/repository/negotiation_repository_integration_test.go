@@ -18,11 +18,11 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	negotiationEntity "github.com/labuda/backend/internal/commerce/negotiation/entity"
-	negotiationImpl "github.com/labuda/backend/internal/commerce/negotiation/infrastructure/repository"
-	negotiationRepo "github.com/labuda/backend/internal/commerce/negotiation/repository"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/testdb"
+	negotiationEntity "github.com/hishumi/backend/internal/commerce/negotiation/entity"
+	negotiationImpl "github.com/hishumi/backend/internal/commerce/negotiation/infrastructure/repository"
+	negotiationRepo "github.com/hishumi/backend/internal/commerce/negotiation/repository"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/testdb"
 )
 
 func setupNegotiationTest(t *testing.T) (*testdb.TestDB, negotiationRepo.Repository, func()) {

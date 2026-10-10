@@ -3,22 +3,22 @@ import 'dart:core';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:labuda/core/src/router/route_paths.dart';
-import 'package:labuda/domains/system/support/presentation/screens/help_center_screen.dart'
+import 'package:hishumi/core/src/router/route_paths.dart';
+import 'package:hishumi/domains/system/support/presentation/screens/help_center_screen.dart'
     show
         HelpArticle,
         HelpArticleScreen,
         HelpCategory,
         HelpCategoryScreen,
         HelpCenterScreen;
-import 'package:labuda/domains/system/support/presentation/screens/support_ticket_thread_screen.dart'
+import 'package:hishumi/domains/system/support/presentation/screens/support_ticket_thread_screen.dart'
     show SupportTicketThreadScreen;
-import 'package:labuda/domains/system/support/presentation/screens/support_tickets_list_screen.dart'
+import 'package:hishumi/domains/system/support/presentation/screens/support_tickets_list_screen.dart'
     show SupportTicketsListScreen;
-import 'package:labuda/domains/user/identity/authentication/domain/entities/auth_user.dart'
+import 'package:hishumi/domains/user/identity/authentication/domain/entities/auth_user.dart'
     show AuthUser;
-import 'package:labuda/domains/user/identity/authentication/presentation/providers/auth_controller.dart';
-import 'package:labuda/domains/user/identity/authentication/presentation/providers/auth_state.dart';
+import 'package:hishumi/domains/user/identity/authentication/presentation/providers/auth_controller.dart';
+import 'package:hishumi/domains/user/identity/authentication/presentation/providers/auth_state.dart';
 
 import 'base_module.dart';
 

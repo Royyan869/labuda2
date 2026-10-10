@@ -59,7 +59,7 @@ class _RealOrderingFirebaseAuth extends Fake implements FirebaseAuth {
     required String password,
   }) async {
     createCalls++;
-    final user = _DeletableUser(uidValue: 'fb-${createCalls}');
+    final user = _DeletableUser(uidValue: 'fb-$createCalls');
     _currentUser = user;
     _eventLog.add('createUserWithEmailAndPassword: uid=${user.uid}');
 

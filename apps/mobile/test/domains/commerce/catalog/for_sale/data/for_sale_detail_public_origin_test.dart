@@ -11,8 +11,8 @@
 // auction_response_dto_shipping_origin_test.dart; both channels must bind the
 // SAME wire slot so the shared CommerceDetailSellerCard renders one truth.
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/domains/commerce/catalog/for_sale/data/dto/for_sale_dto.dart';
-import 'package:labuda/domains/commerce/catalog/for_sale/data/mappers/for_sale_dto_mapper.dart';
+import 'package:hishumi/domains/commerce/catalog/for_sale/data/dto/for_sale_dto.dart';
+import 'package:hishumi/domains/commerce/catalog/for_sale/data/mappers/for_sale_dto_mapper.dart';
 
 Map<String, dynamic> _canonicalDetailJson() {
   return <String, dynamic>{

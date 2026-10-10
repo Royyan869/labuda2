@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/shared/utils/mention_parser.dart';
-import 'package:labuda/shared/widgets/mentions/mention_suggestion_overlay.dart';
-import 'package:labuda/features/search/search/search.dart'; // **R2.2 MIGRATED**: Import from search domain
-import 'package:labuda/core/src/theme/app_theme.dart';
+import 'package:hishumi/shared/utils/mention_parser.dart';
+import 'package:hishumi/shared/widgets/mentions/mention_suggestion_overlay.dart';
+import 'package:hishumi/features/search/search/search.dart'; // **R2.2 MIGRATED**: Import from search domain
+import 'package:hishumi/core/src/theme/app_theme.dart';
 
 /// TextField dengan mention support (@username autocomplete)
 ///

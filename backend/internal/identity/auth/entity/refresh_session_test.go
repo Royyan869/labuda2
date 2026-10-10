@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	authentity "github.com/labuda/backend/internal/identity/auth/entity"
+	authentity "github.com/hishumi/backend/internal/identity/auth/entity"
 )
 
 // --- RefreshSessionStatus ---

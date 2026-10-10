@@ -5,13 +5,13 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	auctionEntity "github.com/labuda/backend/internal/commerce/auction/entity"
-	forsaleEntity "github.com/labuda/backend/internal/commerce/forsale/entity"
-	"github.com/labuda/backend/internal/governance/moderation/entity"
-	moderationrepo "github.com/labuda/backend/internal/governance/moderation/infrastructure/repository"
-	contentRepo "github.com/labuda/backend/internal/social/content/infrastructure/repository"
-	contentrepository "github.com/labuda/backend/internal/social/content/repository"
-	"github.com/labuda/backend/pkg/db"
+	auctionEntity "github.com/hishumi/backend/internal/commerce/auction/entity"
+	forsaleEntity "github.com/hishumi/backend/internal/commerce/forsale/entity"
+	"github.com/hishumi/backend/internal/governance/moderation/entity"
+	moderationrepo "github.com/hishumi/backend/internal/governance/moderation/infrastructure/repository"
+	contentRepo "github.com/hishumi/backend/internal/social/content/infrastructure/repository"
+	contentrepository "github.com/hishumi/backend/internal/social/content/repository"
+	"github.com/hishumi/backend/pkg/db"
 )
 
 // forSaleOwnerRepo is a minimal interface for looking up fixed-price sale seller.

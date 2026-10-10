@@ -8,11 +8,11 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/commerce/forsale/entity"
-	sellerEntity "github.com/labuda/backend/internal/commerce/seller/entity"
-	"github.com/labuda/backend/pkg/db"
-	"github.com/labuda/backend/pkg/money"
-	"github.com/labuda/backend/pkg/testdb"
+	"github.com/hishumi/backend/internal/commerce/forsale/entity"
+	sellerEntity "github.com/hishumi/backend/internal/commerce/seller/entity"
+	"github.com/hishumi/backend/pkg/db"
+	"github.com/hishumi/backend/pkg/money"
+	"github.com/hishumi/backend/pkg/testdb"
 )
 
 // PASS_19E: proves for_sales.quantity_available is real, persisted

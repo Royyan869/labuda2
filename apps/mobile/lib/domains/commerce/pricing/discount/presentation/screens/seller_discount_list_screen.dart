@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:labuda/core/core.dart';
-import 'package:labuda/shared/widgets/app_dialog.dart';
-import 'package:labuda/shared/widgets/app_snackbar.dart';
-import 'package:labuda/shared/widgets/empty_state.dart';
-import 'package:labuda/shared/widgets/page_error_state.dart';
-import 'package:labuda/domains/commerce/pricing/discount/domain/entities/discount_entity.dart';
-import 'package:labuda/domains/commerce/pricing/discount/presentation/providers/discount_provider.dart';
-import 'package:labuda/domains/commerce/pricing/discount/presentation/widgets/discount_card.dart';
+import 'package:hishumi/core/core.dart';
+import 'package:hishumi/shared/widgets/app_dialog.dart';
+import 'package:hishumi/shared/widgets/app_snackbar.dart';
+import 'package:hishumi/shared/widgets/empty_state.dart';
+import 'package:hishumi/shared/widgets/page_error_state.dart';
+import 'package:hishumi/domains/commerce/pricing/discount/domain/entities/discount_entity.dart';
+import 'package:hishumi/domains/commerce/pricing/discount/presentation/providers/discount_provider.dart';
+import 'package:hishumi/domains/commerce/pricing/discount/presentation/widgets/discount_card.dart';
 
 /// Screen untuk list semua discount milik seller
 class SellerDiscountListScreen extends ConsumerStatefulWidget {

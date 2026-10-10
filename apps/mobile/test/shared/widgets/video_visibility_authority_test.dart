@@ -1,9 +1,9 @@
 import 'package:chewie/chewie.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/shared/widgets/app_image.dart';
-import 'package:labuda/shared/widgets/carousel_video_player.dart';
-import 'package:labuda/shared/widgets/media_viewer_video_player.dart';
+import 'package:hishumi/shared/widgets/app_image.dart';
+import 'package:hishumi/shared/widgets/carousel_video_player.dart';
+import 'package:hishumi/shared/widgets/media_viewer_video_player.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
 /// VIDEO MAJOR SURFACE: players are visibility-aware, not eager.

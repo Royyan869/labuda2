@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	commerceshared "github.com/labuda/backend/internal/commerce/shared"
-	feedentity "github.com/labuda/backend/internal/social/feed/entity"
+	commerceshared "github.com/hishumi/backend/internal/commerce/shared"
+	feedentity "github.com/hishumi/backend/internal/social/feed/entity"
 )
 
 func TestFeedItemToResponseCanonicalWithProjection_PrefersCanonicalProjection(t *testing.T) {

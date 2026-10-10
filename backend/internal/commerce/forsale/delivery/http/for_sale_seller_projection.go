@@ -4,10 +4,10 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	"github.com/labuda/backend/internal/governance/viewercontext"
-	identityusername "github.com/labuda/backend/internal/identity/username"
-	"github.com/labuda/backend/internal/pkg/publiccard"
-	"github.com/labuda/backend/internal/platform/mediaresolve"
+	"github.com/hishumi/backend/internal/governance/viewercontext"
+	identityusername "github.com/hishumi/backend/internal/identity/username"
+	"github.com/hishumi/backend/internal/pkg/publiccard"
+	"github.com/hishumi/backend/internal/platform/mediaresolve"
 )
 
 // forSaleSellerProjection is the fixed-price-local seller identity

@@ -11,9 +11,9 @@ library;
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:labuda/core/src/theme/app_theme.dart';
-import 'package:labuda/core/media/media_upload_orchestrator.dart';
-import 'package:labuda/domains/commerce/transaction/order/domain/entities/refund_request.dart';
+import 'package:hishumi/core/src/theme/app_theme.dart';
+import 'package:hishumi/core/media/media_upload_orchestrator.dart';
+import 'package:hishumi/domains/commerce/transaction/order/domain/entities/refund_request.dart';
 
 class RefundRequestDialog extends StatefulWidget {
   final String orderId;

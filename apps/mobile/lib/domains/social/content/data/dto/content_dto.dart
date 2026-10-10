@@ -7,7 +7,7 @@
 // - FRONTEND-ONLY FIELDS REMOVED: shippingCity, shippingProvince
 
 import 'package:json_annotation/json_annotation.dart';
-import 'package:labuda/shared/domain/entities/resource_projection.dart';
+import 'package:hishumi/shared/domain/entities/resource_projection.dart';
 
 part 'content_dto.g.dart';
 
